@@ -1,0 +1,3795 @@
+Title: Fine-Tuning Dynamics of In-Context Factual Recall in Transformers
+
+URL Source: https://arxiv.org/pdf/2605.27774v1
+
+Published Time: Thu, 28 May 2026 00:24:37 GMT
+
+Number of Pages: 33
+
+Markdown Content:
+# Fine-Tuning Dynamics of In-Context Factual Recall in Transformers 
+
+Ruomin Huang 
+
+Duke University 
+
+ruomin.huang@duke.edu 
+
+Eshaan Nichani 
+
+Princeton University 
+
+eshnich@princeton.edu 
+
+Jason D. Lee 
+
+UC Berkeley 
+
+jasondlee@berkeley.edu 
+
+Rong Ge 
+
+Duke University 
+
+rongge@cs.duke.edu 
+
+## Abstract 
+
+In-context learning – performing tasks based on examples given in the prompt – is an important capability that has emerged in large language models and has received significant attention in both theory and practice. Existing theoretical work often focuses on settings where the learning uses information purely from the prompt. However, many practical instances of in-context learning require the model to retrieve factual knowledge stored in the model’s parameters, with the context serving to identify which knowledge is relevant. In this work, we study how in-context learning leverages factual knowledge recall. We formalize this behavior by introducing the in-context factual recall (IC-recall) task, where a transformer is provided a context of (subject, answer) pairs generated from a hidden relation, along with a query subject, and must both infer this hidden relation and retrieve the corresponding answer. Factual knowledge is modeled by the transformer having access to a simple pre-constructed MLP associative memory storing (subject, relation, answer) triplets. We analyze the supervised fine-tuning dynamics of a one-layer transformer on IC-recall data and prove that the model successfully performs IC-recall by converging to a particular pairwise attention pattern. This fine-tuning stage requires a very small number of samples – only polylogarithmic in the number of stored knowledge triplets. Experiments verify our theoretical predictions and show that the pairwise attention pattern emerges even when the MLP layer is pretrained instead of constructed. 
+
+## 1 Introduction 
+
+Transformer-based large language models (LLMs) exhibit strong in-context learning (ICL) abilities: they can use examples provided in the prompt to improve prediction on a new query [Brown et al., 2020]. Considerable research has sought to understand the mechanisms underlying ICL, and most existing works focus on settings in which transformers rely only on the context to make predictions. One line of work studies ICL over function classes [Garg et al., 2022, von Oswald et al., 2023, Zhang et al., 2024], where transformers are trained from scratch on sequences of (x, f (x)) examples for a context-dependent function f , and learn to predict f (xq ) for a new query xq . Another line of work [Nichani et al., 2024, Edelman et al., 2024] studies how transformers learn to solve particular matching or copying tasks by converging to the induction head mechanism [Olsson et al., 2022]. Although these are interesting settings to study ICL from a theoretical perspective, they do not capture an important behavior common in real-world LLM applications, where the model must combine contextual information with factual knowledge, or parametric knowledge [Petroni et al., 2019, Roberts et al., 2020, Cheng et al., 2024], stored in its weights. For example, given the prompt 
+
+> Preprint.
+> arXiv:2605.27774v1 [cs.LG] 26 May 2026
+
+Figure 1: Left: factual knowledge corpus. Each sentence consists of three components: subject, relation and answer. We can put these components into the subject set S =
+
+{Jack, Alice, Bob }, the relation set R = {was born in, worked at } and the answer set A =
+
+{Boston, New York, Chicago, San Francisco }. We can view each relation r ∈ R as a mapping from S to A. Right: IC-recall data requires the model to complete the sequence in a specific format: (s1, a 1, s 2, a 2, s 3, u EoS ). Here uEoS is the End-of-Sequence (EoS) token, s1, s 2 ∈ S and 
+
+a1 = r(s1), a 2 = r(s2) for some underlying relation r.“Albert Einstein → Germany, Isaac Newton → England, Marie Curie → ?”, the model must first use its stored knowledge to infer that the relation between subject and answer is nationality, then answer the query by retrieving the fact (again from stored knowledge) that Marie Curie was Polish. In this paper, we formalize this behavior through the in-context factual recall (IC-recall) task. Motivated by Petroni et al. [2019], Ghosal et al. [2024], Nichani et al. [2025], we model factual knowledge as (subject , relation , answer ) triplets. Each sequence in the IC-recall task consists of (subject, answer) pairs generated from the same relation, along with a query subject; the goal of the task is to output the answer corresponding to the query subject and hidden relation. Here, the context alone is insufficient to answer the query, as the model must also rely on the factual knowledge. See Figure 1 for an illustration of the task, and Section 2 for a formal definition. 
+
+1.1 Our Results 
+
+We consider fine-tuning a model which already stores factual knowledge in its parameters on sequences from the IC-recall task. Specifically, the model is a transformer with a single self-attention head followed by an MLP layer. We construct an MLP layer that acts as an associative memory [Nichani et al., 2025] storing (subject, relation, answer) triplets (see Section 3), and assumes that the MLP layer remains fixed throughout fine-tuning. We fine-tune the model to access this relevant knowledge in two steps: it first infers the underlying relation r from the context, and then uses r to predict the answer. This two-step structure naturally aligns with the chain-of-thought (CoT) [Wei et al., 2022] paradigm, where an intermediate decoding step outputs r before producing the final answer. In Section 4, we analyze the supervised fine-tuning dynamics of this one-layer transformer on IC-recall data with two in-context examples. We prove that the transformer successfully performs IC-recall by converging to a pairwise attention pattern – the transformer places equal attention weight to the tokens within each pair of in-context examples, but different attention weights across pairs. This identifies a mechanism for ICL which is qualitatively different from the induction head [Olsson et al., 2022]. We also show that the number of fine-tuning samples required to achieve high test accuracy on the IC-recall task grows polylogarithmically with the number of stored factual associations. Empirically, we show in Section 5 that as predicted by theory, fine-tuning only requires a very small number of sequences (8 often already achieves high accuracy). We also show that similar pairwise attention patterns extend to the cases with more than two in-context examples, and when the MLP layer is pretrained instead of constructed. 
+
+1.2 Related works Knowledge localization and associative memories. Prior work suggests that factual knowledge in language models can be stored in either MLP layers [Geva et al., 2021, Meng et al., 2022, Dai et al., 2022], though it may also be encoded in attention layers [Chen et al., 2025, Wei et al., 2024]. 2Recent theory studies the ability of transformers to store factual knowledge via associative memories, showing that their storage capacity scales proportionally with model size [Allen-Zhu and Li, 2025, Nichani et al., 2025, Cabannes et al., 2024a]. Ravfogel et al. [2026] further propose a construction in which the required model size depends only logarithmically on the number of subjects. Nichani et al. [2025] analyze the training dynamics of associative memory formation in one-layer linear transformers, and Cabannes et al. [2024b] study the training dynamics for linear layers. 
+
+Theoretical understanding of in-context learning. Garg et al. [2022] study the function classes that transformers can learn in context. von Oswald et al. [2023] show that transformers can learn linear functions in context by implicitly simulating gradient descent, and Zhang et al. [2024] later prove convergence in this setting. Olsson et al. [2022] identify induction heads as a mechanism underlying certain forms of in-context learning. Nichani et al. [2024], Edelman et al. [2024] analyze how induction heads emerge via gradient-based training on in-context Markov chains. Chen et al. [2024] study how transformers learn a generalized induction head from in-context n-gram data. Bu et al. [2025] analyze factual-recall ICL under a data model that admits task-vector arithmetic, where answers are obtained by adding a retrieved task vector to the query representation. Among prior works, Vasudeva et al. [2026] study the most similar data-generation setting, which they call the contextual recall task. Their work assumes disjoint answer sets across relations, providing an additional signal for ruling out irrelevant answers using the in-context examples. In contrast, our setting allows answers to be shared across different relations. 
+
+Fine-tuning dynamics. Malladi et al. [2023], Ren and Sutherland [2025], Zeng et al. [2025] analyze fine-tuning dynamics through the neural tangent kernel (NTK) perspective. On related factual recall tasks, Ghosal et al. [2024] study the fine-tuning dynamics of a self-attention layer in which the value matrix WV stores facts. 
+
+Benefits of CoT. Gekhman et al. [2026] empirically discover that chain-of-thought (CoT) improves factual recall. Merrill and Sabharwal [2024], Liu et al. [2024] show that CoT reasoning increases the expressive power of transformers. Abbe et al. [2024] show that CoT can expand the learnable function class of transformers. In addition, Wen et al. [2025], Kim and Suzuki [2025] show that CoT substantially improves the sample efficiency of transformers for k-parity. 
+
+## 2 Preliminaries 
+
+2.1 Transformer architecture Vocabulary. Let the vocabulary be V = S ∪ R ∪ A ∪ { uEoS }, where S, R, and A denote the sets of subjects, relations, and answers, respectively, and uEoS denotes the end-of-sequence (EoS) token. We assume that |S| = |A| =: n, and that each r ∈ R is a bijection from S to A. For each pair (s, r ) ∈ S × R , let r(s) ∈ A denote the associated answer. We also denote R(s, a ) the set of relations that map s to a.
+
+Embedding. All elements in vocabulary u ∈ V are embedded into ϕ(u) ∈ Rd. For simplicity, we assume that all embeddings are unit vectors and mutually orthogonal, i.e., ⟨ϕ(u), ϕ (u′)⟩ = 0 
+
+for all u̸ = u′. We also use one-hot positional encodings. Specifically, for the i-th input token, we concatenate its embedding with the one-hot vector ei ∈ RdP , where dP is the maximum input length. Thus, for an input sequence eZ = ( u1, . . . , u k) ∈ V k, we define the embedding matrix 
+
+Z = E( eZ) := 
+
+ e1 e2 · · · ek
+
+ϕ(u1) ϕ(u2) · · · ϕ(uk)
+
+
+
+∈ R(d+dP )×k.
+
+Architecture. We consider a one-layer transformer f (Z; W). Let z−1 ∈ Rd+dP denote the last token in the input embedding matrix Z. The model output is given by 
+
+h = W P  z−1 + Z softmax  Z⊤W KQ z−1
+
+ ,
+
+and 
+
+f (Z; W) = fMLP (h) = V ⊤σ(W h ),
+
+3where W, V ∈ RdMLP ×d, dMLP is the width of the MLP, W P = (0 d×dP Id) projects onto the token-embedding component only, and W = ( W KQ , W, V ) are the set of parameters. We also assume that the activation in the MLP is the quadratic function σ(x) = x2 applied element-wise. 
+
+Construction of the MLP associative memory. Transformers have been observed to memorize factual knowledge within the MLP layer. In practice, this memorization process typically occurs during the pretraining stage. However, to enable theoretical analysis, we will assume the MLP layer is pre-constructed to store a given knowledge set. In Section 5, we will observe empirically that pretrained MLPs behave similarly to our constructed MLP on the IC-recall task. Consider a pretraining sequence eZPT = ( u1, u 2) that contains two randomly selected elements u1, u 2
+
+from a valid fact triplet (s, r, a ). We say that the MLP stores this fact triplet if the argmax decoding 
+
+arg max  
+
+> u∈V
+
+ϕ(u)⊤fMLP (ϕ(u1) + ϕ(u2)) 
+
+recovers the remaining element of the triplet. We refer to an MLP layer which satisfies this property for all possible pretraining sequences as an MLP associative memory . As shown later in Section 3, such an associative memory admits a simple and natural construction. In the following, we assume that the MLP associative memory used in the IC-recall task is given by this construction. 
+
+2.2 IC-recall task 
+
+We next formally define the IC-recall task. 
+
+Definition 1 (IC-recall task) . Given subject, relation, answer sets S, R, A and a one-layer trans-former f (Z; W), whose MLP layer fMLP (·) is preconstructed as an MLP associative memory, the in-context factual recall task consists of data generated as follows: 1. Sample a relation r∗ ∈ R uniformly at random. 2. Sample three distinct subjects s1, s 2, s 3 ∈ S uniformly at random, and define a1 = r∗(s1),
+
+a2 = r∗(s2), and a3 = r∗(s3).3. Construct the IC-recall sequence eZ = ( s1, a 1, s 2, a 2, s 3, u EoS ), with prediction target 
+
+r∗, a 3.We denote PIC the distribution of such generated IC-recall sequence eZ.
+
+To make sure it is possible to correctly solve the IC-recall task, we assume that any two subject–answer pairs identifies at most one relation. 
+
+Assumption 1. For any s1, s 2 ∈ S and a1, a 2 ∈ A , { r ∈ R | r(s1) = a1, r (s2) = a2 } ≤ 1.
+
+The IC-recall task provides the true relation r∗ as an intermediate step of the reasoning, which makes the problem easier. Without this form of strong supervision, the partially fine-tuned 1-layer transformer cannot achieve accuracy greater than 1/3 (see Lemma 4 in Appendix). Similar strong supervision was also considered in other works analyzing CoT [Wen et al., 2025, Kim and Suzuki, 2025]. We also remark that without such intermediate supervision, transformers struggle to learn compositional reasoning tasks [Wang et al., 2025]. 
+
+2.3 Training loss for the IC-recall task 
+
+We now define the loss used for fine-tuning. It is a chain-of-thought (CoT) objective in which the model decodes in two steps to produce the final answer. In the first step, the model predicts the relation token r associated with the input sequence; in the second step, it predicts the answer a3.For simplicity of analysis, we assume that the “irrelevant” logits are masked out during prediction. That is, in the first decoding step, only the logits corresponding to relation tokens are retained. Likewise, in the second decoding step, only the logits corresponding to answer tokens are retained. Therefore given an IC-recall sequence eZ, we can write the prediction of the first decoding step as p1(·; W, eZ) := softmax 
+
+
+
+Ar f (E( eZ); W)/T 
+
+
+
+∈ R|R| where Ar ∈ R|R|× d is the embedding matrix of all relations and T > 0 is the prediction temperature. Similarly, conditioned on the first 4decoded relation being r, we write the prediction of the second decoding step as p2,r (·; W, eZ) := softmax 
+
+
+
+Aaf (E([ eZ, r ]); W)/T 
+
+
+
+∈ R|A| where Aa ∈ R|A|× d is the embedding matrix of all answers. We sample a fine-tuning dataset D from distribution PIC and let 
+
+L1(W, D ) = 1
+
+|D|
+
+X
+
+> eZ∈D
+
+ℓ1(W, eZ) := − 1
+
+|D|
+
+X
+
+> eZ∈D
+
+log 
+
+
+
+p1(r∗( eZ); W, eZ)
+
+
+
+(1) denote the cross-entropy loss for the first decoding step, where r∗( eZ) is the underlying relation for the sequence eZ. The second decoding step uses the cross-entropy loss conditioned on the correct relation r∗( eZ).
+
+L2(W, D ) = 1
+
+|D|
+
+X
+
+> eZ∈D
+
+ℓ2(W, eZ) := − 1
+
+|D|
+
+X
+
+> eZ∈D
+
+log 
+
+
+
+p2,r ∗( eZ)(a3( eZ); W, eZ)
+
+
+
+(2) where a3( eZ) is the correct answer for the sequence eZ. We use r∗, a 3 instead of r∗( eZ), a 3( eZ) when the sequence is clear from context. The CoT loss is the sum of these two losses 
+
+L(W, D ) = L1(W, D ) + L2(W, D ). (3) 
+
+Partial fine-tuning. To simplify the theoretical analysis, we only fine-tune the position-position block W KQ    
+
+> 1: dP,1: dP
+
+of the attention matrix, while keeping the MLP associative memory and the rest of the entries of WKQ fixed. There are only two vectors inside W KQ    
+
+> 1: dP,1: dP
+
+that are relevant for the two decoding steps. Let θ := W KQ  
+
+> 1:6 ,6
+
+∈ R6 and ω := W KQ  
+
+> 1:7 ,7
+
+∈ R7. Then softmax( θ) and softmax( ω)
+
+are the attention scores from the EoS token and the first decoded token respectively; the first decoding step depends solely on θ, and the second depends solely on ω. Therefore we can rewrite the loss as 
+
+L(θ, ω, D ). In Section 5, we show empirically that even without this restriction, the transformer finds the same solution as our theory predicts. 
+
+## 3 MLP associative memory 
+
+In this section we provide a simple construction of the MLP layer with dMLP = O(|S| · |A| ) that achieves 100% accuracy as an MLP associative memory. This serves as the frozen MLP in our theoretical analysis. 
+
+Lemma 1. There exists an MLP layer fMLP (x) = V ⊤σ(W x ) with width dMLP = O(|S| · |A| ), such that for any triplet (s, r, a ) where r maps s to a, we have a = arg max u∈V ϕ(u)⊤fMLP (ϕ(s)+ ϕ(r)) ,
+
+r = arg max u∈V ϕ(u)⊤fMLP (ϕ(a) + ϕ(s)) and s = arg max u∈V ϕ(u)⊤fMLP (ϕ(a) + ϕ(r)) .
+
+Proof sketch. Let dMLP = 3 |S| · |A| . Let wj and vj be the j-th row of W and V respectively. We assign indices to all (s, a ) pairs. For the i-th (s, a ) pair, we assign 3 rows in W and V to store the relevant factual knowledge. Specifically, let w3i−2 = ϕ(s) + P 
+
+> r∈R (s,a )
+
+ϕ(r) and v3i−2 = ϕ(a);let w3i−1 = ϕ(a) + ϕ(s) and v3i−1 = P 
+
+> r∈R (s,a )
+
+ϕ(r); let w3i = ϕ(a) + P 
+
+> r∈R (s,a )
+
+ϕ(r) and 
+
+v3i = ϕ(s) (we define P 
+
+> r∈R (s,a )
+
+ϕ(r) = 0 if R(s, a ) is empty). It is easy to examine that such constructed MLP satisfies the properties in Lemma 1; see the full proof in Appendix A. 
+
+Remark. If non-orthogonal embeddings are allowed, one can obtain a more parameter-efficient construction of MLP associative memory, with a total number of parameters nearly linear in |S| · |R| ,as shown by Nichani et al. [2025]. For simplicity in the subsequent dynamics analysis, we stick to the MLP construction in Lemma 1, which is based on orthogonal embeddings. 
+
+## 4 Fine-tuning dynamics for IC-Recall 
+
+We show in this section that with the constructed MLP associative memory, transformers can achieve perfect accuracy on IC-recall data after fine-tuned by the perturbed gradient descent (PGD) in Algorithm 1. Specifically, we have the following Theorem: 5Theorem 1. Assuming that the IC-recall data satisfies Assumptions 1 and 2, there exist constants 
+
+C1, C 2 > 0 such that for any T ≤ C1/ log n, if we set η1 = Θ( T √T log 1 
+
+> T
+
+), η 2 = Θ( T 2), t 1 = 1 
+
+and t2 ≥ C2 
+
+> T
+
+log 1 
+
+> T
+
+in Algorithm 1, with probability at least 1 − δ over the sampled data D and the random perturbation, the transformer fine-tuned on ˜O(poly( 1 
+
+> T
+
+)) 1 samples will have accuracy at least 0.99 on all IC-recall sequences the for final predicted answers. 
+
+Note that Assumption 1 implies that it is possible to infer the hidden relation from only two in-context examples, and Assumption 2 (introduced later in Section 4.2) considers a particular difficult setting where the pairwise attention pattern is necessary to achieve good accuracy. This suggests that 
+
+O(polylog( n)) samples are sufficient for the transformer to learn how to use the stored knowledge to perform IC-recall, far fewer than seeing every possible subjects/answers. 
+
+Algorithm 1: Temperature-Scaled Perturbed Gradient Descent 
+
+Input: Decoding temperature T > 0, failure probability δ ∈ (0 , 1) , learning rates η1, η 2, number of iterations t1, t 2, fine-tuning dataset D.
+
+Initialization : (θ, ω ) ← 0.
+
+Stage 1 : Train (θ, ω ) using gradient descent with step size η1 over loss L(θ, ω, D ; T ) for t1
+
+iterations to obtain (˜θ, ˜ω).
+
+Stage 2 : Sample a perturbation ξ ∼ Uniform  B  0, Θ  T 3 log −2( 1 
+
+> δ
+
+) , and set perturbed initialization (θ0, ω 0) ← (˜θ, ˜ω) + ξ. Run gradient descent from (θ0, ω 0) with step size η2 over loss L(θ, ω, D ; T ) for t2 iterations. The first decoding step that recovers the underlying relation is harder to analyze. Algorithm 1 is separated into two stages, where stage 1 is a single large gradient step and stage 2 is a perturbation followed by a few smaller gradient steps. We provide intuition on how the two stages work using a simple warm-up example with 3 subjects in Section 4.1. We then discuss the difficulty in extending such an analysis to the case when we do not see all subjects/answers in Section 4.2, and show how this can be overcome by lowering the temperature T in the decoding. Finally we complete the analysis of the second-step decoding in Section 4.3. 
+
+4.1 Warm up: a three-subject instance 
+
+We first consider the simple case where |S| = |A| = 3 and |R| = 6 . In this case, R consists all 
+
+6 bijections from S to A. For an IC-recall sequence (s1, a 1, s 2, a 2, s 3, u EoS ), we denote by r1 the underlying correct relation and r2, . . . , r 6 the remaining relations (see details in Table 1). The goal is to predict the correct relation r1. We call the relation r2 the confusing relation, and r3, ..., r 6 which assign s3 to one of a1, a 2 the mismatched relations. It is worth noting that, in this three-subject setting, the gradients satisfy ∇θ ℓ1(θ, Z 1) = ∇θ ℓ1(θ, Z 2) for any two IC-recall sequences Z1 and 
+
+Z2. Consequently, the empirical loss is equivalent to the population loss, and it suffices to analyze the dynamics on a single fine-tuning sequence. As we will see later, even in this simple setting, transformers still learn a non-trivial solution and exhibit a two-stage fine-tuning dynamics. 
+
+s1 s2 s3 type 
+
+r1 a1 a2 a3 correct 
+
+r2 a2 a1 a3 confusing 
+
+r3 a1 a3 a2 mismatched 
+
+r4 a2 a3 a1 mismatched 
+
+r5 a3 a1 a2 mismatched 
+
+r6 a3 a2 a1 mismatched Table 1: The six bijections r1, . . . , r 6 from {s1, s 2, s 3} to {a1, a 2, a 3}.Let v := softmax( θ) be the attention vector from the EoS token. We will show that in Algorithm 1, for a sufficiently small constant temperature T , if we set η1 = Θ( T 2), η 2 = Θ( T 2), t1 = t2 = ∞ so      
+
+> 1We use ˜Oto hide poly log 1
+> δfactors.
+
+6(a) Fine-tuned on (s1, a 1, s 2, a 2, s 3, u EoS ) (b) Fine-tuned on (s1, a 1, s 2, a 2, s 3, a 3, s 4, u EoS )
+
+Figure 2: Pairwise attention at convergence for predicting the relation token in the first row. The first row is the attention scores from EoS token (first decoding step), and the second row is the attention scores from the decoded relation r∗ (second decoding step). We set |S| = |A| = 8 and fix MLP as the construction in Lemma 1 for both experiments. Left is the 2-ICL-example input with 
+
+|R| = 64 , T = 0 .05 and right is 3-ICL-example input with |R| = 512 , T = 0 .01 .that Stage 1 and Stage 2 converge, then the fine-tuned transformer will converge to a global optimum where v exhibits a pairwise pattern. Formally, we show the following Theorem. 
+
+Theorem 2. There exists constant T0(δ) > 0 that only depends on δ, such that for any T < T 0, if we set η1 = Θ( T 2), η 2 = Θ( T 2), t 1 = t2 = ∞ in Algorithm 1, then with probability at least 1 − δ
+
+the transformer trained by Algorithm 1 will converge to the global optimum θ∗ for L1(θ; T ). At the convergence the attention scores v∗ = ( a, a, 12 − a, 12 − a, 0, 0) with some a̸ = 14 .
+
+The proof of Theorem 2 is based on a loss-landscape analysis and is deferred to Appendix B. The convergence happens in two stages, and we provide a sketch of each stage below. 
+
+First stage: convergence to a saddle point. In the first stage, the attention scores v converge to the saddle point ˜v = (1 /4, 1/4, 1/4, 1/4, 0, 0) . The transformer learns that s3 and the EoS tokens are irrelevant in predicting the relation. The uniform attention over s1, a 1, s 2, a 2 arises from the 
+
+symmetry between the two pairs (s1, a 1) and (s2, a 2), together with the symmetric initialization. During this stage, v5 – the attention score on the query subject s3 – decreases, which makes the prediction logits of mismatched relations r3, . . . , r 6 significantly smaller than those of r1 and r2 (see Table 2 in the Appendix). By the end of this stage, the prediction of the transformer is uniform on r1
+
+(the correct relation) and r2 (the confusing relation), but it cannot distinguish them, since v remains symmetric across the two subject-answer pairs. 
+
+Second stage: escape the saddle. At the beginning of the second stage, a random perturbation is added. This perturbation breaks the symmetry between the two subject-answer pairs, so that after a few steps of gradient descent, the model escapes from the saddle point with high probability [Jin et al., 2017]. After escaping the saddle, the transformer begins to assign a higher prediction probability to 
+
+r1 than to r2. Notably, a pairwise attention pattern emerges: the ratios v1/v 2 and v3/v 4 converge to 
+
+1, while the corresponding limiting attention scores are different. See Figure 2 for an illustration of this pattern. Denote by l := Ar f (Z; θ) the logit vector of the prediction for the first decoding step, where Ar is the embedding matrix for the the relations and the logit is a quadratic function 2 of the attention scores v, as shown in Table 2 in the Appendix. The logit gap between r1 and r2 satisfies 
+
+l(r1) − l(r2) ∝ (v1 − v3)( v2 − v4). Hence, the transformer ensures that v1 − v3 and v2 − v4 have the same sign to make this gap positive. Moreover, by the AM–GM inequality, replacing both v1, v 2
+
+by their mean (v1 + v2)/2 and v3, v 4 by their mean (v3 + v4)/2 can only increase this gap or leave it unchanged. Therefore v1 and v2 will be driven together, and likewise for v3 and v4, thus explaining the pairwise attention pattern. Finally, we remark that even though our analysis is for two in-context examples, the pairwise attention emerges empirically when there are more in-context examples (see Figure 2 (b)). 
+
+4.2 Analysis on the first decoding step 
+
+In this section, we consider the general case of |S| = |A| = n ≥ 3. Now, the empirical loss is no longer equivalent to the population loss. In particular, there may exist two subject–answer pairs that are not jointly matched by any relation, which breaks the symmetry among IC-recall sequences 
+
+> 2This is because the MLP layer uses the quadratic activation.
+
+7Z. For an input sequence Z = ( s1, a 1, s 2, a 2, s 3, u EoS ), we call a relation r a 2-matching relation 
+
+if r maps two of the three subjects {s1, s 2, s 3} to the two answers {a1, a 2}. We call r a confusing relation (similar to r2 in previous section) for Z if r(s1) = a2 and r(s2) = a1. At the saddle point after stage 1, the model cannot distinguish the confusing relation and the correct relation. Similarly, we call a 2-matching relation r a mismatched relation for Z if r(s3) = a1 or r(s3) = a2. These correspond to the relations r3, r 4, r 5, r 6 in the simple example in previous subsection. Finally, we call a sequence confusing/mismatched if it has at least one confusing/mismatched relation. Notice that a sequence might be both confusing and mismatched (in fact, all sequences in the simple example are both confusing and mismatched). Now that we are working with the empirical loss, we will show that fine-tuning the transformer on O(polylog( n)) random samples can still achieve over 0.999 test accuracy on predicting the underlying relation r in the first decoding step. We denote pconf the fraction of confusing sequences and pmis the fraction of mismatched sequences in D. We assume that each of these two sequence types occupies at least a constant fraction of the IC-recall data distribution. 
+
+Assumption 2. There exists a constant 0 < ζ ≤ 1, such that the probability a random IC-recall sequence is a confusing sequence is at least ζ, and the probability it is a mismatched sequence is also at least ζ.
+
+Note that if no input sequences are confusing, the problem is easier in the sense that the saddle point that stage 1 converges to will also achieve 100% accuracy. If there are no confusing sequences and no mismatched sequences, then even the initial solution would have 100% accuracy. Therefore this assumption ensures we are considering the hardest case. The loss-landscape analysis in Section 4.1 relies on the symmetry of the loss in the pairs v1, v 3 and 
+
+v2, v 4. This symmetry is difficult to generalize as the empirical loss is not symmetric. Another difficulty is that the attention pairing in Stage 2 relies on v5 converging to 0, which is requires many steps and is in fact unnecessary for achieving near-optimal performance. Therefore, in this section we instead analyze the low-temperature dynamics. With a lower temperature T , any improvement on the prediction logits will be amplified by 1/T ,which accelerates convergence. It therefore suffices to take only a single gradient descent step with a larger step size in Stage 1 and O   1 
+
+> T
+
+log 1
+
+> T
+
+ gradient descent steps in Stage 2. We show that this fine-tuning procedure also reaches a near-optimal solution. It is worth noting that, because the temperature is much lower, the near-saddle point reached after Stage 1 is closer to ( 16 , 16 , 16 , 16 , 16 , 16 ) than to 
+
+( 14 , 14 , 14 , 14 , 0, 0) , and the final solution does not exhibit the exact pairwise attention pattern (yet it still attends more to one pair compared to the other). Nevertheless, the resulting solution remains near-optimal in terms of accuracy. This property allows the training dynamics to be constrained in a local region near its initialization, and avoids difficult boundary cases when the attention to any of the positions gets near 0. Altogether, we show the following theorem, with proof deferred to Appendix C. 
+
+Theorem 3. Assuming the IC-recall data satisfies Assumptions 1 and 2, there exist constants 
+
+C1, C 2 > 0, such that for any T ≤ C1/ log n, if we set η1 = Θ( T √T log 1 
+
+> T
+
+), η 2 = Θ( T 2), t 1 = 1 
+
+and t2 ≥ C2 
+
+> T
+
+log 1 
+
+> T
+
+in Algorithm 1, then with probability at least 1 − δ over samples D and the random perturbation, transformers fine-tuned by Algorithm 1 on ˜O  poly   1
+
+> T
+
+ samples will have accuracy at least 0.999 for the first decoding step on all IC-recall sequences. 
+
+4.3 Analysis on the second decoding step 
+
+The second decoding step is easier to analyze than the first decoding step. Intuitively, the transformer only needs to realize that attending to s3, and combining it with the correct relation from the residual connection, is sufficient to produce the correct answer a3. We show that this already happens at the end of Stage 1 in Lemma 2. The proof is deferred to Appendix D. 
+
+Lemma 2. Assume the IC-recall data satisfies Assumptions 1 and 2. Set T, η 1, η 2 and the sample size |D| same as in Theorem 1 for Algorithm 1, after Stage 1 and throughout Stage 2, the transformer has accuracy 1 − o
+
+
+
+exp 
+
+
+
+− 1√T
+
+ 
+
+on all IC-recall sequences for the second decoding step. 
+
+Theorem 1 follows immediately by combining Theorem 3 with Lemma 2. 8Figure 3: Test accuracies for fine-tuning on the first decoding step. The number of answers is equal to the number of subjects |S| . The MLP is preconstructed and fixed during fine-tuning. We report the mean accuracies and standard deviations of 10 random seeds.    
+
+> (a) Fine-tuned on (s1, a 1, s 2, a 2, s 3, u EoS )(b) Fine-tuned on (s1, a 1, s 2, a 2, s 3, a 3, s 4, u EoS )
+
+Figure 4: The pairwise attention pattern generalizes to pretraining the MLP. We consider pretraining the whole transformer and fine-tuning the whole attention layer. Left is the 2-ICL-example input with 
+
+|S| = |A| = 8 , |R| = 64 , T = 0 .05 and right is the 3-ICL-example input with |S| = |A| = 8 , |R| =512 , T = 0 .01 .
+
+## 5 Experiments 
+
+Experiment setup. Our model is a single-head attention layer followed by an MLP layer. We train the transformer using the Adam optimizer with learning rate 10 −3. For all experiments, we fix the size n of subjects S and answers A, then we generate relations R as random bijections from S to A.All subjects, answers, relations and EoS tokens use fixed random orthonormal embeddings. Figure 3 reports the test accuracies for the first decoding step on the IC-recall data. We can see that transformers can learn the IC-recall task with only 8 samples in the experiment. The second decoding step consistently achieves perfect test accuracy across all hyperparameter settings and random seeds. 
+
+Experiments with pretrained MLP. We also conduct experiments with a pretrained MLP. Pretraining data eZPT = ( u1, u 2) is generated as follows: 1. Sample a random subject s from S and a random relation r from R. Let a = r(s) and form a fact triplet (s, r, a ).2. Randomly choose two elements from this triplet and place them at positions u1 and u2. The task is to predict the remaining third element from the input sequence eZPT .During pretraining, the attention parameters W KQ and the MLP are both unfrozen. Then during fine-tuning, we freeze the MLP layer and train W KQ . Such fine-tuned transformer also exhibits the pairwise attention pattern. See Figure 4 for illustrations of converged attention scores. It is worth noting that attention weight for the second decoding step in Figure 4 is also assigned to the EoS 
+
+token, which is different from Figure 2. As the EoS token does not contain any information, we believe the transformer uses it as a way to balance the coefficient between the attention to s3 and the residual connection to r∗.96 Conclusion 
+
+We introduced the IC-recall task to study in-context learning when a transformer must infer a hidden relation from context and then use it to retrieve the correct answer from memory. We constructed an MLP associative memory for fact triplets and analyzed the fine-tuning dynamics of a one-layer transformer with the MLP frozen. We showed that fine-tuning is able to recover the hidden relation by converging to a pairwise attention pattern in the minimal setting and requiring only polylogarithmically many fine-tuning samples in the general setting. The main limitation of our work is that the analysis relies on a specially constructed MLP and a simplified architecture. Extending these results to general pretrained transformers and end-to-end training remains future work. 
+
+## 7 Acknowledgements 
+
+Rong Ge and Ruomin Huang acknowledge support of NSF Award DMS-2031849. 
+
+## References 
+
+Tom B. Brown, Benjamin Mann, Nick Ryder, Melanie Subbiah, Jared Kaplan, Prafulla Dhari-wal, Arvind Neelakantan, Pranav Shyam, Girish Sastry, Amanda Askell, Sandhini Agar-wal, Ariel Herbert-Voss, Gretchen Krueger, Tom Henighan, Rewon Child, Aditya Ramesh, Daniel M. Ziegler, Jeffrey Wu, Clemens Winter, Christopher Hesse, Mark Chen, Eric Sigler, Mateusz Litwin, Scott Gray, Benjamin Chess, Jack Clark, Christopher Berner, Sam McCan-dlish, Alec Radford, Ilya Sutskever, and Dario Amodei. Language models are few-shot learners. In Hugo Larochelle, Marc’Aurelio Ranzato, Raia Hadsell, Maria-Florina Balcan, and Hsuan-Tien Lin, editors, Advances in Neural Information Processing Systems 33: An-nual Conference on Neural Information Processing Systems 2020, NeurIPS 2020, December 6-12, 2020, virtual , 2020. URL https://proceedings.neurips.cc/paper/2020/hash/ 1457c0d6bfcb4967418bfb8ac142f64a-Abstract.html .Shivam Garg, Dimitris Tsipras, Percy Liang, and Gregory Valiant. What can transformers learn in-context? A case study of simple function classes. In Sanmi Koyejo, S. Mo-hamed, A. Agarwal, Danielle Belgrave, K. Cho, and A. Oh, editors, Advances in Neu-ral Information Processing Systems 35: Annual Conference on Neural Information Pro-cessing Systems 2022, NeurIPS 2022, New Orleans, LA, USA, November 28 - Decem-ber 9, 2022 , 2022. URL http://papers.nips.cc/paper_files/paper/2022/hash/ c529dba08a146ea8d6cf715ae8930cbe-Abstract-Conference.html .Johannes von Oswald, Eyvind Niklasson, Ettore Randazzo, João Sacramento, Alexander Mordvintsev, Andrey Zhmoginov, and Max Vladymyrov. Transformers learn in-context by gradient descent. In Andreas Krause, Emma Brunskill, Kyunghyun Cho, Barbara Engelhardt, Sivan Sabato, and Jonathan Scarlett, editors, International Conference on Machine Learning, ICML 2023, 23-29 July 2023, Honolulu, Hawaii, USA , Proceedings of Machine Learning Research, pages 35151–35174. PMLR, 2023. URL https://proceedings.mlr.press/v202/von-oswald23a.html .Ruiqi Zhang, Spencer Frei, and Peter L. Bartlett. Trained transformers learn linear models in-context. 
+
+J. Mach. Learn. Res. , 25:49:1–49:55, 2024. URL https://jmlr.org/papers/v25/23-1042. html .Eshaan Nichani, Alex Damian, and Jason D. Lee. How transformers learn causal structure with gradient descent. In Ruslan Salakhutdinov, Zico Kolter, Katherine A. Heller, Adrian Weller, Nuria Oliver, Jonathan Scarlett, and Felix Berkenkamp, editors, Forty-first International Con-ference on Machine Learning, ICML 2024, Vienna, Austria, July 21-27, 2024 , Proceedings of Machine Learning Research, pages 38018–38070. PMLR / OpenReview.net, 2024. URL 
+
+https://proceedings.mlr.press/v235/nichani24a.html .Ezra Edelman, Nikolaos Tsilivis, Benjamin L. Edelman, Eran Malach, and Surbhi Goel. The evo-lution of statistical induction heads: In-context learning markov chains. In Amir Globersons, Lester Mackey, Danielle Belgrave, Angela Fan, Ulrich Paquet, Jakub M. Tomczak, and Cheng Zhang, editors, Advances in Neural Information Processing Systems 38: Annual Conference on 
+
+10 Neural Information Processing Systems 2024, NeurIPS 2024, Vancouver, BC, Canada, Decem-ber 10 - 15, 2024 , 2024. URL http://papers.nips.cc/paper_files/paper/2024/hash/ 75b0edb869e2cd509d64d0e8ff446bc1-Abstract-Conference.html .Catherine Olsson, Nelson Elhage, Neel Nanda, Nicholas Joseph, Nova DasSarma, Tom Henighan, Ben Mann, Amanda Askell, Yuntao Bai, Anna Chen, Tom Conerly, Dawn Drain, Deep Ganguli, Zac Hatfield-Dodds, Danny Hernandez, Scott Johnston, Andy Jones, Jackson Kernion, Liane Lovitt, Kamal Ndousse, Dario Amodei, Tom Brown, Jack Clark, Jared Kaplan, Sam McCandlish, and Chris Olah. In-context learning and induction heads. CoRR , abs/2209.11895, 2022. doi: 10.48550/ARXIV.2209.11895. URL https://doi.org/10.48550/arXiv.2209.11895 .Fabio Petroni, Tim Rocktäschel, Sebastian Riedel, Patrick Lewis, Anton Bakhtin, Yuxiang Wu, and Alexander H. Miller. Language models as knowledge bases? In Kentaro Inui, Jing Jiang, Vincent Ng, and Xiaojun Wan, editors, Proceedings of the 2019 Conference on Empirical Methods in Natural Language Processing and the 9th International Joint Conference on Natural Language Processing, EMNLP-IJCNLP 2019, Hong Kong, China, November 3-7, 2019 , pages 2463–2473. Association for Computational Linguistics, 2019. doi: 10.18653/V1/D19-1250. URL https: //doi.org/10.18653/v1/D19-1250 .Adam Roberts, Colin Raffel, and Noam Shazeer. How much knowledge can you pack into the parameters of a language model? In Bonnie Webber, Trevor Cohn, Yulan He, and Yang Liu, editors, 
+
+Proceedings of the 2020 Conference on Empirical Methods in Natural Language Processing, EMNLP 2020, Online, November 16-20, 2020 , pages 5418–5426. Association for Computational Linguistics, 2020. doi: 10.18653/V1/2020.EMNLP-MAIN.437. URL https://doi.org/10. 18653/v1/2020.emnlp-main.437 .Sitao Cheng, Liangming Pan, Xunjian Yin, Xinyi Wang, and William Yang Wang. Understanding the interplay between parametric and contextual knowledge for large language models. CoRR ,abs/2410.08414, 2024. doi: 10.48550/ARXIV.2410.08414. URL https://doi.org/10.48550/ arXiv.2410.08414 .Gaurav Rohit Ghosal, Tatsunori Hashimoto, and Aditi Raghunathan. Understanding finetuning for factual knowledge extraction. In Ruslan Salakhutdinov, Zico Kolter, Katherine A. Heller, Adrian Weller, Nuria Oliver, Jonathan Scarlett, and Felix Berkenkamp, editors, Forty-first International Conference on Machine Learning, ICML 2024, Vienna, Austria, July 21-27, 2024 , Proceedings of Machine Learning Research, pages 15540–15558. PMLR / OpenReview.net, 2024. URL 
+
+https://proceedings.mlr.press/v235/ghosal24a.html .Eshaan Nichani, Jason D. Lee, and Alberto Bietti. Understanding factual recall in transformers via associative memories. In The Thirteenth International Conference on Learning Representations, ICLR 2025, Singapore, April 24-28, 2025 . OpenReview.net, 2025. URL https://openreview. net/forum?id=hwSmPOAmhk .Jason Wei, Xuezhi Wang, Dale Schuurmans, Maarten Bosma, Brian Ichter, Fei Xia, Ed H. Chi, Quoc V. Le, and Denny Zhou. Chain-of-thought prompting elicits reasoning in large language models. In Sanmi Koyejo, S. Mohamed, A. Agarwal, Danielle Belgrave, K. Cho, and A. Oh, editors, Advances in Neural Information Processing Systems 35: Annual Conference on Neural Information Processing Systems 2022, NeurIPS 2022, New Orleans, LA, USA, November 28 -December 9, 2022 , 2022. URL http://papers.nips.cc/paper_files/paper/2022/hash/ 9d5609613524ecf4f15af0f7b31abca4-Abstract-Conference.html .Mor Geva, Roei Schuster, Jonathan Berant, and Omer Levy. Transformer feed-forward layers are key-value memories. In Marie-Francine Moens, Xuanjing Huang, Lucia Specia, and Scott Wen-tau Yih, editors, Proceedings of the 2021 Conference on Empirical Methods in Natural Language Processing, EMNLP 2021, Virtual Event / Punta Cana, Dominican Republic, 7-11 November, 2021 , pages 5484–5495. Association for Computational Linguistics, 2021. doi: 10.18653/V1/2021. EMNLP-MAIN.446. URL https://doi.org/10.18653/v1/2021.emnlp-main.446 .Kevin Meng, David Bau, Alex Andonian, and Yonatan Belinkov. Locating and editing factual associations in GPT. In Sanmi Koyejo, S. Mohamed, A. Agarwal, Danielle Belgrave, K. Cho, and A. Oh, editors, Advances in Neural Information Processing Systems 35: Annual Conference on Neural Information Processing Systems 2022, NeurIPS 2022, New Orleans, LA, USA, November 
+
+11 28 - December 9, 2022 , 2022. URL http://papers.nips.cc/paper_files/paper/2022/ hash/6f1d43d5a82a37e89b0665b33bf3a182-Abstract-Conference.html .Damai Dai, Li Dong, Yaru Hao, Zhifang Sui, Baobao Chang, and Furu Wei. Knowledge neurons in pretrained transformers. In Smaranda Muresan, Preslav Nakov, and Aline Villavicencio, editors, Proceedings of the 60th Annual Meeting of the Association for Computational Linguistics (Volume 1: Long Papers), ACL 2022, Dublin, Ireland, May 22-27, 2022 , pages 8493–8502. Association for Computational Linguistics, 2022. doi: 10.18653/V1/2022.ACL-LONG.581. URL 
+
+https://doi.org/10.18653/v1/2022.acl-long.581 .Yuheng Chen, Pengfei Cao, Yubo Chen, Kang Liu, and Jun Zhao. Knowledge localization: Mission not accomplished? enter query localization! In The Thirteenth International Conference on Learning Representations, ICLR 2025, Singapore, April 24-28, 2025 . OpenReview.net, 2025. URL 
+
+https://openreview.net/forum?id=tfyHbvFZ0K .Yifan Wei, Xiaoyan Yu, Yixuan Weng, Huanhuan Ma, Yuanzhe Zhang, Jun Zhao, and Kang Liu. Does knowledge localization hold true? surprising differences between entity and relation perspectives in language models. In Edoardo Serra and Francesca Spezzano, editors, Proceedings of the 33rd ACM International Conference on Information and Knowledge Management, CIKM 2024, Boise, ID, USA, October 21-25, 2024 , pages 4118–4122. ACM, 2024. doi: 10.1145/3627673.3679900. URL https://doi.org/10.1145/3627673.3679900 .Zeyuan Allen-Zhu and Yuanzhi Li. Physics of language models: Part 3.3, knowledge capacity scaling laws. In The Thirteenth International Conference on Learning Representations, ICLR 2025, Singapore, April 24-28, 2025 . OpenReview.net, 2025. URL https://openreview.net/forum? id=FxNNiUgtfa .Vivien Cabannes, Elvis Dohmatob, and Alberto Bietti. Scaling laws for associative memories. In The Twelfth International Conference on Learning Representations, ICLR 2024, Vienna, Austria, May 7-11, 2024 . OpenReview.net, 2024a. URL https://openreview.net/forum?id=Tzh6xAJSll .Shauli Ravfogel, Gilad Yehudai, Joan Bruna, and Alberto Bietti. Geometric factual recall in trans-formers, 2026. URL https://arxiv.org/abs/2605.12426 .Vivien Cabannes, Berfin Simsek, and Alberto Bietti. Learning associative memories with gradient descent. In Ruslan Salakhutdinov, Zico Kolter, Katherine A. Heller, Adrian Weller, Nuria Oliver, Jonathan Scarlett, and Felix Berkenkamp, editors, Forty-first International Conference on Machine Learning, ICML 2024, Vienna, Austria, July 21-27, 2024 , Proceedings of Machine Learning Research, pages 5114–5134. PMLR / OpenReview.net, 2024b. URL https://proceedings. mlr.press/v235/cabannes24a.html .Siyu Chen, Heejune Sheen, Tianhao Wang, and Zhuoran Yang. Unveiling induction heads: Provable training dynamics and feature learning in transformers. In Amir Globersons, Lester Mackey, Danielle Belgrave, Angela Fan, Ulrich Paquet, Jakub M. Tomczak, and Cheng Zhang, ed-itors, Advances in Neural Information Processing Systems 38: Annual Conference on Neu-ral Information Processing Systems 2024, NeurIPS 2024, Vancouver, BC, Canada, Decem-ber 10 - 15, 2024 , 2024. URL http://papers.nips.cc/paper_files/paper/2024/hash/ 7aae9e3ec211249e05bd07271a6b1441-Abstract-Conference.html .Dake Bu, Wei Huang, Andi Han, Atsushi Nitanda, Qingfu Zhang, Hau-San Wong, and Taiji Suzuki. Provable in-context vector arithmetic via retrieving task concepts. In Aarti Singh, Maryam Fazel, Daniel Hsu, Simon Lacoste-Julien, Felix Berkenkamp, Tegan Maharaj, Kiri Wagstaff, and Jerry Zhu, editors, Forty-second International Conference on Machine Learning, ICML 2025, Vancouver, BC, Canada, July 13-19, 2025 , Proceedings of Machine Learning Research. PMLR / OpenReview.net, 2025. URL https://proceedings.mlr.press/v267/bu25a.html .Bhavya Vasudeva, Puneesh Deora, Alberto Bietti, Vatsal Sharan, and Christos Thrampoulidis. Un-derstanding contextual recall in transformers: How finetuning enables in-context reasoning over pretraining knowledge. CoRR , abs/2603.20969, 2026. doi: 10.48550/ARXIV.2603.20969. URL 
+
+https://doi.org/10.48550/arXiv.2603.20969 .12 Sadhika Malladi, Alexander Wettig, Dingli Yu, Danqi Chen, and Sanjeev Arora. A kernel-based view of language model fine-tuning. In Andreas Krause, Emma Brunskill, Kyunghyun Cho, Barbara Engelhardt, Sivan Sabato, and Jonathan Scarlett, editors, International Conference on Machine Learning, ICML 2023, 23-29 July 2023, Honolulu, Hawaii, USA , Proceedings of Machine Learning Research, pages 23610–23641. PMLR, 2023. URL https://proceedings.mlr.press/v202/ malladi23a.html .Yi Ren and Danica J. Sutherland. Learning dynamics of LLM finetuning. In The Thirteenth International Conference on Learning Representations, ICLR 2025, Singapore, April 24-28, 2025 .OpenReview.net, 2025. URL https://openreview.net/forum?id=tPNHOoZFl9 .Xinyue Zeng, Haohui Wang, Junhong Lin, Jun Wu, Tyler Cody, and Dawei Zhou. Lensllm: Unveiling fine-tuning dynamics for LLM selection. In Aarti Singh, Maryam Fazel, Daniel Hsu, Simon Lacoste-Julien, Felix Berkenkamp, Tegan Maharaj, Kiri Wagstaff, and Jerry Zhu, editors, Forty-second International Conference on Machine Learning, ICML 2025, Vancouver, BC, Canada, July 13-19, 2025 , Proceedings of Machine Learning Research. PMLR / OpenReview.net, 2025. URL 
+
+https://proceedings.mlr.press/v267/zeng25g.html .Zorik Gekhman, Roee Aharoni, Eran Ofek, Mor Geva, Roi Reichart, and Jonathan Herzig. Thinking to recall: How reasoning unlocks parametric knowledge in llms. CoRR , abs/2603.09906, 2026. doi: 10.48550/ARXIV.2603.09906. URL https://doi.org/10.48550/arXiv.2603.09906 .William Merrill and Ashish Sabharwal. The expressive power of transformers with chain of thought. In The Twelfth International Conference on Learning Representations, ICLR 2024, Vienna, Aus-tria, May 7-11, 2024 . OpenReview.net, 2024. URL https://openreview.net/forum?id= NjNGlPh8Wh .Zhiyuan Liu, Hong Liu, Denny Zhou, and Tengyu Ma. Chain of thought empowers transform-ers to solve inherently serial problems. In The Twelfth International Conference on Learning Representations, ICLR 2024, Vienna, Austria, May 7-11, 2024 . OpenReview.net, 2024. URL 
+
+https://openreview.net/forum?id=3EWTEy9MTM .Emmanuel Abbe, Samy Bengio, Aryo Lotfi, Colin Sandon, and Omid Saremi. How far can trans-formers reason? the globality barrier and inductive scratchpad. In Amir Globersons, Lester Mackey, Danielle Belgrave, Angela Fan, Ulrich Paquet, Jakub M. Tomczak, and Cheng Zhang, editors, Advances in Neural Information Processing Systems 38: Annual Conference on Neu-ral Information Processing Systems 2024, NeurIPS 2024, Vancouver, BC, Canada, Decem-ber 10 - 15, 2024 , 2024. URL http://papers.nips.cc/paper_files/paper/2024/hash/ 3107e4bdb658c79053d7ef59cbc804dd-Abstract-Conference.html .Kaiyue Wen, Huaqing Zhang, Hongzhou Lin, and Jingzhao Zhang. From sparse dependence to sparse attention: Unveiling how chain-of-thought enhances transformer sample efficiency. In The Thirteenth International Conference on Learning Representations, ICLR 2025, Singapore, April 24-28, 2025 . OpenReview.net, 2025. URL https://openreview.net/forum?id=AmEgWDhmTr .Juno Kim and Taiji Suzuki. Transformers provably solve parity efficiently with chain of thought. In The Thirteenth International Conference on Learning Representations, ICLR 2025, Singa-pore, April 24-28, 2025 . OpenReview.net, 2025. URL https://openreview.net/forum?id= n2NidsYDop .Zixuan Wang, Eshaan Nichani, Alberto Bietti, Alex Damian, Daniel Hsu, Jason D. Lee, and Denny Wu. Learning compositional functions with transformers from easy-to-hard data. In Nika Haghtalab and Ankur Moitra, editors, The Thirty Eighth Annual Conference on Learning Theory, 30-4 July 2025, Lyon, France , Proceedings of Machine Learning Research, pages 5632–5711. PMLR, 2025. URL https://proceedings.mlr.press/v291/wang25a.html .Chi Jin, Rong Ge, Praneeth Netrapalli, Sham M. Kakade, and Michael I. Jordan. How to escape saddle points efficiently. In Doina Precup and Yee Whye Teh, editors, Proceedings of the 34th International Conference on Machine Learning, ICML 2017, Sydney, NSW, Australia, 6-11 August 2017 , volume 70 of Proceedings of Machine Learning Research , pages 1724–1732. PMLR, 2017. URL http://proceedings.mlr.press/v70/jin17a.html .13 A Construction of MLP associative memory 
+
+We show that there exists a construction of the MLP layer with dMLP = O(|S| · |A| ) that achieves 
+
+100% accuracy as an MLP associative memory. 
+
+Lemma 3. There exists an MLP layer fMLP (x) = V ⊤σ(W x ) with width dMLP = O(|S| · |A| ), such that for any triplet (s, r, a ) where r maps s to a, we have a = arg max u∈V ϕ(u)⊤fMLP (ϕ(s)+ ϕ(r)) ,
+
+r = arg max u∈V ϕ(u)⊤fMLP (ϕ(a) + ϕ(s)) and s = arg max u∈V ϕ(u)⊤fMLP (ϕ(a) + ϕ(r)) .
+
+Proof. Let dMLP = 3 |S| · |A| . Let wj and vj be the j-th row of W and V respectively. We assign indices to all (s, a ) pairs. For i-th (s, a ) pair, we assign 3 rows in W and V to store the relevant factual knowledge. Specifically, let w3i−2 = ϕ(s) + P 
+
+> r∈R (s,a )
+
+ϕ(r) and v3i−2 = ϕ(a);let w3i−1 = ϕ(a) + ϕ(s) and v3i−1 = P 
+
+> r∈R (s,a )
+
+ϕ(r); let w3i = ϕ(a) + P 
+
+> r∈R (s,a )
+
+ϕ(r) and 
+
+v3i = ϕ(s). Here we define P 
+
+> r∈R (s,a )
+
+ϕ(r) = 0 if R(s, a ) is empty. Fix a (s, a ) pair such that 
+
+R(s, a ) is non-empty and we examine the properties of MLP associative memory as follows. For any r ∈ R (s, a ), since r is an injection, we know s is the only subject that r maps to a. Therefore we can examine that ϕ(a)⊤fMLP (ϕ(s) + ϕ(r)) = 4 . For any a′̸ = a, we know a′ can only be mapped from s through relations that are not r. Therefore we have ϕ(a′)⊤fMLP (ϕ(s) + ϕ(r)) = 1. For any subject s′, we have ϕ(s′)⊤fMLP (ϕ(s) + ϕ(r)) = 1 . For any relation r′, we have 
+
+ϕ(r′)⊤fMLP (ϕ(s) + ϕ(r)) = 1 . Therefore the constructed MLP can correctly predict a from 
+
+ϕ(s) + ϕ(r) using argmax decoding. For any r ∈ R (s, a ), we know a is the only answer that s is mapped to through r. Therefore we have ϕ(s)⊤fMLP (ϕ(a) + ϕ(r)) = 4 . For any s′̸ = s, we know a′ can only be mapped from 
+
+s through relations that are not r. Therefore we have ϕ(s′)⊤fMLP (ϕ(a) + ϕ(r)) = 1 . For any answer a′, we have ϕ(a′)⊤fMLP (ϕ(a) + ϕ(r)) = 1 if the preimage of a′ under r exists; otherwise 
+
+ϕ(a′)⊤fMLP (ϕ(a) + ϕ(r)) = 0 . For any relation r′, we have ϕ(r′)⊤fMLP (ϕ(a) + ϕ(r)) = 1 if the preimage of a under r′ exists; otherwise ϕ(r′)⊤fMLP (ϕ(a) + ϕ(r)) = 0 . Therefore the constructed MLP can correctly predict s from ϕ(a) + ϕ(r) using argmax decoding. For any r ∈ R (s, a ), we know ϕ(r)⊤fMLP (ϕ(s) + ϕ(a)) = 4 . For any r′ /∈ R (s, a ), we know r′
+
+maps s to a different answer a′ and the preimage of a is a different subject s′ (if any). Therefore we have ϕ(r′)⊤fMLP (ϕ(s) + ϕ(a)) ≤ 2. For any answer a′, we have ϕ(a′)⊤fMLP (ϕ(s) + ϕ(a)) = 1 .For any subject s′, we have ϕ(s′)⊤fMLP (ϕ(s) + ϕ(a)) = 1 . Therefore the constructed MLP can correctly predict a relation in R(s, a ) from ϕ(s) + ϕ(a) using argmax decoding. 
+
+## B Proof to the normal temperature convergence for n = 3 
+
+We first show that under a normal temperature T , with infinite amount of time, transformer trained by PGD can converge to the global optimal solution. For the first decoding step training, we will show Algorithm 1 converges to the global optimal solution θ∗ with small enough temperature T .At the convergence, the attention scores v∗ = softmax( θ∗) = ( a, a, 12 − a, 12 − a, 0, 0) with some 
+
+a̸ = 14 . We write out the logits w.r.t. the attention scores v in Table 2. We can immediately obtain the following Lemma, which states that the partially fine-tuned transformer cannot predict the answer with one decoding step. 
+
+Lemma 4. Assume |S| = |A| = 3 and R consists of all 6 bijections from S to A. Asumme the MLP layer fMLP of the transformer f (·; W KQ ) is fixed to be the construction in Lemma 3. If we use the first decoding step prediction to predict from answers a1, a 2, a 3 without the intermediate relation, then the prediction accuracy cannot exceed 1/3 for any input IC-recall data eZ = ( s1, a 1, s 2, a 2, s 3, u EoS )
+
+and any W KQ .Proof. By the logits in Table 2, we can see that the logits l(a1) = l(a2) = l(a3) is always true for the first decoding step. Therefore we have p1(a1; W KQ , eZ) = p1(a2; W KQ , eZ) = p1(a3; W KQ , eZ) for any IC-recall data eZ = ( s1, a 1, s 2, a 2, s 3, u EoS ) and any W KQ . The Lemma follows immediately. 14 Before the proof of Theorem 2, we first give the smoothness constant of the loss L1(θ, T ). Importantly through the gradient Lipschitz constant, we know that the learning rate η1 and η2 chosen in Theorem 2 can be small enough so that the descent lemma holds. The proof is deferred to Appendix E. 
+
+Proposition 1. The loss L1(θ; T ) has gradient Lipschitz constant Θ(1 /T 2) and Hessian Lipschitz constant Θ(1 /T 3).
+
+Now we calculate the gradients. Let l ∈ R6 be the vector of prediction logits for relations. Let the prediction p1 = softmax( l) ∈ R6. The loss ℓ1(v) = − log( p1(r1)) . Therefore the gradient w.r.t. the logit l is 
+
+∂ℓ 1
+
+∂l = 1
+
+T (p1 − e1).
+
+The gradients w.r.t. v are 
+
+∂ℓ 1
+
+∂v i
+
+=
+
+> 6
+
+X
+
+> j=1
+
+∂ℓ 1
+
+∂l j
+
+∂l j
+
+∂v i
+
+.l(s1) v22 + v24
+
+l(s2) v22 + v24
+
+l(s3) v22 + v24
+
+l(a1) v21 + v23 + v25
+
+l(a2) v21 + v23 + v25
+
+l(a3) v21 + v23 + v25
+
+l(r1) (v1 + v2)2 + ( v3 + v4)2 + v25
+
+l(r2) (v1 + v4)2 + ( v2 + v3)2 + v25
+
+l(r3) (v5 + v4)2 + ( v1 + v2)2 + v23
+
+l(r4) (v5 + v2)2 + ( v1 + v4)2 + v23
+
+l(r5) (v5 + v4)2 + ( v3 + v2)2 + v21
+
+l(r6) (v5 + v2)2 + ( v3 + v4)2 + v21
+
+Table 2: The prediction logits (EoS excluded) of the input (s1, a 1, s 2, a 2, s 3, u EoS ).Plugging in the logits in Table 2 and noting that it is equivalent to analyze the gradient of a single sequence, we obtain 
+
+∂L 1
+
+∂v 1
+
+= 2
+
+T (( p1 (r1) + p1 (r3)) v2 + ( p1 (r2) + p1 (r4)) v4 − v2) (4) 
+
+∂L 1
+
+∂v 2
+
+= 2
+
+T (( p1 (r1) + p1 (r3)) v1 + ( p1 (r2) + p1 (r5)) v3 + ( p1 (r4) + p1 (r6)) v5 − v1) (5) 
+
+∂L 1
+
+∂v 3
+
+= 2
+
+T (( p1 (r1) + p1 (r6)) v4 + ( p1 (r2) + p1 (r5)) v2 − v4) (6) 
+
+∂L 1
+
+∂v 4
+
+= 2
+
+T (( p1 (r1) + p1 (r6)) v3 + ( p1 (r2) + p1 (r4)) v1 + ( p1 (r3) + p1 (r5)) v5 − v3) (7) 
+
+∂L 1
+
+∂v 5
+
+= 2
+
+T (( p1 (r3) + p1 (r5)) v4 + ( p1 (r4) + p1 (r6)) v2) (8) 
+
+∂L 1
+
+∂v 6
+
+= 0 . (9) The gradient w.r.t. θ is 
+
+∂L 1
+
+∂θ i
+
+= vi
+
+ ∂L 1
+
+∂v i
+
+−
+
+> 6
+
+X
+
+> j=1
+
+vj
+
+∂L 1
+
+∂v j
+
+ . (10) 15 Theorem 4. There exists constant T0(δ) > 0 that only depends on δ, such that for any T < T 0, if we set η1 = Θ( T 2), η 2 = Θ( T 2), t 1 = t2 = ∞ in Algorithm 1, then with probability at least 1 − δ
+
+the transformer trained by Algorithm 1 will converge to the global optimum θ∗ for L1(θ; T ). At the convergence the attention scores v∗ = ( a, a, 12 − a, 12 − a, 0, 0) with some a̸ = 14 .
+
+Theorem 4 shows that, if the model is trained to convergence through Stages 1 and 2, a pairwise attention pattern emerges. The behavior in each stage is characterized by Lemma 5, Lemma 6, and Lemma 8. In Stage 1, the model converges to a saddle point. 
+
+Lemma 5. At the end of Stage 1, θ will converge to a saddle point ˜θ with ˜v := S(˜θ) =( 14 , 14 , 14 , 14 , 0, 0) .Proof. Some observations: 1. v1 and v3 are symmetric; v2 and v4 are symmetric along the gradient flow. 2. Initially ∇θ L1(0 , T )̸ = 0 so the loss will strictly decrease from L1(0 , T ) = log 6 .3. v5 < v 1 for any t > 0. This is because any v with v5 ≥ v1, v1 = v3 and v2 = v4 yields a loss L1(v, T ) ≥ log 6 . Similar we have that v4 = v2 > 0 for any time t > 0, otherwise all six logits have same value and loss L1 = log 6 , which is contradictory to observation 2. 4. ∂L 1 
+
+> ∂v i
+
+< 0 for i = 1 , 2, 3, 4 and ∂L 1 
+
+> ∂v 5
+
+> 0, ∂L 1 
+
+> ∂v 6
+
+= 0 for any time t > 0.
+
+5. p3 = p4 = p5 = p6 for any time t. 
+
+As t1 → ∞ , at the end of Stage 1, θ will converge to a critical point of the loss. We know that this critical point must satisfy v1 = v3 and v4 = v5 and moreover obtain loss < log 6 . We first check the critical point condition: for any i, either vi = 0 or ∂L 1 
+
+> ∂v i
+
+= P6 
+
+> j=1
+
+vj ∂L 1 
+
+> ∂v j
+
+. Combined with observation 4 and 3, we have that the critical point along the GD trajectory must satisfy v5 = v6 = 0 ,
+
+v1 = v3 > 0 and v2 = v4 > 0. So we can simplify the gradients to obtain ∂L 1 
+
+> ∂v 1
+
+= −2( p5 + p6)v2
+
+and ∂L 1 
+
+> ∂v 2
+
+= −2( p4 + p6)v1. Then observation 5 combined with critical point condition implies that 
+
+v1 = v2 = 1 /4. Therefore ˜v is the only limit point of this gradient flow on the unit simplex, which is a saddle point as (1 , 1, −1, −1, 0, 0) /2 is a descending direction and (1 , −1, −1, 1, 0, 0) /2 is an ascending direction. It remains to prove observations 1,2 and 5. 
+
+Proof to observations 1, 2, 5. We prove observations 1 and 5 by induction. Assume that observations 1 and 5 are true at iteration k. Comparing (4) and (6) and plugging them into (10), we can see that the gradients ∂L 1 
+
+> ∂θ 1
+
+= ∂L 1 
+
+> ∂θ 3
+
+at iteration k. Similarly we can see that ∂L 1 
+
+> ∂θ 2
+
+= ∂L 1 
+
+> ∂θ 4
+
+at iteration k. Therefore after one step of GD update, at iteration k + 1 , we still have v1 = v3 and v2 = v4, which implies 
+
+p1(r3) = p1(r4) = p1(r5) = p1(r6) at iteration k + 1 through the logits l in Table 2. It is obvious that the induction hypothesis holds at initialization θ = 0 .At initialization, vi = 16 , ∂L 1 
+
+> ∂v 1
+
+= ∂L 1 
+
+> ∂v 3
+
+= − 19T , ∂L 1 
+
+> ∂v 2
+
+= ∂L 1 
+
+> ∂v 4
+
+= ∂L 1 
+
+> ∂v 6
+
+= 0 , ∂L 1 
+
+> ∂v 5
+
+= 29T . Therefore 
+
+v⊤∇v L1 = 0 and ∇θ L1 = 16 ∇v L1̸ = 0 , and Observation 2 follows. We then show that in the late stage of training we have l(r1) > P 
+
+> r
+
+p(r)l(r), which indicates that θ
+
+has escaped from the saddle point ˜θ.
+
+Lemma 6. If T < T max (δ) where Tmax (δ) is some constant only depends on δ, then with probability at least 1 − δ, after the perturbation followed by O(poly( 1 
+
+> T
+
+) · log 1 
+
+> δ
+
+) steps of gradient descent, we have the loss L1 < log 2 .
+
+The proof idea is that as T gets close to 0, L1(˜θ, T ) will converge to log 2 from above. The rate of error decreasing is roughly exp( −1/T ). We can calculate to see λmin (∇2L1(˜θ, T )) ≲ − 1 
+
+> T
+
+and the Hessian Lipschitz constant for L1 is O(1 /T 3). By Lemma 14 in Jin et al. [2017], the loss will 16 improve by a polynomial amount L1(θt) − L1(˜θ) ≤ − Ω( T 3). Hence there exists some constant 
+
+Tmax (δ) such that for any T < T max we have the improvement surpasses the gap from log 2 . For the ease of reference, we restate Lemma 14 in Jin et al. [2017] here. 
+
+Lemma 7 (restated from Lemma 14 in Jin et al. [2017]) . Suppose f (x) is an α-gradient Lipschitz and 
+
+ρ-Hessian Lipschitz function where x ∈ Rd. There exists a universal constant c, for any δ ∈ (0 , dα γ ],suppose ˜x satisfies 
+
+λmin (∇2f (˜ x)) ≤ − γ and ∥∇ f (˜ x)∥ ≤ √ηα γ2
+
+ρ · log −2( dα δγ )
+
+with some γ > 0 and η ≤ c/α .Let x0 = ˜ x + ξ where ξ ∼ Uniform( B(0 , √ηα γ2 
+
+> ρα
+
+log −2( dα δγ ))) and let xk be the k-th iteration of gradient descent starting from x0 with stepsize η, then with probability at least 1 − δ, for any 
+
+t ≥ log( dα δγ ) 
+
+> cηγ
+
+it holds that 
+
+f (xt) − f (˜ x) ≤ − ηα γ3
+
+ρ2 log −3( dα δγ ).
+
+Now we are ready to prove Lemma 6. 
+
+Proof to Lemma 6. Let ˜ϵ = 12 · (1 , 1, −1, −1, 0, 0) be the potential descending direction of loss. Define f˜ϵ, ˜θ (x) := L1(˜θ + x · ˜ϵ) to be the loss along the direction of ˜ϵ from ˜θ. Then we have 
+
+λmin (∇2L1(˜θ)) ≤ f ′′  
+
+> ˜ϵ, ˜θ
+
+(0) . We use p1(x) to denote p1(r1) at parameter θ = ˜θ + x · ˜ϵ. So we can write the loss along the direction of ˜ϵ from ˜θ as f˜ϵ, ˜θ (x) = − log p1(x) and hence we can calculate to see that 
+
+f ′′  
+
+> ˜ϵ, ˜θ
+
+(0) = (p′
+
+> 1
+
+(0)) 2
+
+p21(0) − p′′  
+
+> 1
+
+(0) 
+
+p1(0) . (11) We first expand 
+
+p′
+
+> 1
+
+(0) = X
+
+> i
+
+∂p 1
+
+∂l i
+
+l′
+
+> i
+
+(0) = X
+
+> i
+
+∂p 1
+
+∂l i
+
+∇v li(v(0)) ⊤v′(0) (12) where li(x) is the logit for ri at parameter θ = ˜θ + x · ˜ϵ and v(x) = softmax( ˜θ + x · ˜ϵ) are the attention scores. So we can write 
+
+v′(0) = J(v(0))˜ ϵ =  Diag( v(0)) − v(0) v⊤(0)  ˜ϵ
+
+where J(v(0)) = Diag( v(0)) − v(0) v⊤(0) is the Jacobian of softmax. Therefore we obtain 
+
+v′
+
+> i
+
+(0) = ˜ ϵivi(0) − vi(0) · v(0) ⊤˜ϵ. (13) Noting that v(0) ⊤˜ϵ = 0 , we have 
+
+v′(0) = ˜ ϵ ⊙ v =
+
+ 18 , 18 , − 18 , − 18 , 0, 0
+
+⊤
+
+.
+
+Also by the logits in table 2 we have 
+
+∇v li(v(0)) = (1 , 1, 1, 1, 0, 0) ⊤ for i = 1 , 2,
+
+∇v l3(v(0)) = 
+
+
+
+1, 1, 12 , 12 , 0, 0
+
+⊤
+
+,
+
+∇v l4(v(0)) = 
+
+
+
+1, 12 , 12 , 1, 0, 0
+
+⊤
+
+,
+
+17 ∇v l5(v(0)) = 
+
+ 12 , 1, 1, 12 , 0, 0
+
+⊤
+
+and 
+
+∇v l6(v(0)) = 
+
+ 12 , 12 , 1, 1, 0, 0
+
+⊤
+
+.
+
+Therefore we obtain 
+
+l′(0) = X
+
+> i
+
+∇v l⊤ 
+
+> i
+
+v′ = (0 , 0, 18 , 0, 0, − 18 )⊤. (14) Also since p1 = softmax( l/T )1, we have that 
+
+∂p 1
+
+∂l i
+
+= 1
+
+T p1(δi1 − pi). (15) Plugging (14) and (15) into (12) we have p′
+
+> 1
+
+(0) = 0 . Therefore we can simplify (11) to obtain 
+
+f ′′  
+
+> ˜ϵ, ˜θ
+
+(0) = − p′′   
+
+> 1(0)
+> p1(0)
+
+where 
+
+p′′  
+
+> 1
+
+(0) = 
+
+> 6
+
+X
+
+> i=1
+
+∂p 1
+
+∂l i
+
+l′′  
+
+> i
+
+(0) 
+
+| {z }
+
+> term I
+
++
+
+> 6
+
+X
+
+> i,j =1
+
+∂2p1
+
+∂l i∂l j
+
+l′
+
+> i
+
+(0) l′ 
+
+> j
+
+(0) 
+
+| {z }
+
+> term II
+
+.
+
+We first calculate term I. Since l′
+
+> i
+
+(0) = ∇v li(v(0)) ⊤v′(0) , we can differentiate to obtain 
+
+l′′  
+
+> i
+
+= v′⊤ ∇2 
+
+> v
+
+li(v)v′ + l′
+
+> i
+
+(v)⊤v′′ .
+
+Differentiating on (13) yields 
+
+v′′  
+
+> i
+
+(0) = ˜ ϵiv′
+
+> i
+
+(0) − v′
+
+> i
+
+(0) v(0) ⊤˜ϵ − vi(0) v′(0) ⊤˜ϵ
+
+= vi(0) 
+
+˜ϵ2 
+
+> i
+
+−
+
+> 6
+
+X
+
+> j=1
+
+vj (0)˜ ϵ2
+
+> j
+
+
+
+= 0 .
+
+Therefore we can simplify l′′  
+
+> i
+
+to obtain 
+
+l′′  
+
+> i
+
+(0) = v′(0) ⊤∇2 
+
+> v
+
+li(v(0)) v′(0) (16) where we have 
+
+∇2 
+
+> v
+
+l1(v(0)) = 
+
+
+
+2 2 0 0 0 02 2 0 0 0 00 0 2 2 0 00 0 2 2 0 00 0 0 0 2 00 0 0 0 0 0
+
+
+
+,
+
+∇2 
+
+> v
+
+l2(v(0)) = 
+
+
+
+2 0 0 2 0 00 2 2 0 0 00 2 2 0 0 02 0 0 2 0 00 0 0 0 2 00 0 0 0 0 0
+
+
+
+,
+
+∇2 
+
+> v
+
+l3(v(0)) = 
+
+
+
+2 2 0 0 0 02 2 0 0 0 00 0 2 0 0 00 0 0 2 2 00 0 0 2 2 00 0 0 0 0 0
+
+
+
+,
+
+18 ∇2 
+
+> v
+
+l4(v(0)) = 
+
+
+
+2 0 0 2 0 00 2 0 0 2 00 0 2 0 0 02 0 0 2 0 00 2 0 0 2 00 0 0 0 0 0
+
+
+
+,
+
+∇2 
+
+> v
+
+l5(v(0)) = 
+
+
+
+2 0 0 0 0 00 2 2 0 0 00 2 2 0 0 00 0 0 2 2 00 0 0 2 2 00 0 0 0 0 0
+
+
+
+,
+
+and 
+
+∇2 
+
+> v
+
+l6(v(0)) = 
+
+
+
+2 0 0 0 0 00 2 0 0 2 00 0 2 2 0 00 0 2 2 0 00 2 0 0 2 00 0 0 0 0 0
+
+
+
+.
+
+Combining them with v′(0) =   18 , 18 , − 18 , − 18 , ⊤ and plugging into 16, we have 
+
+l′′ (0) = 
+
+ 14 , 0, 316 , 116 , 116 , 316 
+
+
+
+. (17) At saddle point x = 0 we have p1(r1) = p1(r2) = p1(0) and p1(r3) = p1(r4) = p1(r5) = p1(r6) =  
+
+> 1−2p1(0) 4
+
+. Combining them with (15), (17) and plugging into term I, we obtain term I = p1(0) 8T .
+
+Then we work with term II. Recall term II = P6 
+
+> i,j =1
+> ∂2p1
+> ∂l i∂l j
+
+l′
+
+> i
+
+(0) l′ 
+
+> j
+
+(0) and l′(0) = (0 , 0, 18 , 0, 0, − 18 )⊤
+
+in (14). Hence we only need to consider l′
+
+> 3
+
+(0) and l′
+
+> 6
+
+(0) since the rest of l′ 
+
+> i
+
+are zero. Specifically we have ∂2p1
+
+∂l 23
+
+= p1(0) 
+
+T 2
+
+ 2p1(r3)2 − p1(r3) , ∂2p1
+
+∂l 26
+
+= p1(0) 
+
+T 2
+
+ 2p1(r6)2 − p1(r6)
+
+and ∂2p1
+
+∂l 3∂l 6
+
+= 2p1(0) p1(r3)p1(r6)
+
+T 2 .
+
+Plugging them into term II, we obtain term II = −p1(0) p1(r3)2  
+
+> 16 T2
+
+. Noting that p1(r3) at the saddle is exponentially small, we obtain 
+
+f ′′  
+
+> ˜ϵ, ˜θ
+
+(0) = − 18T + 116 T 2  4 + 2 exp( 316 T )2 ≲ − 1
+
+T .
+
+So we have λmin (∇2L1(˜θ)) ≲ − 1 
+
+> T
+
+.
+
+By proposition 1, we have the Hessian Lipschitz constant is O(1 /T 3). Plug the upper bound on 
+
+λmin (∇2L1(˜θ)) and the Hessian Lipschitz constants into Lemma 14 in Jin et al. [2017], we have the improvement of loss being Ω( T 3), which exceeds the gap between L1(˜θ) and log 2 if T is small enough. Adding perturbation ξ to the saddle point ˜θ would not change v5 and v6 since ˜θ5 and ˜θ6 are −∞ at the convergence of Stage 1. So we need only to consider the perturbation on the first 4 coordinates. It turns out that a pairwise attention pattern will emerge along the gradient descent dynamics after escaping the saddle point. 19 Lemma 8. Denote α the ratio v1 
+
+> v2
+
+and β the ratio v3 
+
+> v4
+
+. Define ψ := max {α, β, 1 
+
+> α
+
+, 1 
+
+> β
+
+}. If l(r1) >
+
+P 
+
+> r
+
+p1(r)l(r) and v5 = 0 , then ψ will be decreasing unless α = β = 1 .Proof sketch of Lemma 8. We have that dα dt < 0 is equivalent to ∂L 1 
+
+> ∂θ 1
+
+− ∂L 1 
+
+> ∂θ 2
+
+> 0. By calculations we have P 
+
+> j
+
+vj ∂L 1 
+
+> ∂v j
+
+= P 
+
+> r
+
+p1(r)l(r), which implies that 
+
+T
+
+ ∂L 1
+
+∂θ 1
+
+− ∂L 1
+
+∂θ 2
+
+
+
+=( p1(r2) + p1(r4)) v1v4 − (p1(r2) + p1(r5)) v2v3 − (p1(r4) + p1(r6)) v2v5 + ( v1 − v2) l(r1) − X
+
+> r
+
+p1(r)l(r)
+
+!
+
+and 
+
+T
+
+ ∂L 1
+
+∂θ 3
+
+− ∂L 1
+
+∂θ 4
+
+
+
+=( p1(r2) + p1(r5)) v2v3 − (p1(r2) + p1(r4)) v1v4 − (p1(r3) + p1(r5)) v4v5 + ( v3 − v4) l(r1) − X
+
+> r
+
+p1(r)l(r)
+
+!
+
+.
+
+Note that if α ≥ β, then we have v1v4 ≥ v2v3 and p1(r4) ≥ p1(r5). Furthermore if α ≥ 1,combining it with v5 = 0 , we have ∂L 1 
+
+> ∂θ 1
+
+− ∂L 1 
+
+> ∂θ 2
+
+≥ 0. It is worth noting that the equality ∂L 1 
+
+> ∂θ 1
+
+= ∂L 1
+
+> ∂θ 2
+
+iff α = β = 1 . Therefore we can deduce that dα dt ≤ 0 from α ≥ β and α ≥ 1.The equality holds iff 
+
+α = β = 1 .Now we consider 4 cases: 1. α ≥ β ≥ 1 ≥ 1/β ≥ 1/α. In this case, we have α ≥ β and α ≥ 1. Therefore we have  
+
+> dα dt
+
+≤ 0 and the equality holds iff α = β = 1 .2. α ≥ 1/β ≥ 1 ≥ β ≥ 1/α. In this case, we have α ≥ β and α ≥ 1. Therefore we also have  
+
+> dα dt
+
+≤ 0 and the equality holds iff α = β = 1 .3. 1/β ≥ α ≥ 1 ≥ 1/α ≥ β. In this case, we have αβ = v4 
+
+> v3
+
+· v1 
+
+> v2
+
+≥ 1. Hence we have 
+
+v1v4 ≥ v2v3 and thus p1(r4) ≥ p1(r5). We also know v4 ≥ v3 since 1/β ≥ 1. Plugging them into T
+
+ ∂L 1 
+
+> ∂θ 3
+
+− ∂L 1
+
+> ∂θ 4
+
+
+
+we have ∂L 1 
+
+> ∂θ 3
+
+≤ ∂L 1 
+
+> ∂θ 4
+
+, which is equivalent to d(1 /β ) 
+
+> dt
+
+≤ 0. It is straightforward to verify that the equality holds iff v3 = v4 and v1 = v2, which is equivalent to α = β = 1 .4. 1/β ≥ 1/α ≥ 1 ≥ α ≥ β. In this case, by exact same argument in case 3, we have  
+
+> d(1 /β )
+> dt
+
+≤ 0 and the equality holds iff α = β = 1 .The rest 4 cases are symmetric to these 4 cases (by swapping α and β). Therefore we have dψ dt < 0
+
+as long as ψ > 1.Now we are ready to prove Theorem 4. Actually it only remains to show the convergent point is the global optimum. 
+
+Proof. From Lemma 8 and Lemma 6 we know θ will converge to some critical point θ∗ such that 
+
+v∗ = ( x, x, 12 − x, 12 − x, 0, 0) for some x̸ = 1 /4 and at the convergence L1 < log 2 . It is worth noting that L1 < log 2 implies l(r1) > l (r) for all r̸ = r1, hence we have l(r1) > P 
+
+> r
+
+p1(r)l(r). We can write the loss L1(x, T ) as a univariate function of x. We can write it out explicitly as 
+
+L1(x) = log 
+
+1 + 
+
+> 6
+
+X
+
+> j=2
+
+exp ( dj (x)/T )
+
+
+
+20 where dj (x) := lj (x) −l1(x). It is easy to see L1 is symmetric L1(x) = L1( 14 −x). Hence it suffices to show that for small enough T , there is only one critical point of L1 in [0 , 1/4] such that L1 < log 2 .Direct caculations give that d2 = −8x2 + 4 x − 12 , d3 = −3x2 + 3 x − 34 , d4 = −7x2 + 4 x − 34 ,
+
+d5 = −7x2 + 3 x − 12 and d6 = −3x2. The critical point condition is 
+
+Φ( x) := 
+
+> 6
+
+X
+
+> j=2
+
+d′ 
+
+> j
+
+(x)edj (x)/T = 0 .
+
+We can define the rescaled function Ψ( x) := e−d6(x)/T Φ( x) so Ψ and Φ have same roots. We can rewrite 
+
+Ψ( x) = (4 − 16 x)e(d2(x)−d6(x)) /T − 6x +
+
+> 5
+
+X
+
+> j=3
+
+d′ 
+
+> j
+
+(x)e(dj (x)−d6(x)) /T .
+
+Set h(x) := d2(x) − d6(x) = −5x2 + 4 x2 − 12 and it is easy verify that h(x) is strictly increasing on (0 , 1/4) and has a unique root 
+
+x0 = 4 − √610 .
+
+We can verify that dj (x0) < d 6(x0) for j = 3 , 4, 5. Hence there exists an surrounding interval 
+
+I = ( x0 − ϵ, x 0 + ϵ) ⊂ (0 , 1/4) such that for all x ∈ I d j (x) − d6(x) < −γ for some γ > 0, which implies that 5X
+
+> j=3
+
+d′ 
+
+> j
+
+(x)e(dj (x)−d6(x)) /T = O(exp( −γ/T )) .
+
+Therefore we can define the dominating term as 
+
+eΨ( x) := (4 − 16 x)e(d2(x)−d6(x)) /T − 6x
+
+and we have |Ψ( x) − eΨ( x)| = O(exp( −γ/T )) . It is easy to check the difference of the derivative is also small |Ψ′(x) − eΨ′(x)| = O( 1 
+
+> T
+
+exp( −γ/T )) . It is worth noting that these two bounds are uniform for x ∈ I. We can claim that eΨ( x) has a unique root in (0 , 1/4) which has a large derivative. 
+
+Claim 1. There is a unique xT ∈ I such that eΨ( xT ) = 0 . Furthermore we have eΨ′(xT ) = Θ( 1 
+
+> T
+
+).
+
+With Claim 1, we can see that Ψ( x) also only have one root in I, since with small enough T we have 
+
+|Ψ′(x) − eΨ′(x)| = o( eΨ′(x)) . Outside I, if x < x 0 − ϵ, then h(x) < 0 uniformly hence Ψ( x) < 0.If x > x 0 + ϵ then h(x) > 0 uniformly and hence Ψ( x) > 0. Therefore L1 has exactly one critical point x∗ in (0 , 1/4) and it is direct to check L1(x∗) < log 2 if T is small enough. It remains to prove the Claim. 
+
+Proof to the Claim 1. We can know eΨ( x) = 0 is equivalent to 
+
+h(x) = T log 6x
+
+4 − 16 x .
+
+We can define F (x) := h(x) − T log 6x 
+
+> 4−16 x
+
+and we have its derivative to be 
+
+F ′(x) = h′(x) − T
+
+ 1
+
+x + 16 4 − 16 x
+
+
+
+.
+
+We can examine that h′(x0) > 0, so for small enough ϵ we have F ′(x) > 0 in I. Also if T is small enough, we have F (x0 − ϵ) < 0 since h(x0 − ϵ) < 0. Similarly, we have F (x0 + ϵ) > 0. Therefore 
+
+F and eΨ have exactly one root xT ∈ I. We can calculate to see that 
+
+eΨ′ (xT ) = −16 eh(xT )/T + 6xT h′ (xT )
+
+T − 6.
+
+The root condition eΨ( xT ) = 0 implies 
+
+(4 − 16 xT ) eh(xT )/T = 6 xT .
+
+21 Plugging it into the derivative of eΨ we obtain 
+
+eΨ′ (xT ) = −16 eh(xT )/T + 6xT h′ (xT )
+
+T − 6,
+
+where −16 eh(xT )/T = −16 6xT 
+
+> 4−16 xT
+
+= O(1) and xT h′(xT ) = xT (4 − 10 xT ) = Θ(1) . Therefore we have eΨ′(xT ) = Θ( 1 
+
+> T
+
+).
+
+## C Proof to Theorem 3 
+
+We first write out the gradient in the general setting. Given an input sequence Z =(s1, a 1, s 2, a 2, s 3, u EoS ), we can write its loss as ℓ1(v; Z, T ). For any relation r, the logit of r
+
+is 
+
+l(r) = 2 X
+
+> 1≤i≤3,1≤j≤2
+
+v2i−1v2j 1{r(si)= aj } +
+
+> 5
+
+X
+
+> i=1
+
+v2 
+
+> i
+
+. (18) Therefore the logit of r contains the quadratic term (v2i−1 + v2j )2 if r maps si to aj , which is consistent with Table 2 in previous three-subject setting. Then the the formulas for gradient w.r.t. v
+
+on sequence Z are as follows. 
+
+T ∂ℓ 1
+
+∂v 1
+
+= 2 
+
+ X
+
+> r:r(s1)= a1
+
+p(r) v2 + X
+
+> r:r(s1)= a2
+
+p(r) v4 − v2
+
+
+
+T ∂ℓ 1
+
+∂v 2
+
+= 2 
+
+ X
+
+> r:r(s1)= a1
+
+p(r) v1 + X
+
+> r:r(s2)= a1
+
+p(r) v3 + X
+
+> r:r(s3)= a1
+
+p(r) v5 − v1
+
+
+
+T ∂ℓ 1
+
+∂v 3
+
+= 2 
+
+ X 
+
+> r:r(s2)= a2
+
+p(r) v4 + X 
+
+> r:r(s2)= a1
+
+p(r) v2 − v4
+
+
+
+T ∂ℓ 1
+
+∂v 4
+
+= 2 
+
+ X 
+
+> r:r(s2)= a2
+
+p(r) v3 + X 
+
+> r:r(s1)= a2
+
+p(r) v1 + X 
+
+> r:r(s3)= a2
+
+p(r) v5 − v3
+
+
+
+T ∂ℓ 1
+
+∂v 5
+
+= 2 
+
+ X 
+
+> r:r(s3)= a1
+
+p(r) v2 + X 
+
+> r:r(s3)= a2
+
+p(r) v4
+
+
+
+∂ℓ 1
+
+∂v 6
+
+= 0 
+
+We first show that after Stage 1, the transformer will have near perfect accuracy on non-confusing sequences and near 0.5 accuracy on confusing sequences. This is the area near the saddle point. 
+
+Lemma 9. After Stage 1, if sample size |D| = w   1  
+
+> T3
+
+· log 2( 1 
+
+> T
+
+) · log( 1 
+
+> δ
+
+) and T < 140 log n , with probability at least 1 − δ/ 3, the attention scores satisfy that ∥v − ( 16 + α, 16 , 16 + α, 16 , 16 −
+
+2α, 16 )∥∞ ≲ η21  
+
+> T2
+
+, |v1 − v3| = o(T 2) and |v2 − v4| = o  exp( − 140 T ) where α = c·pmis ·η1 
+
+> T
+
+for some constant c. Moreover, for non-confusing sequences, the accuracy p1(r1) = 1 − o
+
+
+
+exp( − 1√T )
+
+
+
+; for confusing sequences, the accuracy p1(r1) = 12 − o
+
+
+
+exp( − 1√T )
+
+
+
+.
+
+22 Proof. At initialization, fix an input sequence Z. Denote I(Z) the number of 2-matching relations for Z. It is easy to see that all 2-matching relations have logits 2 · ( 16 + 16 )2 + 162 = 14 , all 1-matching relations have logits ( 16 + 16 )2 + 3 · 162 = 736 and all 0-matching relations have logits 562 = 536 . Since every two (s, a ) pairs correspond to at most one relation, we have the number of 1-matching relations is at most 6( n − 3) and the number of 0-matching relations is at most n(n − 1) − 6( n − 2) < n 2.Then 1 ≤ I(Z) ≤ 6. Note that 
+
+p1(r1) = 1
+
+I(Z) − O(n exp( − 118 T ) + n2 exp( − 19T )) .
+
+Therefore if 1 
+
+> T
+
+> 40 log n, then we have 
+
+p1(r1) = 1
+
+I(Z) − O
+
+
+
+exp( − 136 T )
+
+
+
+.
+
+If Z is not an mismatched sequence, then 
+
+0 ≤ ∂ℓ 1(Z)
+
+∂v 5
+
+− ∂ℓ 1(Z)
+
+∂v i
+
+< O (exp( − 136 T )/T )
+
+for all i̸ = 5 . If Z is a mismatched sequence, then there is at least one 2-matching relation r that maps 
+
+s3 either to a1 or to a2, which has prediction probability same as r1 since r1 is also a 2-matching relation. Hence we have ∂ℓ 1 
+
+> ∂v 5
+
+≥ p1(r1)3T . Noting that ∂ℓ 1(Z) 
+
+> ∂v i
+
+≤ 0 for i̸ = 5 , we have 
+
+p1(r1)3T ≤ ∂ℓ 1(Z)
+
+∂v 5
+
+− ∂ℓ 1(Z)
+
+∂v i
+
+< 23T
+
+for all i̸ = 5 . Summing over Z, we have 
+
+p(r1) · pmis 
+
+3T ≤ ∂L 1(D)
+
+∂v 5
+
+− ∂L 1(D)
+
+∂v i
+
+< 2 · pmis 
+
+3T + O
+
+
+
+exp( − 136 T )/T 
+
+
+
+. (19) Also note that (1) | ∂ℓ 1 
+
+> ∂v i
+
+| ≤ O  exp( − 136 T )/T  for i = 2, 4, 6; (2) | ∂ℓ 1 
+
+> ∂v 1
+
++ ∂ℓ 1 
+
+> ∂v 3
+
++ ∂ℓ 1 
+
+> ∂v 5
+
+| =
+
+O  exp( − 136 T )/T  . Summing over Z, we have 
+
+∂L 1(D)
+
+∂v i
+
+≤ O
+
+
+
+exp( − 136 T )/T 
+
+
+
+for i = 2 , 4, 6 (20) and ∂L 1
+
+∂v 1
+
++ ∂L 1
+
+∂v 3
+
++ ∂L 1
+
+∂v 5
+
+= O
+
+
+
+exp( − 136 T )/T 
+
+
+
+. (21) By (20) and (21), we know at initialization 
+
+|v⊤ 
+
+> 0
+
+∇v L1| = O(exp( − 136 )/T ).
+
+Here v0 =   16 , 16 , 16 , 16 , 16 , 16
+
+⊤ is the attention scores at initialization. Therefore we have 
+
+∥∇ θ L1∥ = O(∥∇ v L1∥) = Θ( 1
+
+T ).
+
+Since ∂L 1 
+
+> ∂v i
+
+= vi
+
+ ∂L 1 
+
+> ∂v i
+
+− v⊤∇v L1
+
+
+
+, we have that 
+
+∥∇ θ L1(D) − 16 ∇v L1(D)∥ = O(exp( − 136 T )/T )
+
+at initialization, which also implies that |v⊤ 
+
+> 0
+
+∇θ L1| = O(exp( − 136 )/T ). Use Taylor expansion we have after Stage 1 that 
+
+v − v0 = −η1J∇θ L1(D) + ϵ
+
+where J = Diag( v0) − v0v⊤ 
+
+> 0
+
+is the Jacobian of softmax at initialization and the remainder 
+
+∥ϵ∥ = O(η21 ∥∇ θ L1∥2) = O( η21
+
+T 2 ).
+
+23 Therefore we can calculate to see that 
+
+v1 + v3 + v5 − 12 ≲ η1
+
+∂L 1
+
+∂v 1
+
++ ∂L 1
+
+∂v 3
+
++ ∂L 1
+
+∂v 5
+
++ η1|v⊤ 
+
+> 0
+
+∇θ L1| + ∥ϵ∥
+
+≲ η21
+
+T 2 .
+
+Since we have ∂L 1(D)
+
+∂θ i
+
+− ∂L 1(D)
+
+∂θ j
+
+= 16
+
+ ∂L 1(D)
+
+∂v i
+
+− ∂L 1(D)
+
+∂v j
+
+
+
+for the gradient at initialization for all i, j , applying (19), (20) together with Taylor expansion imply that after first step of GD, we also have 
+
+|v5 − vi| = Θ( pmis ·η1
+
+T ) and |vi − vj | = O
+
+
+
+η1 · exp( − 136 T )/T 
+
+
+
+for i, j ∈ { 2, 4, 6}. We still need to show that v1 and v3 are close to each other. Since the gradients ∂ℓ 1(Z) 
+
+> ∂v 1
+
+, ∂ℓ 1(Z) 
+
+> ∂v 3
+
+for any sample Z are upper bounded by 2 
+
+> T
+
+and EZ [ ∂ℓ 1(Z) 
+
+> ∂v 1
+
+] = 
+
+EZ [ ∂ℓ 1(Z) 
+
+> ∂v 3
+
+] at initialization. By Chernoff bound, if the sample size |D| = w   1  
+
+> T3
+
+· log 2( 1 
+
+> T
+
+) · log( 1 
+
+> δ
+
+) ,
+
+then with probability at least 1 − δ/ 3, we have 
+
+∂L 1(D)
+
+∂v 1
+
+− ∂L 1(D)
+
+∂v 3
+
+= o
+
+√T log −1( 1
+
+T )
+
+
+
+,
+
+which implies that after Stage 1 we have 
+
+|v1 − v3| = Θ 
+
+
+
+η1
+
+∂L 1(D)
+
+∂v 1
+
+− ∂L 1(D)
+
+∂v 3
+
+
+
+= o(T 2) = o
+
+ η21
+
+T 2
+
+
+
+.
+
+Therefore we have 
+
+∥v − ( 16 + α, 16 , 16 + α, 16 , 16 − 2α, 16 )∥∞ ≲ η21
+
+T 2 , |v1 − v3| = o(T 2)
+
+and 
+
+|v2 − v4| = o
+
+
+
+exp( − 140 T )
+
+
+
+where α = c·pmis ·η1 
+
+> T
+
+for some constant c. With such v, it is straightforward to see that for non-confusing sequences, the accuracy p(r1) = 1 − o
+
+
+
+exp( − 1√T )
+
+
+
+; for confusing sequences, the accuracy p(r1) = 12 − o
+
+
+
+exp( − 1√T )
+
+
+
+.We then show the perturbation scheme helps the model escape the saddle by reducing the loss on confusing sequences. 
+
+Lemma 10. If T < T max (δ) where Tmax (δ) is some constant only depends on δ, with probability at least 1 − δ/ 3, after O(1 /T ) iterations of GD in Stage 2 in Algorithm 1, we have loss on confusing sequences ℓ1 ≤ log 2 − Ω( p3conf · T 3).
+
+Proof. To apply Lemma 14 in Jin et al. [2017], we need to examine two properties at ˜θ: (1) the gradi-ent ∥∇ L1(θ, D )∥ is small, and (2) the most negative eigenvalue of the Hessian λmin (∇2L1(˜θ, D )) is negative enough. We first examine (1). If Z is a non-confusing sequence, it is easy to see 
+
+∥∇ v ℓ1(v, Z )∥ = o
+
+
+
+− exp( − 1
+
+√T )/T 
+
+
+
+.
+
+If Z is a confusing sequence, we have 
+
+∥∇ v ℓ1(v, Z )∥∞ ≲ 1
+
+T max {| v1 − v3|, |v2 − v4|} .
+
+24 By Lemma 9, we know ∥∇ v ℓ1(v, Z )∥∞ = o(T ). Overall we have 
+
+∥∇ θ ℓ1(v, Z )∥ = O(∥∇ v ℓ1(v, Z )∥) = o(T ).
+
+Now we examine (2). Let ˜ϵ = 12 · (1 , 1, −1, −1, 0, 0) be the potential descending direction of loss. Define f˜ϵ, ˜θ (x, Z ) := ℓ1(˜θ + x · ˜ϵ, Z ) to be the loss along the direction of ˜ϵ from ˜θ. Then we have 
+
+λmin (∇2ℓ1(˜θ, Z )) ≤ f ′′  
+
+> ˜ϵ, ˜θ
+
+(0 , Z ). We use p1(x) to denote p1(r1) at parameter θ = ˜θ + x · ˜ϵ. Similarly we use pi(x) for p1(ri) in this proof. Direct calculation gives that 
+
+f ′′  
+
+> ˜ϵ, ˜θ
+
+(0) = p′
+
+> 1
+
+(0) 2
+
+p21(0) − p′′  
+
+> 1
+
+(0) 
+
+p1(0) .
+
+We first work with the situation where Z is a confusing sequence. We have 
+
+p′
+
+> 1
+
+(0) = X
+
+> i
+
+∂p 1
+
+∂l i
+
+· l′
+
+> i
+
+(0) 
+
+where ∂p 1 
+
+> ∂l 1
+
+= 1 
+
+> T
+
+p1 (1 − p1) and ∂p 1 
+
+> ∂l i
+
+= − 1 
+
+> T
+
+p1pi for i̸ = 1 . For all relations r that are neither the underlying true relation r1 nor the confusing relation r2, the probability of predicting it p1(r) = 
+
+o
+
+
+
+exp( − 1√T )
+
+
+
+is exponentially small after Stage 1. It is sufficient to only look at r1 and r2. Further we have 
+
+l′
+
+> i
+
+(0) = ( ∇v li)⊤ v′(0) 
+
+where ∥v′(0) − δ ⊙ v∥∞ = o(T 2) since v′
+
+> i
+
+(0) = δivi − viv⊤δ for each i and |v⊤δ| = o(T 2) by Lemma 9. Also we have 
+
+∇v l1 = 2 ( v1 + v2, v 1 + v2, v 3 + v4, v 3 + v4, v 5, 0) ⊤
+
+and 
+
+∇v l2 = 2 ( v1 + v4, v 2 + v3, v 2 + v3, v 1 + v4, v 5, 0) ⊤ .
+
+Hence we have 
+
+l′
+
+> 1
+
+(0) = ( ∇v l1)⊤ (δ ⊙ v) + o(T 2) = ( v1 + v2 + v3 + v4)( v1 − v3 + v2 − v4) + o(T 2) = o(T 2).
+
+Similarly we have l′
+
+> 2
+
+(0) = o(T 2). Hence we obtain that p′
+
+> 1
+
+(0) = o(T ). Therefore we have 
+
+f ′′  
+
+> ˜ϵ, ˜θ
+
+(0) = − p′′  
+
+> 1
+
+(0) 
+
+p1(0) + o(T 2). (22) We have that 
+
+p′′  
+
+> 1
+
+(0) = X
+
+> i
+
+∂p 1
+
+∂l i
+
+l′′  
+
+> i
+
+(0) 
+
+| {z }
+
+> term I
+
++ X
+
+> i,j
+
+∂2p1
+
+∂l i∂l j
+
+· l′
+
+> i
+
+(0) · l′ 
+
+> j
+
+(0) 
+
+| {z }
+
+> term II
+
+. (23) First calculate term I. We know 
+
+l′′  
+
+> i
+
+(0) = v′(0) ⊤∇2 
+
+> v
+
+li(v(0)) v′(0) + ( ∇v li)⊤ v′′ (0) .
+
+Note that 
+
+v′′  
+
+> i
+
+(0) = δiv′
+
+> i
+
+(0) − v′
+
+> i
+
+v⊤δ − vi(v′)⊤δ
+
+and |v⊤δ| = o(T 2), we have 
+
+v′′  
+
+> i
+
+(0) = vi
+
+δ2 
+
+> i
+
+−
+
+> 6
+
+X
+
+> j=1
+
+vj δ2
+
+> j
+
+ + o  T 2 .
+
+By Lemma 9, we have 6X
+
+> j=1
+
+vj δ2 
+
+> j
+
+= 16 + O
+
+√T log 1
+
+T
+
+
+
+.
+
+25 Hence we have 
+
+v′′  
+
+> i
+
+(0) = 112 vi − O
+
+√T log 1
+
+T
+
+
+
+,
+
+which implies that 
+
+(∇v li)⊤ v′′ (0) = 124 − O
+
+√T log 1
+
+T
+
+
+
+for i = 1 , 2. We also have 
+
+v′(0) ⊤∇2 
+
+> v
+
+l1v′(0) = 112 + O
+
+√T log 1
+
+T
+
+
+
+and 
+
+v′(0) ⊤∇2 
+
+> v
+
+l2v′(0) = O
+
+√T log 1
+
+T
+
+
+
+.
+
+Therefore we have l′′  
+
+> 1
+
+(0) = 18 + O(√T log 1 
+
+> T
+
+) and l′′  
+
+> 2
+
+(0) = 124 − O(√T log 1 
+
+> T
+
+). So we have term I = p1
+
+T
+
+ 18 (1 − p1) − 124 p2 + O
+
+√T log 1
+
+T
+
+ 
+
+= p1
+
+12 T
+
+
+
+p2 + O
+
+√T log 1
+
+T
+
+ 
+
+= Θ 
+
+ 1
+
+T
+
+
+
+. (24) For term II, note that 
+
+∂2p1
+
+∂l i∂l j
+
+= 2
+
+T 2 p1pipj , ∂2p1
+
+∂l 2
+
+> i
+
+= 1
+
+T 2 p1 (1 − p1) (1 − 2p1) , ∂2p1
+
+∂l 1∂l i
+
+= p1pi
+
+T 2 (2 p1 − 1) 
+
+and ∂2p1
+
+> ∂l 2
+> i
+
+= p1pi  
+
+> T2
+
+(2 pi − 1) for i̸ = j, i ̸ = 1 , j ̸ = 1 and they are all o
+
+
+
+exp( − 1√T )
+
+
+
+. Therefore term II = o
+
+
+
+exp( − 1√T )
+
+
+
+. Plugging it with (25) into (23), we have p′′  
+
+> 1
+
+(0) = −Θ(1 /T ) and hence 
+
+f ′′  
+
+> ˜ϵ, ˜θ
+
+(0) ≤ − Ω(1 /T )
+
+for confusing sequences. Now we assume that Z is a non-confusing sequence. We then have | ∂p 1 
+
+> ∂l i
+
+| = o
+
+
+
+T −1 exp( − 1√T )
+
+
+
+and |l′
+
+> i
+
+(0) | = o(T 2). Hence |p′
+
+> 1
+
+(0) | = o
+
+
+
+T exp( − 1√T )
+
+
+
+. So we have for non-confusing Zf ′′  
+
+> ˜ϵ, ˜θ
+
+(0) = − p′′  
+
+> 1
+
+(0) 
+
+p1(0) + o
+
+
+
+T 2 exp( − 2
+
+√T )
+
+
+
+.
+
+Similarly we can calculate that for non-confusing Z that term I = p1
+
+T
+
+ 18 (1 − p1) + O
+
+√T log 1
+
+T
+
+ 
+
+= O
+
+
+
+T − 12 log( 1
+
+T )
+
+
+
+= o
+
+ 1
+
+T
+
+
+
+(25) and term II = o
+
+
+
+exp( − 1√T )
+
+
+
+. Hence for non-confusing Z we have p′′  
+
+> 1
+
+(0) = o( 1 
+
+> T
+
+) and 
+
+|f ′′  
+
+> ˜ϵ, ˜θ
+
+(0 , Z )| = o( 1 
+
+> T
+
+). Summing over all confusing and non-confusing Z, we have f ′′  
+
+> ˜ϵ, ˜θ
+
+(0 , D ) ≲
+
+−Ω( pconf /T ) and therefore λmin (∇2L1(˜θ, D )) ≲ −Ω( pconf /T ).26 Now we can apply Lemma 14 in Jin et al. [2017] and obtain that after ˜O( 1  
+
+> pconf ·T
+
+) iterations of GD in Stage 2, with probability at least 1 − δ/ 3, we have 
+
+L1(θ, D ) ≤ L1(˜θ, D ) − Ω( p3conf · T 3).
+
+We know for non-confusing sequences we have ℓ1(˜θ, Z ) = o
+
+
+
+exp( − 1√T )
+
+
+
+, hence denoting Dconf ⊂
+
+D the set of confusing sequences in D, we must have 
+
+L1(θ, D conf ) ≤ L1(˜θ, D conf ) − Ω( p3conf · T 3) = log 2 − Ω( p3conf · T 3).
+
+For any confusing sequence Z, defining g := l(r1)−l(r2) = 2( v1 −v3)( v2 −v4), it is straightforward to verify that 
+
+11 + exp( −g/T ) + 4 exp( −
+
+q 1 
+
+> T
+
+) + n2 exp( − 118 T )
+
+≤ p1(r1, Z ) ≤ 11 + exp( −g/T ) .
+
+Therefore for any two confusing sequences Z1 and Z2, we know 
+
+|p1(r1, Z 1) − p1(r1, Z 2)| = O(exp( − 1
+
+√T )) 
+
+is exponentially small, which implies that |ℓ1(θ, Z 1) − ℓ1(θ, Z 2)| = O(exp( − 1√T )) . Combining it with that L1(θ, D conf ) ≤ log 2 − Ω( p3conf · T 3), we know 
+
+ℓ1(θ, Z ) ≤ log 2 − Ω( p3conf · T 3)
+
+for any confusing sequence Z.Finally we show that after escaping the saddle, the loss on confusing sequences can decrease fast. 
+
+Lemma 11. After O( Tη2·pconf log 1 
+
+> T
+
+) iterations of GD in Stage 2 in Algorithm 1, with probability at least 1 − δ/ 3, we have p(r1) ≥ 0.999 on any confusing sequence. Proof. Assume Z ∈ D is a confusing sequence. We denote p2(Z) the prediction probability for r2
+
+on Z and p2(D) := 1
+
+> pconf ·| D|
+
+P  
+
+> confusing Z′∈D
+
+p2(Z′). After ˜O(1 /T ) iterations of GD in Stage 2, with probability least 1 − δ/ 3, we have 
+
+ℓ1(θ, Z ) ≤ log 2 − Ω( p3conf · T 3).
+
+Hence p(r2) ≤ 12 − Ω( T 3), which implies that 
+
+(v1 − v3)( v2 − v4) ≳ T 4
+
+since l1 − l2 = 2( v1 − v3)( v2 − v4). Without loss of generality, assume v1 > v 3 and v2 > v 4. Let 
+
+∆ := softmax( θ − η2∇θ L1(θ)) − softmax( θ) ∈ R6
+
+be the change of the attention scores after one step of gradient descent. Denote 
+
+g := ( v1 − v3)( v2 − v4).
+
+Then we have 
+
+gk+1 − gk = ( v1 − v3)(∆ 2 − ∆4) + ( v2 − v4)(∆ 1 − ∆3) + (∆ 1 − ∆3)(∆ 2 − ∆4) (26) where all ∆ and vi at RHS are at time k. We also have g0 ≳ T 4.Now we show that gk+1 − gk ≥ η2pconf  
+
+> 10000 T
+
+· gk if p(r1) < 0.999 .As long as k ≤ 1 
+
+> T
+
+(log 1 
+
+> T
+
+)1.5, by Lemma 12 we have 
+
+∥θ(k) − ˜θ∥2 ≲ √k · T 2 ≲ T 1/2(log 1 
+
+> T
+
+)3/4,
+
+which implies ∥v(k) − ˜v∥2 ≲ T 1/2(log 1 
+
+> T
+
+)3/4 and p(ri) = o(exp −1/√T ) for i̸ = 1 , 2.27 Also we have ∂ℓ 1(v, Z )
+
+∂v 1
+
+= 1
+
+T
+
+ p2(Z)( v4 − v2) + o(e−1/√T ),∂ℓ 1(v, Z )
+
+∂v 2
+
+= 1
+
+T
+
+ p2(Z)( v3 − v1) + o(e−1/√T ),∂ℓ 1(v, Z )
+
+∂v 3
+
+= 1
+
+T
+
+ p2(Z)( v2 − v4) + o(e−1/√T ),∂ℓ 1(v, Z )
+
+∂v 4
+
+= 1
+
+T
+
+ p2(Z)( v1 − v3) + o(e−1/√T ),∂ℓ 1(v, Z )
+
+∂v 5
+
+= o(e−1/√T )
+
+and ∂ℓ 1(v, Z )
+
+∂v 6
+
+= 0 .
+
+We also know 
+
+∥∇ v ℓ1(v, Z ′)∥∞ = o
+
+
+
+T −1 · exp( −1/√T )
+
+
+
+for non-confusing sequences Z′. Therefore 
+
+∂L 1
+
+∂v i
+
+= pconf · ∂ℓ 1(v, Z )
+
+∂v i
+
++ o
+
+
+
+T −1 · exp( −1/√T )
+
+
+
+for all i. Moreover, 
+
+∂L 1
+
+∂θ i
+
+= vi
+
+ ∂L 1
+
+∂v i
+
+−
+
+> 6
+
+X
+
+> j=1
+
+vj
+
+∂L 1
+
+∂v j
+
+
+
+and 6X
+
+> j=1
+
+vj
+
+∂L 1
+
+∂v j
+
+= 4p2 · pconf 
+
+T
+
+ −g + o(e−1/√T ).
+
+Now we are ready to calculate ∆1 − ∆3 and ∆2 − ∆4 in (26). By Taylor expansion we have 
+
+∆ = −η2J(v(θ)) ∇θ L1 + ϵ
+
+where J(v(θ)) = Diag( v) − vv ⊤ is the Jacobian of softmax and ∥ϵ∥ = O(η22 ∥∇ θ L1(θ)∥2).Therefore we have 
+
+∆1 − ∆3 = η2
+
+
+
+(v1 − v3)v⊤∇θ L1 + v3
+
+∂L 1
+
+∂θ 3
+
+− v1
+
+∂L 1
+
+∂θ 1
+
+
+
++ ϵ1 − ϵ3
+
+and 
+
+∆2 − ∆4 = η2
+
+
+
+(v2 − v4)v⊤∇θ L1 + v4
+
+∂L 1
+
+∂θ 4
+
+− v2
+
+∂L 1
+
+∂θ 2
+
+
+
++ ϵ2 − ϵ4.
+
+Plug them into 26 we have 
+
+gk+1 − gk = η2
+
+"
+
+2( v1 − v3)( v2 − v4) v⊤∇θ L1 + η2(v1 − v3)( v2 − v4) v⊤∇θ L1
+
+2
+
++ ( v2 − v4)
+
+
+
+v3
+
+∂L 1
+
+∂θ 3
+
+− v1
+
+∂L 1
+
+∂θ 1
+
+
+
++ ( v1 − v3)
+
+
+
+v4
+
+∂L 1
+
+∂θ 4
+
+− v2
+
+∂L 1
+
+∂θ 2
+
+
+
++ η2
+
+
+
+v3
+
+∂L 1
+
+∂θ 3
+
+− v1
+
+∂L 1
+
+∂θ 1
+
+  
+
+v4
+
+∂L 1
+
+∂θ 4
+
+− v2
+
+∂L 1
+
+∂θ 2
+
+
+
++ η2(v1 − v3)v⊤∇θ L1
+
+
+
+v4
+
+∂L 1
+
+∂θ 4
+
+− v2
+
+∂L 1
+
+∂θ 2
+
+
+
++ η2(v2 − v4)v⊤∇θ L1
+
+
+
+v3
+
+∂L 1
+
+∂θ 3
+
+− v1
+
+∂L 1
+
+∂θ 1
+
+ #
+
++ O(∥ϵ∥) (27) 28 We first obtain 
+
+v3
+
+∂L 1
+
+∂θ 3
+
+− v1
+
+∂L 1
+
+∂θ 1
+
+= v23
+
+∂L 1
+
+∂v 3
+
+− v21
+
+∂L 1
+
+∂v 1
+
++  v21 − v23
+
+ · v⊤∇v L1
+
+= 2p2(D)pconf 
+
+T
+
+ v21 + v23
+
+ (v2 − v4) + 2  v23 − v21
+
+ g + o
+
+
+
+e− 1√T /T 
+
+ 
+
+. (28) Similarly we have 
+
+v4
+
+∂L 1
+
+∂θ 4
+
+− v2
+
+∂L 1
+
+∂θ 2
+
+= 2p2(D)pconf 
+
+T
+
+ v22 + v24
+
+ (v1 − v3) + 2  v24 − v22
+
+ g + o
+
+
+
+e− 1√T /T 
+
+ 
+
+. (29) Also we have 
+
+v⊤∇θ L1 =
+
+> 6
+
+X
+
+> i=1
+
+v2
+
+> i
+
+∂L 1
+
+∂v i
+
+− ∥ v∥2v⊤∇v L1
+
+= 2p2(D)pconf 
+
+T
+
+
+
+(v23 − v21 )( v2 − v4) + ( v24 − v22 )( v1 − v3) + 2 ∥v∥2g + o
+
+
+
+e−1/√T  
+
+= 2p2(D)pconf 
+
+T
+
+ 2∥v∥2 − (v1 + v2 + v3 + v4) g + o
+
+
+
+e−1/√T  
+
+,
+
+which implies that 
+
+v⊤∇θ L1 = O
+
+ p2(D)pconf gT
+
+
+
+. (30) Plugging (28), (29) and (30) into (27) and assuming that g = o(1) (if g = Ω(1) then it is easy to see 
+
+p1 ≥ 0.999 ), we finally obtain that 
+
+gk+1 − gk = 2p2(D)pconf η2
+
+T
+
+ (v21 + v23 )( v2 − v4)2 + ( v22 + v24 )( v1 − v3)2 + o(g) + O(∥ϵ∥)
+
+≥ 2p2(D)pconf η2
+
+T
+
+q 
+
+(v21 + v23 )( v22 + v24 )g + o(g)
+
+
+
+≥ η2pconf 
+
+10000 T · g (31) for sufficiently small T and p2(D) > 0.0009 (If p2(D) ≤ 0.0009 then we have p1(D) ≥ 0.9991 ). The first inequality uses the fact that 
+
+∥ϵ∥ ≲ η22 ∥∇ θ L1∥2
+
+≲ η22 ∥∇ v L1∥2
+
+≲ p22p2conf η22
+
+T 2
+
+ (v1 − v3)2 + ( v2 − v4)2
+
+= o
+
+ p2pconf η2
+
+T
+
+ (v21 + v23 )( v2 − v4)2 + ( v22 + v24 )( v1 − v3)2
+
+and (v21 + v23 )( v2 − v4)2 + ( v22 + v24 )( v1 − v3)2 ≥ 2p(v21 + v23 )( v22 + v24 )g.Hence gk+1 − gk ≥ η2pconf  
+
+> 10000 T
+
+gk as long as p1(D) < 0.9991 . This means gk+1 ≥  1 + η2pconf 
+
+> 10000 T
+
+ gk.Since we have g0 ≳ T 4, there exists constant C2, such that when k ≥ C2T log(1 /T ) 
+
+> η2pconf
+
+, we have 
+
+p1(D) ≥ 0.9991 . It is straightforward to verify that at time k we have 
+
+11 + exp( −gk/T ) + 4 exp( −
+
+q 1 
+
+> T
+
+) + n2 exp( − 118 T )
+
+≤ p1(Z′) ≤ 11 + exp( −gk/T )
+
+for any confusing sequence Z′. Therefore for T < 140 log n and large enough n we have |p1(Z′) −
+
+p1(Z)| < 0.0001 , which implies p(r1) ≥ 0.999 for any confusing sequence. 29 Lemma 11 shows that the test accuracy is high on confusing sequences. To prove Theorem 3, it remains to show that the accuracy is also high on non-confusing sequences. 
+
+Proof of Theorem 3. We first show that after Stage 2, p(r1) > 0.99 for any non-confusing sequence as well. We know that after Stage 2, ∥v(θ) − v(˜θ)∥ ≲ √T (log 1 
+
+> T
+
+) 34 = o(α) = o( pmis ·η1 
+
+> T
+
+). Hence by Lemma 9, we have p(r1) > 0.999 for non-confusing sequences if pmis is a constant. By Lemma 11, we also need to show that pconf cannot be too small. Apply Chernoff bound to Assumption 2, we have that if |D| ≥ 13  
+
+> ζ
+
+log 1 
+
+> δ
+
+, then with probability at least 1 − δ/ 3, we have pconf , p mis ≥ ζ/ 2.Taking a union bound over the randomness here and the randomness in Lemma 9, Lemma 11, we finish the proof. 
+
+## D Proof to Lemma 2 
+
+In this section, we denote q = softmax( ω) the attention scores from the first decoding token. We abbreviate p2,r (a, Z ) as p2,r (a) if Z can be inferred from the context. We restate Lemma 2 here. 
+
+Lemma 2. Assume the IC-recall data satisfies Assumptions 1 and 2. Set T, η 1, η 2 and the sample size |D| same as in Theorem 1 for Algorithm 1, after Stage 1 and throughout Stage 2, the transformer has accuracy 1 − o
+
+
+
+exp 
+
+
+
+− 1√T
+
+ 
+
+on all IC-recall sequences for the second decoding step. Proof. We fix any sampled eZ = ( s1, a 1, s 2, a 2, s 3, u EoS ). The prediction logits for the second decoding step conditioned on that the first decoded token being r1 are 
+
+l(a1) = ( q1 + ( q7 + 1)) 2 + q23 + q25 ,l(a2) = ( q3 + ( q7 + 1)) 2 + q21 + q25 ,l(a3) = ( q5 + ( q7 + 1)) 2 + q23 + q21
+
+and l(a) = q21 + q23 + q25 + ( q7 + 1) 2 for any answer a / ∈ { a1, a 2, a 3}. We see that the loss for the second decoding step as a function of q is identical for every sequence, and hence it suffices to analyze a single sequence. We can also see that the gap between l(a3) and the logits of other answers is lower bounded by 2( q5 − max {q1, q 3}). Our goal is to show this lower bound of the gap becomes large enough after Stage 1, and remains large throughout Stage 2. We first calculate the gradient of the loss ℓ2(ω, eZ) w.r.t. attention scores q1, q 3 and q5 in the following claim. 
+
+Claim 2. The gradients w.r.t. q are 
+
+∂ℓ 2
+
+∂q 1
+
+= 2(1 + q7)
+
+T p2,r 1 (a1),∂ℓ 2
+
+∂q 3
+
+= 2(1 + q7)
+
+T p2,r 1 (a2),∂ℓ 2
+
+∂q 5
+
+= 2(1 + q7)
+
+T (p2,r 1 (a3) − 1) ,∂ℓ 2
+
+∂q 7
+
+= 2
+
+T (p2,r 1 (a1)q1 + p2,r 1 (a2)q3 + p2,r 1 (a3)q5 − q5) ,∂ℓ 2
+
+∂q i
+
+= 0 for i̸ = 1 , 3, 5, 7.
+
+30 We have ∂ℓ 2 
+
+> ∂ω i
+
+= qi( ∂ℓ 2 
+
+> ∂q i
+
+− P7 
+
+> j=1
+
+qj ∂ℓ 2 
+
+> ∂q j
+
+) and at initialization qi = 17 for all i ∈ [7] , p2,r 1 (a1) = 
+
+p2,r 1 (a2) = p2,r 1 (a3). Therefore at initialization we have 
+
+∇q ℓ2 = 17T
+
+
+
+16 p
+
+016 p
+
+016( p − 1) 02(3 p − 1) 
+
+
+
+=⇒ ∇ ω ℓ2 = 1343 T
+
+
+
+58 p + 18 
+
+−54 p + 18 58 p + 18 
+
+−54 p + 18 58 p − 94 
+
+−54 p + 18 
+
+−12 p + 4 
+
+
+
+where p := p2,r 1 (a1) < 13 . Therefore after the first GD step, we have 
+
+˜ω5 − max  
+
+> i̸=5
+
+˜ωi ≥ 32 η1
+
+147 T = Θ( √T log(1 /T )) .
+
+Since the perturbation is of radius Θ( T 3 log −2(1 /δ )) , for sufficeintly small T , after the perturbation the parameter ω continues to satisfy ω5 − max i̸=5 ωi = Θ( √T log(1 /T )) .
+
+Next, we show that if ω5 − max i̸=5 ωi > 0, then after a GD step this quantity is non-decreasing. It is immediate to see ∂ℓ 2 
+
+> ∂q i
+
+− ∂ℓ 2 
+
+> ∂q 5
+
+≥ 0 for i = 1 , 2, 3, 4, 6. Next, since ω5 ≥ ωi, q5 ≥ qi and thus 
+
+∂ℓ 2
+
+∂q 7
+
+≥ 2q5
+
+T (p2,r 1 (a3) − 1) ≥ 2(1 + q7)
+
+T (p2,r 1 (a3) − 1) = ∂ℓ 2
+
+∂q 5
+
+as well. Finally, 
+
+∂ℓ 2
+
+∂ω i
+
+− ∂ℓ 2
+
+∂ω 5
+
+= qi
+
+∂ℓ 2
+
+∂q i
+
+− q5
+
+∂ℓ 2
+
+∂q 5
+
++ ( q5 − qi)
+
+> 7
+
+X
+
+> j=1
+
+qj
+
+∂ℓ 2
+
+∂q j
+
+≥ qi
+
+∂ℓ 2
+
+∂q i
+
+− q5
+
+∂ℓ 2
+
+∂q 5
+
++ ( q5 − qi) ∂ℓ 2
+
+∂q 5
+
+= qi
+
+ ∂ℓ 2
+
+∂q i
+
+− ∂ℓ 2
+
+∂q 5
+
+
+
+≥ 0.
+
+Hence ω5 − max i̸=5 ωi is non-decreasing. Therefore at any point during Stage 2, we have 
+
+q5 − qi = q5(1 − qi
+
+q5
+
+) = q5(1 − exp( ωi − ω5)) ≥ Θ( √T log(1 /T )) 
+
+for sufficiently small T since q5 ≥ 1/7. This implies the logit gap l(a3) − max {l(a1), l (a2)} =Ω( √T log 1 
+
+> T
+
+), as well as l(a3) − l(a) ≥ 2q5 = Ω(1) for any a̸ ∈ { a1, a 2, a 3}. Therefore for  
+
+> 1
+> T
+
+> 40 log n, we have 
+
+p2,r 1 (a3) = 11 + 2 exp 
+
+
+
+−Ω
+
+ 1√T log 1
+
+> T
+
+ 
+
++ ( n − 3) exp  −Ω   1
+
+> T
+
+ ≥ 1 − o
+
+
+
+exp 
+
+
+
+− 1
+
+√T
+
+ 
+
+.
+
+Proof to Claim 2. Conditioned on the correct decoded relation r1, we have the loss for the second decoding step ℓ2 = − log ( p2,r 1 (a3)) where p2,r 1 (a3) = exp( l(a3)/T )P   
+
+> a∈A exp( l(a)/T )
+
+. Therefore we have the gradient w.r.t. the logit vector l is 
+
+∂ℓ 2
+
+∂l = 1
+
+T (p2,r 1 − e3).
+
+Also we know that 
+
+l(a1) = ( q1 + ( q7 + 1)) 2 + q23 + q25 ,l(a2) = ( q3 + ( q7 + 1)) 2 + q21 + q25 ,l(a3) = ( q5 + ( q7 + 1)) 2 + q23 + q21
+
+31 and l(a) = q21 + q23 + q25 + ( q7 + 1) 2 for any answer a / ∈ { a1, a 2, a 3}. Therefore we can obtain  
+
+> ∂l i
+> ∂q j
+
+= 0 if j̸ = 1 , 3, 5, 7,
+
+∂l i
+
+∂q 2j−1
+
+= 2 q2j−1 + 2( q7 + 1) δij for any i ∈ [n], j = 1 , 2, 3
+
+and ∂l i
+
+∂q 7
+
+= 2( q7 + 1) + 2 q2i−1 · 1{i≤3} for any i ∈ [n].
+
+Since P 
+
+> i
+
+p2,r 1 (ai) = 1 , we have 
+
+∂ℓ 2
+
+∂q 2j−1
+
+= X
+
+> i∈[n]
+
+∂ℓ 2
+
+∂l i
+
+∂l i
+
+∂q 2j−1
+
+= 2( q7 + 1) 
+
+T (p2,r 1 (r1(sj )) − δj3)
+
+and ∂ℓ 2
+
+∂q 7
+
+= 2
+
+T (p2,r 1 (r1(s1)) q1 + p2,r 1 (r1(s2)) q3 + p2,r 1 (r1(s3)) q5 − q5).
+
+Plugging into the mapping of r1, we obtain the desired results. For j̸ = 1 , 3, 5, 7, we have ∂ℓ 2 
+
+> ∂q j
+
+=0.
+
+## E Helper lemmas 
+
+Proposition 2. There exists constant T0 such that for any 0 < T < T 0, the loss L1(θ, T ) has gradient Lipschitz constant O(1 /T 2) and Hessian Lipschitz constant O(1 /T 3).
+
+Proof. We prove the proposition for the general setting where |S| = n and |R| = m. Recalling that loss L1(θ, T ) = EZ [ℓ1(θ, Z, T )] , it suffices to show for ℓ1(θ, Z, T ) that the desired property holds. Also note that since v = softmax( θ), its derivatives w.r.t. θ up to order 3 are uniformly bounded by absolute constants. Therefore by chain rule, it suffices to show for ℓ1(v, Z, T ) that its gradient and Hessian Lipschitz constants are O(1 /T 2) and O(1 /T 3) respectively for any Z. We fix any Z. Then by (18) we know each logit l(rj ) can be written as some quadratic form 
+
+l(rj ) = v⊤Aj v
+
+for some symmetric matrix Aj , and the number of possible quadratic forms is at most 13 , which is independent of n. For simplicity, we abbreviate l(rj ) as lj . Then on the simplex of v, there exists absolute constants G, H > 0 such that 
+
+∥∇ v lj (v)∥ ≤ G, ∥∇ 2 
+
+> v
+
+lj (v)∥ ≤ H, ∇3 
+
+> v
+
+lj (v) = 0 for all j ∈ [m].
+
+We know that the loss 
+
+ℓ1(v, T ) = − log p1(v) = − l1(v)
+
+T + log 
+
+> m
+
+X
+
+> j=1
+
+exp 
+
+ lj (v)
+
+T
+
+
+
+.
+
+Define the log-sum-exp term as Ψ( v) := log Pmj=1 exp 
+
+ lj (v)
+
+> T
+
+
+
+. For a k-th order tensor A ∈
+
+Rd×···× d, we define the associated k-linear form as 
+
+A[x1, . . . , x k] := 
+
+> d
+
+X 
+
+> i1,...,i k=1
+
+Ai1,...,i k · (x1)i1 · · · (xk)ik , x1, . . . , x k ∈ Rd.
+
+For unit vectors a, b we define 
+
+Xaj := ∇v lj [a], Y a,b j := ∇2lj [a, b ].
+
+Then we have |Xaj | ≤ G and |Y a,b j | ≤ H. We first derive the upper bound for the gradient. 32 Gradient Lipschitz constant. for all j ∈ [m]. Differentiating Ψ gives 
+
+∇Ψ( v)[ a] = 1
+
+T
+
+X
+
+> j∈[m]
+
+pj Xaj
+
+and 
+
+∇2Ψ( v)[ a, b ] = 1
+
+T
+
+X
+
+> j∈[m]
+
+pj Y a,b j + 1
+
+T 2 Cov p(Xa, X b).
+
+Here p = softmax( l) is the prediction probability vector and 
+
+Cov p(X, Y ) := 
+
+> m
+
+X
+
+> j=1
+
+pj Xj Yj −
+
+
+
+> m
+
+X
+
+> j=1
+
+pj Xj
+
+ ·
+
+
+
+> m
+
+X
+
+> j=1
+
+pj Yj
+
+ for any X, Y ∈ Rm.
+
+It is easy to see that 
+
+|∇ Ψ( v)[ a]| ≤ GT = O(1 /T )
+
+and there exists T0 > 0 such that for any 0 < T < T 0 we have 
+
+|∇ 2Ψ( v)[ a, b ]| ≤ HT + 2G2
+
+T 2 = O(1 /T 2).
+
+Also noting that |∇ 2l1[a, b ]| ≤ H, therefore we have 
+
+|∇ 2ℓ1[a, b ]| = O(1 /T 2),
+
+which implies that 
+
+∥∇ 2ℓ1(v)∥ = O(1 /T 2).
+
+Hessian Lipschitz constant. We can calculate to obtain that for unit vectors a, b, c , we have 
+
+∇3Ψ( v)[ a, b, c ] = 1
+
+T
+
+X
+
+> j∈[m]
+
+pj ∇3lj [a, b, c ]+ 1
+
+T 2
+
+ Cov p(Y a,b , X c) + Cov p(Y a,c , X b) + Cov p(Y b,c , X a)
+
++ 1
+
+T 3
+
+> m
+
+X
+
+> j=1
+
+pj
+
+ Xaj − μa
+
+   Xbj − μb
+
+   Xcj − μc
+
+
+
+where μa := P 
+
+> j∈[m]
+
+pj Xaj and μb, μc similarly follow. Using ∇3lj = 0 , |Xaj |, |Xbj |, |Xcj | ≤ G and 
+
+|Y a,b |, |Y b,c |, |Y a,c | ≤ H for all j ∈ [m], we obtain 
+
+|∇ 3Ψ( v)[ a, b, c ]| ≤ 6HG T 2 + 8G3
+
+T 3 = O(1 /T 3).
+
+Therefore combining it with ∇3l1 = 0 we have 
+
+∇3ℓ1[a, b, c ] = O(1 /T 3),
+
+which implies that 
+
+∥∇ 3ℓ1(v)∥ = O(1 /T 3).
+
+Lemma 12 (GD movement upper bound) . Let f (·) be ℓ-gradient Lipschitz smooth and f ⋆ =inf x f (x). Consider gradient descent iterates xk+1 = xk − η∇f (xk) where η ≤ 1 
+
+> ℓ
+
+. Then for any 
+
+t ≥ 1,
+
+∥xt − x0∥ ≤ 
+
+r 2t (f (x0) − f ⋆)
+
+ℓ .
+
+Proof. By the descent lemma, Pt−1 
+
+> k=0
+
+∥xk+1 − xk∥2 = η2 Pt−1 
+
+> k=0
+
+∥∇ f (xk)∥2 ≤ 2( f (x0)−f ⋆) 
+
+> ℓ
+
+. Apply-ing the triangle inequality followed by Cauchy–Schwarz, 
+
+∥xt − x0∥ ≤ 
+
+> t−1
+
+X
+
+> k=0
+
+∥xk+1 − xk∥ ≤ 
+
+vuutt
+
+> t−1
+
+X
+
+> k=0
+
+∥xk+1 − xk∥2 ≤
+
+r 2t (f (x0) − f ⋆)
+
+ℓ .
+
+33

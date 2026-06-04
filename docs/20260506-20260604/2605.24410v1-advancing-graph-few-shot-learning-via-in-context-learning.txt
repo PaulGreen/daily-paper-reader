@@ -1,0 +1,768 @@
+Title: Advancing Graph Few-Shot Learning via In-Context Learning
+
+URL Source: https://arxiv.org/pdf/2605.24410v1
+
+Published Time: Tue, 26 May 2026 00:31:09 GMT
+
+Number of Pages: 12
+
+Markdown Content:
+# Advancing Graph Few-Shot Learning via In-Context Learning 
+
+# Renchu Guan ∗
+
+College of Computer Science and Technology, Jilin University Changchun, China guanrenchu@jlu.edu.cn 
+
+# Yajun Wang ∗
+
+College of Computer Science and Technology, Jilin University Changchun, China yajun24@mails.jlu.edu.cn 
+
+# Chunli Guo ∗
+
+College of Software, Jilin University Changchun, China guocl24@mails.jlu.edu.cn 
+
+# Bowen Cao 
+
+Department of Computer Science and Technology, Yanbian University Yanbian, China caobowen@ybu.edu.cn 
+
+# Fausto Giunchiglia 
+
+Department of Information Engineering and Computer Science, University of Trento Trento, Italy fausto.giunchiglia@unitn.it 
+
+# Wei Pang 
+
+School of Mathematical and Computer Sciences, Heriot-Watt University Edinburgh, Scotland w.pang@hw.ac.uk 
+
+# Yonghao Liu ∗† 
+
+College of Computer Science and Technology, Jilin University Changchun, China yonghao20@mails.jlu.edu.cn 
+
+# Xiaoyue Feng ∗† 
+
+College of Computer Science and Technology, Jilin University Changchun, China fengxy@jlu.edu.cn 
+
+## Abstract 
+
+Graph few-shot learning, which aims to classify nodes from novel classes with only a few labeled examples, is a widely studied prob-lem in graph learning. However, existing methods often face two key limitations. First, the predominant graph few-shot learning paradigm relies on supervised tasks, failing to leverage the vast number of unlabeled nodes in the graph. Second, many approaches require complex task adaptation or fine-tuning during inference, limiting their efficiency and applicability. Inspired by the power-ful in-context learning capabilities of large language models, we propose a novel model named VISION for ad Vanc Ing graph few-
+
+Shot learning via In-c Ontext Lear Ning to address these challenges. Our model reframes graph few-shot learning as a fine-tuning-free sequence reasoning problem. At its core is a context-aware net-work that initializes nodes with role embeddings and employs a dual-context fusion module to synergistically integrate local topo-logical structures and global task-level dependencies. This allows our model to dynamically generate class-aware representations for the query set conditioned on the support set context in a single forward pass. To effectively train our model, we introduce an unsu-pervised task generator that creates structure-adaptive features and constructs diverse pseudo-tasks from abundant unlabeled data. Our method unifies unsupervised meta-learning with graph in-context learning, achieving efficient inference. Extensive experiments on  
+
+> ∗Key Laboratory of Symbolic Computation and Knowledge Engineering of the Ministry of Education
+> †Corresponding author
+> This work is licensed under a Creative Commons Attribution 4.0 International License.
+> KDD 2026, Jeju Island, Republic of Korea.
+> ©2026 Copyright held by the owner/author(s). ACM ISBN 979-8-4007-2259-2/2026/08 https://doi.org/10.1145/3770855.3817797
+
+multiple benchmark datasets demonstrate the superiority of our model. Our public code can be found here. 
+
+## CCS Concepts 
+
+• Information systems → Data mining ; • Computing method-ologies → Neural networks .
+
+## Keywords 
+
+Graph Neural Network, In-Context Learning, Node Classification 
+
+ACM Reference Format: 
+
+Renchu Guan, Yajun Wang, Chunli Guo, Bowen Cao, Fausto Giunchiglia, Wei Pang, Yonghao Liu, and Xiaoyue Feng. 2026. Advancing Graph Few-Shot Learning via In-Context Learning. In Proceedings of the 32nd ACM SIGKDD Conference on Knowledge Discovery and Data Mining V.2 (KDD 2026), August 9–13, 2026, Jeju Island, Republic of Korea. ACM, New York, NY, USA, 12 pages. https://doi.org/10.1145/3770855.3817797 
+
+## 1 Introduction 
+
+Graphs, as a fundamental data structure, are extensively utilized to represent a wide range of applications [ 27 , 45 , 51 ]. In recent years, graph neural networks (GNNs) have emerged as the de facto 
+
+standard for learning on graph-structured data due to their pow-erful representation capabilities. However, the success of GNNs heavily relies on a large number of labeled nodes for training, a requirement that is often costly or infeasible in many real-world scenarios [ 48 ], thus limiting their applicability. Consequently, graph few-shot learning (FSL), which aims to enable rapid adaptation to novel classes using only a handful of labeled examples by lever-aging knowledge from previously encountered tasks [ 16 , 28 ], has attracted significant research attention. Despite notable progress, existing Graph FSL methods generally face two core challenges. 
+
+First , most existing graph FSL models predominantly follow the episodic meta-learning paradigm, whose central idea is to train models by simulating few-shot tasks [ 11 ]. In this setting, each task  
+
+> arXiv:2605.24410v1 [cs.AI] 23 May 2026 KDD 2026, August 9–13, 2026, Jeju Island, Republic of Korea. Renchu Guan et al.
+
+is divided into a support set and a query set, where the model learns discriminative patterns from the support set and performs prediction on the query set [ 35 ]. However, this paradigm does not explicitly exploit the contextual information shared across the sup-port and query sets—such as topological relationships and class similarities—which can be highly beneficial for improving model performance [ 40 ]. Notably, under this paradigm, models still re-quire fine-tuning with a few labeled data during inference, which inevitably introduces the risk of overfitting and hampers efficiency. 
+
+Second , current graph FSL models typically rely on supervised meta-training. This implies that these models are trained on a base set of classes with abundant labels, from which numerous super-vised tasks are constructed to learn generalizable meta-knowledge. Such approaches, however, present a fundamental contradiction: while aiming to solve data scarcity, they presuppose data rich-ness during the training phase. In practice, such an assumption is rarely attainable, as annotation is costly and often requires domain-specific expertise [ 37 , 48 ]. For instance, in protein–protein inter-action graphs, predicting compound properties typically relies on costly wet-lab experiments [ 52 ]. More critically, this paradigm fails to effectively leverage the vast number of unlabeled nodes during meta-training. The construction of learning tasks is confined to the labeled base classes, meaning the rich information within the sea of unlabeled data is not actively mined to diversify the learning experience, leaving its potential largely untapped. This highlights the necessity of a training strategy that can bypass the need for base class labels and fully leverage the unlabeled data across the entire graph to guide model learning. To address the aforementioned challenges, we propose a novel framework, VISION , ad Vanc Ing graph few-Shot learning via In-cOntext Lear Ning. Specifically, inspired by the powerful in-context learning capabilities inherent in the Transformer architecture of large language models [ 5, 34 ], we explore the transfer of this ability to the graph FSL setting. To this end, we introduce a new context-aware paradigm that reformulates graph FSL as a fine-tuning-free sequence inference problem. Our framework builds upon a context-aware network that explicitly models the task structure via role embeddings. Instead of processing topological and task informa-tion sequentially, we design a dual-context fusion module that synergistically integrates local neighborhood structures and global task-level dependencies. This enables the model to condition on the support set and dynamically generate class-aware representations for query nodes, thereby achieving a single pass forward without fine-tuning. Moreover, to alleviate the reliance on labeled data during meta-training, we adopt an unsupervised strategy equipped with a pseudo-task generator. This generator creates structure-adaptive features by dynamically gating node attributes with their neighborhood con-text, and subsequently constructs diverse pseudo-tasks—mirroring the structure of real tasks—based on similarity relations within this adaptive feature space. Theoretically, our context-aware par-adigm enjoys a tighter generalization error bound compared to conventional episodic meta-learning approaches. Empirically, our model achieves superior performance across multiple benchmark datasets and demonstrates clear advantages over other competitive methods. Our main contributions are summarized as follows: (I) We propose VISION , a novel graph FSL framework based on a context-aware paradigm. It explicitly captures task-specific con-textual information through a dual-context fusion mechanism, en-abling effective in-context reasoning. (II) We design an unsupervised pseudo-task generator that lever-ages structure-adaptive features to construct diverse tasks from unlabeled data, eliminating the dependency on labeled data during the meta-training stage. (III) We conduct extensive experiments on multiple benchmark datasets, demonstrating the superiority of our proposed model against various baselines. 
+
+## 2 Related Work 2.1 Graph Neural Networks 
+
+Graph Neural Networks (GNNs) have become a cornerstone in the analysis of graph-structured data, providing powerful support for graph representation learning [ 21 , 51 ]. Building on the graph spec-tral theory, a series of graph convolutional networks subsequently emerged [ 6, 14 , 21 ], demonstrating strong learning performance through the design of diverse convolutional layers. In addition to spectral approaches, GNNs based on neighborhood aggrega-tion mechanisms have also been widely explored. For instance, GraphSAGE [ 13 ] generates node representations by sampling and aggregating neighbor features. Graph attention networks (GATs) [ 39 ] introduce trainable attention weights to enable fine-grained weighting of neighbors during aggregation. And graph isomor-phism networks (GINs) [ 46 ] extend this idea by applying arbitrary aggregation functions on multisets. Nevertheless, most existing GNN models primarily focus on supervised node classification and exhibit significant limitations in scenarios with extremely limited samples. 
+
+## 2.2 Graph Few-Shot Learning 
+
+Recent studies have extended the scope of FSL to graph-structured data, giving rise to the field of graph FSL [ 8, 23 , 25 , 26 , 50 ]. Con-ventional FSL methods, which are mostly developed for images or text, tend to perform unsatisfactorily when directly applied to graphs. To tackle this issue, GNNs, which are tailored for graph-structured information have been integrated with meta-learning frameworks. For instance, Meta-GNN [50] incorporates MAML to adapt GNN models with very limited labeled data, while G-Meta [ 17 ] learns node representations through local subgraphs and en-hances generalization via meta-learning. Other representative ap-proaches include TENT [ 41 ], which constructs task-specific graph structures and adapts GNN parameters guided by class prototypes, and Meta-GPS [ 25 ] adopts the scaling and shifting operations for the parameters to quickly adapt to the novel tasks. However, these methods largely adhere to the meta-learning paradigm while over-looking the contextual information within each task. 
+
+## 2.3 In-Context Learning 
+
+In-context learning refers to the capability of completing novel tasks purely through inference, by conditioning on a small number of input–output demonstrations and generalizing to unseen queries [ 9]. While this phenomenon is most prominently associated with Advancing Graph Few-Shot Learning via In-Context Learning KDD 2026, August 9–13, 2026, Jeju Island, Republic of Korea. 
+
+large language models [ 7, 32 , 38 ], recent studies have shown its ap-plicability in a variety of domains, including image in-painting [ 1 ], image segmentation [ 4], and especially meta-learning [ 5, 34 ]. The GPICL [ 22 ] framework further demonstrates that meta-training can enable transformers to function as versatile in-context learners. Building on this line of work, CAML [ 10 ] adapts the in-context learning paradigm to address non-causal sequence modeling chal-lenges. Recently, a few pioneering studies have attempted to bridge the gap between in-context learning and graph learning. For in-stance, PRODIGY [ 18 ] introduces a pre-training objective based on neighbor matching to enable in-context learning on graphs. GraphPrompt [ 29 ] employs prompt tuning mechanisms to unify pre-training and downstream tasks. However, these methods typi-cally rely on extensive pre-training on large-scale datasets or com-plex prompt optimization stages to align objectives. Consequently, exploring a lightweight and fine-tuning-free paradigm to adapt in-context learning to graph domains remains an open challenge. 
+
+## 3 Preliminary Study 
+
+In this work, we focus on the problem of few-shot node classifi-cation on a graph G = {V , E, X, A}, where V and E denote the sets of nodes and edges, while X and A represent the feature and adjacency matrices, respectively. The label space is partitioned into disjoint base classes Ybase and novel classes Ynov . Following the standard episodic meta-learning paradigm, the model is trained and evaluated on a series of 𝑁 -way 𝐾 -shot tasks T = {S , Q} , each comprising a support set S containing 𝐾 labeled examples for each of the 𝑁 classes, and a query set Q of instances to be classified. Crucially, unlike conventional supervised approaches that rely on ground-truth labels from Ybase , we adopt a strictly unsupervised meta-training strategy where the model learns transferable knowl-edge from self-supervised “pseudo-tasks” constructed solely from unlabeled data. The ultimate goal is to enable the model to accu-rately predict the labels of the query set Qtest in a novel task by reasoning over the context provided by Stest , without requiring any gradient-based fine-tuning. 
+
+## 4 Method 
+
+In this section, we provide a detailed description of our proposed VISION. Our model is built upon two foundational pillars: an unsu-pervised meta-training strategy that enables learning from unla-beled data via a pseudo-task generator, and a novel context-aware network for in-context reasoning. The former constructs diverse pseudo-tasks from the entire graph, driving the model to learn a generalizable classification ability without relying on base labeled data. The latter reframes few-shot node classification as a sequence reasoning task, utilizing a dual-context fusion module to syner-gistically integrate structural and task contexts within a unified architecture to dynamically infer query labels. We illustrate the overall framework of VISION in Fig. 1. 
+
+## 4.1 Unsupervised Meta-Training 
+
+To overcome the dependency on base labeled data and fully leverage the rich unlabeled data in graphs, we propose an unsupervised meta-training strategy. The core of this strategy is to first generate features for all nodes that adapt to the local topology, and then construct training tasks using a pseudo-task generator based on these more robust features. 
+
+4.1.1 Structure-Adaptive Feature Generation. To provide a more reliable node representation for the subsequent similarity-based sampling, we design an adaptive feature generation module. The core idea is to dynamically balance a node’s self-features with contextual information from its neighborhood. We first define two fundamental types of features: the node’s original features, Xraw ,representing its inherent attributes, and the smoothed features, 
+
+Xsmooth , obtained via a single simplifying graph convolution (SGC) [ 44 ] step, which represents the average context of the node’s one-hop neighborhood. This is shown below: 
+
+Xsmooth = ˜D− 12 ˜A ˜D− 12 Xraw , (1) where ˜A is the adjacency matrix with self-loops and ˜D𝑖𝑖 = Í𝑗 ˜A𝑖 𝑗 
+
+is the corresponding diagonal degree matrix. Notably, using only 
+
+Xraw ignores structural information, while relying solely on Xsmooth 
+
+erases a node’s distinctiveness. Therefore, we introduce a gating mechanism to learn an optimal fusion ratio for each node. This gate value, g ∈ R𝑁 ×1, is derived from local signal consistency. We measure this consistency for each node 𝑖 by calculating the cosine similarity score, 𝑠 𝑖 , between its raw feature vector x(𝑖 ) 
+
+> raw
+
+and its smoothed feature vector x(𝑖 )
+
+> smooth
+
+, where both are L2-normalized. This score is then scaled to the range [0, 1] to form the gate value 
+
+g𝑖 :
+
+𝑠 𝑖 = cosine (x(𝑖 )
+
+> raw
+
+, x(𝑖 )
+
+> smooth
+
+),
+
+g𝑖 = (clamp (𝑠 𝑖 , −1, 1) + 1)/ 2, (2) where the clamp (𝑠, 𝑎, 𝑏 ) function constrains the value 𝑠 within the inclusive range [𝑎, 𝑏 ].From a graph signal processing perspective, this gating mech-anism acts as a node-wise adaptive filter that explicitly handles the varying levels of homophily across the graph. A high gate value identifies nodes in homophilous regions where neighbor-hood smoothing effectively denoises features. Conversely, a low value protects heterophilous nodes or those on class boundaries from the over-smoothing phenomenon, preserving their distinc-tive high-frequency signals. Finally, we use this gate to perform a weighted fusion of the two feature types, generating the final adaptive features Xtask :
+
+Xtask = (1 − g) ⊙ Xraw + g ⊙ Xsmooth , (3) where ⊙ denotes the Hadamard product ( i.e. , element-wise multipli-cation). In this way, the resulting Xtask is not a static representation but rather the result of a dynamic and fine-grained balance be-tween a node’s individuality and its neighborhood context. This principled fusion provides a more robust feature foundation for the subsequent pseudo-task generation. 
+
+4.1.2 Pseudo-Task Generation. With the adaptive features, we can construct a multitude of pseudo-tasks that are structurally identical to real tasks. Let V be the set of all nodes in the graph. The process is as follows: (1) Anchor Selection : 𝑁 nodes are randomly selected from the entire node set V to serve as “anchors,” which act as the “class cen-ters” for the pseudo-task. The rationale is that randomly sampled KDD 2026, August 9–13, 2026, Jeju Island, Republic of Korea. Renchu Guan et al. Xtask  Xsmooth 
+
+Adaptive Feature   
+
+> Xtask = (1 − g) ⊙ X raw + g ⊙ X smooth
+
+## Unsupervised Meta -Training  
+
+> Support Set Query Set
+
+𝒯 1
+
+𝒯 2
+
+𝒯 t
+
+## Context -Aware Network 
+
+Similarity -Based Sampling 
+
+> Training Task
+
+Task -Level Normalization 
+
+Task -Contextualized Initialization  
+
+> Support Query
+> +
+
+Role 
+
+Embedding 
+
+Mask 
+
+Token  
+
+> +
+> Local Attn
+> (Structure )
+> Global Attn
+> (Task)
+> Query Support
+
+Gating 
+
+FFN 
+
+Prediction 
+
+Dual -Context Fusion Module 
+
+Figure 1: The overall framework of VISION. Left: The unsupervised meta-training module generates adaptive features Xtask 
+
+by fusing raw and smoothed features via an adaptive gating mechanism, then samples pseudo-tasks to simulate few-shot scenarios. Right: The context-aware network for inference. It starts with the task-level normalization to mitigate distribution shifts, and then initializes input tokens via the task-contextualized initialization, which injects role embeddings (for support set) or mask tokens (for query set). The core dual-context fusion module operates in parallel: it simultaneously captures topological dependencies via local attention (structure) and task-specific relationships via global attention (task). These two complementary contexts are dynamically fused via gating to generate effective node representations. Finally, predictions are generated through a multi-head readout layer for ensemble prediction. 
+
+nodes are highly unlikely to belong to the same class, as demon-strated in [ 19 ]. We mathematically and empirically validate this in Appendix A.1, showing high class distinctness across datasets. Furthermore, we posit that occasional class collisions introduce a de-gree of label noise that increases task difficulty, thereby potentially enhancing the model’s robustness against real-world ambiguity. (2) Nearest Neighbor Sampling : For each anchor, we first sample a large candidate pool of nodes, V𝑐𝑎𝑛𝑑 ⊂ V , where |V 𝑐𝑎𝑛𝑑 | =
+
+𝑆 𝑝𝑜𝑜𝑙 . Subsequently, to ensure class discriminability, we employ a sequential exclusion sampling strategy to identify the (𝐾 + 𝑀 )
+
+most similar nodes to the current anchor from V𝑐𝑎𝑛𝑑 . Specifically, nodes selected for previous anchors are masked out to prevent class overlap. This similarity is measured by the cosine similarity in the adaptive feature space Xtask .(3) Task Construction : These 𝑁 disjoint groups of sampled nodes together form an 𝑁 -way (𝐾 + 𝑀 )-shot pseudo-task. We designate the first 𝐾 nodes in each group as the pseudo-support set Spseudo 
+
+and the remaining 𝑀 nodes as the pseudo-query set Qpseudo .By training on a multitude of such pseudo-tasks, the model learns the general ability to solve the abstract task of “classification” rather than memorizing the features of specific classes. 
+
+## 4.2 Context-Aware Network 
+
+The context-aware network is designed to generate task-aware node representations by synergistically integrating structural and task contexts. As illustrated in Fig. 1, the inference process begins with the task-level normalization. Given the adaptive features Xtask 
+
+from the meta-training stage (or raw features during meta-testing), let VT denote the set of all nodes involved in the current task (comprising both support and query sets). We first compute the task-level mean vector 𝝁 T to capture the global distribution of the current episode: 
+
+𝝁 T = 1
+
+|V T |∑︁ 𝑣 ∈ V T
+
+x𝑣 , (4) where x𝑣 corresponds to the feature vector of node 𝑣 from Xtask . Sub-sequently, we perform centering to obtain the normalized feature 
+
+ˆx𝑣 for each node 𝑣 ∈ V T :
+
+ˆx𝑣 = x𝑣 − 𝝁 T . (5) This operation effectively mitigates the distribution shift between meta-training and meta-testing phases by aligning the feature dis-tributions of different tasks to a common center. Advancing Graph Few-Shot Learning via In-Context Learning KDD 2026, August 9–13, 2026, Jeju Island, Republic of Korea. 
+
+Subsequently, we employ the task contextualized initialization to initialize the node representations. Specifically, for a node 𝑣 , let 
+
+x𝑣 ∈ ˆX denote its normalized feature vector. We project x𝑣 into a hidden space and inject a learnable role embedding to denote its role within the task. Crucially, to ensure generalization across tasks with disjoint label sets, we re-index the original labels of the support set to a local relative range {0, . . . , 𝑁 − 1} within each episode. Thus, for nodes in the support set with relative label 𝑦 𝑣 , we add a corresponding role embedding e𝑦 𝑣 ; for query nodes (whose labels are masked), we add a shared mask token emask . It is worth noting that this design strictly preserves the permutation invariance of the graph data. Since the role embedding e𝑦 𝑣 is assigned solely based on the node’s relative class identity ( i.e. , 𝑦 𝑣 ) rather than its positional index in the input sequence, permuting the order of nodes in the support set does not alter their representations. This ensures that the model focuses on capturing class-level commonalities rather than memorizing sequence patterns. The initial input token h(0) 
+
+> 𝑣
+
+is defined as follows: 
+
+h(0) 
+
+> 𝑣
+
+= LayerNorm (W𝑓 ˆx𝑣 + erole ), (6) where erole ∈ { e0, . . . , e𝑁 −1, emask }. This role-enhanced initializa-tion allows the model to explicitly distinguish between support and query roles from the onset, independent of the specific semantic classes. Building on these initialized tokens, the network employs two key components: the dual-context fusion module for parallel reasoning and the multi-head readout for robust prediction. 
+
+4.2.1 Dual-Context Fusion Module. The core of our architecture is the dual-context fusion module, which operates in a decoupled, parallel manner to capture complementary contexts. Unlike pre-vious methods that process information sequentially, this module simultaneously computes two distinct attention views: 
+
+Local Attn (Structure). To capture the topological dependencies, we employ a structure-aware attention mechanism. For a central node 𝑣 , we sample a fixed-size subset of neighbors Ns (𝑣 ) with a maximum size of 𝑘 neigh . Node 𝑣 serves as the query, attending to its neighborhood sequence to aggregate local structural evidence. Formally, the local representation zstruct ,𝑣 is computed as follows: 
+
+zstruct ,𝑣 = Attention (h𝑣 W𝐿 𝑄 , {h𝑢 W𝐿 𝑘𝑒𝑦 }𝑢 ∈ N s (𝑣 ) , {h𝑢 W𝐿 𝑉 }𝑢 ∈ N s (𝑣 ) ).
+
+(7) 
+
+Global Attn (Task). Simultaneously, to capture the task-specific re-lationships, each node needs to understand its affinity with the sup-port set S. We employ a global cross-attention mechanism where node 𝑣 acts as the query and the entire support set S acts as the key and value. This allows query nodes to directly fine-tuning-free reason about their similarity to the labeled examples, generating the task-level representation ztask ,𝑣 :
+
+ztask ,𝑣 = Attention (h𝑣 W𝐺 𝑄 , {h𝑘 W𝐺 𝑘𝑒𝑦 }𝑘 ∈ S , {h𝑘 W𝐺 𝑉 }𝑘 ∈ S ). (8) To dynamically resolve the potential tension between task-agnostic topology and task-specific semantics, we introduce a conflict-aware gating mechanism. This mechanism allows the model to selectively suppress structural noise when the local neighborhood is task-irrelevant, or conversely, to rely on topological evidence when the few-shot task signals are ambiguous. We calculate a scalar gate 
+
+𝛼 𝑣 ∈ [ 0, 1] based on the concatenation of both representations: 
+
+𝛼 𝑣 = 𝜎 (W𝑔 [zstruct ,𝑣 || ztask ,𝑣 ]) ,
+
+h′ 
+
+> 𝑣
+
+= (1 − 𝛼 𝑣 ) ⊙ zstruct ,𝑣 + 𝛼 𝑣 ⊙ ztask ,𝑣 . (9) The fused representation h′ 
+
+> 𝑣
+
+is then processed by a Feed-Forward Network (FFN) to generate the task-aware node embedding Zfinal .
+
+4.2.2 Multi-Head Readout. Finally, to mitigate the variance inher-ent in few-shot scenarios and improve robustness, we employ a multi-head readout strategy. Instead of relying on a single metric space, we project the final embeddings into 𝐻 diverse subspaces. In each subspace ℎ, we compute the scaled cosine similarity between the query node representation zℎ𝑞 and the support prototype pℎ𝑘 for class 𝑘 . Let sℎ𝑞,𝑘 denote the specific logit for head ℎ:
+
+sℎ𝑞,𝑘 = 𝜏 ℎ · cosine (zℎ𝑞 , pℎ𝑘 ), (10) where 𝜏 ℎ is a learnable temperature parameter for the ℎ-th head. The final prediction score S𝑞,𝑘 is then obtained by averaging the logits across all 𝐻 heads: 
+
+S𝑞,𝑘 = 1
+
+𝐻 
+
+> 𝐻
+
+∑︁ 
+
+> ℎ=1
+
+sℎ𝑞,𝑘 . (11) 
+
+## 4.3 Model Optimization 
+
+During the meta-training phase, we adopt a joint optimization strat-egy that combines a classification loss with an auxiliary contrastive loss to learn robust task-aware representations. The total objective function is defined as: 
+
+Ltotal = LCE + 𝜆 · L Con , (12) where 𝜆 is a hyperparameter balancing the two terms. 
+
+Classification Loss. The primary objective is to minimize the prediction error on the pseudo-query sets. We utilize the final en-semble scores S𝑞,𝑘 obtained from Eq. 11. To prevent overfitting and encourage better generalization, we employ the cross-entropy loss with label smoothing: 
+
+LCE = −∑︁  
+
+> (z𝑞 ,𝑦 𝑞 ) ∈ Q pseudo
+> 𝑁
+
+∑︁ 
+
+> 𝑘 =1
+
+𝑦 ls  
+
+> 𝑞,𝑘
+
+log exp (S𝑞,𝑘 )
+
+Í𝑁 𝑗 =1 exp (S𝑞,𝑗 )
+
+!
+
+, (13) where 𝑦 ls  
+
+> 𝑞,𝑘
+
+is the smoothed label for class 𝑘 .
+
+Contrastive Loss. To further explicitly align the query samples with their corresponding support prototypes in the feature space, we introduce an auxiliary contrastive loss. For each head ℎ, we maximize the similarity between query node embeddings zℎ𝑞 and the support embeddings zℎ𝑠 of the same class, while minimizing it for different classes: 
+
+LCon = − 1
+
+𝐻 |Q| 
+
+> 𝐻
+
+∑︁ 
+
+> ℎ=1
+
+∑︁ z𝑞 ∈ Q 
+
+log 
+
+Íz𝑠 ∈ S 𝑦𝑞 exp (zℎ𝑞 · zℎ𝑠 /𝜏 )
+
+Íz𝑠 ′ ∈ S exp (zℎ𝑞 · zℎ𝑠 ′ /𝜏 ) . (14) 
+
+Meta-Testing Inference. During the meta-testing phase, VISION is entirely fine-tuning-free. For a novel task, we perform a single forward pass. Thanks to the integrated multi-head readout, our model directly outputs the ensemble similarity scores (logits) for KDD 2026, August 9–13, 2026, Jeju Island, Republic of Korea. Renchu Guan et al. 
+
+each query node. The predicted label ˆ𝑦 𝑞 is simply the index with the maximum score: 
+
+ˆ𝑦 𝑞 = arg max 
+
+> 𝑘
+
+S𝑞,𝑘 . (15) Our training algorithm is summarized in Algorithm 1. 
+
+Algorithm 1 The Overall Procedure of VISION. 
+
+Require: A graph G = {V , E, X, A}.
+
+Ensure: The trained VISION model.  
+
+> 1:
+
+// Phase 1: Unsupervised Meta-Training  
+
+> 2:
+
+Generate structure-adaptive features Xtask by fusing raw and smoothed features. {Pre-computation}  
+
+> 3:
+
+while not converged do  
+
+> 4:
+
+Construct a pseudo-task Tpseudo = {S pseudo , Qpseudo } using adaptive features.  
+
+> 5:
+
+Task-Level Normalization: Compute task mean and center features for all nodes in Tpseudo . 
+
+> 6:
+
+Task-Contextualized Initialization: Initialize H(0) with role injection (Eq. 6).  
+
+> 7:
+
+Dual-Context Fusion: Compute local structure Zstruct and global task Ztask contexts in parallel, then fuse them via gating (Eq. 9).  
+
+> 8:
+
+Multi-Head Readout: Generate ensemble logits S𝑞 (Eq. 11).  
+
+> 9:
+
+Compute joint loss Ltotal = LCE + 𝜆 LCon . 
+
+> 10:
+
+Optimize model parameters by minimizing Ltotal . 
+
+> 11:
+
+end while  
+
+> 12:
+
+// Phase 2: Fine-tuning-free Meta-Testing  
+
+> 13:
+
+Input: A novel meta-test task Ttest = {S test , Qtest }. 
+
+> 14:
+
+Perform a single forward pass (Steps 5-8 above) on Ttest . 
+
+> 15:
+
+Predict labels ˆ𝑦 𝑞 = arg max S𝑞 for query nodes.  
+
+> 16:
+
+Output: Predicted labels ˆ𝑌 Q .
+
+## 5 Theoretical Analysis 
+
+In this section, we provide a theoretical analysis of why VISION, trained on unsupervised pseudo-tasks, can generalize to real-world few-shot tasks without fine-tuning. We analyze the generalization error 𝜖 𝑔𝑒𝑛 = ET∼ 𝑃 𝑟𝑒𝑎𝑙 [L( 𝑓 , T )] within a domain adaptation frame-work, considering the pseudo-task distribution as the source domain 
+
+and the real task distribution as the target domain .
+
+Theorem 5.1 (Generalization Bound via Domain Alignment) . Let 
+
+H be the hypothesis space of the model 𝑓 . Assume the loss function 
+
+L is bounded and 𝐿 -Lipschitz continuous with respect to the input features. Let ˆ𝑓 be the model minimizing the empirical risk on 𝑇 sam-pled pseudo-tasks. With probability at least 1 − 𝜂 , the generalization error on real tasks is bounded by: 
+
+𝜖 𝑔𝑒𝑛 ( ˆ𝑓 ) ≤ ˆ𝜖 𝑝𝑠𝑒𝑢𝑑𝑜 ( ˆ𝑓 ) + R 𝑇 (H ) 
+
+| {z }
+
+> (A) Meta-Learning Error
+
++ 𝐿 · 𝑊 1 (𝑃 𝜙 𝑝𝑠𝑒𝑢𝑑𝑜 , 𝑃 𝜙 𝑟𝑒𝑎𝑙 )
+
+| {z }
+
+> (B) Distribution Alignment Error
+
+, (16) 
+
+where R𝑇 (H ) is the Rademacher complexity (model capacity term), 
+
+𝑊 1 (· , ·) is the Wasserstein-1 distance between the feature distributions of pseudo and real tasks after Task-Level Normalization ( 𝜙 ), and 𝜆 is the optimal joint error (assumed small). 
+
+Remark on Term (B): The core challenge in our unsupervised setting is the domain gap (Term B). Existing methods often assume this gap is negligible, which is a strong assumption. In VISION, we explicitly minimize this term via two mechanisms: (1) Structure-Adaptive Sampling ensures the conditional probability 𝑃 (𝑌 |𝐺 𝑠𝑡𝑟𝑢𝑐𝑡 )
+
+in pseudo-tasks mimics the homophily property of real networks. (2) Task-Level Normalization , implemented in our code, aligns the marginal feature distributions by centering task-specific statistics, theoretically bounding 𝑊 1 (𝑃 𝜙 𝑝𝑠𝑒𝑢𝑑𝑜 , 𝑃 𝜙 𝑟𝑒𝑎𝑙 ).
+
+Corollary 5.2 (Benefit of In-Context Reasoning) . Consider the pre-dictive variance of a query node representation z𝑞 . Let Var 𝑙𝑜𝑐𝑎𝑙 be the variance of the representation derived solely from local neighbors (baseline), and Var 𝑉 𝐼𝑆𝐼𝑂𝑁 be the variance after the global task atten-tion module processes the support set S. Assuming the support set provides independent observations of the class prototype with noise variance 𝜎 2, we have: Var 𝑉 𝐼𝑆𝐼𝑂𝑁 (z𝑞 ) ≈ Var 𝑙𝑜𝑐𝑎𝑙 (z𝑞 ) − 𝛾 𝐾 𝜎 2 < Var 𝑙𝑜𝑐𝑎𝑙 (z𝑞 ), (17) 
+
+where 𝐾 is the shot number and 𝛾 is the attention gain factor. 
+
+Corollary 5.2 justifies our design: the global context module acts as a Bayesian posterior refinement step. By conditioning on 
+
+𝐾 support examples in a single forward pass, it explicitly reduces the epistemic uncertainty of the query prediction, a benefit that local-only GNNs cannot achieve. The detailed proofs for Theorem 5.1 and Corollary 5.2 are pro-vided in Appendix A.2. 
+
+## 6 Experiments 6.1 Datasets 
+
+To evaluate the effectiveness of the proposed model, we conduct experiments on several benchmark datasets commonly used for few-shot node classification, including CoraFull [3], Cora [ 47 ], 
+
+Coauthor-CS [ 33 ], CiteSeer [47 ], ogbn-arxiv [15 ], and Cora-ML 
+
+[ 3]. The statistics of these datasets are presented in Table 1. We present descriptions of these datasets in Appendix A.3. 
+
+Table 1: Statistics of the datasets used in our experiments. Dataset # Nodes # Edges # Features # Labels 
+
+CoraFull 19,793 65,311 8,710 70 Cora 2,708 5,278 1,433 7Coauthor-CS 18,333 81,894 6,805 15 CiteSeer 3,327 4,552 3,703 6ogbn-arxiv 169,343 1,166,243 128 40 Cora-ML 2,995 16,316 2,879 7
+
+## 6.2 Baselines 
+
+To demonstrate the superiority of our proposed model, we conduct comparisons with baselines from four representative categories. 
+
+Graph embedding methods contain DeepWalk [31 ], node2vec [ 12 ], 
+
+GCN [21 ], and SGC [44 ]. Meta-learning methods include ProtoNet 
+
+[ 35 ] and MAML [ 11 ]. Graph in-context learning methods contain 
+
+VNT [ 36 ] and GraphPrompt [ 29 ]. Since PRODIGY [ 18 ] does not Advancing Graph Few-Shot Learning via In-Context Learning KDD 2026, August 9–13, 2026, Jeju Island, Republic of Korea. 
+
+release its pretrained weights, we do not include it as a baseline. 
+
+Graph meta-learning methods consist of GPN [ 8], G-Meta [17 ], 
+
+TENT [ 41 ], Meta-GPS [25 ], TEG [ 20 ], COSMIC [ 43 ], TLP [37 ], 
+
+Meta-BP [49 ], and SMILE [24 ]. The descriptions of these baselines are presented in Appendix A.4. 
+
+## 6.3 Implementation Details 
+
+We implement the proposed context-aware architecture with a hidden dimension of 256, four attention heads, two Transformer layers, and a feed-forward network dimension of 512. To enhance robustness, we employ a multi-head readout strategy with three ensemble heads and set the maximum number of sampled neighbors 
+
+𝑘 neigh = 30 . The model is optimized using the AdamW optimizer [30 ] with an initial learning rate of 2e-4, a weight decay of 1e-4, and a cosine annealing scheduler. To prevent overfitting, we incorporate input noise injection with a standard deviation of 𝜎 = 0.02 . Pseudo-tasks are constructed by sampling from a candidate pool of 4,096 nodes. To ensure reproducibility and fair comparison, we use a fixed random seed for both our model and all baselines. For datasets with a large number of classes, such as CoraFull and ogbn-arxiv, we adopt 5-way 3-shot, 5-way 5-shot, 10-way 3-shot, and 10-way 5-shot few-shot settings. For datasets with a moderate number of classes, such as Coauthor-CS, we consider 2-way 3-shot, 2-way 5-shot, 5-way 3-shot, and 5-way 5-shot settings. For the remaining datasets with fewer classes, we consistently use 2-way 1-shot, 2-way 3-shot, and 2-way 5-shot experimental settings. We report the average results of 5 independent experiments (100 episodes each) carried out on a single NVIDIA 3090 GPU. 
+
+## 7 Results 7.1 Model Performance 
+
+We conduct extensive experiments on six benchmark datasets. As shown in Tables 2 and 3, our proposed VISION framework achieves consistently superior performance, establishing new state-of-the-art results across all experimental configurations, demonstrating its effectiveness and robustness for few-shot node classification tasks. We attribute this superior performance to two core designs. First, the context-aware network creates deeply task-aware node repre-sentations by capturing local topology and then performing global in-context reasoning over the entire task as a sequence. Second, the unsupervised meta-training strategy enhances generalization by constructing high-quality pseudo-tasks from vast unlabeled data, which overcomes the reliance on base labeled data commonly used in many existing graph FSL methods. Moreover, the results clearly show a general trend where graph in-context learning and graph meta-learning models, as two graph learning paradigms, exhibit superior performance over other types of baselines. This is expected, as the former can effectively lever-age rich contextual knowledge, whereas the latter is specifically designed to address the unique challenges of graph FSL. In contrast, traditional graph embedding methods achieve inferior performance due to their lack of mechanisms to handle label scarcity, while general-purpose meta-learning models are limited by their inability to exploit the inherent structural information of graphs. 
+
+## 7.2 Ablation Study 
+
+To assess the effectiveness of our proposed context-aware architec-ture, we design four variants of our VISION model for comparison under various few-shot settings. (I) w/o task context : This variant removes the task-contextualized initialization, relying solely on the feature encoder without explicit support/query role differen-tiation. (II) w/o global : This variant removes the global in-context reasoning module, preventing the model from explicitly attend-ing to the support set for task-level dependencies. (III) w/o local :This variant discards the local neighborhood aggregation module, feeding the node features directly into the subsequent modules, thereby ignoring local graph topology. (IV) w/o both : This variant omits both the local aggregation and global context modules, effec-tively degenerating into a standard prototype-based metric learning framework. We present a summary of ablation results in Table 4, with comprehensive results provided in Appendix A.5. Based on the results, we have the following in-depth analysis. (I) Our full VISION model demonstrates superior performance across all settings. This consistent outperformance against all variants serves as strong evidence for the effectiveness of our holistic design. (II) The w/o both variant generally establishes a performance lower bound across most datasets, which starkly highlights the necessity of our proposed interaction modules. (III) The performance gaps ob-served in w/o task context , w/o global , and w/o local further validate our architecture. The results indicate that neither local structural information nor global task context alone is sufficient. Specifically, the local aggregation captures topological dependencies, while the task-contextualized initialization and global reasoning ensure our model explicitly understands the task structure. Removing any of these components leads to suboptimal performance. 
+
+## 7.3 Hyperparameter Sensitivity Analysis 
+
+We analyze the impact of two key hyperparameters—the number of neighbors 𝑘 neigh and the candidate pool size 𝑆 pool —on model performance under the 2-way 5-shot setting, as shown in Fig. 2. The model is slightly sensitive to 𝑘 neigh , with performance gener-ally exhibiting a rise-then-saturate trend: too few neighbors fail to capture sufficient local context, while too many can introduce noise and unnecessary computational overhead. In contrast, the model shows little sensitivity to the candidate pool size 𝑆 pool , with performance remaining relatively stable across the tested range. A plausible explanation is that even a moderately sized pool pro-vides sufficient diversity for generating high-quality pseudo-tasks. Based on this analysis, we select 𝑘 neigh = 30 to balance information capture with efficiency. For 𝑆 pool , given that performance does not degrade with a larger pool, we use 𝑆 pool = 4, 096 as a robust default setting to ensure sufficient candidate diversity. 
+
+## 8 Conclusion 
+
+In this work, we propose VISION, a novel framework that pioneers a new paradigm for graph FSL centered on context-aware inference. Specifically, our model incorporates two key techniques. First, we introduce a context-aware architecture that enables the model to better leverage contextual information. It accomplishes classifica-tion in a single forward pass without any fine-tuning by framing the task as an in-context learning problem, where it first captures KDD 2026, August 9–13, 2026, Jeju Island, Republic of Korea. Renchu Guan et al. 
+
+Table 2: Accuracies (%) on CoraFull, Cora, and Coauthor-CS datasets. Bold: best, Underline: runner-up. Model CoraFull Cora Coauthor-CS 
+
+5 way 3 shot 5 way 5 shot 10 way 3 shot 10 way 5 shot 2 way 1 shot 2 way 3 shot 2 way 5 shot 2 way 3 shot 2 way 5 shot 5 way 3 shot 5 way 5 shot DeepWalk 23.62 ±3.99 25.93 ±3.45 15.32 ±4.12 17.03 ±3.73 32.95 ±2.70 36.70 ±2.99 41.51 ±2.70 59.52 ±2.72 63.12 ±3.12 33.76 ±3.21 40.15 ±2.96 node2vec 23.75 ±2.93 25.42 ±3.61 13.90 ±3.32 15.21 ±2.64 31.17 ±3.16 35.66 ±2.79 40.69 ±2.90 56.16 ±4.19 60.22 ±4.06 30.35 ±3.93 39.16 ±3.79 GCN 34.65 ±2.76 39.83 ±2.49 29.23 ±3.25 34.14 ±2.15 55.46 ±2.16 69.96 ±2.52 67.95 ±2.36 73.52 ±1.97 77.20 ±3.01 52.19 ±2.31 56.35 ±2.99 SGC 39.56 ±3.52 44.53 ±2.92 35.12 ±2.71 39.53 ±3.32 56.75 ±2.31 70.15 ±1.99 70.67 ±2.11 75.49 ±2.15 79.63 ±2.01 56.39 ±2.26 59.25 ±2.16 ProtoNet 33.67 ±2.51 36.53 ±3.76 24.90 ±2.03 27.24 ±2.67 50.39 ±2.52 52.67 ±2.28 57.92 ±2.34 71.18 ±3.82 75.51 ±3.19 47.71 ±3.92 51.66 ±2.51 MAML 37.12 ±3.16 47.51 ±3.09 26.61 ±2.19 31.60 ±2.91 52.40 ±2.29 55.07 ±2.36 57.39 ±2.23 62.32 ±4.60 65.20 ±4.20 36.99 ±4.32 42.12 ±2.43 VNT 55.19 ±2.59 70.16 ±1.36 45.76 ±1.72 57.92 ±2.26 59.39 ±2.22 75.32 ±1.96 79.39 ±2.49 86.12 ±3.20 89.95 ±3.29 80.16 ±2.55 82.92 ±2.36 GraphPrompt 65.12 ±2.05 70.25 ±2.26 59.32 ±2.35 62.19 ±2.09 61.55 ±2.42 77.17 ±1.50 85.22 ±1.99 89.22 ±2.95 91.39 ±3.22 81.63 ±2.51 84.35 ±2.90 Meta-GNN 52.23 ±2.41 59.12 ±2.36 47.21 ±3.06 53.32 ±3.15 58.82 ±2.56 70.40 ±2.64 72.51 ±1.91 85.76 ±2.74 87.86 ±4.79 75.87 ±3.88 68.59 ±2.59 GPN 53.24 ±2.33 60.31 ±2.19 50.93 ±2.30 56.21 ±2.09 60.12 ±2.12 74.05 ±1.96 76.39 ±2.33 85.60 ±2.15 88.70 ±2.21 75.88 ±2.75 81.79 ±3.18 G-Meta 57.52 ±3.91 62.43 ±3.11 53.92 ±2.91 58.10 ±3.02 59.72 ±3.15 74.39 ±2.69 80.05 ±1.98 92.14 ±3.90 93.90 ±3.18 75.72 ±3.59 74.18 ±3.29 TENT 64.80 ±4.10 69.24 ±4.49 51.73 ±4.34 56.00 ±3.53 55.39 ±2.16 58.25 ±2.23 66.75 ±2.19 89.35 ±4.49 90.90 ±4.24 78.38 ±5.21 78.56 ±4.42 Meta-GPS 65.19 ±2.35 69.25 ±2.52 61.23 ±3.11 64.22 ±2.66 62.19 ±2.12 80.29 ±2.15 83.79 ±2.10 90.16 ±2.72 92.39 ±1.66 81.39 ±2.35 83.66 ±1.79 X-FNC 69.32 ±3.10 71.26 ±4.19 49.63 ±4.45 53.00 ±3.93 61.47 ±2.99 78.19 ±3.25 82.70 ±3.19 90.95 ±4.29 92.03 ±4.14 82.93 ±2.02 84.36 ±3.49 TEG 72.14 ±1.06 76.20 ±1.39 61.03 ±1.13 65.56 ±1.03 62.52 ±2.95 80.65 ±1.53 84.50 ±2.01 92.36 ±1.59 93.02 ±1.24 80.78 ±1.40 84.70 ±1.42 COSMIC 73.03 ±1.78 77.24 ±1.52 65.79 ±1.36 70.06 ±1.93 63.16 ±2.47 65.37 ±2.49 69.10 ±2.30 89.35 ±4.49 93.32 ±1.93 78.38 ±5.21 85.47 ±1.42 TLP 66.32 ±2.10 71.36 ±4.49 51.73 ±4.34 56.00 ±3.53 60.19 ±2.25 71.10 ±1.66 85.15 ±2.19 90.35 ±4.49 90.90 ±4.24 82.30 ±2.05 78.56 ±4.42 Meta-BP 72.90 ±1.90 74.36 ±2.19 62.35 ±2.27 67.26 ±2.59 66.42 ±4.12 76.32 ±4.30 83.12 ±4.16 91.19 ±2.21 92.32 ±2.11 81.35 ±2.02 82.12 ±2.15 SMILE 74.04 ±1.88 77.30 ±1.61 61.79 ±1.46 65.70 ±1.08 71.90 ±3.54 79.22 ±1.26 82.29 ±1.42 89.45 ±1.86 92.19 ±2.14 76.18 ±2.21 83.56 ±2.42 
+
+VISION 80.23 ±1.80 83.02 ±1.48 70.73 ±1.32 73.64 ±1.10 76.11 ±2.80 82.72 ±1.88 86.02 ±1.63 94.14 ±1.39 95.34 ±1.22 93.20 ±0.74 94.56 ±0.64 Table 3: Accuracies (%) on CiteSeer, ogbn-arxiv, and Cora-ML datasets. Bold: best, Underline: runner-up. Model CiteSeer ogbn-arxiv Cora-ML 
+
+2 way 1 shot 2 way 3 shot 2 way 5 shot 5 way 3 shot 5 way 5 shot 10 way 3 shot 10 way 5 shot 2 way 1 shot 2 way 3 shot 2 way 5 shot DeepWalk 39.56 ±2.79 39.72 ±3.42 43.22 ±3.19 24.12 ±3.16 26.16 ±2.95 20.19 ±2.35 23.76 ±3.02 38.15 ±2.92 40.32 ±3.10 42.19 ±2.55 node2vec 40.12 ±3.15 42.39 ±2.79 47.20 ±2.92 25.29 ±2.96 27.39 ±2.56 22.99 ±3.15 25.95 ±3.12 41.12 ±3.11 43.19 ±2.17 45.16 ±2.62 GCN 51.95 ±2.45 53.79 ±2.39 55.76 ±2.56 32.26 ±2.11 36.29 ±2.39 30.21 ±1.95 33.96 ±1.59 62.12 ±2.35 67.45 ±2.11 69.22 ±2.01 SGC 53.72 ±2.55 55.12 ±2.59 57.25 ±2.79 35.19 ±2.76 39.76 ±2.95 31.99 ±2.12 35.22 ±2.52 61.39 ±2.59 69.51 ±3.10 70.29 ±1.95 ProtoNet 49.15 ±2.29 52.19 ±2.96 53.75 ±2.49 39.99 ±3.28 47.31 ±1.71 32.79 ±2.22 37.19 ±1.92 63.12 ±2.12 68.40 ±2.60 76.94 ±2.39 MAML 49.15 ±2.25 52.75 ±2.75 54.36 ±2.39 28.35 ±1.49 29.09 ±1.62 30.19 ±2.97 36.19 ±2.29 62.19 ±3.65 68.61 ±2.51 71.27 ±2.62 VNT 59.72 ±2.25 69.25 ±2.16 73.90 ±2.10 OOM OOM OOM OOM 74.59 ±2.12 86.22 ±2.45 89.26 ±1.76 GraphPrompt 57.59 ±2.12 67.49 ±2.11 70.59 ±2.09 51.52 ±2.55 62.25 ±2.66 40.19 ±2.02 45.39 ±2.12 75.12 ±1.92 87.52 ±2.59 90.32 ±2.12 Meta-GNN 55.45 ±2.15 59.71 ±2.79 61.32 ±3.22 40.14 ±1.94 45.52 ±1.71 35.19 ±1.72 39.02 ±1.99 65.15 ±2.22 70.21 ±2.71 74.34 ±2.41 GPN 57.36 ±2.20 64.22 ±2.92 65.59 ±2.49 42.81 ±2.34 50.50 ±2.13 37.36 ±1.99 42.16 ±2.19 73.19 ±2.10 80.70 ±2.41 83.21 ±2.15 G-Meta 54.39 ±2.19 57.59 ±2.42 62.49 ±2.30 40.48 ±1.70 47.16 ±1.73 35.49 ±2.12 40.95 ±2.70 78.19 ±2.65 88.68 ±1.68 92.16 ±1.14 TENT 60.03 ±3.11 65.20 ±3.19 67.59 ±2.95 50.26 ±1.73 61.38 ±1.72 42.19 ±1.16 46.29 ±1.29 51.92 ±2.35 55.65 ±2.19 58.30 ±2.05 Meta-GPS 58.95 ±2.12 69.95 ±2.02 72.56 ±2.06 52.16 ±2.01 62.55 ±1.95 42.96 ±2.02 46.86 ±2.10 79.12 ±2.66 87.91 ±2.12 91.66 ±2.52 X-FNC 58.79 ±2.56 67.96 ±3.10 70.29 ±3.05 52.36 ±2.75 63.19 ±2.22 41.92 ±2.72 46.10 ±2.16 75.22 ±2.59 85.62 ±3.12 90.36 ±2.99 TEG 59.70 ±2.69 73.79 ±1.59 76.79 ±2.12 57.35 ±1.14 62.07 ±1.72 47.41 ±0.63 51.11 ±0.73 61.35 ±2.16 67.90 ±2.10 71.10 ±2.02 COSMIC 60.95 ±2.75 70.22 ±2.56 75.10 ±2.30 52.98 ±2.19 65.42 ±1.69 43.19 ±2.72 47.59 ±2.19 62.19 ±2.52 66.02 ±2.29 72.10 ±2.25 TLP 61.12 ±2.10 71.10 ±2.17 75.55 ±2.03 41.96 ±2.29 52.99 ±2.05 39.42 ±2.15 42.62 ±2.09 73.19 ±2.16 85.32 ±2.12 58.30 ±2.05 Meta-BP 60.15 ±2.45 72.19 ±3.19 76.11 ±3.29 55.12 ±4.12 65.39 ±4.55 46.25 ±4.52 50.12 ±3.39 67.12 ±2.39 79.15 ±2.56 85.19 ±2.29 SMILE 61.05 ±3.46 72.22 ±1.92 75.59 ±2.49 55.22 ±1.53 64.25 ±2.12 47.36 ±1.99 50.16 ±2.19 78.85 ±2.80 85.72 ±2.42 89.22 ±2.11 
+
+VISION 64.27 ±2.99 74.09 ±2.17 77.78 ±2.00 62.61 ±1.97 66.62 ±1.72 49.61 ±1.14 52.79 ±1.00 85.44 ±2.35 91.60 ±1.27 93.71 ±1.03 Table 4: Results of different model variants on all datasets. 
+
+Model CoraFull Cora Coauthor-CS CiteSeer ogbn-arxiv Cora-ML 
+
+5 way 5 shot 2 way 5 shot 5 way 5 shot 2 way 3 shot 5 way 5 shot 2 way 1 shot 
+
+w/o both 72.17 ±1.78 71.85 ±1.81 83.34 ±1.07 65.37 ±2.65 47.91 ±1.80 66.05 ±2.71 
+
+w/o local 72.65 ±1.81 66.57 ±2.08 81.84 ±1.07 59.02 ±2.16 47.79 ±1.75 55.83 ±2.16 
+
+w/o global 79.55 ±1.63 82.22 ±1.72 89.85 ±0.84 70.10 ±2.60 53.42 ±1.86 65.31 ±2.84 
+
+w/o task context 79.94 ±1.75 85.83 ±1.58 91.24 ±0.79 64.41 ±2.57 54.22 ±1.81 67.93 ±3.00 Ours 83.02 ±1.48 86.02 ±1.63 94.56 ±0.64 74.09 ±2.17 66.62 ±1.72 85.44 ±2.35 
+
+local graph structure and then globally reasons over the entire task as a sequence to dynamically generate query representations. Second, a fully unsupervised meta-training strategy is designed to leverage vast unlabeled data. By generating structure-adaptive fea-tures and constructing diverse pseudo-tasks based on similarity, the model learns a generalizable classification ability without reliance Advancing Graph Few-Shot Learning via In-Context Learning KDD 2026, August 9–13, 2026, Jeju Island, Republic of Korea. 
+
+Figure 2: Sensitivity analysis of model performance. The left panel shows the impact of the number of sampled neighbors (𝑘 neigh ), and the right panel shows the impact of the candidate pool size ( 𝑆 pool ). 
+
+on base class labels. Theoretically, our model provides a generaliza-tion error bound that supports the advantages of our context-aware design. Empirically, VISION demonstrates state-of-the-art perfor-mance across six benchmark datasets, surpassing many competitive baselines. 
+
+## Acknowledgments 
+
+Our work is supported by the National Natural Science Foundation of China (No. 62372209). Fausto Giunchiglia’s work is funded by European Union’s Horizon 2020 FET Proactive Project (No.823783). 
+
+## References 
+
+[1] Amir Bar, Yossi Gandelsman, Trevor Darrell, Amir Globerson, and Alexei Efros. 2022. Visual prompting via image inpainting. In NeurIPS . 25005–25017. [2] Peter L Bartlett and Shahar Mendelson. 2002. Rademacher and gaussian complex-ities: Risk bounds and structural results. Journal of Machine Learning Research 3, Nov (2002), 463–482. [3] Aleksandar Bojchevski and Stephan Günnemann. 2018. Deep gaussian embedding of graphs: Unsupervised inductive learning via ranking. In ICLR .[4] Victor Ion Butoi, Jose Javier Gonzalez Ortiz, Tianyu Ma, Mert R Sabuncu, John Guttag, and Adrian V Dalca. 2023. Universeg: Universal medical image segmen-tation. In ICCV . 21438–21451. [5] Stephanie Chan, Adam Santoro, Andrew Lampinen, Jane Wang, Aaditya Singh, Pierre Richemond, James McClelland, and Felix Hill. 2022. Data distributional properties drive emergent in-context learning in transformers. In NeurIPS . 18878– 18891. [6] Michaël Defferrard, Xavier Bresson, and Pierre Vandergheynst. 2016. Convolu-tional neural networks on graphs with fast localized spectral filtering. In NeurIPS .3837–3845. [7] Jacob Devlin, Ming-Wei Chang, Kenton Lee, and Kristina Toutanova. 2019. Bert: Pre-training of deep bidirectional transformers for language understanding. In 
+
+NAACL . 4171–4186. [8] Kaize Ding, Jianling Wang, Jundong Li, Kai Shu, Chenghao Liu, and Huan Liu. 2020. Graph prototypical networks for few-shot learning on attributed networks. In CIKM . 295–304. [9] Qingxiu Dong, Lei Li, Damai Dai, Ce Zheng, Jingyuan Ma, Rui Li, Heming Xia, Jingjing Xu, Zhiyong Wu, Baobao Chang, Xu Sun, Lei Li, and Zhifang Sui. 2024. A Survey on In-context Learning. In EMNLP . 1107–1128. [10] Christopher Fifty, Dennis Duan, Ronald G. Junkins, Ehsan Amid, Jure Leskovec, Christopher Ré, and Sebastian Thrun. 2024. Context-Aware Meta-Learning. In 
+
+ICLR .[11] Chelsea Finn, Pieter Abbeel, and Sergey Levine. 2017. Model-agnostic meta-learning for fast adaptation of deep networks. In ICML . 1126–1135. [12] Aditya Grover and Jure Leskovec. 2016. node2vec: Scalable feature learning for networks. In KDD . 855–864. [13] Will Hamilton, Zhitao Ying, and Jure Leskovec. 2017. Inductive representation learning on large graphs. In NeurIPS . 1024–1034. [14] Mikael Henaff, Joan Bruna, and Yann LeCun. 2015. Deep convolutional networks on graph-structured data. arXiv preprint arXiv:1506.05163 (2015). [15] Weihua Hu, Matthias Fey, Marinka Zitnik, Yuxiao Dong, Hongyu Ren, Bowen Liu, Michele Catasta, and Jure Leskovec. 2020. Open graph benchmark: Datasets for machine learning on graphs. In NeurIPS . 22118–22133. [16] Kexin Huang and Marinka Zitnik. 2020. Graph Meta Learning via Local Subgraphs. In NeurIPS . 5862–5874. [17] Kexin Huang and Marinka Zitnik. 2020. Graph meta learning via local subgraphs. In NeurIPS . 5862–5874. [18] Qian Huang, Hongyu Ren, Peng Chen, Gregor Kržmanc, Daniel Zeng, Percy S Liang, and Jure Leskovec. 2023. Prodigy: Enabling in-context learning over graphs. In NeurIPS . 16302–16317. [19] Siavash Khodadadeh, Ladislau Bölöni, and Mubarak Shah. 2019. Unsupervised Meta-Learning for Few-Shot Image Classification. In NeurIPS . 10132–10142. [20] Sungwon Kim, Junseok Lee, Namkyeong Lee, Wonjoong Kim, Seungyoon Choi, and Chanyoung Park. 2023. Task-equivariant graph few-shot learning. In KDD .1120–1131. [21] Thomas N. Kipf and Max Welling. 2017. Semi-supervised classification with graph convolutional networks. In ICLR .[22] Louis Kirsch, James Harrison, Jascha Sohl-Dickstein, and Luke Metz. 2022. General-purpose in-context learning by meta-learning transformers. arXiv preprint arXiv:2212.04458 (2022). [23] Yonghao Liu, Lan Huang, Bowen Cao, Ximing Li, Fausto Giunchiglia, Xiaoyue Feng, and Renchu Guan. 2024. A simple but effective approach for unsupervised few-shot graph classification. In WWW . 4249–4259. [24] Yonghao Liu, Mengyu Li, Fausto Giunchiglia, Lan Huang, Ximing Li, Xiaoyue Feng, and Renchu Guan. 2025. Dual-level Mixup for Graph Few-shot Learning with Fewer Tasks. In WWW . 2646–2656. [25] Yonghao Liu, Mengyu Li, Ximing Li, Fausto Giunchiglia, Xiaoyue Feng, and Renchu Guan. 2022. Few-shot node classification on attributed networks with graph meta-learning. In SIGIR . 471–481. [26] Yonghao Liu, Mengyu Li, Ximing Li, Lan Huang, Fausto Giunchiglia, Yanchun Liang, Xiaoyue Feng, and Renchu Guan. 2024. Meta-GPS++: Enhancing graph meta-learning with contrastive learning and self-training. ACM Transactions on Knowledge Discovery from Data 18, 9 (2024), 1–30. [27] Yonghao Liu, Chuyao Wang, Zhikang Wang, Liang Chen, Zhi Li, Jiangning Song, Qi Zou, Rui Gao, Binzhi Qian, Xiaoyue Feng, et al . 2026. High-Parameter Spatial Multi-Omics through Histology-Anchored Integration. Nature Methods 23, 2 (2026), 373–386. [28] Yonghao Liu, Yajun Wang, Chunli Guo, Wei Pang, Ximing Li, Fausto Giunchiglia, Xiaoyue Feng, and Renchu Guan. 2026. Graph few-shot learning via adaptive spectrum experts and cross-set distribution calibration. In Advances in Neural Information Processing Systems . 160490–160517. KDD 2026, August 9–13, 2026, Jeju Island, Republic of Korea. Renchu Guan et al. 
+
+[29] Zemin Liu, Xingtong Yu, Yuan Fang, and Xinming Zhang. 2023. Graphprompt: Unifying pre-training and downstream tasks for graph neural networks. In WWW .417–428. [30] Ilya Loshchilov and Frank Hutter. 2019. Decoupled Weight Decay Regularization. In ICLR .[31] Bryan Perozzi, Rami Al-Rfou, and Steven Skiena. 2014. Deepwalk: Online learning of social representations. In KDD . 701–710. [32] Alec Radford, Jeffrey Wu, Rewon Child, David Luan, Dario Amodei, Ilya Sutskever, et al . 2019. Language models are unsupervised multitask learners. OpenAI blog 
+
+1, 8 (2019), 9. [33] Oleksandr Shchur, Maximilian Mumme, Aleksandar Bojchevski, and Stephan Günnemann. 2018. Pitfalls of graph neural network evaluation. arXiv preprint arXiv:1811.05868 (2018). [34] Aaditya Singh, Stephanie Chan, Ted Moskovitz, Erin Grant, Andrew Saxe, and Felix Hill. 2023. The transient nature of emergent in-context learning in trans-formers. In NeurIPS . 27801–27819. [35] Jake Snell, Kevin Swersky, and Richard Zemel. 2017. Prototypical networks for few-shot learning. In NeurIPS . 4077–4087. [36] Zhen Tan, Ruocheng Guo, Kaize Ding, and Huan Liu. 2023. Virtual node tuning for few-shot node classification. In KDD . 2177–2188. [37] Zhen Tan, Song Wang, Kaize Ding, Jundong Li, and Huan Liu. 2022. Transductive linear probing: A novel framework for few-shot node classification. In LoG .[38] Hugo Touvron, Thibaut Lavril, Gautier Izacard, Xavier Martinet, Marie-Anne Lachaux, Timothée Lacroix, Baptiste Rozière, Naman Goyal, Eric Hambro, Faisal Azhar, et al . 2023. Llama: Open and efficient foundation language models. arXiv preprint arXiv:2302.13971 (2023). [39] Petar Velickovic, Guillem Cucurull, Arantxa Casanova, Adriana Romero, Pietro Lio, Yoshua Bengio, et al. 2018. Graph attention networks. In ICLR .[40] Song Wang, Chen Chen, and Jundong Li. 2022. Graph Few-shot Learning with Task-specific Structures. In NeurIPS . 38925–38936. [41] Song Wang, Kaize Ding, Chuxu Zhang, Chen Chen, and Jundong Li. 2022. Task-adaptive few-shot node classification. In KDD . 1910–1919. [42] Song Wang, Yushun Dong, Kaize Ding, Chen Chen, and Jundong Li. 2023. Few-shot node classification with extremely weak supervision. In WSDM . 276–284. [43] Song Wang, Zhen Tan, Huan Liu, and Jundong Li. 2023. Contrastive meta-learning for few-shot node classification. In KDD . 2386–2397. [44] Felix Wu, Amauri Souza, Tianyi Zhang, Christopher Fifty, Tao Yu, and Kilian Weinberger. 2019. Simplifying graph convolutional networks. In ICML . 6861– 6871. [45] Zonghan Wu, Shirui Pan, Fengwen Chen, Guodong Long, Chengqi Zhang, and Philip S Yu. 2020. A comprehensive survey on graph neural networks. IEEE Transactions on Neural Networks and Learning Systems 32, 1 (2020), 4–24. [46] Keyulu Xu, Weihua Hu, Jure Leskovec, and Stefanie Jegelka. 2019. How powerful are graph neural networks?. In ICLR .[47] Zhilin Yang, William Cohen, and Ruslan Salakhudinov. 2016. Revisiting semi-supervised learning with graph embeddings. In ICML . 40–48. [48] Chuxu Zhang, Kaize Ding, Jundong Li, Xiangliang Zhang, Yanfang Ye, Nitesh V Chawla, and Huan Liu. 2022. Few-shot learning on graphs. In IJCAI . 5662–5669. [49] Qiannan Zhang, Shichao Pei, Yuan Fang, and Xiangliang Zhang. 2025. Unlocking the Potential of Black-box Pre-trained GNNs for Graph Few-shot Learning. In 
+
+AAAI . 22497–22505. [50] Fan Zhou, Chengtai Cao, Kunpeng Zhang, Goce Trajcevski, Ting Zhong, and Ji Geng. 2019. Meta-gnn: On few-shot node classification in graph meta-learning. In CIKM . 2357–2360. [51] Jie Zhou, Ganqu Cui, Shengding Hu, Zhengyan Zhang, Cheng Yang, Zhiyuan Liu, Lifeng Wang, Changcheng Li, and Maosong Sun. 2020. Graph neural networks: A review of methods and applications. AI Open 1 (2020), 57–81. [52] Zhiyuan Zhou, Yueming Yin, Hao Han, Yiping Jia, Jun Hong Koh, Adams Wai-Kin Kong, and Yuguang Mu. 2024. ProAffinity-GNN: a novel approach to structure-based protein–Protein binding affinity prediction via a curated data set and graph neural networks. Journal of Chemical Information and Modeling 64, 23 (2024), 8796–8808. 
+
+## A Appendix A.1 Verification of Random Anchor Selection 
+
+A core assumption of our pseudo-task generation is that randomly selected anchors can represent diverse semantics to form discrimina-tive classification tasks. To mathematically validate this assumption, we adopt the statistical model proposed in previous unsupervised meta-learning work [ 19 ]. Let 𝐶 total be the total number of latent classes in the dataset, and 𝑁 be the number of anchors sampled (consistent with the 𝑁 -way setting). Assuming the dataset contains a sufficiently large number of samples per class, the probability 𝑃 
+
+that all 𝑁 randomly sampled anchors belong to distinct classes is given by the ratio of permutations to total combinations: 
+
+𝑃 = 𝑃 (𝐶 total , 𝑁 )(𝐶 total )𝑁 = 𝐶 total × ( 𝐶 total − 1) × · · · × ( 𝐶 total − 𝑁 + 1)(𝐶 total )𝑁 .
+
+(18) Although the condition 𝐶 total ≫ 𝑁 assumed in prior works does not strictly hold for all our datasets, we demonstrate through exact calculation that the probability of selecting distinct classes remains sufficiently high to support effective meta-learning. For the Cora dataset ( 𝐶 total = 7, 𝑁 = 2), the exact calculation is: 
+
+𝑃 Cora = 7 × 672 = 42 49 ≈ 85 .71% . (19) For the ogbn-arxiv dataset ( 𝐶 total = 40 , 𝑁 = 5), the probability is: 
+
+𝑃 arxiv = 40 × 39 × 38 × 37 × 36 40 5 = 78 , 960 , 960 102 , 400 , 000 ≈ 77 .11% . (20) Similarly, for the CoraFull dataset ( 𝐶 total = 70 , 𝑁 = 5), we have: 
+
+𝑃 Full = 70 × 69 × 68 × 67 × 66 70 5 = 1, 452 , 361 , 680 1, 680 , 700 , 000 ≈ 86 .41% . (21) These mathematical results confirm that simple random sampling consistently yields a high degree of class diversity. Even in cases where collisions occur, they serve as a form of label noise that can enhance model robustness. 
+
+Table A.1: Statistical verification of the diversity of randomly selected anchors. Dataset Total Classes Task Setting ( 𝑁 -way) Avg. Distinct Classes (Max= 𝑁 )                  
+
+> Cora 721.63 CiteSeer 621.50 Cora-ML 721.66 CoraFull 70 54.64 ogbn-arxiv 40 54.19 Coauthor-CS 15 53.25
+
+To further verify this empirically, we conduct a statistical analy-sis on the class composition of randomly selected anchors across all datasets. We simulate the anchor selection process for 10,000 episodes under the standard 𝑁 -way setting used in our experiments. Table A.1 reports the Average Distinct Classes metric, which quan-tifies the average number of unique true classes covered by the 
+
+𝑁 randomly sampled anchors. As shown in Table A.1, the results demonstrate that random sampling consistently yields a high de-gree of class diversity, ensuring that the constructed pseudo-tasks are sufficiently discriminative for training. 
+
+## A.2 Theoretical Proofs 
+
+In this section, we provide the detailed proofs for the theoretical results presented in Section 5. We adopt the standard learning theory framework for domain adaptation and meta-learning. 
+
+A.2.1 Proof of Theorem 5.1. 
+
+Proof. Let L( 𝑓 , T ) denote the loss of model 𝑓 on a task T .The generalization error on the real task distribution is 𝜖 gen (𝑓 ) =
+
+ET∼ 𝑃 real [L( 𝑓 , T )] . The empirical risk on pseudo-tasks is ˆ𝜖 pseudo (𝑓 ) =
+
+> 1
+> 𝑇
+
+Í𝑇 𝑖 =1 L( 𝑓 , T pseudo  
+
+> 𝑖
+
+).Advancing Graph Few-Shot Learning via In-Context Learning KDD 2026, August 9–13, 2026, Jeju Island, Republic of Korea. 
+
+We decompose the error using the triangular inequality, intro-ducing the expected risk on the pseudo-distribution 𝜖 pseudo (𝑓 ):
+
+𝜖 gen ( ˆ𝑓 ) ≤ 𝜖 pseudo ( ˆ𝑓 ) + | 𝜖 gen ( ˆ𝑓 ) − 𝜖 pseudo ( ˆ𝑓 )| . (22) 
+
+Step 1: Bounding the Meta-Learning Error (Term A). Accord-ing to standard statistical learning theory [ 2], the gap between empirical and expected risk on the source distribution (pseudo-tasks) is bounded by the Rademacher complexity of the hypothesis class H :
+
+𝜖 pseudo ( ˆ𝑓 ) ≤ ˆ𝜖 pseudo ( ˆ𝑓 ) + 2R𝑇 (H ) + √︂ ln (1/𝛿 )
+
+2𝑇 . (23) This corresponds to Term (A) in Eq. 16, representing the estimation error due to finite training tasks. 
+
+Step 2: Bounding the Distribution Shift (Term B). The term 
+
+|𝜖 gen ( ˆ𝑓 ) − 𝜖 pseudo ( ˆ𝑓 )| represents the discrepancy between training on pseudo-tasks and testing on real tasks. Since the loss function 
+
+L is assumed to be 𝐿 -Lipschitz continuous with respect to the task representations (which is satisfied by our use of bounded activation functions like Tanh/GELU and LayerNorm), we can invoke the Kantorovich-Rubinstein duality of the Wasserstein-1 distance 𝑊 1:
+
+|E𝑃 real [L( 𝑓 , ·)] − E𝑃 pseudo [L( 𝑓 , ·)]| ≤ 𝐿 · 𝑊 1 (𝑃 𝜙 
+
+> real
+
+, 𝑃 𝜙 
+
+> pseudo
+
+). (24) Here, 𝑃 𝜙 denotes the distribution of task features transformed by our feature extractor and task-level normalization (TLN). In our method, TLN centers the features of each task: x′ = x − 𝜇 T . This operation aligns the first-order statistics of arbitrary graph tasks to a common origin, considerably reducing the Wasserstein distance 𝑊 1
+
+compared to raw features. This theoretically justifies the necessity of the TLN module in our code. Combining Step 1 and Step 2 yields the final bound in Theorem 5.1. □
+
+A.2.2 Proof of Corollary 5.2. 
+
+Proof. We analyze the variance of the node representation to demonstrate the benefit of the Global Task Attention module. Let h𝑞 be the representation of a query node. In a model with-out global context (only local aggregation), hlocal  
+
+> 𝑞
+
+depends only on the node’s neighborhood N ( 𝑞 ). The variance of this estima-tor, conditioned on the true class mean 𝜇 𝑐 , is denoted as Var local =
+
+E[|| hlocal  
+
+> 𝑞
+
+− 𝜇 𝑐 || 2].In VISION, the dual-context fusion module updates the local representation by attending to the support set S𝑐 = {s1, ..., s𝐾 }
+
+of class 𝑐 . Assuming uniform attention for simplicity, the global context vector is computed as follows: 
+
+h𝑔𝑙𝑜𝑏𝑎𝑙 𝑞 =
+
+> 𝐾
+
+∑︁ 
+
+> 𝑘 =1
+
+𝛼 𝑘 s𝑘 ≈ 1
+
+𝐾 
+
+> 𝐾
+
+∑︁ 
+
+> 𝑘 =1
+
+s𝑘 . (25) Assuming the support samples are independent observations of the class prototype with noise variance 𝜎 2 (i.e. , s𝑘 ∼ N ( 𝜇 𝑐 , 𝜎 2I)), the variance of the averaged global context is: Var (h𝑔𝑙𝑜𝑏𝑎𝑙 𝑞 ) ≈ 𝜎 2
+
+𝐾 . (26) The final representation is a fusion: z𝑞 = (1 − 𝑔 )hlocal  
+
+> 𝑞
+
++ 𝑔 hglobal  
+
+> 𝑞
+
+.Assuming partial independence between local structural noise and global semantic noise, the variance of the fused estimator is dom-inated by the term with the lower variance. Since 𝜎 2 
+
+> 𝐾
+
+decreases linearly with the shot number 𝐾 , the global attention mechanism effectively acts as a variance reduction estimator. Specifically, com-pared to Var local , the fused variance is reduced by a term propor-tional to the information gain from the 𝐾 support shots. This proves that the in-context learning mechanism strictly reduces predictive uncertainty compared to local-only baselines. □
+
+## A.3 Dataset Descriptions 
+
+We evaluate our approach on a diverse collection of graph datasets spanning multiple domains. For each dataset, the label space is partitioned into disjoint class sets designated for meta-training, meta-validation, and meta-testing. The details are as follows: 
+
+CoraFull [3]: This dataset extends the classic Cora citation network by incorporating a wider set of categories. Nodes denote academic papers, while edges capture citation relationships. We allocate 40 classes for meta-training, 15 classes for validation, and 15 classes for testing. 
+
+Cora [47 ]: This citation network represents academic papers as nodes and their citation relationships as edges. Each node is anno-tated with a label corresponding to the research topic of the paper. We partition the dataset into 3 classes for meta-training, 2 classes for meta-validation, and 2 classes for meta-testing. 
+
+Coauthor-CS [ 33 ]: This collaboration network represents authors as nodes, with edges denoting co-authorship relations in the com-puter science domain. Node labels correspond to the authors’ re-search specialties. For each meta-learning phase, the dataset is partitioned into 5 classes. 
+
+CiteSeer [ 47 ]: This dataset is a document-level citation graph, where nodes correspond to scientific publications and edges de-note citation links. Each node is labeled according to the thematic domain of the publication. The dataset is divided into 2 classes for each of the meta-training, meta-validation, and meta-testing phases. 
+
+ogbn-arxiv [ 15 ]: A large-scale citation graph constructed from arXiv papers in the computer science field. Each node represents a publication, and edges reflect citation dependencies. Node labels are determined by subject areas defined in the arXiv taxonomy. The dataset is divided into 20 classes for training, with 10 classes each for validation and testing. 
+
+Cora-ML [3 ]: This dataset consists exclusively of machine learning papers. Nodes correspond to individual publications, and edges are established through citation relationships. We partition the label space into 3 classes for meta-training, 2 classes for validation, and 2 classes for testing. 
+
+## A.4 Baseline Descriptions 
+
+We evaluate VISION against a comprehensive set of baselines, cate-gorized into four groups consistent with our experimental results: 
+
+Graph Embedding Methods 
+
+• DeepWalk [31 ]: This method performs truncated random walks on graphs and, inspired by the word2vec framework, maps nodes into a low-dimensional embedding space. 
+
+• node2vec [ 12 ]: An extension of DeepWalk that employs a flexible biased random walk strategy (combining BFS and DFS) to explore KDD 2026, August 9–13, 2026, Jeju Island, Republic of Korea. Renchu Guan et al. 
+
+Table A.2: Ablation study results (Part 1): CoraFull, Coauthor-CS, and Cora. The best result is highlighted in bold. Model CoraFull Coauthor-CS Cora                                                
+
+> 5 way 3 shot 10 way 3 shot 10 way 5 shot 2 way 3 shot 2 way 5 shot 5 way 3 shot 2 way 1 shot 2 way 3 shot
+> w/o both 69.04 ±2.04 60.64 ±1.36 62.92 ±1.29 83.66 ±2.35 84.96 ±2.10 78.73 ±1.33 59.13 ±2.75 76.58 ±2.07
+> w/o local 68.24 ±1.98 60.44 ±1.34 63.70 ±1.27 77.56 ±2.41 83.85 ±2.45 78.01 ±1.25 55.21 ±2.13 59.75 ±2.19
+> w/o global 75.18 ±1.95 66.37 ±1.29 70.27 ±1.14 87.61 ±2.15 89.84 ±2.03 87.36 ±0.99 60.30 ±2.56 75.96 ±2.04
+> w/o task context 74.59 ±1.92 66.85 ±1.27 69.76 ±1.27 88.91 ±2.17 89.63 ±2.01 89.46 ±0.93 59.77 ±2.32 75.02 ±2.04 Ours 80.23 ±1.80 70.73 ±1.32 73.64 ±1.10 94.14 ±1.39 95.34 ±1.22 93.20 ±0.74 76.11 ±2.80 82.72 ±1.88
+
+Table A.3: Ablation study results (Part 2): CiteSeer, ogbn-arxiv, and Cora-ML. The best result is highlighted in bold. Model CiteSeer ogbn-arxiv Cora-ML 
+
+2 way 1 shot 2 way 5 shot 5 way 3 shot 10 way 3 shot 10 way 5 shot 2 way 3 shot 2 way 5 shot 
+
+w/o both 56.72 ±2.66 66.55 ±2.29 44.82 ±1.70 30.59 ±0.98 32.98 ±0.97 79.72 ±1.94 87.89 ±1.52 
+
+w/o local 52.36 ±2.07 66.65 ±2.33 43.68 ±1.67 29.77 ±1.00 33.96 ±0.98 68.62 ±2.12 84.70 ±1.60 
+
+w/o global 57.72 ±2.45 65.73 ±2.25 49.82 ±1.99 37.82 ±1.08 40.23 ±0.98 90.98 ±1.35 81.08 ±1.73 
+
+w/o task context 58.89 ±2.87 66.88 ±2.25 50.32 ±2.04 35.72 ±1.04 42.03 ±1.02 89.95 ±1.32 90.31 ±1.30 Ours 64.27 ±2.99 77.78 ±2.00 62.61 ±1.97 49.61 ±1.14 52.79 ±1.00 91.60 ±1.27 93.71 ±1.03 
+
+diverse neighborhoods and capture both structural equivalence and homophily. 
+
+• GCN [21 ]: It applies a first-order approximation of spectral graph convolutions to generate hidden node embeddings, which can then be used for downstream learning tasks. 
+
+• SGC [ 44 ]: By removing nonlinearities and collapsing weight matrices, it simplifies the standard GCN architecture, resulting in an efficient yet competitive linear model. 
+
+Meta-Learning Methods 
+
+• ProtoNet [35 ]: This approach constructs a metric space where query samples are classified by comparing them to class prototypes computed as the mean of support set embeddings. 
+
+• MAML [ 11 ]: It learns a set of initial parameters such that only a few gradient updates are needed for the model to adapt to new tasks with scarce labeled data, enabling rapid task generalization. 
+
+Graph In-Context Learning Methods 
+
+• VNT [36 ]: Virtual Node Tuning (VNT) injects virtual nodes as soft prompts into the embedding space of a pre-trained Graph Trans-former. These prompts are tuned with few-shot support samples to modulate node embeddings for specific tasks without fine-tuning the entire encoder. 
+
+• GraphPrompt [ 29 ]: This framework unifies pre-training and downstream tasks into a common template ( e.g. , subgraph similar-ity) and employs a learnable prompt vector to assist the downstream task in retrieving relevant knowledge from the pre-trained model. 
+
+Graph Meta-Learning Methods 
+
+• Meta-GNN [50 ]: It integrates MAML with GNNs, leveraging meta-gradients to update the GNN parameters for rapid adaptation to new few-shot node classification tasks. 
+
+• GPN [ 8 ]: It extends ProtoNet by incorporating a graph encoder and an evaluator, which jointly learn node embeddings, estimate node importance, and perform prototype-based classification. 
+
+• G-Meta [ 17 ]: It constructs node-centered subgraphs to capture lo-cal structural information and leverages meta-gradients to transfer knowledge across different tasks. 
+
+• TENT [41 ]: It proposes a task-adaptive framework consisting of node-level, class-level, and task-level components to reduce the gap between meta-training and meta-testing. 
+
+• Meta-GPS [ 25 ]: It builds upon MAML by introducing prototype-driven parameter initialization with scaling and shifting, thereby improving knowledge transfer and facilitating faster adaptation. 
+
+• X-FNC [42 ]: A framework designed to address label scarcity by extracting meta-knowledge across tasks and leveraging pseudo-labeled nodes from the unlabeled set to enhance the support set. 
+
+• TEG [20 ]: It develops a task-equivariant framework that employs equivariant neural networks to extract task-adaptive strategies and encode inductive biases from multiple graph tasks. 
+
+• COSMIC [43 ]: It introduces a contrastive meta-learning scheme that aligns node embeddings within each episode via a two-step optimization strategy, enhancing few-shot performance. 
+
+• TLP [37 ]: It freezes the pre-trained encoder and trains a linear classifier ( e.g. , logistic regression) on the support set while utilizing the query set statistics for transductive normalization. 
+
+• Meta-BP [49 ]: It presents a lightweight meta-learner that distills relevant knowledge from a pre-trained black-box GNN and exploits task-specific cues for rapid adaptation. 
+
+• SMILE [ 24 ]: It proposes a dual-level mixup strategy (within-task and across-task) to enrich available nodes and tasks, and explicitly leverages node degree priors to encode expressive representations. 
+
+## A.5 More Ablation Study 
+
+This section presents the comprehensive results of the ablation study across all evaluated datasets and few-shot settings. As de-scribed in the main text, we compare our full model, VISION, against four variants ( i.e. , w/o task context , w/o global , w/o local , and w/o both ) to strictly validate our architectural design. The detailed re-sults are presented in Tables A.2 and A.3.

@@ -1,0 +1,1119 @@
+{
+  "mode": "skims",
+  "generated_at": "2026-06-04T01:08:30.696007+00:00",
+  "stats": {
+    "mode": "skims",
+    "forced_all_quick": true,
+    "min_score": 8.0,
+    "deep_divecandidates": 29,
+    "deep_cap": null,
+    "deep_selected": 0,
+    "quick_candidates": 29,
+    "quick_skim_target": null,
+    "quick_selected": 29
+  },
+  "deep_dive": [],
+  "quick_skim": [
+    {
+      "id": "2605.14055v1",
+      "source": "arxiv",
+      "title": "PEML: Parameter-efficient Multi-Task Learning with Optimized Continuous Prompts",
+      "abstract": "Parameter-Efficient Fine-Tuning (PEFT) is widely used for adapting Large Language Models (LLMs) for various tasks. Recently, there has been an increasing demand for fine-tuning a single LLM for multiple tasks because it requires overall less data for fine-tuning thanks to the common features shared among tasks. More importantly, LLMs are resource demanding and deploying a single model for multiple tasks facilitates resource consolidation and consumes significantly less resources compared to deploying individual large model for each task. Existing PEFT methods like LoRA and Prefix Tuning are designed to adapt LLMs to a specific task. LoRA and its variation focus on aligning the model itself for tasks, overlooking the importance of prompt tuning in multi-task learning while Prefix Tuning only adopts a simple architecture to optimize prompts, which limits the adaption capabilities for multi-task. To enable efficient fine-tuning for multi-task learning, it is important to co-optimize prompt optimization and model adaptation. In this work, we propose a Parameter-Efficient Multi-task Learning (\\PM), which employs a neural architecture engineering method for optimizing the continuous prompts while also performing low-rank adaption for model weights. We prototype PEML by creating an automated framework for optimizing the continuous prompts and adapting model weights. We evaluate PEML against state-of-the-arts multi-task learning methods MTL-LoRA, MultiLoRa, C-Poly, and MoE, on the GLUE, SuperGLUE, Massive Multitask Language Understanding, and commonsense reasoning benchmarks. The evaluation results present an average accuracy improvement of up to 6.67%, with individual tasks showing peak gains of up to 10.75%.",
+      "authors": [
+        "Anjir Ahmed Chowdhury",
+        "Syed Zawad",
+        "Xiaolong Ma",
+        "Xu Dong",
+        "Feng Yan"
+      ],
+      "primary_category": "cs.CL",
+      "categories": [
+        "cs.CL",
+        "cs.AI"
+      ],
+      "published": "2026-05-13T19:25:56+00:00",
+      "link": "https://arxiv.org/pdf/2605.14055v1",
+      "tags": [
+        "keyword:prompt-learn",
+        "query:prompt-learn"
+      ],
+      "llm_score": 10.0,
+      "llm_evidence_en": "optimizes continuous prompts via gradient descent for multi-task LLM adaptation",
+      "llm_evidence_cn": "通过梯度下降优化连续提示嵌入以适配多任务LLM",
+      "llm_evidence": "通过梯度下降优化连续提示嵌入以适配多任务LLM",
+      "canonical_evidence": "通过梯度下降优化连续提示嵌入以适配多任务LLM",
+      "llm_tldr_en": "Proposes PEML, a parameter-efficient multi-task learning method that optimizes continuous prompts for each task, outperforming LoRA and prefix tuning baselines.",
+      "llm_tldr_cn": "针对多任务场景下参数高效微调的需求，提出PEML方法，通过为每个任务学习优化的连续提示嵌入，实现单一LLM的多任务适配。该方法不仅注重模型对齐，更强调提示调优的重要性。实验表明，PEML在多个自然语言理解任务上超越了LoRA和前缀调优，同时参数效率更高。",
+      "llm_tldr": "针对多任务场景下参数高效微调的需求，提出PEML方法，通过为每个任务学习优化的连续提示嵌入，实现单一LLM的多任务适配。该方法不仅注重模型对齐，更强调提示调优的重要性。实验表明，PEML在多个自然语言理解任务上超越了LoRA和前缀调优，同时参数效率更高。",
+      "llm_tags": [
+        "query:prompt-learn"
+      ],
+      "matched_query_tag": "query:prompt-learn",
+      "matched_query_text": "gradient-based tuning of continuous prompt embeddings",
+      "matched_requirement_id": "req-6",
+      "selection_source": "fresh_fetch"
+    },
+    {
+      "id": "2605.04425v1",
+      "source": "arxiv",
+      "title": "Joint Semantic Token Selection and Prompt Optimization for Interpretable Prompt Learning",
+      "abstract": "Vision-language models such as CLIP achieve strong visual-textual alignment, but often suffer from overfitting and limited interpretability when adapted through continuous prompt learning. While discrete prompt optimization improves interpretability, it usually depends on large external models, leading to high computational costs and limited scalability. In this paper, we propose Interpretable Prompt Learning (IPL), a hybrid framework that alternates between discrete semantic token selection and continuous prompt optimization. Specifically, IPL formulates semantic token selection as an approximate submodular optimization problem, encouraging tokens that are both human-understandable and semantically diverse. It further adopts an alternating optimization strategy to integrate discrete token selection with continuous prompt tuning, improving interpretability while preserving adaptability to downstream tasks. Our framework is plug-and-play, allowing seamless integration with existing prompt learning methods. Extensive experiments on multiple benchmarks show that IPL consistently improves both interpretability and accuracy across five representative prompt learning methods, providing an effective and scalable extension to existing frameworks.",
+      "authors": [
+        "Yating Wang",
+        "Yaqi Zhao",
+        "Yongshun Gong",
+        "Yilong Yin",
+        "Haoliang Sun"
+      ],
+      "primary_category": "cs.CV",
+      "categories": [
+        "cs.CV"
+      ],
+      "published": "2026-05-06T02:38:59+00:00",
+      "link": "https://arxiv.org/pdf/2605.04425v1",
+      "tags": [
+        "keyword:prompt-learn",
+        "query:prompt-learn"
+      ],
+      "llm_score": 9.0,
+      "llm_evidence_en": "proposes hybrid continuous prompt optimization with discrete token selection",
+      "llm_evidence_cn": "提出融合连续提示优化与离散token选择的混合框架",
+      "llm_evidence": "提出融合连续提示优化与离散token选择的混合框架",
+      "canonical_evidence": "提出融合连续提示优化与离散token选择的混合框架",
+      "llm_tldr_en": "Proposes IPL, a hybrid framework alternating discrete semantic token selection and continuous prompt optimization for vision-language models, improving interpretability and performance.",
+      "llm_tldr_cn": "针对连续提示学习在视觉-语言模型中存在过拟合和可解释性差的问题，本文提出可解释提示学习框架IPL，通过交替进行离散语义Token选择与连续提示优化，将Token选择建模为近似子模优化以鼓励语义多样性和可理解性。实验表明IPL在多个基准上兼顾了性能与可解释性，为提示学习的黑箱问题提供了透明化路径。",
+      "llm_tldr": "针对连续提示学习在视觉-语言模型中存在过拟合和可解释性差的问题，本文提出可解释提示学习框架IPL，通过交替进行离散语义Token选择与连续提示优化，将Token选择建模为近似子模优化以鼓励语义多样性和可理解性。实验表明IPL在多个基准上兼顾了性能与可解释性，为提示学习的黑箱问题提供了透明化路径。",
+      "llm_tags": [
+        "query:prompt-learn"
+      ],
+      "matched_query_tag": "query:prompt-learn",
+      "matched_query_text": "continuous vector representations used as prompts",
+      "matched_requirement_id": "req-1",
+      "selection_source": "fresh_fetch"
+    },
+    {
+      "id": "2605.05910v1",
+      "source": "arxiv",
+      "title": "Plug-and-play Class-aware Knowledge Injection for Prompt Learning with Visual-Language Model",
+      "abstract": "Prompt learning has become an effective and widely used technique in enhancing vision-language models (VLMs) such as CLIP for various downstream tasks, particularly in zero-shot classification within specific domains. Existing methods typically focus on either learning class-shared prompts for a given domain or generating instance-specific prompts through conditional prompt learning. While these methods have achieved promising performance, they often overlook class-specific knowledge in prompt design, leading to suboptimal outcomes. The underlying reasons are: 1) class-specific prompts offer more fine-grained supervision compared to coarse class-shared prompts, which helps prevent misclassification of data from different classes into a single class; 2) compared to class-specific prompts, instance-specific prompts neglect the richer class-level information across multiple instances, potentially causing data from the same class to be divided into multiple classes. To effectively supplement the class-specific knowledge into existing methods, we propose a plug-and-play Class-Aware Knowledge Injection (CAKI) framework. CAKI comprises two key components, i.e., class-specific prompt generation and query-key prompt matching. The former encodes class-specific knowledge into prompts from few-shot samples that belong to the same class and stores the learned prompts in a class-level knowledge bank. The latter provides a plug-and-play mechanism for each test instance to retrieve relevant class-level knowledge from the knowledge bank and inject such knowledge to refine model predictions. Extensive experiments demonstrate that our CAKI effectively improves the performance of existing methods on base and novel classes. Code is publicly available at \\href{https://github.com/yjh576/CAKI}{this https URL}.",
+      "authors": [
+        "Junhui Yin",
+        "Nan Pu",
+        "Xinyu Zhang",
+        "Lingfeng Yang",
+        "Lin Wu",
+        "Xiaojie Wang",
+        "Zhun Zhong"
+      ],
+      "primary_category": "cs.CV",
+      "categories": [
+        "cs.CV"
+      ],
+      "published": "2026-05-07T09:20:42+00:00",
+      "link": "https://arxiv.org/pdf/2605.05910v1",
+      "tags": [
+        "keyword:prompt-learn",
+        "query:prompt-learn"
+      ],
+      "llm_score": 9.0,
+      "llm_evidence_en": "learns class-specific continuous prompts for vision-language models",
+      "llm_evidence_cn": "为视觉语言模型学习类别特定的连续提示向量",
+      "llm_evidence": "为视觉语言模型学习类别特定的连续提示向量",
+      "canonical_evidence": "为视觉语言模型学习类别特定的连续提示向量",
+      "llm_tldr_en": "Proposes plug-and-play class-aware knowledge injection for prompt learning in vision-language models, improving zero-shot classification with fine-grained class-specific continuous prompts.",
+      "llm_tldr_cn": "现有提示学习方法多忽略类别特定知识，本文提出即插即用的类别感知知识注入方法，通过学习类别特定的连续提示来增强视觉语言模型。实验表明，类别特定提示能提供更细粒度的监督，显著提升零样本分类性能。该方法为提示学习中的类别知识融入提供了有效途径。",
+      "llm_tldr": "现有提示学习方法多忽略类别特定知识，本文提出即插即用的类别感知知识注入方法，通过学习类别特定的连续提示来增强视觉语言模型。实验表明，类别特定提示能提供更细粒度的监督，显著提升零样本分类性能。该方法为提示学习中的类别知识融入提供了有效途径。",
+      "llm_tags": [
+        "query:prompt-learn"
+      ],
+      "matched_query_tag": "query:prompt-learn",
+      "matched_query_text": "continuous vector representations used as prompts",
+      "matched_requirement_id": "req-1",
+      "selection_source": "fresh_fetch"
+    },
+    {
+      "id": "2605.09549v1",
+      "source": "arxiv",
+      "title": "When Adaptation Fails: A Gradient-Based Diagnosis of Collapsed Gating in Vision-Language Prompt Learning",
+      "abstract": "Adaptive prompting mechanisms have been proposed to enhance vision-language models by dynamically tailoring prompts to inputs. However, in frozen few-shot prompt learning with CLIP-style backbones, we systematically observe that adaptive gates and prompt-selection modules often collapse: they produce nearly constant outputs, contribute negligible gradient signals, and frequently fail to outperform fixed prompts. To further explore this issue, we present a systematic diagnostic study to uncover the underlying causes and conditions of adaptation failure. Through controlled experiments across datasets and multiple prompt learning architectures, we identify two recurring failure modes: gradient magnitude imbalance and gate degradation. Our findings invite a re-examination of indiscriminately adding architectural complexity in parameter-efficient learning and clarify when prompt-level adaptive gating is, and is not, effective in this regime.",
+      "authors": [
+        "Yunxuan Fang",
+        "Ziwei Zhang",
+        "Xinhe Wang"
+      ],
+      "primary_category": "cs.LG",
+      "categories": [
+        "cs.LG"
+      ],
+      "published": "2026-05-10T14:06:40+00:00",
+      "link": "https://arxiv.org/pdf/2605.09549v1",
+      "tags": [
+        "keyword:prompt-learn",
+        "query:prompt-learn"
+      ],
+      "llm_score": 9.0,
+      "llm_evidence_en": "systematic gradient-based diagnosis of adaptation failure in VL prompt learning",
+      "llm_evidence_cn": "对视觉-语言提示学习中适应失败的基于梯度的系统诊断",
+      "llm_evidence": "对视觉-语言提示学习中适应失败的基于梯度的系统诊断",
+      "canonical_evidence": "对视觉-语言提示学习中适应失败的基于梯度的系统诊断",
+      "llm_tldr_en": "Diagnoses collapsed gating in adaptive VL prompt learning via gradient analysis, identifying gradient imbalance and gate saturation as causes, providing insights for designing better adaptive prompts.",
+      "llm_tldr_cn": "系统诊断了视觉-语言提示学习中自适应门控机制经常失效的问题，通过梯度分析揭示了两大失败模式：梯度幅度失衡和门控饱和，为设计更鲁棒的自适应提示方法提供了重要指导，推动了提示学习可靠性的研究。",
+      "llm_tldr": "系统诊断了视觉-语言提示学习中自适应门控机制经常失效的问题，通过梯度分析揭示了两大失败模式：梯度幅度失衡和门控饱和，为设计更鲁棒的自适应提示方法提供了重要指导，推动了提示学习可靠性的研究。",
+      "llm_tags": [
+        "query:prompt-learn"
+      ],
+      "matched_query_tag": "query:prompt-learn",
+      "matched_query_text": "gradient-based tuning of continuous prompt embeddings",
+      "matched_requirement_id": "req-6",
+      "selection_source": "fresh_fetch"
+    },
+    {
+      "id": "2605.14561v1",
+      "source": "arxiv",
+      "title": "Prompt Segmentation and Annotation Optimisation: Controlling LLM Behaviour via Optimised Segment-Level Annotations",
+      "abstract": "Prompt engineering is crucial for effective interaction with generative artificial intelligence systems, yet existing optimisation methods often operate over an unstructured and vast prompt space, leading to high computational costs and potential distortions of the original intent. We introduce Prompt Segmentation and Annotation Optimisation (PSAO), a structured prompt optimisation framework designed to improve prompt optimisation controllability and efficiency. PSAO decomposes a prompt into interpretable segments (e.g., sentences) and augments each with human-readable annotations (e.g., {not important}, {important}, {very important}). These annotations guide large language models (LLMs) in allocating focus and clarifying confusion during response generation. We formally define the segmentations and annotations and demonstrate that optimised segment-level annotations can lead to improved LLM responses, with the original prompt retained as a candidate in the optimisation space to prevent performance degradation. Empirical evaluations indicate that PSAO benefits from annotations in terms of improved reasoning accuracy and self-consistency. However, developing efficient methods for identifying optimal segmentations and annotations remains challenging and is reserved for future investigation. This work is intended as a proof of concept, demonstrating the feasibility and potential of segment-level annotation optimisation.",
+      "authors": [
+        "Devika Prasad",
+        "Luke Gerschwitz",
+        "Tong Li",
+        "Henry Xiao",
+        "Anjin Liu",
+        "Coco Wu",
+        "Anna Leontjeva",
+        "Luiz Pizzato"
+      ],
+      "primary_category": "cs.AI",
+      "categories": [
+        "cs.AI"
+      ],
+      "published": "2026-05-14T08:33:47+00:00",
+      "link": "https://arxiv.org/pdf/2605.14561v1",
+      "tags": [
+        "keyword:prompt-learn",
+        "query:prompt-learn"
+      ],
+      "llm_score": 9.0,
+      "llm_evidence_en": "structured prompt optimization via segment-level annotations, an automatic prompt engineering technique",
+      "llm_evidence_cn": "通过段级注释的结构化提示优化，一种自动提示工程技术",
+      "llm_evidence": "通过段级注释的结构化提示优化，一种自动提示工程技术",
+      "canonical_evidence": "通过段级注释的结构化提示优化，一种自动提示工程技术",
+      "llm_tldr_en": "Introduces PSAO, a framework that decomposes prompts into segments with importance annotations to guide LLM focus, achieving controllable and efficient prompt optimization without distorting intent.",
+      "llm_tldr_cn": "针对现有提示优化方法在非结构化空间中搜索导致的计算成本高和可能扭曲原意的问题，本文提出PSAO框架，将提示分解为可解释的段并附加人类可读的重要性注释，引导大语言模型分配关注点，实现可控高效的优化。实验证明，PSAO在多个基准上提升了输出质量与一致性，为结构化提示工程提供了新范式，对负责任的人工智能交互具有重要意义。",
+      "llm_tldr": "针对现有提示优化方法在非结构化空间中搜索导致的计算成本高和可能扭曲原意的问题，本文提出PSAO框架，将提示分解为可解释的段并附加人类可读的重要性注释，引导大语言模型分配关注点，实现可控高效的优化。实验证明，PSAO在多个基准上提升了输出质量与一致性，为结构化提示工程提供了新范式，对负责任的人工智能交互具有重要意义。",
+      "llm_tags": [
+        "query:prompt-learn"
+      ],
+      "matched_query_tag": "query:prompt-learn",
+      "matched_query_text": "Techniques for automatic prompt generation in natural language processing",
+      "matched_requirement_id": "req-10",
+      "selection_source": "fresh_fetch"
+    },
+    {
+      "id": "2605.16591v1",
+      "source": "arxiv",
+      "title": "How Few-Shot Examples Add Up: A Causal Decomposition of Function Vectors in In-Context Learning",
+      "abstract": "In-context learning (ICL) excels at new tasks from minimal examples, yet we still lack a mechanistic explanation of how few-shot prompts shape a model's function vector (FV)--a causal activation direction that drives task behavior on the ICL query. Across tasks and models, an $n$-shot FV is well-approximated by a linear combination of example-level sub-FVs, suggesting additive and composable contributions from individual demonstrations. Beyond additivity, we show that models contextualize individual examples' representations based on prior examples to adaptively reweight which demonstrations dominate the FV: attention shifts toward examples that are more informative and less ambiguous under the context. Finally, a causal decomposition separates Query-Key routing from Value updates, finding that contextualization's most consistent contributions to FV quality arise from Query-Key alignment--particularly in ambiguous settings--while Value-mediated effects are more heterogeneous. Together, these results unify additive superposition with context-dependent attention reweighting into a mechanistic, testable account of how few-shot prompts implement tasks.",
+      "authors": [
+        "Entang Wang",
+        "Yiwei Wang",
+        "Aleksandra Bakalova",
+        "Michael Hahn"
+      ],
+      "primary_category": "cs.LG",
+      "categories": [
+        "cs.LG",
+        "cs.AI"
+      ],
+      "published": "2026-05-15T19:49:56+00:00",
+      "link": "https://arxiv.org/pdf/2605.16591v1",
+      "tags": [
+        "keyword:prompt-learn",
+        "query:prompt-learn"
+      ],
+      "llm_score": 9.0,
+      "llm_evidence_en": "causal decomposition reveals additive contributions of few-shot examples to ICL function vectors",
+      "llm_evidence_cn": "因果分解揭示少样本示例对ICL功能向量的加性贡献",
+      "llm_evidence": "因果分解揭示少样本示例对ICL功能向量的加性贡献",
+      "canonical_evidence": "因果分解揭示少样本示例对ICL功能向量的加性贡献",
+      "llm_tldr_en": "Provides mechanistic insight into in-context learning, showing that function vectors from few-shot prompts decompose linearly and examples are adaptively reweighted based on context, advancing understanding of ICL.",
+      "llm_tldr_cn": "深入探究了上下文学习中少样本提示如何塑造模型行为，通过因果分解发现n次示例的功能向量可近似为各示例贡献的线性组合，且模型根据上下文自适应重加权不同示例，为理解和提升少样本学习提供了新的机理视角。",
+      "llm_tldr": "深入探究了上下文学习中少样本提示如何塑造模型行为，通过因果分解发现n次示例的功能向量可近似为各示例贡献的线性组合，且模型根据上下文自适应重加权不同示例，为理解和提升少样本学习提供了新的机理视角。",
+      "llm_tags": [
+        "query:prompt-learn"
+      ],
+      "matched_query_tag": "query:prompt-learn",
+      "matched_query_text": "learning from demonstrations provided in the prompt context",
+      "matched_requirement_id": "req-3",
+      "selection_source": "fresh_fetch"
+    },
+    {
+      "id": "2605.19093v1",
+      "source": "arxiv",
+      "title": "Embedding by Elicitation: Dynamic Representations for Bayesian Optimization of System Prompts",
+      "abstract": "System prompts are a central control mechanism in modern AI systems, shaping behavior across conversations, tasks, and user populations. Yet they are difficult to tune when feedback is available only as aggregate metrics rather than per-example labels, failures, or critiques. We study this aggregate feedback setting as sample-constrained black-box optimization over discrete, variable-length text. We introduce ReElicit, a Bayesian optimization framework based on \\emph{embedding by elicitation}. Given a task description, previously evaluated prompts, and scalar scores, an LLM elicits a compact, interpretable feature space and maps prompts into it. Leveraging a probabilistic Gaussian process surrogate, an acquisition function then selects target feature vectors, which the LLM realizes and refines into deployable system prompts. Re-eliciting the feature space as new evaluations arrive lets the representation adapt to the observed prompt-score history. We evaluate the setting using offline benchmark accuracy as a controlled aggregate proxy: the optimizer observes one scalar score per prompt and no per-example labels, errors, or critiques. Across ten system prompt optimization tasks with a 30 total evaluation budget, ReElicit achieves the strongest aggregate performance profile among representative aggregate-only prompt-optimization baselines. These results suggest that LLMs can serve as adaptive semantic representation builders, not only prompt generators, for Bayesian optimization over natural-language artifacts.",
+      "authors": [
+        "Zhiyuan Jerry Lin",
+        "Benjamin Letham",
+        "Samuel Dooley",
+        "Maximilian Balandat",
+        "Eytan Bakshy"
+      ],
+      "primary_category": "cs.AI",
+      "categories": [
+        "cs.AI",
+        "cs.LG"
+      ],
+      "published": "2026-05-18T20:28:17+00:00",
+      "link": "https://arxiv.org/pdf/2605.19093v1",
+      "tags": [
+        "keyword:prompt-learn",
+        "query:prompt-learn"
+      ],
+      "llm_score": 9.0,
+      "llm_evidence_en": "uses Bayesian optimization with LLM-elicited embeddings to optimize discrete system prompts",
+      "llm_evidence_cn": "利用LLM引出的嵌入进行贝叶斯优化以自动生成系统提示",
+      "llm_evidence": "利用LLM引出的嵌入进行贝叶斯优化以自动生成系统提示",
+      "canonical_evidence": "利用LLM引出的嵌入进行贝叶斯优化以自动生成系统提示",
+      "llm_tldr_en": "Proposes ReElicit, a Bayesian optimization framework that leverages LLM-elicited feature embeddings to efficiently search for optimal system prompts.",
+      "llm_tldr_cn": "系统提示优化在仅用聚合标量反馈时面临样本效率困境。本文提出ReElicit框架，通过让LLM引出紧凑可解释的特征空间，并将提示映射其中，构建高斯过程代理模型进行贝叶斯优化。实验表明该方法在有限评估预算下显著优于随机搜索和标准优化器，实现了高效且可解释的系统提示生成。",
+      "llm_tldr": "系统提示优化在仅用聚合标量反馈时面临样本效率困境。本文提出ReElicit框架，通过让LLM引出紧凑可解释的特征空间，并将提示映射其中，构建高斯过程代理模型进行贝叶斯优化。实验表明该方法在有限评估预算下显著优于随机搜索和标准优化器，实现了高效且可解释的系统提示生成。",
+      "llm_tags": [
+        "query:prompt-learn"
+      ],
+      "matched_query_tag": "query:prompt-learn",
+      "matched_query_text": "Techniques for automatic prompt generation in natural language processing",
+      "matched_requirement_id": "req-10",
+      "selection_source": "fresh_fetch"
+    },
+    {
+      "id": "2605.19102v1",
+      "source": "arxiv",
+      "title": "Prompt Optimization for LLM Code Generation via Reinforcement Learning",
+      "abstract": "Large Language Models (LLMs) can generate code from natural language, but their performance is highly sensitive to prompt formulation. We propose a reinforcement-learning-based framework that models prompt refinement as a sequential decision-making problem. A Proximal Policy Optimization (PPO) agent iteratively improves prompts using a hybrid action space that combines direct generation, genetic lexical mutation and semantic rewriting, guided by shaped rewards derived from unit-test feedback. We evaluate the framework on MBPP+, HumanEval+, and APPS using CodeT5+, CodeLLaMA, and DeepSeek-Coder as frozen code generators. On the 500-task MBPP+ test set, the PPO agent achieves strict Pass@1 scores of 57.58%, 64.80%, and 85.50%, respectively, outperforming EPiC, Reflexion, and Random-Hybrid. Soft-Pass@1 reaches 67.90%, 73.10%, and 88.20%, respectively. Similar improvements are observed on HumanEval+ and APPS across all backbone models. The results demonstrate that reinforcement learning with shaped test-driven rewards improves functional correctness in LLM-based code generation.",
+      "authors": [
+        "Ali Mohammadi Esfahani",
+        "Nafiseh Kahani",
+        "Samuel A. Ajila"
+      ],
+      "primary_category": "cs.SE",
+      "categories": [
+        "cs.SE"
+      ],
+      "published": "2026-05-18T20:42:23+00:00",
+      "link": "https://arxiv.org/pdf/2605.19102v1",
+      "tags": [
+        "keyword:prompt-learn",
+        "query:prompt-learn"
+      ],
+      "llm_score": 9.0,
+      "llm_evidence_en": "RL-based prompt optimization with hybrid action space",
+      "llm_evidence_cn": "基于强化学习的提示优化，使用混合动作空间",
+      "llm_evidence": "基于强化学习的提示优化，使用混合动作空间",
+      "canonical_evidence": "基于强化学习的提示优化，使用混合动作空间",
+      "llm_tldr_en": "Proposes a reinforcement learning framework with PPO agent and hybrid action space to automatically refine prompts for code generation, achieving substantial Pass@1 improvements on multiple benchmarks.",
+      "llm_tldr_cn": "针对LLM代码生成对提示表述高度敏感的问题，提出基于强化学习的提示优化框架，利用PPO智能体和混合动作空间自动改进提示，在多个基准上显著提升了Pass@1分数，为自动提示工程提供了一种有效的决策优化方法。",
+      "llm_tldr": "针对LLM代码生成对提示表述高度敏感的问题，提出基于强化学习的提示优化框架，利用PPO智能体和混合动作空间自动改进提示，在多个基准上显著提升了Pass@1分数，为自动提示工程提供了一种有效的决策优化方法。",
+      "llm_tags": [
+        "query:prompt-learn"
+      ],
+      "matched_query_tag": "query:prompt-learn",
+      "matched_query_text": "Techniques for automatic prompt generation in natural language processing",
+      "matched_requirement_id": "req-10",
+      "selection_source": "fresh_fetch"
+    },
+    {
+      "id": "2605.19956v1",
+      "source": "arxiv",
+      "title": "Towards Fine-Grained Robustness: Attention-Guided Test-Time Prompt Tuning for Vision-Language Models",
+      "abstract": "Vision-Language Models (VLMs), such as CLIP, have achieved significant zero-shot performance on downstream tasks with various fine-tuning adaptation methods. However, recent studies have proven that adversarial attacks can significantly degrade the inference ability of VLMs, posing substantial risks to their practical applications. Prevalent test-time adaptation methods typically rely on multi-view augmentation to implement various fine-tuning strategies, which struggle to identify semantic information and are prone to destroying discriminative regions in fine-grained scenarios. To address these limitations, we propose Attention-Guided Test-Time Prompt Tuning (A-TPT), a semantics-preserving method designed for test-time adaptation. We first refine the gradient attention rollout mechanism to identify semantically meaningful regions surviving under adversarial attacks. Furthermore, we leverage them to guide the spatially varying augmentation intensities and multi-view ensemble for prompt tuning and inference. Extensive experiments demonstrate that A-TPT outperforms existing test-time adaptation methods on both adversarial and clean data. Codes are available at https://github.com/SEU-VIPGroup/A-TPT .",
+      "authors": [
+        "Jia-Wei Hai",
+        "Yijun Wang",
+        "Xiu-Shen Wei"
+      ],
+      "primary_category": "cs.CV",
+      "categories": [
+        "cs.CV"
+      ],
+      "published": "2026-05-19T15:10:06+00:00",
+      "link": "https://arxiv.org/pdf/2605.19956v1",
+      "tags": [
+        "keyword:prompt-learn",
+        "query:prompt-learn"
+      ],
+      "llm_score": 9.0,
+      "llm_evidence_en": "Attention-Guided Test-Time Prompt Tuning uses gradient-based optimization of continuous prompt vectors for VLM robustness",
+      "llm_evidence_cn": "注意力引导的测试时提示调优利用连续提示向量的梯度优化提升VLM鲁棒性",
+      "llm_evidence": "注意力引导的测试时提示调优利用连续提示向量的梯度优化提升VLM鲁棒性",
+      "canonical_evidence": "注意力引导的测试时提示调优利用连续提示向量的梯度优化提升VLM鲁棒性",
+      "llm_tldr_en": "Proposes A-TPT, a semantics-preserving test-time prompt tuning method that adapts VLMs to adversarial attacks by focusing on discriminative regions, enhancing fine-grained robustness.",
+      "llm_tldr_cn": "视觉语言模型易受对抗攻击影响，现有测试时适应方法依赖多视图增强，易破坏细粒度语义信息。本文提出注意力引导的测试时提示调优（A-TPT），通过保留语义的方式动态优化连续提示，使模型关注判别性区域。在细粒度分类对抗场景下，A-TPT显著优于基于增强的调优方法，实现了语义保持与鲁棒性的平衡，为安全关键应用提供了鲁棒提示学习策略。",
+      "llm_tldr": "视觉语言模型易受对抗攻击影响，现有测试时适应方法依赖多视图增强，易破坏细粒度语义信息。本文提出注意力引导的测试时提示调优（A-TPT），通过保留语义的方式动态优化连续提示，使模型关注判别性区域。在细粒度分类对抗场景下，A-TPT显著优于基于增强的调优方法，实现了语义保持与鲁棒性的平衡，为安全关键应用提供了鲁棒提示学习策略。",
+      "llm_tags": [
+        "query:prompt-learn"
+      ],
+      "matched_query_tag": "query:prompt-learn",
+      "matched_query_text": "gradient-based tuning of continuous prompt embeddings",
+      "matched_requirement_id": "req-6",
+      "selection_source": "fresh_fetch"
+    },
+    {
+      "id": "2605.21318v1",
+      "source": "arxiv",
+      "title": "TextReg: Mitigating Prompt Distributional Overfitting via Regularized Text-Space Optimization",
+      "abstract": "Large language models (LLMs) are highly sensitive to the prompts used to specify task objectives and behavioral constraints. Many recent prompt optimization methods iteratively rewrite prompts using LLM-generated feedback, but the resulting prompts often become longer, accumulate narrow sample-specific rules, and generalize poorly beyond the training distribution. We study this failure mode as prompt distributional overfitting and argue that it reflects a lack of representation control in discrete text-space optimization. We formalize this view through representational inefficiency, a dual-factor measure that decomposes prompt inefficiency into capacity cost and scope narrowness, attributing distributional prompt overfitting to their coupled growth during optimization. We propose TextReg, a regularization framework that realizes a soft-penalty objective through regularized textual gradients, combining Dual-Evidence Gradient Purification, Semantic Edit Regularization, and Regularization-Guided Prompt Update. Across multiple reasoning benchmarks, TextReg substantially improves out-of-distribution (OOD) generalization, with accuracy gains of up to +11.8% over TextGrad and +16.5% over REVOLVE.",
+      "authors": [
+        "Lucheng Fu",
+        "Ye Yu",
+        "Yiyang Wang",
+        "Yiqiao Jin",
+        "Haibo Jin",
+        "B. Aditya Prakash",
+        "Haohan Wang"
+      ],
+      "primary_category": "cs.CL",
+      "categories": [
+        "cs.CL",
+        "cs.AI",
+        "cs.LG"
+      ],
+      "published": "2026-05-20T15:47:26+00:00",
+      "link": "https://arxiv.org/pdf/2605.21318v1",
+      "tags": [
+        "keyword:prompt-learn",
+        "query:prompt-learn"
+      ],
+      "llm_score": 9.0,
+      "llm_evidence_en": "addresses overfitting in discrete prompt optimization via regularization",
+      "llm_evidence_cn": "通过正则化方法解决离散提示优化的过拟合问题",
+      "llm_evidence": "通过正则化方法解决离散提示优化的过拟合问题",
+      "canonical_evidence": "通过正则化方法解决离散提示优化的过拟合问题",
+      "llm_tldr_en": "Identifies prompt distributional overfitting in iterative text prompt optimization and proposes TextReg, a regularization method that improves generalization.",
+      "llm_tldr_cn": "本文发现迭代文本提示优化易陷入分布过拟合，导致提示冗长且泛化差，提出TextReg框架，通过表征效率度量揭示过拟合根源，并引入正则化提升离散提示的泛化能力。实验表明TextReg在多任务上生成更简洁、鲁棒的提示。",
+      "llm_tldr": "本文发现迭代文本提示优化易陷入分布过拟合，导致提示冗长且泛化差，提出TextReg框架，通过表征效率度量揭示过拟合根源，并引入正则化提升离散提示的泛化能力。实验表明TextReg在多任务上生成更简洁、鲁棒的提示。",
+      "llm_tags": [
+        "query:prompt-learn"
+      ],
+      "matched_query_tag": "query:prompt-learn",
+      "matched_query_text": "discrete natural language prompts for guiding models",
+      "matched_requirement_id": "req-2",
+      "selection_source": "fresh_fetch"
+    },
+    {
+      "id": "2605.21781v1",
+      "source": "arxiv",
+      "title": "Reflective Prompt Tuning through Language Model Function-Calling",
+      "abstract": "Large language models (LLMs) have become increasingly capable of following instructions and complex reasoning, making prompting a flexible interface for adapting models without parameter updates. Yet prompt design remains labor-intensive and highly sensitive to formatting, phrasing, and instruction order, motivating automated prompt optimization methods that reduce manual effort while preserving inference-time flexibility. However, existing methods often search over prompt candidates or use fixed critique-refine pipelines driven by individual examples or small batches, limiting their ability to capture systematic error patterns and make targeted edits grounded in failure history. We propose Reflective Prompt Tuning (RPT), a framework that uses LLM function calling to simulate the iterative workflow of human prompt engineers. An LLM optimizer calls a diagnostic function that evaluates the target model over an entire optimization set, summarizes recurring failure modes, and returns a structured diagnostic report. The optimizer uses this report, together with an accumulated memory of prior reports, to revise the prompt for the next iteration. RPT further supports confidence-aware optimization by using calibration signals in diagnostic feedback and final prompt selection. Across three reasoning tasks, RPT improves over initial prompts by up to 12.9 points, remains competitive with state of the art, and improves confidence calibration. Our analyses show that RPT is especially effective on multi-hop and mathematical reasoning, producing targeted prompt revisions that align with diagnosed failure patterns and lead to gains in task performance and calibration.",
+      "authors": [
+        "Farima Fatahi Bayat",
+        "Moin Aminnaseri",
+        "Pouya Pezeshkpour",
+        "Estevam Hruschka"
+      ],
+      "primary_category": "cs.CL",
+      "categories": [
+        "cs.CL"
+      ],
+      "published": "2026-05-20T22:21:29+00:00",
+      "link": "https://arxiv.org/pdf/2605.21781v1",
+      "tags": [
+        "keyword:prompt-learn",
+        "query:prompt-learn"
+      ],
+      "llm_score": 9.0,
+      "llm_evidence_en": "automates prompt refinement via LLM function-calling and reflection on failures",
+      "llm_evidence_cn": "通过LLM函数调用和失败反思自动优化提示",
+      "llm_evidence": "通过LLM函数调用和失败反思自动优化提示",
+      "canonical_evidence": "通过LLM函数调用和失败反思自动优化提示",
+      "llm_tldr_en": "Introduces Reflective Prompt Tuning, which uses LLM function-calling to iteratively refine prompts based on systematic failure patterns, achieving more targeted and effective prompt optimization.",
+      "llm_tldr_cn": "针对人工设计提示劳动密集型且敏感的问题，提出反思性提示调优框架，利用LLM函数调用基于历史失败模式迭代调整提示，能够捕获系统错误模式并进行针对性编辑，显著提升了自动提示优化的效果，减轻了人工负担。",
+      "llm_tldr": "针对人工设计提示劳动密集型且敏感的问题，提出反思性提示调优框架，利用LLM函数调用基于历史失败模式迭代调整提示，能够捕获系统错误模式并进行针对性编辑，显著提升了自动提示优化的效果，减轻了人工负担。",
+      "llm_tags": [
+        "query:prompt-learn"
+      ],
+      "matched_query_tag": "query:prompt-learn",
+      "matched_query_text": "Techniques for automatic prompt generation in natural language processing",
+      "matched_requirement_id": "req-10",
+      "selection_source": "fresh_fetch"
+    },
+    {
+      "id": "2605.23180v1",
+      "source": "arxiv",
+      "title": "Self-Improving In-Context Learning",
+      "abstract": "We propose to improve in-context learning (ICL) by optimizing the continuous embeddings of a fixed few-shot prompt at test time. The key observation is that the log-probabilities a model assigns to its demonstrated outputs$\\unicode{x2013}$available from a single forward pass without generating any tokens$\\unicode{x2013}$provide a meaningful signal for how well the model has inferred the task from its demonstrations. We formalize this signal as a bounded, self-supervised confidence proxy and maximize it via zeroth-order optimization over the prompt embeddings, yielding a test-time calibration procedure. The approach requires no finetuning, no token generation, no predefined label set, and no external data, making it equally applicable to both classification and free-form generation tasks. Across a comprehensive suite of ICL tasks, the proposed calibration consistently matches or improves upon the base model and outperforms classification-specific baselines on most tasks. The statistically significant correlation between proxy improvement and downstream accuracy gain confirms that the proposed proxy encodes a reliable optimization signal for in-context learning.",
+      "authors": [
+        "Baturay Saglam",
+        "Dionysis Kalogerias"
+      ],
+      "primary_category": "cs.CL",
+      "categories": [
+        "cs.CL",
+        "cs.LG"
+      ],
+      "published": "2026-05-22T03:01:34+00:00",
+      "link": "https://arxiv.org/pdf/2605.23180v1",
+      "tags": [
+        "keyword:prompt-learn",
+        "query:prompt-learn"
+      ],
+      "llm_score": 9.0,
+      "llm_evidence_en": "Continuous vector prompt optimization for in-context learning",
+      "llm_evidence_cn": "连续向量提示优化用于上下文学习",
+      "llm_evidence": "连续向量提示优化用于上下文学习",
+      "canonical_evidence": "连续向量提示优化用于上下文学习",
+      "llm_tldr_en": "Introduces a test-time optimization method that tunes continuous embeddings of a few-shot prompt using a self-supervised confidence proxy to enhance ICL without finetuning.",
+      "llm_tldr_cn": "针对上下文学习中固定示例提示可能次优的问题，提出在测试时通过零阶优化调整少量示例提示的连续嵌入，利用模型对输出示例的对数概率作为自监督置信度信号，无需微调和额外数据，显著提升分类和生成任务的性能，为高效上下文学习提供了新思路。",
+      "llm_tldr": "针对上下文学习中固定示例提示可能次优的问题，提出在测试时通过零阶优化调整少量示例提示的连续嵌入，利用模型对输出示例的对数概率作为自监督置信度信号，无需微调和额外数据，显著提升分类和生成任务的性能，为高效上下文学习提供了新思路。",
+      "llm_tags": [
+        "query:prompt-learn"
+      ],
+      "matched_query_tag": "query:prompt-learn",
+      "matched_query_text": "continuous vector representations used as prompts",
+      "matched_requirement_id": "req-1",
+      "selection_source": "fresh_fetch"
+    },
+    {
+      "id": "2605.24410v1",
+      "source": "arxiv",
+      "title": "Advancing Graph Few-Shot Learning via In-Context Learning",
+      "abstract": "Graph few-shot learning, which aims to classify nodes from novel classes with only a few labeled examples, is a widely studied problem in graph learning. However, existing methods often face two key limitations. First, the predominant graph few-shot learning paradigm relies on supervised tasks, failing to leverage the vast number of unlabeled nodes in the graph. Second, many approaches require complex task adaptation or fine-tuning during inference, limiting their efficiency and applicability. Inspired by the powerful in-context learning capabilities of large language models, we propose a novel model named VISION for adVancIng graph few-Shot learning via In-cOntext LearNing to address these challenges. Our model reframes graph few-shot learning as a fine-tuning-free sequence reasoning problem. At its core is a context-aware network that initializes nodes with role embeddings and employs a dual-context fusion module to synergistically integrate local topological structures and global task-level dependencies. This allows our model to dynamically generate class-aware representations for the query set conditioned on the support set context in a single forward pass. To effectively train our model, we introduce an unsupervised task generator that creates structure-adaptive features and constructs diverse pseudo-tasks from abundant unlabeled data. Our method unifies unsupervised meta-learning with graph in-context learning, achieving efficient inference. Extensive experiments on multiple benchmark datasets demonstrate the superiority of our model. Our public code can be found",
+      "authors": [
+        "Renchu Guan",
+        "Yajun Wang",
+        "Chunli Guo",
+        "Bowen Cao",
+        "Fausto Giunchiglia",
+        "Wei Pang",
+        "Yonghao Liu",
+        "Xiaoyue Feng"
+      ],
+      "primary_category": "cs.AI",
+      "categories": [
+        "cs.AI"
+      ],
+      "published": "2026-05-23T05:43:15+00:00",
+      "link": "https://arxiv.org/pdf/2605.24410v1",
+      "tags": [
+        "keyword:prompt-learn",
+        "query:prompt-learn"
+      ],
+      "llm_score": 9.0,
+      "llm_evidence_en": "leverages in-context learning with few examples for graph few-shot classification",
+      "llm_evidence_cn": "利用上下文学习，通过少量示例实现图少样本分类",
+      "llm_evidence": "利用上下文学习，通过少量示例实现图少样本分类",
+      "canonical_evidence": "利用上下文学习，通过少量示例实现图少样本分类",
+      "llm_tldr_en": "Reframes graph few-shot learning as in-context learning, using few labeled examples in the prompt to classify nodes without fine-tuning.",
+      "llm_tldr_cn": "针对图少样本学习中依赖有监督任务和需微调的局限性，提出将图少样本学习重新构建为上下文学习的方法。该方法利用预训练图模型，在提示中直接提供少量标注示例，无需微调即可实现新类节点分类。实验表明，该方法能有效利用无标签节点，并在多个数据集上取得了有竞争力的性能。",
+      "llm_tldr": "针对图少样本学习中依赖有监督任务和需微调的局限性，提出将图少样本学习重新构建为上下文学习的方法。该方法利用预训练图模型，在提示中直接提供少量标注示例，无需微调即可实现新类节点分类。实验表明，该方法能有效利用无标签节点，并在多个数据集上取得了有竞争力的性能。",
+      "llm_tags": [
+        "query:prompt-learn"
+      ],
+      "matched_query_tag": "query:prompt-learn",
+      "matched_query_text": "providing a few examples in the prompt to adapt model behavior",
+      "matched_requirement_id": "req-4",
+      "selection_source": "fresh_fetch"
+    },
+    {
+      "id": "2605.24816v1",
+      "source": "arxiv",
+      "title": "AOEPT: Breaking the Implicit Modality-Reduction Bottleneck in Modality-Missing Prompt Tuning",
+      "abstract": "Deploying multimodal systems in real-world environments often entails handling modality-missing scenarios, where one or more modalities are unavailable. While recent studies address this challenge for the general Multimodal Transformer (MT) architecture via prompt tuning, we identify a fundamental limitation in these methods: the Implicit Modality-Reduction bottleneck. By conditioning prompts solely on the observed modalities, they inadvertently restrict the reasoning scope of MTs to the modality-reduced subspace, cutting off access to the latent information sources of the missing modalities. To overcome this limitation, we propose AOEPT, which pioneers a novel modal-contextualized prompting fashion. Specifically, we introduce lightweight Modal-Contextualized Prompts (MCPs) that distill global modality-wise priors from training data, serving as latent repositories of the information sources for missing modalities. Conditioned on the remaining modalities, these MCPs are instantiated into instance-aware prompts that selectively augment missing-modality information for each sample, thereby restoring the reasoning scope of MTs beyond the observed-modality-only subspace. Experiments across various multimodal benchmarks and backbones confirm the strong performance of AOEPT, with minimal computational overhead.",
+      "authors": [
+        "Jian Lang",
+        "Rongpei Hong",
+        "Ting Zhong",
+        "Fan Zhou"
+      ],
+      "primary_category": "cs.CV",
+      "categories": [
+        "cs.CV"
+      ],
+      "published": "2026-05-24T02:04:44+00:00",
+      "link": "https://arxiv.org/pdf/2605.24816v1",
+      "tags": [
+        "keyword:prompt-learn",
+        "query:prompt-learn"
+      ],
+      "llm_score": 9.0,
+      "llm_evidence_en": "proposes modal-contextualized prompt tuning with gradient-based learning of continuous prompt embeddings",
+      "llm_evidence_cn": "提出模态上下文化的提示调优，通过梯度学习连续提示嵌入",
+      "llm_evidence": "提出模态上下文化的提示调优，通过梯度学习连续提示嵌入",
+      "canonical_evidence": "提出模态上下文化的提示调优，通过梯度学习连续提示嵌入",
+      "llm_tldr_en": "Overcomes the Implicit Modality-Reduction bottleneck in modality-missing prompt tuning by introducing modal-contextualized prompts that enable reasoning over missing modalities via lightweight modules.",
+      "llm_tldr_cn": "现有模态缺失提示调优方法仅基于观察到的模态限制推理范围，导致丢失缺失模态的潜在信息。本文提出AOEPT，首创模态上下文化的提示方式，通过轻量级模块为每个提示生成模态特定上下文，从而在推理时覆盖完整模态空间，打破模态缩减瓶颈。实验表明，该方法在多个基准上显著优于现有方法，提升了模态缺失场景下的推理能力，为多模态系统的鲁棒部署提供了新思路。",
+      "llm_tldr": "现有模态缺失提示调优方法仅基于观察到的模态限制推理范围，导致丢失缺失模态的潜在信息。本文提出AOEPT，首创模态上下文化的提示方式，通过轻量级模块为每个提示生成模态特定上下文，从而在推理时覆盖完整模态空间，打破模态缩减瓶颈。实验表明，该方法在多个基准上显著优于现有方法，提升了模态缺失场景下的推理能力，为多模态系统的鲁棒部署提供了新思路。",
+      "llm_tags": [
+        "query:prompt-learn"
+      ],
+      "matched_query_tag": "query:prompt-learn",
+      "matched_query_text": "gradient-based tuning of continuous prompt embeddings",
+      "matched_requirement_id": "req-6",
+      "selection_source": "fresh_fetch"
+    },
+    {
+      "id": "2605.26655v1",
+      "source": "arxiv",
+      "title": "Why Prompt Optimization Works, and Why It Sometimes Doesn't: A Causal-Inspired Edit-Level Analysis",
+      "abstract": "Automated prompt optimization methods (e.g., DSpy, TextGrad) can substantially improve the performance of large language model (LLM), however, their generalization ability across different tasks remains underperformed. In practice, the superiority of the optimized prompt on one benchmark often fails to transfer to another, and this limitation persists even when switching across different LLM backbones. To investigate the underexplored sources of heterogeneity in prompt performance, we conduct a causal inference-inspired observational analysis of optimized prompts across a diverse set of optimization frameworks, LLM backbones, and NLP benchmarks. To achieve the goal, we build upon the propensity-adjusted associational analysis together with multiple complementary representations of prompt edits, where the consistent task-conditioned edits patterns are identified. We find that complexity-increasing and meta-instructional edits are negatively associated with mathematical and multi-hop reasoning performance, whereas step-by-step and meta-cognitive edits improve logical and sequential reasoning tasks. These effects are robust across cognitive-load annotations, surface-level text features, and edit-motif analyses, and can generalize across optimization frameworks. Overall, these results indicate that prompt optimization failures arise from systematic interactions between edit families and task characteristics rather than random optimization artifacts, providing feature-level characterization of optimizer behavior and motivating future task-conditioned optimizer design.",
+      "authors": [
+        "Shuzhi Gong",
+        "Hechuan Wen"
+      ],
+      "primary_category": "cs.CL",
+      "categories": [
+        "cs.CL",
+        "cs.LG",
+        "cs.NE"
+      ],
+      "published": "2026-05-26T07:39:36+00:00",
+      "link": "https://arxiv.org/pdf/2605.26655v1",
+      "tags": [
+        "keyword:prompt-learn",
+        "query:prompt-learn"
+      ],
+      "llm_score": 9.0,
+      "llm_evidence_en": "analyzes automated prompt optimization methods and their generalization across tasks",
+      "llm_evidence_cn": "分析自动化提示优化方法及其任务泛化能力",
+      "llm_evidence": "分析自动化提示优化方法及其任务泛化能力",
+      "canonical_evidence": "分析自动化提示优化方法及其任务泛化能力",
+      "llm_tldr_en": "Investigates why automated prompt optimization succeeds or fails, using causal-inspired analysis across frameworks, backbones, and benchmarks.",
+      "llm_tldr_cn": "针对自动提示优化方法泛化性不足的问题，本文采用因果推断启发的观测分析方法，研究不同优化框架、LLM基座和NLP基准下优化后提示的性能差异。实验揭示了提示性能异质性的来源，为理解提示优化的工作机制提供了新的见解。该工作有助于改进自动提示生成技术的鲁棒性和可迁移性。",
+      "llm_tldr": "针对自动提示优化方法泛化性不足的问题，本文采用因果推断启发的观测分析方法，研究不同优化框架、LLM基座和NLP基准下优化后提示的性能差异。实验揭示了提示性能异质性的来源，为理解提示优化的工作机制提供了新的见解。该工作有助于改进自动提示生成技术的鲁棒性和可迁移性。",
+      "llm_tags": [
+        "query:prompt-learn"
+      ],
+      "matched_query_tag": "query:prompt-learn",
+      "matched_query_text": "Techniques for automatic prompt generation in natural language processing",
+      "matched_requirement_id": "req-10",
+      "selection_source": "fresh_fetch"
+    },
+    {
+      "id": "2605.27642v1",
+      "source": "arxiv",
+      "title": "Learning to Translate from Soft to Hard LLM Prompts",
+      "abstract": "Soft prompt tuning is a parameter-efficient method for adapting LLMs to specific tasks, but suffers from a lack of interpretability. Building on recent work on interpreting soft prompts (Ramati et al., 2024), we explore how training a dedicated soft prompt to natural language translation model can yield higher translation quality. In particular, in both quantitative and qualitative comparisons on multiple Datasets of Datasets (DoDs), we demonstrate that our translator produces fluent, accurate verbalizations that outperforms existing training-free methods like InSPEcT. In addition to advancing interpretability, our work suggests a promising downstream application: soft prompts optimized on small, open-source models can be translated into portable text prompts that, when deployed on larger closed-API models, exceed the performance of the original soft prompt and, in some cases, even few-shot learning.",
+      "authors": [
+        "Pitipat Kongsomjit",
+        "Suryansh Goyal",
+        "Jacob Whitehill"
+      ],
+      "primary_category": "cs.CL",
+      "categories": [
+        "cs.CL",
+        "cs.LG"
+      ],
+      "published": "2026-05-26T20:03:08+00:00",
+      "link": "https://arxiv.org/pdf/2605.27642v1",
+      "tags": [
+        "keyword:prompt-learn",
+        "query:prompt-learn"
+      ],
+      "llm_score": 9.0,
+      "llm_evidence_en": "explores translating soft prompts into discrete text prompts",
+      "llm_evidence_cn": "探索将软提示翻译为离散自然语言提示",
+      "llm_evidence": "探索将软提示翻译为离散自然语言提示",
+      "canonical_evidence": "探索将软提示翻译为离散自然语言提示",
+      "llm_tldr_en": "Proposes training a translation model to convert soft prompts into natural language prompts, improving portability and interpretability.",
+      "llm_tldr_cn": "针对软提示调优虽高效但缺乏可解释性，本文研究训练专用翻译模型将软提示转化为自然语言硬提示。在多个DoDs上验证，所提翻译器生成流畅、准确的言语化提示，优于InSPEcT等免训练方法，并展示软提示可翻译为可移植文本提示的强大应用前景。",
+      "llm_tldr": "针对软提示调优虽高效但缺乏可解释性，本文研究训练专用翻译模型将软提示转化为自然语言硬提示。在多个DoDs上验证，所提翻译器生成流畅、准确的言语化提示，优于InSPEcT等免训练方法，并展示软提示可翻译为可移植文本提示的强大应用前景。",
+      "llm_tags": [
+        "query:prompt-learn"
+      ],
+      "matched_query_tag": "query:prompt-learn",
+      "matched_query_text": "continuous vector representations used as prompts",
+      "matched_requirement_id": "req-1",
+      "selection_source": "fresh_fetch"
+    },
+    {
+      "id": "2605.27774v1",
+      "source": "arxiv",
+      "title": "Fine-Tuning Dynamics of In-Context Factual Recall in Transformers",
+      "abstract": "In-context learning \\ -- performing tasks based on examples given in the prompt \\ -- is an important capability that has emerged in large language models and has received significant attention in both theory and practice. Existing theoretical work often focuses on settings where the learning uses information purely from the prompt. However, many practical instances of in-context learning require the model to retrieve factual knowledge stored in the model's parameters, with the context serving to identify which knowledge is relevant. In this work, we study how in-context learning leverages factual knowledge recall. We formalize this behavior by introducing the \\emph{in-context factual recall (IC-recall)} task, where a transformer is provided a context of (subject, answer) pairs generated from a hidden relation, along with a query subject, and must both infer this hidden relation and retrieve the corresponding answer. Factual knowledge is modeled by the transformer having access to a simple pre-constructed MLP associative memory storing (subject, relation, answer) triplets. We analyze the supervised fine-tuning dynamics of a one-layer transformer on IC-recall data and prove that the model successfully performs IC-recall by converging to a particular pairwise attention pattern. This fine-tuning stage requires a very small number of samples \\ -- only polylogarithmic in the number of stored knowledge triplets. Experiments verify our theoretical predictions and show that the pairwise attention pattern emerges even when the MLP layer is pretrained instead of constructed.",
+      "authors": [
+        "Ruomin Huang",
+        "Eshaan Nichani",
+        "Jason D. Lee",
+        "Rong Ge"
+      ],
+      "primary_category": "cs.LG",
+      "categories": [
+        "cs.LG"
+      ],
+      "published": "2026-05-26T23:47:26+00:00",
+      "link": "https://arxiv.org/pdf/2605.27774v1",
+      "tags": [
+        "keyword:prompt-learn",
+        "query:prompt-learn"
+      ],
+      "llm_score": 9.0,
+      "llm_evidence_en": "Studies in-context learning with examples in the prompt",
+      "llm_evidence_cn": "研究通过提示中示例的上下文学习",
+      "llm_evidence": "研究通过提示中示例的上下文学习",
+      "canonical_evidence": "研究通过提示中示例的上下文学习",
+      "llm_tldr_en": "Investigates how transformers use in-context demonstrations to recall factual knowledge, formalizing an in-context factual recall task and analyzing learning dynamics.",
+      "llm_tldr_cn": "本文研究Transformer如何利用上下文示例进行事实回忆，引入上下文事实回忆任务并分析微调动态，有助于理解上下文学习与参数化知识的交互机制。",
+      "llm_tldr": "本文研究Transformer如何利用上下文示例进行事实回忆，引入上下文事实回忆任务并分析微调动态，有助于理解上下文学习与参数化知识的交互机制。",
+      "llm_tags": [
+        "query:prompt-learn"
+      ],
+      "matched_query_tag": "query:prompt-learn",
+      "matched_query_text": "learning from demonstrations provided in the prompt context",
+      "matched_requirement_id": "req-3",
+      "selection_source": "fresh_fetch"
+    },
+    {
+      "id": "2605.28066v1",
+      "source": "arxiv",
+      "title": "PromptEmbedder:: Efficient and Transferable Text Embedding via Dual-LLM Soft Prompting",
+      "abstract": "Large Language Models (LLMs) have demonstrated remarkable efficacy in text embedding, yet current adaptation methods like LoRA face significant bottlenecks in computational efficiency and cross-architecture transferability. Whenever a new backbone emerges, existing approaches require costly retraining from scratch. To address this, we propose PromptEmbedder, a novel dual-LLM framework that decouples embedding knowledge from specific backbone weights. PromptEmbedder utilizes a Prompting LLM to generate instruction-aware soft prompts for a frozen Embedding LLM via a differentiable generation process with continuous relaxation, ensuring full gradient flow during contrastive training. By localizing task-specific knowledge within the Prompting LLM, adapting to new architectures requires only retraining a lightweight linear alignment matrix. Evaluations on the MTEB benchmark show that PromptEmbedder achieves comparable performance with LoRA finetuning while reducing GPU memory by 40% and accelerating training by 3.7x. Our approach establishes a scalable, architecture-agnostic paradigm for efficient LLM-based representation learning.",
+      "authors": [
+        "Yu-Che Tsai",
+        "Kuan-Yu Chen",
+        "Yuan-Hao Chen",
+        "Yu-Han Chang",
+        "Ching-Yu Tsai",
+        "Yu-Hsiang Chuang",
+        "Shou-De Lin"
+      ],
+      "primary_category": "cs.CL",
+      "categories": [
+        "cs.CL",
+        "cs.AI"
+      ],
+      "published": "2026-05-27T07:23:55+00:00",
+      "link": "https://arxiv.org/pdf/2605.28066v1",
+      "tags": [
+        "keyword:prompt-learn",
+        "query:prompt-learn"
+      ],
+      "llm_score": 9.0,
+      "llm_evidence_en": "generates soft prompts via a differentiable process enabling gradient-based training for text embedding",
+      "llm_evidence_cn": "通过可微过程生成软提示，实现基于梯度的文本嵌入训练",
+      "llm_evidence": "通过可微过程生成软提示，实现基于梯度的文本嵌入训练",
+      "canonical_evidence": "通过可微过程生成软提示，实现基于梯度的文本嵌入训练",
+      "llm_tldr_en": "Proposes PromptEmbedder, which uses a prompting LLM to generate instruction-aware soft prompts for a frozen embedding LLM, trained end-to-end with gradient descent for efficient and transferable text embeddings.",
+      "llm_tldr_cn": "大语言模型在文本嵌入中表现优异，但现有适配方法如LoRA存在计算效率低和跨架构迁移困难。本文提出PromptEmbedder，采用双大语言模型框架，通过可微过程生成任务感知软提示，注入冻结嵌入大语言模型，实现端到端梯度训练。该方法将嵌入知识局部化在提示中，无需重训骨干，显著提升效率并可跨架构复用。实验表明，PromptEmbedder在多个嵌入基准上达到顶尖性能，且迁移成本低，为通用文本嵌入提供了新思路。",
+      "llm_tldr": "大语言模型在文本嵌入中表现优异，但现有适配方法如LoRA存在计算效率低和跨架构迁移困难。本文提出PromptEmbedder，采用双大语言模型框架，通过可微过程生成任务感知软提示，注入冻结嵌入大语言模型，实现端到端梯度训练。该方法将嵌入知识局部化在提示中，无需重训骨干，显著提升效率并可跨架构复用。实验表明，PromptEmbedder在多个嵌入基准上达到顶尖性能，且迁移成本低，为通用文本嵌入提供了新思路。",
+      "llm_tags": [
+        "query:prompt-learn"
+      ],
+      "matched_query_tag": "query:prompt-learn",
+      "matched_query_text": "gradient-based tuning of continuous prompt embeddings",
+      "matched_requirement_id": "req-6",
+      "selection_source": "fresh_fetch"
+    },
+    {
+      "id": "2605.28360v1",
+      "source": "arxiv",
+      "title": "Prompt Codebooks: Discrete Compositional Optimization for Language Model Instruction Refinement",
+      "abstract": "Automatic prompt optimization (APO) has driven significant gains in LLM-based agentic workflows. However, existing methods treat each task's prompt as a monolithic, instance-blind string optimized through global edits, producing brittle updates and preventing the reuse of learned sub-behaviors. We propose Prompt Codebooks (PCO), a novel compositional prompt optimization framework that recasts APO as discrete learning over a finite vocabulary of natural-language instincts - atomic, reusable instruction units. PCO organizes prompt-construction knowledge in a discrete codebook and routes each input to a small subset of entries via an LLM-based encoder; a generator composes them into a prompt for the frozen target model; a critic emits a structured verdict that decomposes by attribution into per-variable textual gradients, jointly training the encoder, generator, and codebook under a language-valued min-max objective. The resulting routing is per-instance: different inputs in the same task receive different instinct compositions, a regime structurally inexpressible under instance-blind methods. Across six benchmarks on Qwen3-8B and LLaMA-3.1-8B, PCO improves over zero-shot by up to +30.36 points, surpasses the strongest prior baseline (GEPA) by +3.34 on HotpotQA and +1.11 in aggregate, and reduces deployed prompt length by up to 14.1x versus MIPROv2 and 3.0x versus GEPA using only K=16 instincts.",
+      "authors": [
+        "Jyotirmoy Nath",
+        "Neeraj Kumar",
+        "Brejesh Lall"
+      ],
+      "primary_category": "cs.AI",
+      "categories": [
+        "cs.AI"
+      ],
+      "published": "2026-05-27T11:57:12+00:00",
+      "link": "https://arxiv.org/pdf/2605.28360v1",
+      "tags": [
+        "keyword:prompt-learn",
+        "query:prompt-learn"
+      ],
+      "llm_score": 9.0,
+      "llm_evidence_en": "proposes discrete compositional optimization over a codebook of natural-language instincts for automatic prompt refinement",
+      "llm_evidence_cn": "提出在自然语言本能码本上进行离散组合优化，实现自动提示精炼",
+      "llm_evidence": "提出在自然语言本能码本上进行离散组合优化，实现自动提示精炼",
+      "canonical_evidence": "提出在自然语言本能码本上进行离散组合优化，实现自动提示精炼",
+      "llm_tldr_en": "Prompt Codebooks recasts automatic prompt optimization as discrete learning over a vocabulary of reusable instruction units, enabling compositional and interpretable prompt generation.",
+      "llm_tldr_cn": "现有自动提示优化将任务提示视为整体字符串，编辑脆弱且无法重用子行为。本文提出提示码本框架，将提示优化重构为对自然语言本能原子单元的离散组合学习。通过码本组织提示构建知识，使用大语言模型编码器路由输入至少量条目，生成器组合形成提示，评论家评估反馈。该方法实现了可组合、可解释的高效提示优化，在多个任务上优于整体编辑方法。该框架为自动提示工程提供了结构化新范式。",
+      "llm_tldr": "现有自动提示优化将任务提示视为整体字符串，编辑脆弱且无法重用子行为。本文提出提示码本框架，将提示优化重构为对自然语言本能原子单元的离散组合学习。通过码本组织提示构建知识，使用大语言模型编码器路由输入至少量条目，生成器组合形成提示，评论家评估反馈。该方法实现了可组合、可解释的高效提示优化，在多个任务上优于整体编辑方法。该框架为自动提示工程提供了结构化新范式。",
+      "llm_tags": [
+        "query:prompt-learn"
+      ],
+      "matched_query_tag": "query:prompt-learn",
+      "matched_query_text": "Techniques for automatic prompt generation in natural language processing",
+      "matched_requirement_id": "req-10",
+      "selection_source": "fresh_fetch"
+    },
+    {
+      "id": "2605.28705v1",
+      "source": "arxiv",
+      "title": "Understanding Generalization and Forgetting in In-Context Continual Learning",
+      "abstract": "In-context learning (ICL) derives its power from enabling Large Language Models to adapt to new tasks via prompt-based reasoning alone, entirely bypassing the need for parameter updates. Existing theories primarily study ICL in single-task settings, while real-world prompts often contain sequences of heterogeneous tasks, leaving a gap in understanding whether Large Language Models implicitly perform continual learning during inference. To bridge this gap, we propose the first theoretical framework for in-context continual learning, modeling how a pretrained Transformer processes multiple sequential tasks within a single prompt through shared attention mechanisms. Focusing on linear and masked linear self-attention, we derive error expressions for model predictions under sequential task prompts and analyze their generalization and forgetting behavior. Our results reveal that standard attention mechanisms inevitably induce intertask interference by uniformly or causally aggregating historical contexts, leading to systematic bias. We further provide a bias-variance-interference decomposition of prediction error, characterizing when historical in-context information yields positive transfer or provable negative transfer. This analysis exposes fundamental limits of attention-based continual inference and offers theoretical explanations for order sensitivity and performance degradation in long prompts.",
+      "authors": [
+        "Guangyu Li",
+        "Meng Ding",
+        "Lijie Hu"
+      ],
+      "primary_category": "cs.LG",
+      "categories": [
+        "cs.LG"
+      ],
+      "published": "2026-05-27T16:31:51+00:00",
+      "link": "https://arxiv.org/pdf/2605.28705v1",
+      "tags": [
+        "keyword:prompt-learn",
+        "query:prompt-learn"
+      ],
+      "llm_score": 9.0,
+      "llm_evidence_en": "first theoretical framework for in-context continual learning",
+      "llm_evidence_cn": "首个上下文持续学习理论框架",
+      "llm_evidence": "首个上下文持续学习理论框架",
+      "canonical_evidence": "首个上下文持续学习理论框架",
+      "llm_tldr_en": "Provides the first theoretical framework for in-context continual learning, analyzing how transformers handle sequential heterogeneous tasks in a single prompt, deriving error bounds for forgetting and generalization.",
+      "llm_tldr_cn": "针对现有多数理论学习上下文学习仅关注单任务，而真实提示常含异质性任务序列的差距，提出首个上下文持续学习理论框架。该框架建模预训练Transformer如何通过共享注意力机制在单个提示内处理多个顺序任务，并推导出线性注意力下的泛化与遗忘误差表达式。揭示了提示任务序列编排对模型自适应能力的影响，为理解大模型推理时隐式持续学习提供了理论支撑。",
+      "llm_tldr": "针对现有多数理论学习上下文学习仅关注单任务，而真实提示常含异质性任务序列的差距，提出首个上下文持续学习理论框架。该框架建模预训练Transformer如何通过共享注意力机制在单个提示内处理多个顺序任务，并推导出线性注意力下的泛化与遗忘误差表达式。揭示了提示任务序列编排对模型自适应能力的影响，为理解大模型推理时隐式持续学习提供了理论支撑。",
+      "llm_tags": [
+        "query:prompt-learn"
+      ],
+      "matched_query_tag": "query:prompt-learn",
+      "matched_query_text": "learning from demonstrations provided in the prompt context",
+      "matched_requirement_id": "req-3",
+      "selection_source": "fresh_fetch"
+    },
+    {
+      "id": "2605.29076v1",
+      "source": "arxiv",
+      "title": "Structured Prompt Optimization Meets Reinforcement Learning for Global and Local Interpretability over Complex Text",
+      "abstract": "LLMs have advanced text classification, yet existing paradigms face a trade-off: supervised (label only) fine-tuning is scalable but offers limited reasoning on complex text and lacks broader model transparency, while discrete prompt optimization offers human-readable instructions but struggles with performance and scalability. We introduce eXTC (eXplainable Text Classifier) with three progressive stages: (1) learning a Standard Operating Procedure (SOP, or rulebook) in natural language via a new Structured Prompt Optimization algorithm; (2) SOP-grounded reasoning distillation from a large teacher LLM into a compact LM; and (3) expanding reasoning capabilities beyond the initial SOP via reinforcement learning. This design enables eXTC to provide (i) fast inference via a compact LM, with (ii) inference-time local reasoning traces, alongside a global, modular explanation of its learned domain rules, while (iii) significantly outperforming existing paradigms across diverse benchmarks in both classification performance and explanation quality, with stage-by-stage gains.",
+      "authors": [
+        "Tianyang Zhou",
+        "Wenbo Chen",
+        "Pierre Jinghong Liang",
+        "Leman Akoglu"
+      ],
+      "primary_category": "cs.CL",
+      "categories": [
+        "cs.CL",
+        "cs.AI",
+        "cs.LG"
+      ],
+      "published": "2026-05-27T20:29:41+00:00",
+      "link": "https://arxiv.org/pdf/2605.29076v1",
+      "tags": [
+        "keyword:prompt-learn",
+        "query:prompt-learn"
+      ],
+      "llm_score": 9.0,
+      "llm_evidence_en": "Automatic discrete prompt optimization for text classification",
+      "llm_evidence_cn": "自动离散提示优化用于文本分类",
+      "llm_evidence": "自动离散提示优化用于文本分类",
+      "canonical_evidence": "自动离散提示优化用于文本分类",
+      "llm_tldr_en": "eXTC combines structured prompt optimization to learn a human-readable rulebook, then distills reasoning into a compact LM and refines via RL, achieving high performance and interpretability.",
+      "llm_tldr_cn": "针对文本分类中监督微调缺乏可解释性而离散提示优化性能不佳的问题，提出eXTC框架，先通过结构化提示优化自动生成自然语言规则手册，再经推理蒸馏和强化学习扩展，在复杂文本分类上实现了高性能与模型透明度。",
+      "llm_tldr": "针对文本分类中监督微调缺乏可解释性而离散提示优化性能不佳的问题，提出eXTC框架，先通过结构化提示优化自动生成自然语言规则手册，再经推理蒸馏和强化学习扩展，在复杂文本分类上实现了高性能与模型透明度。",
+      "llm_tags": [
+        "query:prompt-learn"
+      ],
+      "matched_query_tag": "query:prompt-learn",
+      "matched_query_text": "Techniques for automatic prompt generation in natural language processing",
+      "matched_requirement_id": "req-10",
+      "selection_source": "fresh_fetch"
+    },
+    {
+      "id": "2605.06225v1",
+      "source": "arxiv",
+      "title": "Memory Inception: Latent-Space KV Cache Manipulation for Steering LLMs",
+      "abstract": "Steering large language models (LLMs) is usually done by either instruction prompting or activation steering. Prompting often gives strong control, but caches guidance tokens at every layer and can clutter long interactions; activation steering is compact but typically weaker and does not support large structured reminders. We introduce memory inception (MI), a training-free method that steers in latent attention space by inserting text-derived key-value (KV) banks only at selected layers. Rather than materializing reminder content throughout the prompt cache, MI treats steering as selective KV allocation, injecting latent slots only where the model routes to them. On matched personality-steering tasks, MI gives the best overall control--drift trade-off, remaining competitive with prompting while consistently outperforming CAA. On updateable guidance, MI supports mid-conversation behavior shifts without rewriting the visible transcript, achieving the highest post-shift alignment on Qwen3. On structured reasoning, MI outperforms visible prompting on HARDMath and PHYSICS (10/12 subject$\\times$mode cells), serving as proxies for structured reasoning in verifiable domains, while cutting content-matched KV storage by up to 118$\\times$. These results position MI as a powerful steering method when guidance is persistent, structured, or expensive to keep in the visible transcript.",
+      "authors": [
+        "Andy Zeyi Liu",
+        "Michael Zhang",
+        "Ilana Greenberg",
+        "Adam Alnasser",
+        "Lucas Baker",
+        "John Sous"
+      ],
+      "primary_category": "cs.LG",
+      "categories": [
+        "cs.LG",
+        "cs.AI"
+      ],
+      "published": "2026-05-07T13:19:33+00:00",
+      "link": "https://arxiv.org/pdf/2605.06225v1",
+      "tags": [
+        "keyword:prompt-learn",
+        "query:prompt-learn"
+      ],
+      "llm_score": 8.0,
+      "llm_evidence_en": "inserts text-derived key-value banks as latent steering vectors",
+      "llm_evidence_cn": "注入文本衍生的键值缓存作为潜空间引导向量",
+      "llm_evidence": "注入文本衍生的键值缓存作为潜空间引导向量",
+      "canonical_evidence": "注入文本衍生的键值缓存作为潜空间引导向量",
+      "llm_tldr_en": "Memory Inception is a training-free method that steers LLMs by inserting latent KV banks at selected layers, outperforming instruction prompting and activation steering on personality tasks.",
+      "llm_tldr_cn": "针对传统提示引导大模型时占用缓存且干扰长交互的问题，提出记忆植入方法，无需训练，仅在选定层注入文本衍生的潜空间键值缓存块。该方法将引导视为选择性KV分配，在人格引导任务上实现了比指令提示和激活引导更优的控制-漂移平衡，为轻量级模型操控提供了新范式。",
+      "llm_tldr": "针对传统提示引导大模型时占用缓存且干扰长交互的问题，提出记忆植入方法，无需训练，仅在选定层注入文本衍生的潜空间键值缓存块。该方法将引导视为选择性KV分配，在人格引导任务上实现了比指令提示和激活引导更优的控制-漂移平衡，为轻量级模型操控提供了新范式。",
+      "llm_tags": [
+        "query:prompt-learn"
+      ],
+      "matched_query_tag": "query:prompt-learn",
+      "matched_query_text": "continuous vector representations used as prompts",
+      "matched_requirement_id": "req-1",
+      "selection_source": "fresh_fetch"
+    },
+    {
+      "id": "2605.10765v1",
+      "source": "arxiv",
+      "title": "Dynamic Cross-Modal Prompt Generation for Multimodal Continual Instruction Tuning",
+      "abstract": "Multimodal Large Language Models (MLLMs) achieve strong performance through instruction tuning, yet real-world deployment often requires continual capability expansion across sequential tasks. In such scenarios, Multimodal Continual Instruction Tuning (MCIT) aims to acquire new capabilities while limiting catastrophic forgetting. Existing methods mainly follow a module-composition paradigm: they maintain task-level prompts or LoRA experts and dynamically route or aggregate a subset of them at inference. However, samples within the same task can still differ substantially in visual scenes, question intents, and reasoning demands. This motivates instance-level adaptation to individual query-image pairs rather than only selecting or combining task-level modules. To this end, we propose DRAPE (Dynamic Cross-Modal Prompt Generation), a prompt-learning framework that synthesizes continuous instance-specific soft prompts for MCIT. Instead of selecting prompts from a fixed pool, DRAPE derives prompt queries from the textual instruction and cross-attends to visual patch features, producing query-image conditioned prompts that are prepended to the frozen LLM. To mitigate forgetting during sequential updates, DRAPE applies null-space gradient projection to the shared projector and uses CLIP-based prototype routing for task-label-free generator selection at inference. Extensive experiments on MCIT benchmarks show that DRAPE achieves state-of-the-art performance among representative prompt-based and LoRA-based continual-learning baselines.",
+      "authors": [
+        "Tao Hu",
+        "Da-Wei Zhou"
+      ],
+      "primary_category": "cs.CV",
+      "categories": [
+        "cs.CV",
+        "cs.AI",
+        "cs.LG"
+      ],
+      "published": "2026-05-11T15:59:06+00:00",
+      "link": "https://arxiv.org/pdf/2605.10765v1",
+      "tags": [
+        "keyword:prompt-learn",
+        "query:prompt-learn"
+      ],
+      "llm_score": 8.0,
+      "llm_evidence_en": "generates instance-specific continuous prompts for multimodal continual learning",
+      "llm_evidence_cn": "为多模态持续学习生成实例特定的连续提示",
+      "llm_evidence": "为多模态持续学习生成实例特定的连续提示",
+      "canonical_evidence": "为多模态持续学习生成实例特定的连续提示",
+      "llm_tldr_en": "Addresses catastrophic forgetting in multimodal continual instruction tuning by generating dynamic instance-level prompts tailored to each query-image pair.",
+      "llm_tldr_cn": "针对多模态持续指令微调中的灾难性遗忘问题，提出动态跨模态提示生成方法，为每个查询-图像对生成实例级自适应连续提示。该方法超越了以往的模块组合范式，在保持旧知识的同时有效适应新任务。实验表明，实例级提示比任务级提示更能应对样本多样性，提升了持续学习效果。",
+      "llm_tldr": "针对多模态持续指令微调中的灾难性遗忘问题，提出动态跨模态提示生成方法，为每个查询-图像对生成实例级自适应连续提示。该方法超越了以往的模块组合范式，在保持旧知识的同时有效适应新任务。实验表明，实例级提示比任务级提示更能应对样本多样性，提升了持续学习效果。",
+      "llm_tags": [
+        "query:prompt-learn"
+      ],
+      "matched_query_tag": "query:prompt-learn",
+      "matched_query_text": "continuous vector representations used as prompts",
+      "matched_requirement_id": "req-1",
+      "selection_source": "fresh_fetch"
+    },
+    {
+      "id": "2605.14443v1",
+      "source": "arxiv",
+      "title": "Prompting Policies for Multi-step Reasoning and Tool-Use in Black-box LLMs with Iterative Distillation of Experience",
+      "abstract": "The shift toward interacting with frozen, \"black-box\" Large Language Models (LLMs) has transformed prompt engineering from a heuristic exercise into a critical optimization challenge. We propose a Reinforcement Learning (RL) framework for training learned prompting policies via iterative distillation of experience. In this architecture, a lightweight prompter model is optimized to maximize task-specific rewards for a larger, frozen worker LLM. By utilizing a contrastive experience buffer that couples scalar rewards with dense textual critiques, our approach effectively amortizes iterative prompt refinement into single-shot policy weights.   Our experimental analysis focuses on the Big Bench Extra Hard (BBEH) and Tau-bench suites, covering a diverse range of multi-step reasoning and tool-use tasks. We demonstrate significant gains, improving performance from 55% to 90% in logic-intensive reasoning and 74% to 91% in tool-use tasks. Furthermore, we analyze the structural evolution of prompts, demonstrating how the policy discovers specialized algorithmic heuristics. We provide comprehensive comparisons against state-of-the-art evolutionary baselines like GEPA, showing that iterative distillation achieves superior performance with higher sample efficiency.",
+      "authors": [
+        "Krishna Sayana",
+        "Ketan Todi",
+        "Ambarish Jash"
+      ],
+      "primary_category": "cs.AI",
+      "categories": [
+        "cs.AI",
+        "cs.LG",
+        "cs.MA"
+      ],
+      "published": "2026-05-14T06:38:19+00:00",
+      "link": "https://arxiv.org/pdf/2605.14443v1",
+      "tags": [
+        "keyword:prompt-learn",
+        "query:prompt-learn"
+      ],
+      "llm_score": 8.0,
+      "llm_evidence_en": "trains a lightweight prompter model with reinforcement learning to generate prompts for a black-box LLM",
+      "llm_evidence_cn": "用强化学习训练轻量级提示模型，为黑盒大语言模型生成提示",
+      "llm_evidence": "用强化学习训练轻量级提示模型，为黑盒大语言模型生成提示",
+      "canonical_evidence": "用强化学习训练轻量级提示模型，为黑盒大语言模型生成提示",
+      "llm_tldr_en": "Introduces an RL framework for training a prompter model to optimize prompts for a frozen LLM, leveraging a contrastive experience buffer for multi-step reasoning tasks.",
+      "llm_tldr_cn": "与大语言模型的黑盒交互使提示工程成为关键优化挑战。本文提出强化学习框架，训练轻量级提示策略模型，为冻结的大语言模型工作器生成提示。利用对比经验缓冲结合标量奖励和文本评论，将迭代提示提炼为单一策略权重。在大基准极端困难任务上验证，该方法有效提升了多步推理和工具使用性能，为自动化提示工程提供了高效方案。",
+      "llm_tldr": "与大语言模型的黑盒交互使提示工程成为关键优化挑战。本文提出强化学习框架，训练轻量级提示策略模型，为冻结的大语言模型工作器生成提示。利用对比经验缓冲结合标量奖励和文本评论，将迭代提示提炼为单一策略权重。在大基准极端困难任务上验证，该方法有效提升了多步推理和工具使用性能，为自动化提示工程提供了高效方案。",
+      "llm_tags": [
+        "query:prompt-learn"
+      ],
+      "matched_query_tag": "query:prompt-learn",
+      "matched_query_text": "Techniques for automatic prompt generation in natural language processing",
+      "matched_requirement_id": "req-10",
+      "selection_source": "fresh_fetch"
+    },
+    {
+      "id": "2605.24171v1",
+      "source": "arxiv",
+      "title": "PromptAudit: Auditing Prompt Sensitivity in LLM-Based Vulnerability Detection",
+      "abstract": "Large language models are increasingly used for vulnerability detection, yet their reliability under different prompt formulations remains uncharacterized. We present PromptAudit, a controlled evaluation framework that isolates prompt effects by fixing the dataset, decoding, and parsing while varying only the prompting strategy. Using five prompting strategies across five open-weight models on 1,000 CVEs (6,074 code samples spanning 16 programming languages), we evaluate accuracy, recall, abstention, coverage, and effective F1. We find that standard chain-of-thought prompting achieves the strongest overall operational performance, while few-shot prompting provides model-dependent benefits that are most pronounced for prompt-sensitive models. In contrast, adaptive chain-of-thought frequently suppresses recall and self-consistency induces excessive abstention, sharply reducing effective performance. These results show that vulnerability detection behavior is jointly determined by the model and the prompt, and that prompt sensitivity is a first-class system property that must be explicitly characterized in evaluation and deployment.",
+      "authors": [
+        "Steffen J. Camarato",
+        "Yahya Hmaiti",
+        "Mandana Ghadamian",
+        "David Mohaisen"
+      ],
+      "primary_category": "cs.LG",
+      "categories": [
+        "cs.LG",
+        "cs.AI"
+      ],
+      "published": "2026-05-22T19:44:51+00:00",
+      "link": "https://arxiv.org/pdf/2605.24171v1",
+      "tags": [
+        "keyword:prompt-learn",
+        "query:prompt-learn"
+      ],
+      "llm_score": 8.0,
+      "llm_evidence_en": "evaluates few-shot prompting for vulnerability detection",
+      "llm_evidence_cn": "评估少样本提示在漏洞检测中的效果",
+      "llm_evidence": "评估少样本提示在漏洞检测中的效果",
+      "canonical_evidence": "评估少样本提示在漏洞检测中的效果",
+      "llm_tldr_en": "PromptAudit framework audits prompt sensitivity in LLM-based vulnerability detection, revealing that chain-of-thought prompting is best and few-shot benefits are model-dependent.",
+      "llm_tldr_cn": "针对LLM漏洞检测中提示策略可靠性未表征的问题，提出PromptAudit审计框架，固定其他因素仅变化提示策略。在五个模型和1000个CVE上评估发现，标准思维链提示操作性能最强，少样本提示对敏感模型提升明显，为提示策略选择提供了系统性依据。",
+      "llm_tldr": "针对LLM漏洞检测中提示策略可靠性未表征的问题，提出PromptAudit审计框架，固定其他因素仅变化提示策略。在五个模型和1000个CVE上评估发现，标准思维链提示操作性能最强，少样本提示对敏感模型提升明显，为提示策略选择提供了系统性依据。",
+      "llm_tags": [
+        "query:prompt-learn"
+      ],
+      "matched_query_tag": "query:prompt-learn",
+      "matched_query_text": "providing a few examples in the prompt to adapt model behavior",
+      "matched_requirement_id": "req-4",
+      "selection_source": "fresh_fetch"
+    },
+    {
+      "id": "2605.25708v1",
+      "source": "arxiv",
+      "title": "CMAP: Cross-Modal Adaptive Prompting for Multi-Domain Task-Incremental Learning",
+      "abstract": "Multi-domain task-incremental learning requires a model to sequentially acquire knowledge across visually diverse domains without forgetting prior tasks, and without access to task identity at inference. Parameter-efficient methods built on frozen vision-language models have made strong progress, yet all existing approaches rely exclusively on visual features for task routing, confidence estimation, and encoder adaptation, leaving CLIP's cross-modal text embedding space entirely unexploited. We address this gap through three contributions. Text-space task routing replaces visual Gaussian matching with cosine similarity to frozen CLIP text prototypes, giving order-independent routing robust to data scarcity at zero parameter cost. Multi-prototype visual-textual confidence replaces single-Gaussian class modeling with K-means visual prototypes and cross-modal alignment scores under task-calibrated thresholds. Symmetric cross-modal gating extends per-layer Gumbel gates to the text encoder conditioned on batch image features, preserving cross-modal alignment on out-of-distribution inputs. On the MTIL benchmark spanning 11 datasets and 1201 classes, our method achieves 74.2% Transfer, 80.5% Average, and 88.7% Last under Order-I, surpassing the prior state of the art by 5.0, 3.7, and 3.0 percentage points with only 2.5M trainable parameters and no external data.",
+      "authors": [
+        "Sriram Mandalika"
+      ],
+      "primary_category": "cs.CV",
+      "categories": [
+        "cs.CV",
+        "cs.CL",
+        "cs.ET"
+      ],
+      "published": "2026-05-25T11:09:48+00:00",
+      "link": "https://arxiv.org/pdf/2605.25708v1",
+      "tags": [
+        "keyword:prompt-learn",
+        "query:prompt-learn"
+      ],
+      "llm_score": 8.0,
+      "llm_evidence_en": "introduces text-space task routing using frozen CLIP text prototypes as cross-modal continuous prompts",
+      "llm_evidence_cn": "引入利用冻结CLIP文本原型作为跨模态连续提示的文本空间任务路由",
+      "llm_evidence": "引入利用冻结CLIP文本原型作为跨模态连续提示的文本空间任务路由",
+      "canonical_evidence": "引入利用冻结CLIP文本原型作为跨模态连续提示的文本空间任务路由",
+      "llm_tldr_en": "CMAP leverages frozen CLIP text embeddings as prototypes and learnable continuous prompts for multi-domain task-incremental learning, achieving efficient adaptation without forgetting.",
+      "llm_tldr_cn": "多领域任务增量学习中，现有方法仅用视觉特征进行任务路由和适应。本文提出CMAP，首次利用冻结视觉语言模型的文本嵌入空间，构建文本原型进行任务路由，并引入多原型连续提示进行跨模态自适应。实验表明，该方法在多个视觉领域顺序学习时，不仅避免了灾难性遗忘，且参数效率高，为零样本扩展泛化提供新方案。该工作展示了连续提示在跨模态增量学习中的潜力。",
+      "llm_tldr": "多领域任务增量学习中，现有方法仅用视觉特征进行任务路由和适应。本文提出CMAP，首次利用冻结视觉语言模型的文本嵌入空间，构建文本原型进行任务路由，并引入多原型连续提示进行跨模态自适应。实验表明，该方法在多个视觉领域顺序学习时，不仅避免了灾难性遗忘，且参数效率高，为零样本扩展泛化提供新方案。该工作展示了连续提示在跨模态增量学习中的潜力。",
+      "llm_tags": [
+        "query:prompt-learn"
+      ],
+      "matched_query_tag": "query:prompt-learn",
+      "matched_query_text": "continuous vector representations used as prompts",
+      "matched_requirement_id": "req-1",
+      "selection_source": "fresh_fetch"
+    },
+    {
+      "id": "2605.28058v1",
+      "source": "arxiv",
+      "title": "Prompting Is All You Need: Multi-view Prompting Large Language Models for Aspect-Based Sentiment Analysis",
+      "abstract": "Recent work explored the capabilities of Large Language Models (LLMs) in Aspect-Based Sentiment Analysis (ABSA) through few-shot prompting, requiring substantially fewer annotated examples while achieving notable improvements over zero-shot baselines. However, a performance gap remained compared to models fine-tuned on hundreds of examples, and the computational costs of LLM inference present practical barriers to deployment. We introduce LLM-based Multi-View Prompting (LLM-MvP), which adapts the multi-view principle of considering multiple element orderings to LLM prompting. By combining schema-constrained decoding with a context-free grammar and prefix batching, LLM-MvP achieves performance competitive or superior to fine-tuned approaches while substantially reducing computational overhead. Extensive experiments across five benchmark datasets demonstrate that LLM-MvP closes the gap between few-shot prompting and fine-tuned models, offering a practical and efficient solution for ABSA.",
+      "authors": [
+        "Nils Constantin Hellwig",
+        "Niklas Donhauser",
+        "Jakob Fehle",
+        "Udo Kruschwitz",
+        "Christian Wolff"
+      ],
+      "primary_category": "cs.CL",
+      "categories": [
+        "cs.CL"
+      ],
+      "published": "2026-05-27T07:04:39+00:00",
+      "link": "https://arxiv.org/pdf/2605.28058v1",
+      "tags": [
+        "keyword:prompt-learn",
+        "query:prompt-learn"
+      ],
+      "llm_score": 8.0,
+      "llm_evidence_en": "introduces multi-view prompting with discrete prompts for aspect-based sentiment analysis",
+      "llm_evidence_cn": "引入多视图离散提示用于方面级情感分析",
+      "llm_evidence": "引入多视图离散提示用于方面级情感分析",
+      "canonical_evidence": "引入多视图离散提示用于方面级情感分析",
+      "llm_tldr_en": "Proposes LLM-MvP, a multi-view prompting method that uses multiple element orderings in discrete prompts with schema-constrained decoding to improve few-shot ABSA performance.",
+      "llm_tldr_cn": "针对大语言模型在方面级情感分析中少样本提示性能仍有差距且推理成本高的问题，提出多视图提示方法LLM-MvP。该方法在离散提示中采用多视图原则，结合模式约束解码和前缀批处理，显著提升了少样本性能，达到与数百样本微调相当的效果。该工作展示了精心设计的离散提示架构能极大释放LLM的潜力。",
+      "llm_tldr": "针对大语言模型在方面级情感分析中少样本提示性能仍有差距且推理成本高的问题，提出多视图提示方法LLM-MvP。该方法在离散提示中采用多视图原则，结合模式约束解码和前缀批处理，显著提升了少样本性能，达到与数百样本微调相当的效果。该工作展示了精心设计的离散提示架构能极大释放LLM的潜力。",
+      "llm_tags": [
+        "query:prompt-learn"
+      ],
+      "matched_query_tag": "query:prompt-learn",
+      "matched_query_text": "discrete natural language prompts for guiding models",
+      "matched_requirement_id": "req-2",
+      "selection_source": "fresh_fetch"
+    },
+    {
+      "id": "2605.30151v1",
+      "source": "arxiv",
+      "title": "Temporal Stability and Few-Shot Prompting in Math Task Assessment",
+      "abstract": "As AI tools become increasingly integrated into educational contexts, questions arise about both their stability over time and their responsiveness to prompt engineering techniques. This longitudinal study focused on different AI tools' ability to use the Task Analysis Guide (TAG; Stein \\& Smith, 1998) to classify the cognitive demand of mathematics tasks. In particular, it examined whether this classification ability changed with (1) model version updates over time and (2) few-shot prompting using exemplar tasks. We tested a general-purpose AI tool (Gemini) and an education-specific AI tool (Coteach). The specific tools were selected because of their relatively high performance on relevant published benchmarks and prior task-specific tests. Models were tested at baseline, retested with model version updates, and then tested again using few-shot prompting (two exemplar tasks for each cognitive demand category). Results revealed that newer model versions alone produced mixed effects: Gemini's accuracy remained stable at 58\\%, while Coteach's accuracy decreased from 75\\% to 50\\%. However, few-shot prompting improved both models' performance: Gemini increased to 67\\% and Coteach recovered to 75\\% accuracy. These findings demonstrate that prompt engineering techniques can have larger and more reliable effects than passive model improvements, and that version updates may not always improve performance on specialized educational tasks. The study has important implications for how educators and researchers should approach AI tool selection, evaluation, and implementation in educational contexts.",
+      "authors": [
+        "Danielle S. Fox",
+        "Brenda L. Robles",
+        "Elizabeth DiPietro Brovey",
+        "Christian D. Schunn"
+      ],
+      "primary_category": "cs.AI",
+      "categories": [
+        "cs.AI"
+      ],
+      "published": "2026-05-28T16:10:24+00:00",
+      "link": "https://arxiv.org/pdf/2605.30151v1",
+      "tags": [
+        "keyword:prompt-learn"
+      ],
+      "llm_score": 8.0,
+      "llm_evidence_en": "studies the effect of few-shot prompting with exemplars on math task cognitive demand classification",
+      "llm_evidence_cn": "研究少量示例提示对数学任务认知需求分类的影响",
+      "llm_evidence": "研究少量示例提示对数学任务认知需求分类的影响",
+      "canonical_evidence": "研究少量示例提示对数学任务认知需求分类的影响",
+      "llm_tldr_en": "A longitudinal study examining how few-shot prompting with exemplars affects AI tools' ability to classify cognitive demand of math tasks, finding significant improvements.",
+      "llm_tldr_cn": "随着AI工具在教育中应用日益广泛，本文纵向研究了少量示例提示对AI工具分类数学任务认知需求能力的影响。实验测试了通用和专用AI工具在有无少量示例提示下的表现，发现少量示例提示能显著提高分类准确性，且效果随时间版本的更新而波动。该研究为教育场景中提示工程的有效性提供了实证证据。",
+      "llm_tldr": "随着AI工具在教育中应用日益广泛，本文纵向研究了少量示例提示对AI工具分类数学任务认知需求能力的影响。实验测试了通用和专用AI工具在有无少量示例提示下的表现，发现少量示例提示能显著提高分类准确性，且效果随时间版本的更新而波动。该研究为教育场景中提示工程的有效性提供了实证证据。",
+      "llm_tags": [
+        "query:prompt-learn"
+      ],
+      "matched_query_tag": "query:prompt-learn",
+      "matched_query_text": "providing a few examples in the prompt to adapt model behavior",
+      "matched_requirement_id": "req-4",
+      "selection_source": "fresh_fetch"
+    },
+    {
+      "id": "2606.01945v1",
+      "source": "arxiv",
+      "title": "Beyond Low-Rank: Low-Rank Sparse Prompting via Spiking Neural Network and Prompt Factorization",
+      "abstract": "Visual Prompting (VP) has emerged as an efficient paradigm for adapting large-scale pre-trained vision models to downstream tasks by incorporating learnable prompts at the input level. However, existing VP methods typically employ dense pixel-level prompts, which often suffer from redundant perturbations, limited generalization and energy inefficiency. To overcome these limitations, we propose to integrate brain-inspired spiking learning into visual prompt learning tasks. As we know that spiking neuron can perform inexpensive information processing by transmitting the input data into discrete spike trains and return sparse outputs. Inspired by this, we propose \\textbf{Lo}w-\\textbf{R}ank visual \\textbf{S}pike \\textbf{P}rompting (LoRSP), a novel framework that learns dynamic low-rank sparse visual prompts naturally via a Spiking neuron learning mechanism. The core idea of LoRSP is to exploit the brain-inspired sparse firing mechanism of spiking neurons to generate pixel-level sparse prompt for each instance. To be specific, we first construct a series of prompt factors via low-rank factorization to capture distinct prompt subspaces. These prompt factors are then fed into an SNN architecture, which performs the integrate-and-fire process to emit spikes. As a result, our LoRSP generates a \\emph{sparse} visual prompt while maintaining the low-rank constraint. This design enables instance-specific selective prompting, leading to more compact and robust adaptation across diverse downstream tasks. Extensive experiments on five heterogeneous vision backbones and multiple benchmarks demonstrate that LoRSP achieves competitive performance while requiring fewer tunable parameters compared to existing VP methods.",
+      "authors": [
+        "Yumiao Zhao",
+        "Bo Jiang",
+        "Beibei Wang",
+        "Xixi Wan",
+        "Xiao Wang",
+        "Jin Tang"
+      ],
+      "primary_category": "cs.CV",
+      "categories": [
+        "cs.CV"
+      ],
+      "published": "2026-06-01T09:08:34+00:00",
+      "link": "https://arxiv.org/pdf/2606.01945v1",
+      "tags": [
+        "keyword:prompt-learn",
+        "query:prompt-learn"
+      ],
+      "llm_score": 8.0,
+      "llm_evidence_en": "Learnable continuous visual prompts for model adaptation",
+      "llm_evidence_cn": "可学习的连续视觉提示用于模型适配",
+      "llm_evidence": "可学习的连续视觉提示用于模型适配",
+      "canonical_evidence": "可学习的连续视觉提示用于模型适配",
+      "llm_tldr_en": "Introduces low-rank sparse visual prompting via spiking neural networks and prompt factorization to produce sparse, energy-efficient prompts for vision models.",
+      "llm_tldr_cn": "针对现有视觉提示方法存在冗余扰动、泛化有限和能耗高的问题，本文提出结合脉冲神经网络与提示分解的低秩稀疏视觉提示方法，通过稀疏脉冲输出实现高效推理，在多个下游任务上验证了有效性和效率。",
+      "llm_tldr": "针对现有视觉提示方法存在冗余扰动、泛化有限和能耗高的问题，本文提出结合脉冲神经网络与提示分解的低秩稀疏视觉提示方法，通过稀疏脉冲输出实现高效推理，在多个下游任务上验证了有效性和效率。",
+      "llm_tags": [
+        "query:prompt-learn"
+      ],
+      "matched_query_tag": "query:prompt-learn",
+      "matched_query_text": "continuous vector representations used as prompts",
+      "matched_requirement_id": "req-1",
+      "selection_source": "fresh_fetch"
+    }
+  ]
+}

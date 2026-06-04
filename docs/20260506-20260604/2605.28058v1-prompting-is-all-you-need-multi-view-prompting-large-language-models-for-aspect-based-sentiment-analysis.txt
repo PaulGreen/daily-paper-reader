@@ -1,0 +1,1166 @@
+Title: Prompting Is All You Need: Multi-view Prompting Large Language Models for Aspect-Based Sentiment Analysis
+
+URL Source: https://arxiv.org/pdf/2605.28058v1
+
+Published Time: Thu, 28 May 2026 00:47:30 GMT
+
+Number of Pages: 22
+
+Markdown Content:
+## Prompting Is All You Need: Multi-view Prompting Large Language Models for Aspect-Based Sentiment Analysis 
+
+Nils Constantin Hellwig 1 Niklas Donhauser 1 Jakob Fehle 1
+
+Udo Kruschwitz 2 Christian Wolff 11Media Informatics Group, University of Regensburg, Germany 
+
+> 2
+
+Information Science Group, University of Regensburg, Germany 
+
+{nils-constantin.hellwig,niklas.donhauser,jakob.fehle, udo.kruschwitz,christian.wolff}@ur.de 
+
+Abstract 
+
+Recent work explored the capabilities of Large Language Models (LLMs) in Aspect-Based Sentiment Analysis (ABSA) through few-shot prompting, requiring substantially fewer an-notated examples while achieving notable im-provements over zero-shot baselines. How-ever, a performance gap remained compared to models fine-tuned on hundreds of examples, and the computational costs of LLM inference present practical barriers to deployment. We introduce LLM -based Multi-view Prompting 
+
+(LLM-MvP), which adapts the multi-view prin-ciple of considering multiple element orderings to LLM prompting. By combining schema-constrained decoding with a context-free gram-mar and prefix batching, LLM-MvP achieves performance competitive or superior to fine-tuned approaches while substantially reduc-ing computational overhead. Extensive experi-ments across five benchmark datasets demon-strate that LLM-MvP closes the gap between few-shot prompting and fine-tuned models, of-fering a practical and efficient solution for ABSA. 
+
+1 Introduction 
+
+Aspect-Based Sentiment Analysis (ABSA) extends conventional sentiment analysis by identifying fine-grained opinions towards specific aspects within a text, enabling a more nuanced understanding of expressed sentiment than document- or sentence-level approaches (Zhang et al., 2023). ABSA tasks extract up to four sentiment elements per aspect: as-pect term ( a), the specific entity discussed; aspect category ( c), its broader semantic class; opinion term ( o), the sentiment-bearing phrase; and polarity (p), indicating positive, negative, or neutral orienta-tion (Zhang et al., 2023). Two annotated examples are provided in Appendix A. Among various sub-tasks, Aspect Sentiment Quad Prediction (ASQP) is the most challenging, requiring extraction of all four sentiment elements (Zhang et al., 2021a). While recent few-shot prompting approaches have narrowed the gap to fine-tuned models (Hell-wig et al., 2025), a performance gap remains, par-ticularly for the more challenging ASQP task, with the best prompting-based score of (50-shot) (Hell-wig et al., 2025) still trailing the fine-tuned MvP baseline of 51.04 (Gou et al., 2023) by approxi-mately 9 percentage points. Prompting Large Lan-guage Models (LLMs) for ABSA also introduces several practical challenges. First, the computa-tional cost and energy consumption of LLM infer-ence can be prohibitive. Second, LLMs frequently generate invalid outputs, such as predicting aspect or opinion terms that do not appear in the input text, or producing categories and polarities outside the predefined set. These invalid generations have previously been tackled by validation and regener-ation, further increasing computational overhead (Hellwig et al., 2025). To address the above challenges, we propose 
+
+LLM -based Multi-view Prompting (LLM-MvP). LLM-MvP considers multiple permutations of sen-timent elements and selects outputs based on model confidence measured by token-level entropy. Fur-thermore, we address the challenge of invalid out-puts through schema-constrained decoding using context-free grammars, and mitigate computational overhead via efficient prefix batching. We evaluate our approach on five diverse datasets spanning the restaurant, airline, e-learning, and hotel domains. We assess the performance of LLM-MvP on both a quadruple extraction task, ASQP, and a triplet extraction task, Tar-get Aspect Sentiment Detection (TASD). In par-ticular, we compare LLM-MvP against several commonly used prompting strategies, including standard single-order prompting (Hellwig et al., 2025), self-consistency prompting (Hellwig et al., 2025; Gou et al., 2023), and reasoning-augmented prompting (Wei et al., 2022), as well as against state-of-the-art (SOTA) fine-tuned models. Our 1
+
+> arXiv:2605.28058v1 [cs.CL] 27 May 2026
+
+investigation is guided by the following research questions: • RQ1: Does LLM-MvP yield performance improvements compared to (1) single-order prompting with a single LLM execution per example, (2) self-consistency prompting, and (3) reasoning-augmented prompting? • RQ2: Does LLM-MvP surpass the perfor-mance of fine-tuned models? • RQ3: To what extent does prefix batching mitigate the computational overhead associ-ated with processing multiple permutations per input instance? Our main contributions are as follows: • We demonstrate that LLM-MvP achieves com-petitive or superior performance to fine-tuned models while relying on only a few demon-strations. • We release all code and results on GitHub 1
+
+allowing adaptation for other domains and languages. 
+
+2 Related Work 
+
+The highest performance scores across ABSA tasks have been achieved using generative models fine-tuned on human-annotated examples (Zhang et al., 2023; Šmíd et al., 2024; Fehle et al., 2026). Prior work has predominantly employed Small Lan-guage Models (SLM), specifically Google’s T5 base (220M) encoder-decoder model (Raffel et al., 2020), with individual approaches primarily distin-guished by their representation of output tuples. A fundamental limitation of these approaches, how-ever, is their reliance on a fixed left-to-right gen-eration order, which fails to account for the inter-dependence of sentiment elements, exhibits signifi-cant sensitivity to the choice of ordering (Hu et al., 2022b), and introduces error accumulation across sequentially predicted elements. Gou et al. (2023) addressed these limitations by considering multiple orderings of sentiment ele-ments within tuples, aggregating predictions across views via majority voting to yield more robust ex-tractions. Specifically, the top-m orderings are selected by measuring the average token-level en-tropy of a pre-trained T5 model when predicting 
+
+> 1https://anonymous.4open.science/r/LLM-MvP
+
+gold labels, thereby identifying the orderings of highest generation confidence. The model is then fine-tuned on all m selected orderings per train-ing example. At inference, predictions from all 
+
+m orderings are aggregated via majority voting, retaining only tuples that appear in at least half of the generated outputs. Building on this prin-ciple, Jun and Lee (2025) observed that applying the same number of views to every instance is un-necessary, and proposed a dynamic order template method that leveraged instance-level entropy to predict the required number of views per example from labelled data, reducing inference overhead while preserving the benefits of multi-view ensem-bling. Beyond T5-based approaches, the strongest results were reported for LLMs fine-tuned via Low-Rank Adaptation (LoRA) (Hu et al., 2022a), a parameter-efficient fine-tuning technique that con-strains weight updates to low-rank matrices (Šmíd et al., 2024; Fehle et al., 2026). Since training task-specific models requires sub-stantial amounts of human-annotated data, there has been growing interest in tackling NLP tasks in settings where no or only few annotated exam-ples are given (Lepagnol et al., 2024; Münker et al., 2025), both in sentiment analysis (Zhang et al., 2024; Hasan et al., 2024; Neši´ c et al., 2024) and ABSA (Hellwig et al., 2025; Bai et al., 2024; Gou et al., 2023) in particular. In the field of ABSA, research primarily focused on zero-shot and few-shot prompting LLMs, leveraging the linguistic capabilities of LLMs in both language understand-ing and generation. Hellwig et al. (2025) reported performance scores for 50-shot prompting that ap-proached those achieved by fine-tuned methods such as MvP (Gou et al., 2023). For instance, they achieved an F1 score of 62.12 compared to 64.53 by MvP on the restaurant domain dataset from SemEval-2015 (Pontiki et al., 2015) for the Target Aspect Sentiment Detection (TASD) task, which considers all sentiment elements except the opinion term (Zhang et al., 2021a). Furthermore, Hellwig et al. (2025) demonstrated that self-consistency prompting, which executes the prompt multiple times with different random seeds and aggregates the results via majority voting, can improve perfor-mance across tasks and shot counts. 
+
+3 System Description 
+
+The LLM-MvP pipeline is illustrated in Figure 1. In contrast to single-order element prediction em-2Single -order Prompting I love the         
+
+> sushi badly !
+> generates (sushi ,food ,badly ,NEG )
+> acop
+
+Self -consistency Prompting     
+
+> Ilove the
+> sushi badly !
+
+LLM                   
+
+> (sushi ,food ,love ,POS )
+> (sushi ,food ,love ,POS )
+> (sushi ,food ,love ,POS )
+> (sushi ,food ,badly ,NEG )
+> (sushi ,food ,love ,POS )
+> majority
+> voting
+> acop
+
+Multi -view Prompting     
+
+> Ilove the
+> sushi badly !
+
+LLM                                    
+
+> (sushi ,food ,love ,POS )
+> (food ,sushi ,love ,POS )
+> … 22 more permutations
+> (sushi ,food ,love ,POS )
+> majority voting of the mpredictions with lowest
+> average entropy per generated token
+> acop
+> caop
+> Execute with seed
+> s
+> ∈{0,1,2,3,4}
+> (the sushi ,food ,love ,NEG )
+
+Reasoning I love the        
+
+> sushi badly !
+> (sushi ,food ,badly ,NEG )
+> acop
+
+LLM Reasoning text +
+
+> generates
+
+LLM Figure 1: Comparison of LLM-MvP against other prompting approaches. For each instance, LLM-MvP queries the LLM across all permutations of the sentiment elements in a given tuple, e.g. resulting in 24 distinct orderings and thus 24 LLM executions for the illustrated ASQP task. The five outputs with the lowest average token-level entropy are selected and combined via majority voting. In comparison, the self-consistency mechanism proposed by Hellwig et al. (2025) samples five generations with varying seeds, followed by majority voting over the five outputs. 
+
+ployed by previous approaches (Hellwig et al., 2025; Bai et al., 2024) or a self-consistency mecha-nisms, we considered all possible permutations of sentiment elements (i.e., 6 for triplets and 24 for quadruplets). In the following, we describe each component in detail. 
+
+3.1 Prompt Formulation 
+
+Following Hellwig et al. (2025), Bai et al. (2024) and Gou et al. (2023), the prompt comprised four components: (1) descriptions of the sentiment ele-ments under consideration (e.g., the definition of an aspect term), (2) output format specifications, (3) annotated examples in the case of few-shot prompt-ing, and (4) the input text for which ABSA is to be performed. All few-shot examples included both the text and labels, where the sentiment elements within the label tuples are ordered according to the desired output format. Notably, the same fixed set of k random few-shot examples is included in the prompts used to predict the aspect tuples of all ex-amples in a given test set. An example is provided in Appendix B. 
+
+3.2 Multi-view Inference 
+
+While Gou et al. (2023) originally adapted the multi-view principle for fine-tuning on hundreds of labelled examples, using a gold-annotated training set to identify the m permutations with the low-est average entropy on an untrained T5 model, our setting differs fundamentally. Since we assume nei-ther a training nor a development set to be available, the selection of top-m permutations cannot rely on supervised signals. Consequently, the multi-view principle must be reformulated for the prompting regime. LLM-MvP generates predictions for each input text across all possible permutations of sentiment elements. For each LLM output, we compute the entropy at each generated token position and subse-quently average it over all token positions, yielding a mean entropy score. Lower entropy corresponds to higher model confidence. Let y = ( y1, y 2, . . . , y T ) denote the generated output sequence of length T for a given permuta-tion. The entropy at each token position t is defined as: 
+
+H(yt) = − X
+
+> v∈V
+
+P (yt = v) log P (yt = v) (1) where V represents the vocabulary and P (yt =
+
+v) is the probability assigned to the token v at the position t. The average entropy for output y is 3computed as: 
+
+¯H(y) = 1
+
+T
+
+> T
+
+X
+
+> t=1
+
+H(yt) (2) For a given example, the m permutations with the lowest average entropy are selected for aggre-gation via majority voting. 
+
+3.3 Multi-view Results Aggregation 
+
+For an input sentence x, let T ′ 
+
+> pi
+
+denote the set of predicted tuples for permutation pi. The final ag-gregated result T ′ 
+
+> MvP
+
+is obtained by: 
+
+T ′ 
+
+> MvP
+
+=
+
+(
+
+t | t ∈
+
+> m
+
+[
+
+> i=1
+
+T ′ 
+
+> pi
+
+and 
+
+> m
+
+X
+
+> i=1
+
+1T ′ 
+
+> pi
+
+(t) > m
+
+2
+
+)
+
+(3) where 1T ′ 
+
+> pi
+
+(t) is an indicator function that equals 1 if tuple t appears in T ′ 
+
+> pi
+
+and 0 otherwise. 
+
+3.4 Schema-Constrained Generation with Batch Inference 
+
+The computational overhead of LLM-MvP is sub-stantial, as the total number of prompts to be pro-cessed equals the number of test instances multi-plied by the number of possible permutations. To efficiently handle this large volume of inference re-quests while ensuring valid output structures, LLM-MvP employs two key techniques: batched infer-ence and schema-constrained decoding. 
+
+3.4.1 Efficient Batched Inference 
+
+To manage the substantial computational demands of processing all permuted prompts, we leverage vLLM (v0.20.0) (Kwon et al., 2023) with prefix batching. Since ABSA operates on sentence-level inputs, unlike many NLP tasks that process longer documents, all test instances within a given permu-tation share an identical prompt prefix, comprising task description, output format specification, and few-shot examples, and differ only in the input sentence and the trailing Sentiment elements: 
+
+tokens. The prefix key-value cache is thus com-puted once per permutation and reused across all instances, avoiding redundant prefill computation. 
+
+3.4.2 Schema-Constrained Decoding 
+
+LLM-MvP employs constrained decoding via context-free grammars (CFG) via XGrammar (Dong et al., 2025) in vLLM, to guarantee syntacti-cally valid sentiment tuples. The valid phrase set 
+
+P(x) is constructed by splitting input sentence x at whitespace, punctuation, hyphen, camel-case, and non-ASCII character boundaries, then enumerating all contiguous substring spans over the resulting to-kens. Importantly, matching is case-sensitive. The CFG enforces that (1) aspect and opinion terms are restricted to P(x), (2) polarities are drawn from 
+
+{positive , negative , neutral }, and (3) aspect cate-gories belong to the dataset-specific set C:OUTPUT −→ [ TUPLE (, TUPLE )∗ ]
+
+TUPLE −→ ( eπ(1) , e π(2) , . . . , e π(k) )
+
+eat −→ p ∈ P (x) | NULL 
+
+eot −→ p ∈ P (x)
+
+eac −→ c ∈ C 
+
+ep −→ positive | negative | neutral 
+
+where π denotes the element ordering of the given permutation. Ensuring syntactically valid tuples eliminates the need for post-hoc validation and regeneration employed by Hellwig et al. (2025), which necessitated additional LLM executions and thus increased inference time and energy consump-tion. 
+
+4 Experiments 
+
+4.1 Tasks and Datasets 
+
+We evaluated LLM-MvP on both a quadruple and triplet extraction task: Aspect Sentiment Quadruple Prediction (ASQP) and Target Aspect Sentiment Detection (TASD). We included the restaurant-domain corpora from SemEval-2015 (Rest15) (Pon-tiki et al., 2015) and SemEval-2016 (Rest16) (Pon-tiki et al., 2016). The originally released versions of these datasets do not provide annotations for opin-ion terms, which are required for ASQP. Hence, for the ASQP task, we employed the extended labels by Zhang et al. (2021a) comprising opinion terms. We also included three additional datasets, fol-lowing the evaluation setup of Hellwig et al. (2025): FlightABSA (Hellwig et al., 2025), a corpus of airline reviews sourced from TripAdvisor; OATS Coursera (Chebolu et al., 2024), a dataset derived from e-learning courses on Coursera; and OATS Hotels (Chebolu et al., 2024), a collection of hotel reviews from TripAdvisor. This extended set of five datasets allows us to assess the generalizability of LLM-MvP across a broader range of domains. Appendix C.1 summarizes the number of training 4and test instances across all datasets. Appendix C.2 provides a detailed distributional analysis of aspect categories and sentiment polarities. 
+
+4.2 Implementation Details 
+
+For our experiments, we employed Google’s open-source model Gemma 4 2 with 31 billion parame-ters, 4-bit quantized, which requires approximately 17.4 GB of VRAM for inference 3, making it com-patible with consumer-grade GPUs. Generation was terminated upon predicting the sequence ")]" ,marking completion of the output label. A maxi-mum context size of 16,384 tokens was reserved to accommodate all shot settings, with temperature set to 0. We evaluated LLM-MvP across the few-shot settings commonly employed in prior work (Hell-wig et al., 2025; Ventirozos et al., 2025; Bai et al., 2024): 0-shot, 10-shot, 50-shot, and 100-shot. To ensure robustness, each configuration was repeated five times with independently sampled sets of few-shot examples. We further adopted a cumulative sampling strategy in which examples from lower-shot settings were retained in higher-shot config-urations. For instance, the 10 examples used in the 10-shot condition were preserved in the 50-shot condition, with 40 additional examples appended. This design isolates the effect of demonstration count from that of example selection. Following Gou et al. (2023), we applied ma-jority voting over the m lowest-entropy outputs from the set of all possible permutations P . Since the number of total permutations depends on the number of sentiment elements, we conducted an extensive search for the optimal ensemble size m
+
+(see Appendix J). Across all evaluated datasets and few-shot configurations, we empirically identified 
+
+m = 5 for TASD and m = 17 for ASQP as the configurations yielding the highest aggregate per-formance. All experimental conditions of our study, including energy efficiency measurements, were ex-ecuted on an NVIDIA RTX PRO 6000 Blackwell Generation GPU with 96 GB VRAM. 
+
+4.3 Evaluation Metrics 
+
+Following standard practice in ABSA research, micro-averaged F1 served as the primary evaluation metric (Zhang et al., 2023), counting a tuple as cor-rect only if all sentiment elements exactly matched 
+
+> 2https://ai.google.dev/gemma/docs/core/model_ card_4
+> 3https://ai.google.dev/gemma/docs/core
+
+the gold annotation. Precision, recall, and macro-averaged F1 scores are reported in Appendix H for all conditions. All predictions are publicly avail-able in our GitHub repository allowing calculation of further metrics. 
+
+4.4 Baseline Approaches 
+
+We evaluated LLM-MvP against two categories of prior SOTA methods. The first category comprises fine-tuned approaches, namely Paraphrase (Zhang et al., 2021a), MvP (Gou et al., 2023), and a LoRA-adapted Gemma 4 (31B) , which are outlined in detail in Appendix D. The second category encom-passes prompting-based approaches, which are out-lined as follows. First, single-order prompting ,the most straightforward approach shown in Figure 1, where the LLM is executed once with a fixed permutation of sentiment elements, as practiced by Hellwig et al. (2025), Bai et al. (2024), Gou et al. (2023), and Zhang et al. (2024). Second, 
+
+Self-Consistency (SC) prompting as proposed by Hellwig et al. (2025), where the same prompt is executed five times with temperature set to 0.8 to trigger diverse outputs while maintaining the same element ordering. Third, a Reasoning LLM that performs chain-of-thought reasoning before gen-erating the prediction. Specifically, we employed OpenAI’s open-source gpt-oss with 120 billion pa-rameters (OpenAI et al., 2025), an openly available reasoning LLM that fits our GPU memory lim-its. To ensure tractable inference, we configured the model to use the “medium” reasoning budget, which caps the length of reasoning outputs. No-tably, we also evaluated competitive open-source reasoning models (e.g., GLM-4.7-Flash 4), but they frequently produced reasoning chains far exceed-ing our context window of 16,384 tokens, as we observed in initial small-scale tests. For all prompt-based approaches, we employed guided decoding to enforce valid output formatting, Gemma 4 (31B) with temperature set to 0, and vLLM for efficient inference. This standardization allowed for a controlled comparison focused on the prompting strategies itself. In total, our com-prehensive study encompassed 2,018,720 prompt executions across all experimental conditions. 
+
+> 4https://huggingface.co/zai-org/GLM-4.7-Flash
+
+5Dataset Approach TASD (F1) ASQP (F1)                                                                                 
+
+> # Shots Avg. FT Baselines # Shots Avg. FT Baselines
+> 010 50 100 Para. ⋆MvP ⋆LLM ⋆010 50 100 Para. ⋆MvP ⋆LLM ⋆
+> REST 15 Single-order 40.48 58.82 63.05 65.27 56.91 63.06 64.53 72.41
+> 25.59 40.43 47.99 50.70 41.18 46.93 51.04 56.78 Reasoning 48.18 50.55 55.06 57.08 52.72 33.33 36.39 37.51 39.95 36.79 Self-consistency 42.08 59.43 63.56 65.94 57.75 28.21 42.13 49.75 52.07 43.04 LLM-MvP (ours) 40.88 63.29 68.18 70.50 60.71 34.28 46.28 52.07 54.94 46.89
+> REST 16 Single-order 50.10 64.30 69.30 70.74 63.61 71.97 72.76 79.78
+> 30.13 48.98 54.70 56.36 47.54 57.93 60.39 66.49 Reasoning 54.59 55.97 59.80 60.00 57.59 38.27 42.05 44.67 46.62 42.90 Self-consistency 51.94 64.88 70.22 72.15 64.80 34.54 51.70 56.37 58.79 50.35 LLM-MvP (ours) 51.03 67.79 73.19 74.95 66.74 41.15 54.00 59.65 62.51 54.32
+> FLIGHT ABSA Single-order 37.93 59.27 66.38 67.59 57.79 69.74 68.67 73.36
+> 24.32 47.29 53.33 54.90 44.96 57.76 57.90 64.49 Reasoning 54.34 58.62 61.43 63.09 59.37 38.43 42.62 46.88 45.28 43.30 Self-consistency 41.31 59.29 67.13 68.11 58.96 29.35 49.82 55.14 56.90 47.80 LLM-MvP (ours) 39.11 62.22 68.36 70.11 59.95 31.54 51.46 56.30 58.45 49.44
+> COURSERA
+> Single-order 21.13 38.52 44.06 46.09 37.45 51.86 50.97 52.94
+> 6.26 22.01 27.49 28.14 20.97 32.34 32.50 33.66 Reasoning 26.26 33.50 36.92 39.96 34.16 13.57 19.71 21.97 23.97 19.81 Self-consistency 22.80 39.44 44.90 46.83 38.49 7.82 24.99 30.90 32.02 23.93 LLM-MvP (ours) 21.81 41.01 47.22 49.12 39.79 10.34 24.87 31.40 32.09 24.67
+> HOTELS
+> Single-order 33.93 61.09 64.44 66.06 56.38 67.70 69.37 71.47
+> 18.91 44.27 47.74 49.66 40.15 53.87 55.03 56.54 Reasoning 44.09 53.88 57.26 56.75 53.00 32.61 39.91 42.30 42.26 39.27 Self-consistency 36.97 61.95 65.03 66.92 57.72 22.32 47.47 49.88 51.69 42.84 LLM-MvP (ours) 37.07 64.33 67.42 68.38 59.30 28.83 48.80 53.20 55.11 46.48
+
+Table 1: Main performance comparison ( F1 score) across Target Aspect Sentiment Detection (TASD) and Aspect Sentiment Quad Prediction (ASQP). Bold values indicate the best performance per dataset and shot configuration within each task. Underlined scores denote the overall best performance for a dataset within its respective task. 
+
+5 Results 
+
+5.1 Task Performance 
+
+We present performance scores for all datasets and prompting techniques in Table 1 for TASD and ASQP. Details on significance testing are outlined in Appendix E. We observed no significant differ-ences for task performance. 
+
+LLM-MvP and reasoning models demonstrated strong zero-shot performance. Differences are most pronounced under zero-shot conditions. For instance, on the ASQP task with Rest16, LLM-MvP achieves an F1 score of 41.15, compared to 30.13 for single ordering prompting. While LLM-MvP achieved higher scores than other prompt-ing approaches across nearly all configurations, reasoning-based prompting excels on many task-dataset combinations in the zero-shot setting. For example, on the OATS Hotels TASD dataset, rea-soning achieves 44.09 compared to LLM-MvP’s 37.07, representing a substantial performance gap. 
+
+LLM-MvP approached or exceeded SOTA fine-tuned performance. Examining few-shot per-formance revealed a consistent upward trend in F1 scores with increasing numbers of demonstra-tions, with only rare exceptions. In the few-shot regime, LLM-MvP achieved the highest perfor-mance across most configurations, while reasoning-based models yielded the lowest scores. Perfor-mance gains are particularly pronounced for ASQP; for instance, on the hotel dataset in the 100-shot setting, LLM-MvP achieves an F1 score of 55.11 compared to 49.66 for single-order prompting. Except for the Coursera dataset, LLM-MvP sur-passed the performance of fine-tuned T5-based models (Paraphrase or MvP) across all task-dataset combinations using only 100 annotated examples. Corresponding line plots illustrating the proximity between prompting and fine-tuned performance are provided in Appendix F. Notably, a gap of only 1–3 percentage points remained relative to a LoRA-adapted Gemma 4 fine-tuned on hundreds of la-belled examples. LLM-MvP consistently achieved the highest scores across all three metrics among all prompting approaches (see Appendix H), with isolated excep-tions in zero-shot conditions, where the reasoning LLM proved competitive, and on Hotel-TASD at 100 shots, where self-consistency marginally out-performs LLM-MvP once. These results confirm that the performance advantages of LLM-MvP are robust across evaluation metrics and not confined to a particular aggregation scheme. 
+
+New SOTA performance scores for prompting-based ABSA. Prior work, including Gou et al. (2023), Zhang et al. (2024), Li et al. (2025), Hasan et al. (2024), and Ventirozos et al. (2025) con-sidered zero-shot, 10-shot, or 100-shot learning paradigms. Across all settings, LLM-MvP and the reasoning LLM achieved superior performance 6compared to previously reported metrics (see Table 2).                                                                      
+
+> Rest15 Rest16 Approach TASD ASQP TASD ASQP
+> Zero-shot
+> LLM-MvP (Ours) 40.88 34.28 51.03 41.15
+> gpt-oss-120B (CoT) 48.18 33.33 54.59 38.27 ChatABSA (Bai et al., 2024) 39.21 27.11 41.28 30.42 gpt-3.5-turbo (Gou et al., 2023) -10.46 -14.02 gpt4o-mini (Li et al., 2025) -25.24 -34.31 gpt4o-mini (CoT) (Li et al., 2025) -21.55 -26.73 Gemma-3-27B (SC) (Hellwig et al., 2025) 30.36 24.73 45.51 28.96 text-davinci-003 (Zhang et al., 2024) ----
+> 10-shot
+> LLM-MvP (Ours) 63.29 46.28 67.79 54.00
+> gpt-oss-120B (CoT) 50.55 36.39 55.97 42.05 ChatABSA (Bai et al., 2024) 45.93 32.14 47.00 33.26 gpt-3.5-turbo (Gou et al., 2023) -30.92 -40.15 Gemma-3-27B (SC) (Hellwig et al., 2025) 54.47 39.95 66.75 46.23
+> 100-shot
+> LLM-MvP (Ours) 70.50 54.94 74.95 62.51
+> gpt-oss-120B (CoT) 57.08 39.95 60.00 46.62 Gemini 2.0 Flash (Ventirozos et al., 2025) -50.70 -54.40
+
+Table 2: Performance of LLM-MvP compared to prior benchmarks reported on TASD and ASQP. 
+
+Ablation: Component analysis We evaluated the individual contributions of LLM-MvP’s com-ponents in Table 3 (results for all datasets can be found in Appendix K). Removing guided decod-ing ( LLM-MvP w/o GD ) led to a consistent perfor-mance decline, particularly on the more complex ASQP task. Notably, prefix caching was not ab-lated, as it affects only inference time and energy consumption, not predictive performance. Furthermore, we investigated whether the com-putational cost of multi-view prompting was nec-essary for every test instance. We hypothesized that ABSA could be performed for less complex examples via single-order inference, thereby re-ducing resource consumption. To test this, the cost-efficient variant LLM-MvP eff restricted the computation of all permutations to the 25% of test examples with the lowest mean token-level confi-dence in the single-order prediction. LLM-MvP eff 
+
+demonstrated performance gains over single-order prompting, validating token-level confidence as a robust proxy for instance difficulty. Nevertheless, the full LLM-MvP framework remained superior across all settings, achieving the highest overall accuracy. 
+
+Ablation: LLM selection To assess the general-izability of LLM-MvP across model architectures, we further evaluated it on models developed by dif-ferent research groups across distinct geographic regions, including the French Mistral Small 3.2 
+
+Task Dataset Approach # Shots (F1)
+
+0 10 50 100 
+
+TASD REST 15 Single-Order 40.48 58.82 63.05 65.27 LLM-MvP eff 41.03 60.90 65.38 67.37 LLM-MvP (w/o GD) 41.02 62.26 66.14 67.97 LLM-MvP 40.88 63.29 68.18 70.50 
+
+REST 16 Single-Order 50.10 64.30 69.30 70.74 LLM-MvP eff 50.52 65.46 71.45 72.96 LLM-MvP (w/o GD) 50.30 67.19 71.35 73.70 LLM-MvP 51.03 67.79 73.19 74.95 
+
+ASQP REST 15 Single-Order 25.59 40.43 47.99 50.70 LLM-MvP eff 28.24 42.44 49.59 52.64 LLM-MvP (w/o GD) 26.90 44.87 51.42 54.47 LLM-MvP 34.28 46.28 52.07 54.94 
+
+REST 16 Single-Order 30.13 48.98 54.70 56.36 LLM-MvP eff 32.19 50.24 57.07 58.88 LLM-MvP (w/o GD) 33.47 52.84 59.94 62.09 LLM-MvP 41.15 54.00 59.65 62.51 
+
+Table 3: Ablation study: comparison of the LLM-MvP framework against its efficient variant (LLM-MvP eff ), a version without guided decoding (GD), and the single-order baseline. LLM-MvP eff optimizes inference cost by requesting all permutations only for the 25% of test instances with the lowest mean token-level confidence in the single-order prediction. 
+
+(24B) 5 and the Chinese Qwen 3 (30B) 6. The results (see Appendix I) showed that LLM-MvP consis-tently improved over single-order prompting across all evaluated models with only a few exceptions. For both tasks, Gemma 4 achieved the strongest per-formance in the few-shot setting, while Mistral and Qwen demonstrated competitive zero-shot perfor-mance, occasionally surpassing Gemma. Finally, we also evaluated the mixture-of-experts variant Gemma 4 (26B MoE) 7, which consistently under-performed the dense Gemma 4 (31B) across all tasks, datasets, and shot configurations. 
+
+Scaling efficiency through prefix caching. As shown in Table 4, LLM-MvP achieved a substantial reduction in energy consumption compared to the independent execution (no caching) of the baseline approaches. Specifically, although LLM-MvP pro-cesses multiple views, it consumed less energy than non-cached single-order prompting (SO-nc) or non-cached self-consistency (SC-nc). For instance, in the 50-shot TASD setting, LLM-MvP exhibits sta-tistical superiority over these non-cached variants (p < . 001 , see Appendix E) and demonstrated that 
+
+> 5
+
+https://huggingface.co/mistralai/Mistral-Sma ll-24B-Instruct-2501 
+
+> 6
+
+https://huggingface.co/Qwen/Qwen3-30B-A3B 
+
+> 7
+
+https://huggingface.co/google/gemma-4-26B-A 4B 
+
+7# Shots Task Approach 0 10 50 100                                          
+
+> TASD Single-order 7.77 7.21 9.44 10.26
+> Single-order (nc) 41.49 72.99 226.65 417.06 Reasoning 10.25 13.29 16.68 19.17 Self-consistency 26.91 23.94 27.04 28.96 Self-consistency (nc) 206.57 366.24 1144.76 2107.03 LLM-MvP 49.65 43.06 54.00 64.41 LLM (FT) †12.61 ASQP Single-order 9.28 10.62 12.33 14.09
+> Single-order (nc) 50.27 88.15 270.39 516.45 Reasoning 14.21 16.40 20.87 25.29 Self-consistency 34.85 33.41 37.92 40.32 Self-consistency (nc) 248.99 440.01 1363.75 2618.89 LLM-MvP 219.23 264.86 307.62 352.60 LLM (FT) †15.92
+> †Fine-tuned on full training set; shown as a shot-independent reference.
+
+Table 4: Energy consumption in milliwatt-hours (mWh) across prompting methods and few-shot con-figurations per predicted test instance. vLLM’s prefix caching reduces energy consumption when compared to executing methods without caching (nc). Bold values indicate the lowest energy consumption. 
+
+the architectural overhead of multi-view prediction is fully offset by the gains from prefix caching. Crucially, prefix caching enabled exceptional scalability: while energy consumption typically scaled linearly with the number of shots due to the increasing prompt length, our cached method showed a remarkably sublinear increase. As the number of shots grows from 0 to 100, the energy consumption for LLM-MvP and cached SO/SC remains relatively stable, whereas the costs for non-cached versions escalate. This efficiency gain is not exclusive to LLM-MvP; all batch-processed strategies benefit from the shared prefix computa-tion, and it is also reflected in the reduced inference durations detailed in Appendix G. 
+
+6 Discussion 
+
+This work introduced LLM-based Multi-view Prompting (LLM-MvP), a resource-efficient ap-proach to ABSA that closes the long-standing gap between few-shot prompting and fully fine-tuned models, without requiring hundreds of labelled training examples beyond a few demonstrations. While Gou et al. (2023) established the multi-view principle in a fine-tuning regime demanding hun-dreds of annotated examples, LLM-MvP reimag-ines this principle for the prompting setting: by leveraging token-level entropy as a supervision-free signal for view selection, combining schema-constrained decoding with prefix-cached batch in-ference, it achieves competitive performance with as few as 0 to 100 demonstrations. The gap to LoRA-adapted Gemma 4 trained on the full train-ing set is remarkably narrow, amounting to only 1–3 percentage points, despite the fine-tuned model having access to orders of magnitude more labelled data. Beyond performance, prefix-cached batch inference renders LLM-MvP more energy-efficient than non-cached single-order prompting despite processing up to 24 permutations per instance, en-abling sub-second ABSA inference per example. Our performance analysis yields several observa-tions that extend prior work. Consistent with find-ings by Hellwig et al. (2025), Šmíd et al. (2024), and Gou et al. (2023), increasing the number of few-shot examples enhances performance, with contin-ued albeit modest gains beyond 10 shots. LLM-MvP consistently outperforms single-order and self-consistency prompting across shot settings and tasks. While reasoning models occasionally out-perform LLM-MvP by several percentage points in zero-shot settings, they substantially underperform other prompting strategies in few-shot configura-tions. Crucially, employing all permutations for ma-jority voting did not yield the best results: per-formance peaked at an intermediate m and then declined, suggesting that low-confidence permu-tations introduce noise that outweighs the benefit of additional views. In the fine-tuning regime, Jun and Lee (2025) sidestep this by learning to predict the most informative views from labelled data. We demonstrated that, without such supervision, LLM-MvP eff offers a practical alternative, demonstrating that token-level confidence is not only useful for view selection but also for deciding whether multi-view inference is warranted at all. Building upon these findings, future work could explore several promising directions. First, the technical principles underlying LLM-MvP could be adapted for LLM fine-tuning, combining the benefits of multi-view inference with parameter-efficient adaptation. Second, the approach could be extended to ABSA tasks involving fewer sentiment elements, e.g. end-to-end ABSA (aspect term + po-larity), or to structurally similar information extrac-tion tasks such as Named Entity Recognition (Ya-dav and Bethard, 2018; Jehangir et al., 2023) and relation extraction (Bassignana and Plank, 2022; Detroja et al., 2023). 87 Limitations 
+
+While our evaluation spans five diverse datasets and demonstrates consistent performance gains across tasks, shot counts, and model selections, totalling 84 distinct experimental comparisons, we intention-ally adopt a conservative stance on statistical signif-icance reporting. In light of the ongoing replication crisis in NLP and the documented risks of overesti-mating performance margins under many simulta-neous tests (Cockburn et al., 2020), we refrain from claiming universal statistical significance across ev-ery individual sub-setting. Beyond statistical considerations, several practi-cal limitations apply. First, we cannot exclude that training examples from the evaluated datasets may have been present in the LLMs’ pre-training cor-pora, except FlightABSA, whose labels are avail-able only upon request. Second, the computa-tional efficiency (but not performance) of LLM-MvP depends critically on available GPU mem-ory, as KV caching capacity directly governs infer-ence speed, while KV caching also benefits smaller GPU configurations. Third, LLM-MvP requires open-weight models for logit access and guided decoding, limiting its direct applicability to closed-source proprietary systems such as those provided by Anthropic. That said, since our open-source im-plementation builds on the open-source framework vLLM, supported by major cloud providers includ-ing Google Cloud Vertex AI, LLM-MvP remains readily deployable in production environments. 
+
+8 Ethical Considerations 
+
+While LLM-MvP reduces the need for extensive human annotation and fine-tuning compute com-pared to fine-tuned approaches, repeated inference on LLMs incurs non-negligible energy consump-tion and environmental impact. Finally, we want to note that Claude Sonnet 4.5 8 was used as an assis-tive tool for drafting and refining parts of the paper text. All claims, results, and scientific contributions remain the responsibility of the authors. 
+
+References 
+
+Yinhao Bai, Zhixin Han, Yuhua Zhao, Hang Gao, Zhuowei Zhang, Xunzhi Wang, and Mengting Hu. 2024. Is compound aspect-based sentiment analysis addressed by LLMs? In Findings of the Association for Computational Linguistics: EMNLP 2024 , pages 
+
+> 8https://www.anthropic.com/claude/sonnet
+
+7836–7861, Miami, Florida, USA. Association for Computational Linguistics. Elisa Bassignana and Barbara Plank. 2022. What do you mean by relation extraction? a survey on datasets and study on scientific relation classification. In Pro-ceedings of the 60th Annual Meeting of the Associa-tion for Computational Linguistics: Student Research Workshop , pages 67–83, Dublin, Ireland. Association for Computational Linguistics. Siva Uday Sampreeth Chebolu, Franck Dernoncourt, Nedim Lipka, and Thamar Solorio. 2024. OATS: A challenge dataset for opinion aspect target senti-ment joint detection for aspect-based sentiment anal-ysis. In Proceedings of the 2024 Joint International Conference on Computational Linguistics, Language Resources and Evaluation (LREC-COLING 2024) ,pages 12336–12347, Torino, Italia. ELRA and ICCL. Andy Cockburn, Pierre Dragicevic, Lonni Besançon, and Carl Gutwin. 2020. Threats of a replication cri-sis in empirical computer science. Commun. ACM ,63(8):70–79. Michael Han Daniel Han and Unsloth team. 2023. Un-sloth. Kartik Detroja, C.K. Bhensdadia, and Brijesh S. Bhatt. 2023. A survey on relation extraction. Intelligent Systems with Applications , 19:200244. Hao Dong and Wei Wei. 2025. Pgso: Prompt-based generative sequence optimization network for aspect-based sentiment analysis. Expert Systems with Appli-cations , 265:125933. Yixin Dong, Charlie F. Ruan, Yaxing Cai, Ziyi Xu, Yilong Zhao, Ruihang Lai, and Tianqi Chen. 2025. Xgrammar: Flexible and efficient structured genera-tion engine for large language models. In Proceed-ings of Machine Learning and Systems , volume 7. MLSys. Jakob Fehle, Udo Kruschwitz, Nils Constantin Hell-wig, and Christian Wolff. 2026. Leveraging fine-tuning of large language models for aspect-based sentiment analysis in resource-scarce environments. 
+
+Knowledge-Based Systems , 336:115277. R. A. Fisher. 1992. Statistical Methods for Research Workers , pages 66–70. Springer New York, New York, NY. Mohammad Ghiasvand Mohammadkhani, Niloofar Ran-jbar, and Saeedeh Momtazi. 2025. E2tp: Element to tuple prompting improves aspect sentiment tuple prediction. Neural Networks , 191:107847. Zhibin Gou, Qingyan Guo, and Yujiu Yang. 2023. MvP: Multi-view prompting improves aspect sentiment tu-ple prediction. In Proceedings of the 61st Annual Meeting of the Association for Computational Lin-guistics (Volume 1: Long Papers) , pages 4380–4397, Toronto, Canada. Association for Computational Lin-guistics. 
+
+9Albert Gu and Tri Dao. 2024. Mamba: Linear-time sequence modeling with selective state spaces. 
+
+Preprint , arXiv:2312.00752. Md. Arid Hasan, Shudipta Das, Afiyat Anjum, Firoj Alam, Anika Anjum, Avijit Sarker, and Sheak Rashed Haider Noori. 2024. Zero- and few-shot prompting with LLMs: A comparative study with fine-tuned models for Bangla sentiment analysis. In 
+
+Proceedings of the 2024 Joint International Con-ference on Computational Linguistics, Language Resources and Evaluation (LREC-COLING 2024) ,pages 17808–17818, Torino, Italia. ELRA and ICCL. Nils Constantin Hellwig, Jakob Fehle, Udo Kruschwitz, and Christian Wolff. 2025. Do we still need human annotators? prompting large language models for aspect sentiment quad prediction. In Proceedings of the 1st Joint Workshop on Large Language Models and Structure Modeling (XLLM 2025) , pages 153– 172, Vienna, Austria. Association for Computational Linguistics. Sture Holm. 1979. A simple sequentially rejective mul-tiple test procedure. Scandinavian Journal of Statis-tics , 6(2):65–70. Edward J Hu, Yelong Shen, Phillip Wallis, Zeyuan Allen-Zhu, Yuanzhi Li, Shean Wang, Lu Wang, and Weizhu Chen. 2022a. LoRA: Low-rank adaptation of large language models. In International Conference on Learning Representations .Mengting Hu, Yike Wu, Hang Gao, Yinhao Bai, and Shiwan Zhao. 2022b. Improving aspect sentiment quad prediction via template-order data augmenta-tion. In Proceedings of the 2022 Conference on Em-pirical Methods in Natural Language Processing ,pages 7889–7900, Abu Dhabi, United Arab Emirates. Association for Computational Linguistics. Basra Jehangir, Saravanan Radhakrishnan, and Rahul Agarwal. 2023. A survey on named entity recogni-tion — datasets, tools, and methodologies. Natural Language Processing Journal , 3:100017. Yonghyun Jun and Hwanhee Lee. 2025. Dynamic order template prediction for generative aspect-based sen-timent analysis. In Proceedings of the 63rd Annual Meeting of the Association for Computational Lin-guistics (Volume 2: Short Papers) , pages 614–626, Vienna, Austria. Association for Computational Lin-guistics. Woosuk Kwon, Zhuohan Li, Siyuan Zhuang, Ying Sheng, Lianmin Zheng, Cody Hao Yu, Joseph Gon-zalez, Hao Zhang, and Ion Stoica. 2023. Efficient memory management for large language model serv-ing with pagedattention. In Proceedings of the 29th Symposium on Operating Systems Principles , SOSP ’23, page 611–626, New York, NY, USA. Association for Computing Machinery. Pierre Lepagnol, Thomas Gerald, Sahar Ghannay, Christophe Servan, and Sophie Rosset. 2024. Small language models are good too: An empirical study of zero-shot classification. In Proceedings of the 2024 Joint International Conference on Computa-tional Linguistics, Language Resources and Evalu-ation (LREC-COLING 2024) , pages 14923–14936, Torino, Italia. ELRA and ICCL. Shichen Li, Jiawei Zhang, Zhongqing Wang, and Peifeng Li. 2025. Aligning black-box LLMs for aspect sentiment quad prediction. In Findings of the Association for Computational Linguistics: EMNLP 2025 , pages 1012–1025, Suzhou, China. Association for Computational Linguistics. Simon Münker, Kai Kugler, and Achim Rettinger. 2025. Zero-shot prompt-based classification: topic labeling in times of foundation models in German tweets. In 
+
+Proceedings of the 63rd Annual Meeting of the As-sociation for Computational Linguistics (Volume 4: Student Research Workshop) , pages 53–63, Vienna, Austria. Association for Computational Linguistics. Milica Ikoni´ c Neši´ c, Saša Petalinkar, Mihailo Škori´ c, Ranka Stankovi´ c, and Biljana Rujevi´ c. 2024. Ad-vancing sentiment analysis in Serbian literature: A zero and few–shot learning approach using the mis-tral model. In Proceedings of the Sixth International Conference on Computational Linguistics in Bulgaria (CLIB 2024) , pages 58–70, Sofia, Bulgaria. Depart-ment of Computational Linguistics, Institute for Bul-garian Language, Bulgarian Academy of Sciences. OpenAI, :, Sandhini Agarwal, Lama Ahmad, Jason Ai, Sam Altman, Andy Applebaum, Edwin Arbus, Rahul K. Arora, Yu Bai, Bowen Baker, Haiming Bao, Boaz Barak, Ally Bennett, Tyler Bertao, Nivedita Brett, Eugene Brevdo, Greg Brockman, Sebastien Bubeck, and 108 others. 2025. gpt-oss-120b & gpt-oss-20b model card. Maria Pontiki, Dimitris Galanis, Haris Papageorgiou, Ion Androutsopoulos, Suresh Manandhar, Moham-mad AL-Smadi, Mahmoud Al-Ayyoub, Yanyan Zhao, Bing Qin, Orphée De Clercq, Véronique Hoste, Marianna Apidianaki, Xavier Tannier, Na-talia Loukachevitch, Evgeniy Kotelnikov, Nuria Bel, Salud María Jiménez-Zafra, and Gül¸ sen Eryi˘ git. 2016. SemEval-2016 task 5: Aspect based sentiment analysis. In Proceedings of the 10th International Workshop on Semantic Evaluation (SemEval-2016) ,pages 19–30, San Diego, California. Association for Computational Linguistics. Maria Pontiki, Dimitris Galanis, Haris Papageorgiou, Suresh Manandhar, and Ion Androutsopoulos. 2015. SemEval-2015 task 12: Aspect based sentiment anal-ysis. In Proceedings of the 9th International Work-shop on Semantic Evaluation (SemEval 2015) , pages 486–495, Denver, Colorado. Association for Compu-tational Linguistics. Colin Raffel, Noam Shazeer, Adam Roberts, Katherine Lee, Sharan Narang, Michael Matena, Yanqi Zhou, Wei Li, and Peter J. Liu. 2020. Exploring the limits of transfer learning with a unified text-to-text trans-former. J. Mach. Learn. Res. , 21(1). 
+
+10 Jakub Šmíd, Pavel Priban, and Pavel Kral. 2024. LLaMA-based models for aspect-based sentiment analysis. In Proceedings of the 14th Workshop on Computational Approaches to Subjectivity, Sentiment, & Social Media Analysis , pages 63–70, Bangkok, Thailand. Association for Computational Linguistics. Guixin Su, Yongcheng Zhang, Tongguan Wang, Ming-min Wu, and Ying Sha. 2025. Unified grid tagging scheme for aspect sentiment quad prediction. In 
+
+Proceedings of the 31st International Conference on Computational Linguistics , pages 3997–4010, Abu Dhabi, UAE. Association for Computational Linguis-tics. Filippos Ventirozos, Peter Appleby, and Matthew Shard-low. 2025. Aspect–sentiment quad prediction with distilled large language models. In Proceedings of the 15th International Conference on Recent Ad-vances in Natural Language Processing - Natu-ral Language Processing in the Generative AI Era ,pages 1309–1319, Varna, Bulgaria. INCOMA Ltd., Shoumen, Bulgaria. Jason Wei, Xuezhi Wang, Dale Schuurmans, Maarten Bosma, Brian Ichter, Fei Xia, Ed H. Chi, Quoc V. Le, and Denny Zhou. 2022. Chain-of-thought prompt-ing elicits reasoning in large language models. In 
+
+Proceedings of the 36th International Conference on Neural Information Processing Systems , NIPS ’22, Red Hook, NY, USA. Curran Associates Inc. Vikas Yadav and Steven Bethard. 2018. A survey on recent advances in named entity recognition from deep learning models. In Proceedings of the 27th International Conference on Computational Linguis-tics , pages 2145–2158, Santa Fe, New Mexico, USA. Association for Computational Linguistics. Wenxuan Zhang, Yang Deng, Xin Li, Yifei Yuan, Li-dong Bing, and Wai Lam. 2021a. Aspect sentiment quad prediction as paraphrase generation. In Pro-ceedings of the 2021 Conference on Empirical Meth-ods in Natural Language Processing , pages 9209– 9219, Online and Punta Cana, Dominican Republic. Association for Computational Linguistics. Wenxuan Zhang, Yue Deng, Bing Liu, Sinno Pan, and Lidong Bing. 2024. Sentiment analysis in the era of large language models: A reality check. In Find-ings of the Association for Computational Linguis-tics: NAACL 2024 , pages 3881–3906, Mexico City, Mexico. Association for Computational Linguistics. Wenxuan Zhang, Xin Li, Yang Deng, Lidong Bing, and Wai Lam. 2021b. Towards generative aspect-based sentiment analysis. In Proceedings of the 59th An-nual Meeting of the Association for Computational Linguistics and the 11th International Joint Confer-ence on Natural Language Processing (Volume 2: Short Papers) , pages 504–510, Online. Association for Computational Linguistics. Wenxuan Zhang, Xin Li, Yang Deng, Lidong Bing, and Wai Lam. 2023. A Survey on Aspect-Based Sen-timent Analysis: Tasks, Methods, and Challenges . 
+
+IEEE Transactions on Knowledge & Data Engineer-ing , 35(11):11019–11038. 
+
+11 A Task Examples 
+
+"The wine list is excellent, but the service was slow." "Beautiful experience." 
+
+a c o p a c o p
+
+TASD wine list drinks#style – positive TASD NULL restaurant#general – positive 
+
+service service#general – negative 
+
+ASQP wine list drinks#style excellent positive ASQP NULL restaurant#general Beautiful positive 
+
+service service#general slow negative 
+
+Table 5: Examples of TASD and ASQP extraction tasks. Both tasks extract structured sentiment information as tuples ( a: aspect term, c: aspect category, o: opinion term, p: polarity). NULL indicates implicit aspects where no specific aspect target (aspect term) is mentioned in the text. 
+
+B Prompt Example According to the following sentiment elements definition :
+
+- The 'aspect term ' is the exact word or phrase in the text that represents a specific feature, attribute , or aspect of a
+
+product or service that a user may express an opinion about , the aspect term might be 'NULL' for implicit aspect .
+
+- The 'aspect category ' refers to the category that aspect belongs to , and the available categories include : ' ambience 
+
+general ', ' drinks prices ', ' drinks quality ', ' drinks style_options ', ' food general ', ' food prices ', ' food quality ', ' food 
+
+style_options ', ' location general ', ' restaurant general ', ' restaurant miscellaneous ', ' restaurant prices ', ' service general '. 
+
+- The 'sentiment polarity ' refers to the degree of positivity , negativity or neutrality expressed in the opinion towards a
+
+particular aspect or feature of a product or service , and the available polarities include : 'positive', 'negative', 'neutral'. 
+
+Recognize all sentiment elements with their corresponding aspect term , aspect category , sentiment polarity , opinion 
+
+term in the following text with the format of [(' aspect term ', ' aspect category ', ' sentiment polarity '), ...]. 
+
+Text: Can 't wait to go back . 
+
+Sentiment elements : [('NULL', ' restaurant general ', 'positive')] 
+
+... more few -shot examples ... 
+
+Text: I waited for 10 -15 minutes for service ordered a beer & was never served again .
+
+Sentiment elements :
+
+Definition 
+
+of 
+
+sentiment 
+
+elements 
+
+Description 
+
+of output 
+
+format 
+
+Few -shot 
+
+examples 
+
+Example to 
+
+be labelled 
+
+Figure 2: Example prompt used for ABSA prompting. For ASQP, the same prompt is extended with a fourth bullet point that defines opinion terms, while the few-shot examples include opinion term annotations. 
+
+C Datasets 
+
+C.1 Overview                                                                                                     
+
+> Dataset TASD ASQP
+> Train Test Train Test # Sents # Tuples Uniq. Cat. Avg Len # Sents # Tuples Uniq. Cat. Avg Len # Sents # Tuples Uniq. Cat. Avg Len # Sents # Tuples Uniq. Cat. Avg Len REST 15 1,120 1,654 13 12.3 582 845 12 13.5 834 1,354 13 13.8 537 795 12 15.2 REST 16 1,708 2,507 12 12.7 587 859 12 12.7 1,264 1,989 12 14.5 544 799 12 14.5 FLIGHT ABSA 1,351 1,900 13 13.8 387 529 13 14.0 1,351 2,116 13 13.8 387 590 13 14.0 COURSERA 1,400 1,711 26 15.8 400 488 24 15.5 1,400 1,802 26 15.8 400 502 24 15.5 HOTELS 1,400 2,285 33 16.1 400 629 30 16.1 1,400 2,677 33 16.1 400 721 30 16.1
+
+Table 6: Detailed dataset statistics. Comparison of dataset sizes, tuple counts, unique category diversity, and average number of tokens per sentence for the TASD and ASQP tasks. 
+
+12 C.2 Datasets: Aspect Category and Sentiment Distributions 0 200 400 600 800 
+
+Count 
+
+food quality 
+
+service general 
+
+restaurant general 
+
+ambience general 
+
+food style_options 
+
+restaurant miscellaneous 
+
+food prices 
+
+restaurant prices 
+
+drinks quality 
+
+drinks style_options 
+
+Others (3 categories) 
+
+Rest15 - TASD 
+
+0 200 400 600 800 
+
+Count 
+
+food quality 
+
+service general 
+
+restaurant general 
+
+ambience general 
+
+food style_options 
+
+restaurant miscellaneous 
+
+food prices 
+
+restaurant prices 
+
+drinks quality 
+
+drinks style_options 
+
+Others (3 categories) 
+
+Rest15 - ASQP 
+
+0 250 500 750 1000 
+
+Count 
+
+food quality 
+
+service general 
+
+restaurant general 
+
+ambience general 
+
+food style_options 
+
+restaurant miscellaneous 
+
+food prices 
+
+restaurant prices 
+
+drinks quality 
+
+drinks style_options 
+
+Others (2 categories) 
+
+Rest16 - TASD 
+
+0 250 500 750 1000 
+
+Count 
+
+food quality 
+
+service general 
+
+restaurant general 
+
+ambience general 
+
+food style_options 
+
+restaurant miscellaneous 
+
+food prices 
+
+restaurant prices 
+
+drinks quality 
+
+drinks style_options 
+
+Others (3 categories) 
+
+Rest16 - ASQP 
+
+0 200 400 600 800 
+
+Count 
+
+airline service 
+
+airline general 
+
+punctuality general 
+
+onboard food 
+
+airline price 
+
+onboard seat comfort 
+
+airport operation check_in 
+
+airport operation baggage 
+
+onboard seat legroom 
+
+airport operation boarding 
+
+Others (3 categories) 
+
+FlightABSA - TASD 
+
+0 200 400 600 800 1000 
+
+Count 
+
+airline service 
+
+airline general 
+
+punctuality general 
+
+onboard food 
+
+onboard seat comfort 
+
+airline price 
+
+airport operation check_in 
+
+airport operation baggage 
+
+onboard seat legroom 
+
+airport operation boarding 
+
+Others (3 categories) 
+
+FlightABSA - ASQP 
+
+0 200 400 600 
+
+Count 
+
+hotel general 
+
+service general 
+
+location general 
+
+rooms design_features 
+
+rooms general 
+
+food_drinks quality 
+
+hotel prices 
+
+rooms cleanliness 
+
+rooms comfort 
+
+hotel design_features 
+
+Others (23 categories) 
+
+Hotels - TASD 
+
+0 200 400 600 800 
+
+Count 
+
+hotel general 
+
+service general 
+
+location general 
+
+rooms design_features 
+
+rooms general 
+
+food_drinks quality 
+
+hotel prices 
+
+rooms cleanliness 
+
+rooms comfort 
+
+hotel design_features 
+
+Others (23 categories) 
+
+Hotels - ASQP 
+
+0 200 400 600 800 
+
+Count 
+
+course general 
+
+faculty general 
+
+course quality 
+
+course comprehensiveness 
+
+presentation quality 
+
+assignments quality 
+
+faculty comprehensiveness 
+
+material quality 
+
+course relatability 
+
+assignments comprehensiveness 
+
+Others (17 categories) 
+
+Coursera - TASD 
+
+0 200 400 600 800 
+
+Count 
+
+course general 
+
+faculty general 
+
+course quality 
+
+presentation quality 
+
+course comprehensiveness 
+
+assignments quality 
+
+faculty comprehensiveness 
+
+material quality 
+
+course relatability 
+
+assignments comprehensiveness 
+
+Others (17 categories) 
+
+Coursera - ASQP 
+
+Positive Neutral Negative 
+
+Figure 3: Distribution of aspect categories and sentiments across datasets (train, test and validation) for TASD and ASQP tasks. Each subplot shows the top 10 aspect categories (sorted by total frequency), with stacked bars representing positive (green), neutral (yellow), and negative (red) sentiments. The ’Others’ category aggregates the remaining aspects. Results are aggregated across five datasets: Rest15 (Zhang et al., 2021a; Pontiki et al., 2015), Rest16 (Zhang et al., 2021a; Pontiki et al., 2016), FlightABSA (Hellwig et al., 2025), Coursera (Chebolu et al., 2024), and Hotels (Chebolu et al., 2024). This visualization highlights the imbalances in aspect-level sentiment annotations, showing varying distributions of polarities and aspect categories across datasets. 
+
+13 D Fine-tuned Approaches 
+
+First, we considered Multi-view Prompting ( MvP ) (Gou et al., 2023), the best performing fine-tuned approach based on the T5-base encoder-decoder model. Furthermore, we evaluated Paraphrase , which, unlike MvP, considers only a single permutation of sentiment elements for each example. Paraphrase represents tuples as natural language text. For instance, the tuple (a: "wine list", c: "drinks style", p: "positive", o: "excellent") is transformed into: drinks style is great because wine list is excellent , where polarities are mapped to adjectives ("positive" → "great", "negative" → "bad", "neutral" → "okay"), and multiple tuples are separated by [SSEP] tokens. We took performance scores for MvP and Paraphrase on the Rest15 and Rest16 datasets from their respective original papers (Gou et al., 2023; Zhang et al., 2021a). 9 Scores for the remaining three datasets are adopted from Hellwig et al. (2025) who employed the same hyperparameters as reported by Gou et al. (2023) and Zhang et al. (2021a): a batch size of 16, a learning rate of 3e-4 (1e-4 for MvP) and the number of training epochs was set to 20. Finally, as a comparative baseline, we fine-tuned Gemma 4 (31B) 10 using the unsloth framework (Daniel Han and team, 2023). Following Šmíd et al. (2024), we employed a learning rate of 2e-4 and trained for 5 epochs using Low-Rank Adaptation (LoRA) (Hu et al., 2022a). We applied LoRA adapters with rank r = 64 and scaling factor α = 16 to both attention and MLP modules, while keeping all other layers frozen. The LoRA dropout rate was set to 0. The maximum sequence length was limited to 512 tokens. For inference, we utilized vLLM with the trained LoRA adapters. Temperature was set to 0 for inference and vLLM (v0.20.0) was employed for inference with prefix batching, allowing a fair comparison with LLM-MvP. Table 7 shows that our fine-tuned Gemma 4 (31B) outperforms all existing baselines, resulting in a new SOTA performance across all benchmarks.                                               
+
+> Approach Name ASQP TASD Rest15 Rest16 Rest15 Rest16
+> GAS (Zhang et al., 2021b) 45.98 56.04 60.63 68.3 Paraphrase (Zhang et al., 2021a) 46.93 57.93 63.06 71.97 MvP (Gou et al., 2023) 51.04 60.39 64.53 72.76 UGTS (Su et al., 2025) 52.59 65.10 ––E2TP (Ghiasvand Mohammadkhani et al., 2025) 51.94 62.57 65.80 73.17 PGSO (Dong and Wei, 2025) ––65.40 72.74 Orca 2 (13B) FT (Šmíd et al., 2024) 52.29 60.82 70.49 78.82 Orca 2 (7B) FT (Šmíd et al., 2024) 51.50 58.63 69.74 76.10 LLM-MvP (100-shot) (Ours) 54.94 62.51 70.50 74.95
+> Gemma 4 (31B) FT (Ours) 56.78 66.49 72.41 79.78
+
+Table 7: Performance comparison ( F1 score) of fine-tuned approaches across the ASQP and TASD tasks on the Rest15 and Rest16 datasets. Bold values indicate the best performance per task and dataset. Missing values indicate results not reported in the original publications. 
+
+> 9Neither Gou et al. (2023) nor Zhang et al. (2021a) reported macro-averaged F1 scores.
+> 10 unsloth/gemma-4-31B-it-unsloth-bnb-4bit
+
+14 E Significance Tests 
+
+E.1 Task Performance 
+
+To assess statistical significance, we conducted pairwise comparisons between all seven methods across different shot settings for both TASD and ASQP tasks. These seven methods include: single-order prompting, reasoning-based prompting, self-consistency prompting, and LLM-MvP, as well as fine-tuned approaches Paraphrase, MvP, and the LoRA-adapted LLM. Since each method was evaluated across five datasets, five independent observations per method were given. This comparison was conducted for four shot configurations (0, 10, 50, and 100 shots) to cover a broad set of low-resource scenarios. For each of these four configurations within a given subtask (TASD or ASQP), we first performed an omnibus test, either ANOVA (Fisher, 1992) when all groups met normality assumptions (Shapiro-Wilk test, α = 0 .05 ) or Kruskal-Wallis otherwise, to determine whether significant differences existed among the seven methods. If the omnibus test indicated significance, we proceeded with pairwise comparisons using either Welch’s t-test (for normally distributed data) or Mann-Whitney U test (otherwise). To control for multiple comparisons, we applied the Bonferroni-Holm correction (Holm, 1979) separately for each task, adjusting for 84 pairwise comparisons (21 method pairs × 4 shot configurations) per task. 
+
+E.2 Energy Consumption 
+
+For the energy efficiency analysis, we conducted statistical comparisons between the methods across both TASD and ASQP tasks. Each method was evaluated using five datasets, providing five independent obser-vations per configuration. The evaluation included the six approaches: four batch-processed prompting approaches, single-order, reasoning, self-consistency, and LLM-MvP) and, for comparison, single-order and self-consistency prompting, both without prefix caching. We analysed four shot configurations (0, 10, 50, and 100 shots). The statistical testing followed the same rigorous protocol as task performance. For each configuration, an omnibus test (ANOVA or Kruskal-Wallis) was performed, followed by post-hoc pairwise comparisons where significant results were found. To maintain strict experimental control, we applied the Bonferroni-Holm correction separately for each task, adjusting for 84 pairwise comparisons (21 method pairs × 4shot configurations) per task. As shown in Table 8, we observed no statistically significant difference in energy consumption between single-order prompting (SO) and the fine-tuned LLM baseline (FT) across any shot configuration (e.g., 
+
+p = 0 .426 at 100 shots). While reasoning-based prompting also showed no significant difference from FT in lower-shot settings, it became significantly more efficient at 100 shots ( p = 0 .036 ). Most importantly, our proposed LLM-MvP approach demonstrated the high impact of prefix caching: despite its multi-view nature, LLM-MvP is significantly more energy-efficient than both single-order and self-consistency prompting when the latter are used without caching (SO-nc and SC-nc, p < . 001 
+
+across all shot settings for TASD). In contrast, for the ASQP task, significant efficiency differences were primarily confined to the 0-shot setting and largely vanished as the number of shots increased ( p = 0 .524 
+
+for most pairs at 10+ shots). 15 TASD — 0 shots ASQP — 0 shots 
+
+ANOVA: p < . 001 ANOVA: p < . 001 
+
+SO SO (nc) R SC SC (nc) LLM-MvP FT SO SO (nc) R SC SC (nc) LLM-MvP FT Single-order - 0.018* 0.178 0.011* 0.012* 0.022* 0.081 - 0.007* 0.042* <.001* 0.005* 0.007* 0.524 
+
+Single-order (nc) - - 0.022* 0.102 0.015* 0.445 0.022* - - 0.008* 0.188 0.007* 0.009* 0.002* 
+
+Reasoning - - - 0.014* 0.012* 0.023* 0.426 - - - <.001* 0.005* 0.007* 1.000 
+
+Self-consistency - - - - 0.014* 0.079 0.015* - - - - 0.007* 0.009* 0.002* 
+
+Self-consistency (nc) - - - - - 0.015* 0.012* - - - - - 0.787 0.005* 
+
+LLM-MvP - - - - - - 0.023* - - - - - - 0.007* 
+
+LLM (FT) - - - - - - - - - - - - - -
+
+TASD — 10 shots ASQP — 10 shots 
+
+ANOVA: p < . 001 Kruskal-Wallis: p < . 001 
+
+SO SO (nc) R SC SC (nc) LLM-MvP FT SO SO (nc) R SC SC (nc) LLM-MvP FT Single-order - <.001* 0.011* <.001* <.001* 0.022* 0.063 - 0.524 0.524 0.524 0.524 0.524 0.524 
+
+Single-order (nc) - - <.001* <.001* <.001* 0.016* <.001* - - 0.524 0.524 0.524 0.524 0.524 
+
+Reasoning - - - 0.004* <.001* 0.028* 0.616 - - - 0.524 0.524 0.524 1.000 
+
+Self-consistency - - - - <.001* 0.081 0.004* - - - - 0.524 0.524 0.524 
+
+Self-consistency (nc) - - - - - <.001* <.001* - - - - - 0.524 0.524 
+
+LLM-MvP - - - - - - 0.023* - - - - - - 0.524 
+
+LLM (FT) - - - - - - - - - - - - - -
+
+TASD — 50 shots ASQP — 50 shots 
+
+ANOVA: p < . 001 Kruskal-Wallis: p < . 001 
+
+SO SO (nc) R SC SC (nc) LLM-MvP FT SO SO (nc) R SC SC (nc) LLM-MvP FT Single-order - <.001* 0.022* <.001* <.001* 0.022* 0.359 - 0.524 0.524 0.524 0.524 0.524 0.571 
+
+Single-order (nc) - - <.001* <.001* <.001* <.001* <.001* - - 0.524 0.524 0.524 0.889 0.524 
+
+Reasoning - - - 0.004* <.001* 0.029* 0.158 - - - 0.524 0.524 0.524 0.524 
+
+Self-consistency - - - - <.001* 0.079 <.001* - - - - 0.524 0.524 0.524 
+
+Self-consistency (nc) - - - - - <.001* <.001* - - - - - 0.524 0.524 
+
+LLM-MvP - - - - - - 0.023* - - - - - - 0.524 
+
+LLM (FT) - - - - - - - - - - - - - -
+
+TASD — 100 shots ASQP — 100 shots 
+
+ANOVA: p < . 001 Kruskal-Wallis: p < . 001 
+
+SO SO (nc) R SC SC (nc) LLM-MvP FT SO SO (nc) R SC SC (nc) LLM-MvP FT Single-order - <.001* 0.011* <.001* <.001* 0.008* 0.426 - 0.524 0.524 0.524 0.524 0.524 1.000 
+
+Single-order (nc) - - <.001* <.001* <.001* <.001* <.001* - - 0.524 0.524 0.524 0.524 0.524 
+
+Reasoning - - - 0.005* <.001* 0.011* 0.036* - - - 0.524 0.524 0.524 0.524 
+
+Self-consistency - - - - <.001* 0.022* <.001* - - - - 0.524 0.524 0.524 
+
+Self-consistency (nc) - - - - - <.001* <.001* - - - - - 0.524 0.524 
+
+LLM-MvP - - - - - - 0.006* - - - - - - 0.524 
+
+LLM (FT) - - - - - - - - - - - - - -
+
+Table 8: Pairwise statistical significance testing results with Bonferroni-Holm correction for energy efficiency (milliwatt-hours, mWh) comparisons. Corrected p-values are shown for each method pair. Values marked with * indicate statistical significance at α = 0 .05 . The omnibus test (Kruskal-Wallis or ANOVA) p-value is displayed in each subtitle. Diagonal entries represent self-comparisons and are marked with hyphens. 
+
+16 F Few-Shot Performance Visualization: LLM-based Prompting Methods vs. Fine-Tuning Baselines 0 10 50 100 
+
+> # Shots
+> 0
+> 10
+> 20
+> 30
+> 40
+> 50
+> 60
+> 70
+> 80
+> F1
+
+Rest15 - TASD    
+
+> 010 50 100
+> # Shots
+> 0
+> 10
+> 20
+> 30
+> 40
+> 50
+> 60
+> F1
+
+Rest15 - ASQP    
+
+> 010 50 100
+> # Shots
+> 0
+> 10
+> 20
+> 30
+> 40
+> 50
+> 60
+> 70
+> 80
+> 90
+> F1
+
+Rest16 - TASD    
+
+> 010 50 100
+> # Shots
+> 0
+> 10
+> 20
+> 30
+> 40
+> 50
+> 60
+> 70
+> F1
+
+Rest16 - ASQP    
+
+> 010 50 100
+> # Shots
+> 0
+> 10
+> 20
+> 30
+> 40
+> 50
+> 60
+> 70
+> 80
+> F1
+
+FlightABSA - TASD    
+
+> 010 50 100
+> # Shots
+> 0
+> 10
+> 20
+> 30
+> 40
+> 50
+> 60
+> 70
+> F1
+
+FlightABSA - ASQP    
+
+> 010 50 100
+> # Shots
+> 0
+> 10
+> 20
+> 30
+> 40
+> 50
+> 60
+> F1
+
+OATS Coursera - TASD    
+
+> 010 50 100
+> # Shots
+> 0
+> 10
+> 20
+> 30
+> 40
+> F1
+
+OATS Coursera - ASQP    
+
+> 010 50 100
+> # Shots
+> 0
+> 10
+> 20
+> 30
+> 40
+> 50
+> 60
+> 70
+> 80
+> F1
+
+OATS Hotels - TASD    
+
+> 010 50 100
+> # Shots
+> 0
+> 10
+> 20
+> 30
+> 40
+> 50
+> 60
+> F1
+
+OATS Hotels - ASQP 
+
+> Single-order
+> Reasoning
+> Self-consistency
+> LLM-MvP (ours)
+> Paraphrase
+> MvP
+> Gemma 4 (31B) FT
+
+Figure 4: LLM-MvP performance comparison against baselines. The plots show F1 scores for Target Aspect Sentiment Detection (TASD) and Aspect Sentiment Quad Prediction (ASQP) tasks across varying numbers of in-context examples (0, 10, 50, and 100 shots). LLM-MvP (shown in navy blue with triangles) consistently outperformed other prompting strategies (Self-consistency, Reasoning, Single-order) or exceeded fine-tuning baselines at higher shot counts. Horizontal dashed lines represent three fine-tuning baselines: Paraphrase (Zhang et al., 2021a), MvP (Gou et al., 2023), and Gemma 4 (31B) LoRA fine-tuning 
+
+17 G Inference Duration 
+
+# Shots TASD ASQP Approach 0 10 50 100 0 10 50 100 
+
+Single-order 0.047 0.043 0.057 0.062 0.056 0.064 0.074 0.085 Single-order (nc) 0.249 0.438 1.360 2.503 0.302 0.529 1.623 3.099 Reasoning 0.062 0.080 0.103 0.141 0.086 0.099 0.134 0.202 Self-consistency 0.162 0.144 0.163 0.174 0.209 0.201 0.228 0.243 Self-consistency (nc) 1.240 2.198 6.869 12.644 1.495 2.641 8.183 15.715 LLM-MvP 0.299 0.259 0.325 0.388 1.319 1.593 1.850 2.121 LLM (FT) 0.068 0.068 
+
+Table 9: Inference duration in seconds across prompting methods and few-shot configurations. Batched inference with vLLM’s continuous batching and efficient memory management through PagedAttention substantially reduces inference duration compared to sequential processing. Bold values indicate the fastest inference times. 
+
+H Task Performance 
+
+Dataset Approach TASD (Precision) ASQP (Precision) 
+
+# Shots Avg. FT Baselines # Shots Avg. FT Baselines 
+
+0 10 50 100 Para. ⋆ MvP ⋆ LLM ⋆ 0 10 50 100 Para. ⋆ MvP ⋆ LLM ⋆
+
+REST 15 Single-order 39.90 60.95 65.53 67.58 58.49 - - 74.11 23.53 39.42 47.54 50.42 40.23 46.16 - 56.78 Reasoning 46.23 47.68 52.61 54.43 50.24 31.39 33.84 35.53 38.03 34.70 Self-consistency 42.18 61.46 65.69 67.88 59.30 31.51 44.20 52.35 55.24 45.83 LLM-MvP (ours) 42.89 66.81 72.17 74.09 63.99 36.77 47.43 54.41 57.44 49.01 
+
+REST 16 Single-order 49.16 66.59 70.78 71.96 64.62 - - 81.00 27.34 46.69 53.69 55.22 45.74 56.63 - 64.88 Reasoning 53.53 53.19 57.39 57.66 55.44 36.48 39.50 42.08 44.18 40.56 Self-consistency 51.40 66.86 70.84 72.62 65.43 36.88 53.14 58.62 60.69 52.33 LLM-MvP (ours) 52.14 71.02 75.60 76.92 68.92 43.37 54.71 61.40 64.26 55.94 
+
+FLIGHT ABSA Single-order 32.98 59.90 67.31 68.21 57.10 70.22 67.84 72.32 
+
+22.59 45.91 52.50 53.73 43.68 57.37 56.09 64.02 Reasoning 50.29 53.80 55.70 57.45 54.31 36.45 39.51 43.73 42.27 40.49 Self-consistency 37.74 59.40 67.58 68.18 58.22 33.98 51.93 57.61 58.74 50.57 LLM-MvP (ours) 36.83 64.13 70.80 71.97 60.93 34.26 52.79 57.85 59.49 51.10 
+
+COURSERA 
+
+Single-order 18.35 40.19 46.15 47.31 38.00 52.73 51.42 53.35 
+
+5.33 21.58 27.04 27.19 20.28 32.06 32.04 33.12 Reasoning 24.23 31.28 34.38 37.72 31.90 12.60 18.46 20.69 23.14 18.72 Self-consistency 22.09 41.51 47.03 48.43 39.77 9.25 30.15 36.56 37.29 28.31 
+
+LLM-MvP (ours) 21.99 44.49 50.97 52.33 42.44 10.80 27.85 35.00 35.30 27.24 HOTELS 
+
+Single-order 31.09 62.98 66.57 68.34 57.25 68.41 69.58 72.11 
+
+17.32 42.85 46.03 48.51 38.68 52.61 54.38 55.91 Reasoning 41.09 50.09 53.30 53.10 49.40 32.50 39.29 42.36 42.72 39.22 Self-consistency 35.62 64.10 66.82 68.79 58.83 27.46 50.54 51.79 54.04 45.96 LLM-MvP (ours) 36.54 68.72 71.12 72.46 62.21 33.21 52.05 55.36 57.71 49.58 
+
+Table 10: Precision 
+
+18 Dataset Approach TASD (Recall) ASQP (Recall) 
+
+# Shots Avg. FT Baselines # Shots Avg. FT Baselines 
+
+0 10 50 100 Para. ⋆ MvP ⋆ LLM ⋆ 0 10 50 100 Para. ⋆ MvP ⋆ LLM ⋆
+
+REST 15 Single-order 41.09 56.83 60.76 63.12 55.45 - - 70.79 28.05 41.53 48.45 50.99 42.26 47.72 - 56.83 Reasoning 50.30 53.82 57.78 60.02 55.48 35.52 39.37 39.75 42.09 39.18 Self-consistency 41.99 57.54 61.56 64.12 56.30 25.53 40.28 47.40 49.26 40.62 LLM-MvP (ours) 39.05 60.14 64.62 67.24 57.76 32.10 45.26 49.94 52.65 44.99 
+
+REST 16 Single-order 51.08 62.19 67.89 69.57 62.68 - - 78.60 33.57 51.54 55.77 57.55 49.61 59.30 - 68.19 Reasoning 55.69 59.09 62.44 62.54 59.94 40.25 44.98 47.61 49.36 45.55 Self-consistency 52.50 63.03 69.62 71.69 64.21 32.49 50.39 54.32 57.02 48.55 LLM-MvP (ours) 49.97 64.84 70.94 73.08 64.71 39.15 53.32 58.02 60.85 52.83 
+
+FLIGHT ABSA Single-order 44.61 58.71 65.48 66.99 58.95 69.26 69.53 74.44 
+
+26.34 48.88 54.20 56.14 46.39 58.17 59.83 64.98 Reasoning 59.09 64.46 68.51 69.98 65.51 40.64 46.31 50.54 48.81 46.58 Self-consistency 45.63 59.24 66.69 68.05 59.91 25.83 47.97 52.88 55.19 45.47 LLM-MvP (ours) 41.70 60.49 66.09 68.36 59.16 29.22 50.27 54.85 57.46 47.95 
+
+COURSERA 
+
+Single-order 24.92 37.01 42.17 44.96 37.26 51.02 50.53 52.54 
+
+7.57 22.47 27.97 29.20 21.80 32.63 32.97 34.22 Reasoning 28.69 36.07 39.88 42.50 36.78 14.70 21.16 23.43 24.86 21.04 Self-consistency 23.57 37.58 42.99 45.37 37.38 6.77 21.35 26.77 28.09 20.75 LLM-MvP (ours) 21.64 38.07 44.02 46.31 37.51 9.92 22.47 28.49 29.44 22.58 
+
+HOTELS 
+
+Single-order 37.33 59.40 62.45 63.94 55.78 67.01 69.16 70.84 
+
+20.83 45.99 49.63 50.90 41.84 55.19 55.69 57.20 Reasoning 47.57 58.31 61.88 60.95 57.18 32.73 40.58 42.25 41.83 39.35 Self-consistency 38.44 60.00 63.37 65.18 56.75 18.81 44.97 48.13 49.57 40.37 LLM-MvP (ours) 37.62 60.51 64.10 64.74 56.74 25.46 46.10 51.29 52.79 43.91 
+
+Table 11: Recall 
+
+Dataset Approach TASD (F1 Macro) ASQP (F1 Macro) 
+
+# Shots Avg. FT Baselines # Shots Avg. FT Baselines 
+
+0 10 50 100 Para. ⋆ MvP ⋆ LLM ⋆ 0 10 50 100 Para. ⋆ MvP ⋆ LLM ⋆
+
+REST 15 Single-order 26.02 38.50 47.15 48.76 40.11 - - 60.26 20.25 29.85 37.69 38.71 31.63 - - 45.18 Reasoning 36.54 36.86 39.76 41.61 38.69 26.46 28.39 28.55 32.15 28.88 Self-consistency 27.94 38.74 48.53 49.44 41.16 20.12 31.15 37.83 39.57 32.17 LLM-MvP (ours) 27.04 42.23 53.35 54.83 44.36 23.23 33.45 40.56 43.71 35.24 
+
+REST 16 Single-order 34.59 50.93 57.25 58.78 50.39 - - 72.40 19.88 37.87 44.33 48.47 37.64 - - 58.15 Reasoning 40.58 41.40 43.70 44.02 42.42 31.86 31.38 33.71 36.08 33.26 Self-consistency 34.20 50.25 57.82 60.50 50.69 22.63 39.26 45.99 49.43 39.33 LLM-MvP (ours) 29.00 51.56 59.98 61.15 50.42 28.65 40.84 48.34 52.77 42.65 
+
+FLIGHT ABSA Single-order 34.37 55.33 59.75 59.77 52.30 60.97 63.65 65.51 
+
+23.15 44.65 49.98 50.97 42.19 51.79 52.07 54.39 Reasoning 49.42 53.10 54.15 55.62 53.07 38.93 40.16 41.66 41.58 40.58 Self-consistency 39.29 55.89 59.47 60.74 53.85 28.96 48.02 51.86 53.43 45.57 LLM-MvP (ours) 35.97 58.00 61.98 62.62 54.64 32.19 48.25 54.09 56.14 47.67 
+
+COURSERA 
+
+Single-order 11.51 17.16 20.60 23.25 18.13 
+
+45.86 44.18 35.28 2.68 7.04 10.15 11.14 7.75 
+
+27.92 26.13 16.12 Reasoning 14.65 17.92 21.36 23.77 19.42 5.97 7.41 8.49 8.94 7.70 Self-consistency 11.38 16.17 21.67 23.49 18.18 2.94 7.42 10.61 11.75 8.18 LLM-MvP (ours) 12.29 17.14 20.72 25.32 18.86 3.75 7.79 11.62 12.00 8.79 
+
+HOTELS 
+
+Single-order 14.01 30.64 35.10 36.76 29.13 45.89 48.66 41.08 11.58 25.43 28.45 28.83 23.57 37.97 39.46 32.11 Reasoning 23.13 28.09 31.86 32.07 28.79 19.12 24.16 24.93 24.13 23.08 Self-consistency 15.52 31.37 35.09 37.85 29.96 12.92 27.40 28.92 29.96 24.80 LLM-MvP (ours) 15.74 31.66 36.59 38.05 30.51 15.49 28.87 31.06 31.42 26.71 
+
+Table 12: F1 Macro 
+
+19 I Performance Comparison of Gemma, Mistral, and Qwen 
+
+Regarding the model selection, it should be noted that we did not evaluate the latest iterations of the Qwen series (versions 3.5 and 3.6) 11 . Unlike their transformer-based predecessors, these versions utilize the Mamba architecture (Gu and Dao, 2024) where prefix caching is not implemented yet for vLLM 12 .
+
+Dataset Model Approach TASD (F1) ASQP (F1)
+
+# Shots Avg. # Shots Avg. 
+
+0 10 50 100 0 10 50 100 
+
+REST 15 Gemma 4 (31B) Single 40.48 58.82 63.05 65.27 56.91 25.59 40.43 47.99 50.70 41.18 LLM-MvP 40.88 63.29 68.18 70.50 60.71 34.28 46.28 52.07 54.94 46.89 
+
+Gemma 4 (26B MoE) Single 29.18 51.08 59.23 60.12 49.90 17.55 33.38 40.03 42.34 33.32 LLM-MvP 34.59 54.95 62.62 64.40 54.14 27.12 41.82 48.07 50.67 41.92 Mistral Small 3.2 (24B) Single 37.28 58.59 63.68 65.41 56.24 24.59 41.01 45.46 47.63 39.67 LLM-MvP 37.22 61.05 66.64 68.52 58.36 35.47 44.59 49.64 51.93 45.41 Qwen 3 (30B) Single 26.15 44.32 47.95 48.08 41.62 14.97 26.26 28.67 29.64 24.89 LLM-MvP 31.41 50.83 58.80 60.45 50.37 30.21 37.68 39.61 41.30 37.20 REST 16 Gemma 4 (31B) Single 50.10 64.30 69.30 70.74 63.61 30.13 48.98 54.70 56.36 47.54 LLM-MvP 51.03 67.79 73.19 74.95 66.74 41.15 54.00 59.65 62.51 54.32 
+
+Gemma 4 (26B MoE) Single 44.72 57.38 63.25 65.12 57.62 26.74 40.62 47.17 50.38 41.23 LLM-MvP 48.48 58.68 65.54 68.26 60.24 34.22 49.43 53.81 55.69 48.29 Mistral Small 3.2 (24B) Single 54.58 63.99 69.59 71.40 64.89 29.67 49.84 53.59 55.61 47.18 LLM-MvP 54.42 65.31 71.44 73.05 66.05 40.38 53.27 57.05 58.66 52.34 Qwen 3 (30B) Single 38.77 50.72 54.03 53.66 49.29 17.77 33.37 36.83 38.66 31.66 LLM-MvP 46.17 59.01 65.14 65.65 58.99 35.63 45.82 49.05 51.29 45.45 FLIGHT ABSA Gemma 4 (31B) Single 37.93 59.27 66.38 67.59 57.79 24.32 47.29 53.33 54.90 44.96 LLM-MvP 39.11 62.22 68.36 70.11 59.95 31.54 51.46 56.30 58.45 49.44 Gemma 4 (26B MoE) Single 37.53 53.26 62.31 63.35 54.11 25.77 41.55 48.54 49.50 41.34 LLM-MvP 34.87 55.15 65.14 67.37 55.63 20.67 49.85 55.52 56.74 45.69 Mistral Small 3.2 (24B) Single 52.10 60.78 65.91 68.54 61.83 27.05 47.20 52.99 55.12 45.59 LLM-MvP 53.70 61.43 67.60 69.33 63.01 45.87 51.45 57.47 59.30 53.52 
+
+Qwen 3 (30B) Single 40.17 50.84 54.21 54.68 49.97 23.90 34.19 39.72 39.79 34.40 LLM-MvP 44.23 57.76 62.80 64.93 57.43 39.77 45.18 49.11 51.33 46.35 COURSERA 
+
+Gemma 4 (31B) Single 21.13 38.52 44.06 46.09 37.45 6.26 22.01 27.49 28.14 20.97 LLM-MvP 21.81 41.01 47.22 49.12 39.79 10.34 24.87 31.40 32.09 24.67 
+
+Gemma 4 (26B MoE) Single 15.03 32.20 41.33 42.74 32.83 8.31 16.58 23.40 25.38 18.42 LLM-MvP 18.13 34.97 44.05 44.73 35.47 6.70 20.38 28.50 29.99 21.39 Mistral Small 3.2 (24B) Single 21.63 33.65 45.98 46.20 36.87 9.02 19.06 25.65 27.50 20.31 LLM-MvP 24.25 36.26 46.92 48.38 38.95 11.85 22.29 29.52 30.66 23.58 Qwen 3 (30B) Single 19.98 25.36 29.03 31.09 26.37 11.57 13.88 18.62 19.37 15.86 LLM-MvP 25.22 34.43 42.16 43.92 36.43 16.61 22.02 26.70 28.73 23.51 HOTELS 
+
+Gemma 4 (31B) Single 33.93 61.09 64.44 66.06 56.38 18.91 44.27 47.74 49.66 40.15 LLM-MvP 37.07 64.33 67.42 68.38 59.30 28.83 48.80 53.20 55.11 46.48 
+
+Gemma 4 (26B MoE) Single 33.54 49.35 56.46 59.46 49.70 22.00 31.72 38.90 42.73 33.84 LLM-MvP 29.99 52.40 60.28 64.01 51.67 16.48 41.56 48.42 51.32 39.44 Mistral Small 3.2 (24B) Single 38.36 57.36 62.40 64.93 55.76 20.18 40.03 45.71 47.40 38.33 LLM-MvP 42.43 59.85 64.54 67.17 58.50 27.85 45.91 50.16 52.51 44.11 Qwen 3 (30B) Single 30.26 41.84 44.07 44.64 40.20 21.99 28.62 30.50 31.27 28.09 LLM-MvP 36.10 56.78 58.58 61.86 53.33 34.39 43.53 46.33 47.75 43.00 
+
+Table 13: Evaluation of LLM-MvP on various LLMs. The best score for a given combination of dataset, task, and shot count is highlighted in bold .
+
+> 11
+
+https://huggingface.co/collections/Qwen/qwen36 
+
+> 12
+
+https://github.com/vllm-project/vllm/issues/36493 
+
+20 J Variation of the Number of Views 
+
+Table 14 presents the performance impact of varying the number of lowest-entropy views m used for majority voting. For both TASD and ASQP, we observe a consistent trend where increasing the m
+
+permutations leads to substantial performance gains. We specifically focus on odd values for m to ensure a clear majority and prevent tie-breaking scenarios during the voting process. While Gou et al. (2023) only explored a coarse selection of views ( m ∈{1, 3, 7, 15 , 24 }), we conducted a more granular evaluation across all possible values of m. Our results for TASD show a peak at m = 5 . For the more complex ASQP task, performance continues to scale further and identifies m = 17 as the optimal configuration. This aligns with and slightly extends the findings of Gou et al. (2023), who observed a peak at m = 15 for ASQP. Notably, in both tasks, the inclusion of all possible permutations ( m = 6 for TASD and m = 24 
+
+for ASQP) does not yield the highest scores. This decline confirms that while expanding m increases robustness, including all permutations introduces noise that outweighs the benefits of considering multiple permutations. 
+
+TASD ASQP Dataset # Shots 1 3 5 full (6) 1 3 5 7 9 11 13 15 17 19 21 23 full (24) 
+
+Rest15 0 38.72 39.07 40.88 40.54 30.71 32.24 32.88 33.47 33.00 33.49 33.61 34.09 34.28 33.83 33.15 33.29 33.33 10 62.93 62.95 63.29 63.18 44.17 44.88 45.56 45.67 45.96 46.15 46.42 46.32 46.28 46.18 45.94 46.21 46.09 50 67.72 68.09 68.18 67.75 49.92 50.51 50.99 51.02 51.07 51.20 51.91 51.91 52.07 51.87 51.95 52.21 52.24 
+
+100 70.04 70.23 70.50 69.84 52.84 53.56 53.40 53.79 54.03 54.09 54.86 54.81 54.94 54.96 55.21 54.99 55.13 Rest16 0 50.12 51.56 51.03 51.68 35.95 38.13 39.15 39.34 39.69 39.95 40.39 40.96 41.15 41.24 40.57 40.28 40.24 10 66.40 67.17 67.79 67.64 51.01 51.74 52.46 52.53 53.05 53.38 53.71 53.91 54.00 54.31 54.36 54.62 54.53 50 72.13 72.97 73.19 72.70 57.10 58.46 58.08 58.45 58.47 59.03 59.60 59.88 59.65 59.85 59.99 60.27 60.08 100 74.54 74.83 74.95 74.47 59.70 60.31 60.61 60.77 61.45 61.87 62.39 62.25 62.51 62.64 62.60 62.98 62.89 FlightABSA 0 36.19 38.75 39.11 38.61 27.93 32.83 34.06 33.65 33.56 33.27 32.28 32.28 31.54 31.03 30.38 29.94 30.05 10 62.24 62.44 62.22 62.35 49.07 49.96 50.47 50.88 50.93 51.17 51.33 51.44 51.46 51.46 51.37 51.75 51.50 50 68.41 68.73 68.36 68.20 54.86 55.11 55.80 56.09 56.08 56.00 56.11 56.07 56.30 56.32 56.59 56.76 56.67 100 69.92 70.10 70.11 69.64 56.31 57.07 57.37 57.65 57.93 58.38 58.41 58.39 58.45 58.47 58.63 58.19 57.97 OATS Coursera 0 18.37 21.60 21.81 22.45 7.64 9.01 9.46 9.77 9.66 9.80 9.73 9.87 10.34 10.66 10.63 10.08 10.04 10 40.36 40.33 41.01 40.71 21.69 22.58 22.93 23.51 23.73 24.05 24.28 24.66 24.87 25.39 25.47 25.76 25.76 50 46.84 47.04 47.22 47.30 27.61 28.36 28.75 29.31 29.47 30.09 30.87 31.20 31.40 31.26 31.08 31.02 31.15 100 48.53 49.37 49.12 48.94 29.02 29.97 30.13 30.52 30.98 31.27 31.57 31.86 32.09 32.10 32.25 32.48 32.79 
+
+OATS Hotels 0 34.82 36.97 37.07 36.26 23.23 27.43 27.40 28.22 28.83 28.33 28.51 28.56 28.83 28.10 28.30 28.59 28.60 10 63.29 64.20 64.33 63.70 46.31 47.57 47.90 48.11 48.55 48.65 48.63 48.77 48.80 48.82 48.77 48.97 49.03 
+
+50 66.80 67.29 67.42 67.02 51.88 52.20 52.78 52.87 53.15 53.21 53.06 53.27 53.20 53.00 53.08 53.03 52.73 100 68.14 68.51 68.38 68.33 53.78 54.04 54.16 54.65 54.71 54.45 54.78 54.83 55.11 55.07 54.99 55.11 55.00 
+
+AVG 56.32 57.11 57.30 57.07 41.54 42.80 43.22 43.51 43.72 43.89 44.12 44.27 44.36 44.33 44.27 44.33 44.29 
+
+Table 14: Variation of the number of views m employed for the majority voting of LLM-MvP. We compare the performance (F1-score) for different values of m in TASD and ASQP. The best value per row and task is highlighted in bold .
+
+21 K Component Analysis 
+
+# Shots Approach TASD (F1) ASQP (F1)
+
+Rest15 Rest16 FlightABSA Coursera Hotels Rest15 Rest16 FlightABSA Coursera Hotels 
+
+0Single-Order 40.48 50.10 37.93 21.13 33.93 25.59 30.13 24.32 6.26 18.91 LLM-MvP eff 41.03 50.52 37.62 21.64 34.81 28.24 32.19 24.93 7.47 19.72 LLM-MvP (w/o GD) 41.02 50.30 37.07 20.22 36.52 26.90 33.47 28.64 5.81 20.73 LLM-MvP 40.88 51.03 39.11 21.81 37.07 34.28 41.15 31.54 10.34 28.83 
+
+10 Single-Order 58.82 64.30 59.27 38.52 61.09 40.43 48.98 47.29 22.01 44.27 LLM-MvP eff 60.90 65.46 60.74 39.19 62.69 42.44 50.24 48.23 22.60 45.69 LLM-MvP (w/o GD) 62.26 67.19 60.55 39.19 62.11 44.87 52.84 50.46 24.63 48.06 LLM-MvP 63.29 67.79 62.22 41.01 64.33 46.28 54.00 51.46 24.87 48.80 
+
+50 Single-Order 63.05 69.30 66.38 44.06 64.44 47.99 54.70 53.33 27.49 47.74 LLM-MvP eff 65.38 71.45 67.15 44.91 65.49 49.59 57.07 54.19 28.13 48.69 LLM-MvP (w/o GD) 66.14 71.35 67.66 47.17 67.07 51.42 59.94 55.82 30.53 52.50 LLM-MvP 68.18 73.19 68.36 47.22 67.42 52.07 59.65 56.30 31.40 53.20 
+
+100 Single-Order 65.27 70.74 67.59 46.09 66.06 50.70 56.36 54.90 28.14 49.66 LLM-MvP eff 67.37 72.96 68.44 46.84 67.24 52.64 58.88 55.96 28.82 50.69 LLM-MvP (w/o GD) 67.97 73.70 69.56 48.83 67.06 54.47 62.09 57.71 32.87 54.56 LLM-MvP 70.50 74.95 70.11 49.12 68.38 54.94 62.51 58.45 32.09 55.11 
+
+Table 15: Performance LLM-MvP variants on all five ABSA datasets. 
+
+22

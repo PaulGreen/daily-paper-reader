@@ -1,0 +1,761 @@
+Title: Self-Improving In-Context Learning
+
+URL Source: https://arxiv.org/pdf/2605.23180v1
+
+Published Time: Mon, 25 May 2026 00:23:21 GMT
+
+Number of Pages: 27
+
+Markdown Content:
+# Self-Improving In-Context Learning 
+
+Baturay Saglam Dionysis Kalogerias 
+
+Department of Electrical and Computer Engineering Yale University 
+
+{baturay.saglam, dionysis.kalogerias}@yale.edu 
+
+Abstract 
+
+We propose to improve in-context learning (ICL) by optimizing the continuous embeddings of a fixed few-shot prompt at test time. The key observation is that the log-probabilities a model assigns to its demonstrated outputs—available from a single forward pass without generating any tokens—provide a meaningful signal for how well the model has inferred the task from its demonstrations. We formalize this signal as a bounded, self-supervised confidence proxy and maximize it via zeroth-order optimization over the prompt embeddings, yielding a test-time calibration procedure. The approach requires no finetuning, no token generation, no predefined label set, and no external data, making it equally applicable to both classification and free-form generation tasks. Across a comprehensive suite of ICL tasks, the proposed calibration consistently matches or improves upon the base model and outperforms classification-specific baselines on most tasks. The statistically significant correlation between proxy improvement and downstream accuracy gain confirms that the proposed proxy encodes a reliable optimization signal for in-context learning. 
+
+# 1 Introduction 
+
+In-context learning (ICL) enables large language models (LLMs) to perform new tasks by conditioning on a small set of input–output demonstrations in the prompt, without updating model parameters [ 2 ]. This capability has made few-shot prompting a dominant paradigm for deploying language models [ 30 ]. However, it is also notably fragile: even with semantically identical demonstrations, simply reordering them can shift accuracy from near state-of-the-art to near random [ 26 ]. Performance is similarly sensitive to the choice and formatting of examples. This brittleness has motivated a growing body of work on improving the reliability of ICL at inference time. Existing test-time methods fall into three broad categories: demonstration selection, demonstration ordering, and output calibration. Each family has shown practical improvements in its target setting, yet all share a common structural limitation: they operate either on discrete prompt-level decisions (i.e., which examples to include and in what order) or on the model’s output probabilities after the fact. Most additionally require a finite, predefined label set, restricting them to classification (see Appendix A). We explore a complementary direction. A fundamentally different strategy is to intervene on the continuous prompt embedding matrix that the model directly conditions on. Since the model operates over this matrix rather than the discrete tokens, adjustments in embedding space can reshape the output distribution while leaving the human-readable input intact [ 36 , 37 ]. We propose to improve ICL by optimizing the continuous embeddings of a fixed few-shot prompt. Our key observation is that the model’s own log-probabilities on the demonstrated output 1
+
+> arXiv:2605.23180v1 [cs.CL] 22 May 2026
+
+labels—obtainable from a single teacher-forced forward pass, without generating any tokens—provide a meaningful signal for how well the model has inferred the task from its demonstrations. We formalize this signal as a scalar, bounded confidence proxy with three complementary facets: absolute predictive confidence on each demonstrated label, robustness to low-probability tokens in the output spans, and progressive improvement in prediction quality across demonstrations. To maximize this proxy, we estimate its gradient with respect to the input embeddings via zeroth-order optimization and iteratively update the embeddings along the estimated gradient direction. The resulting procedure calibrates the prompt representation at test time, steering it toward regions of the embedding space associated with higher in-context confidence. It requires no external data, no access to model parameters, and no additionally learned parameters—only the input embeddings and the model’s log-probabilities are assumed to be available. Each optimization step consists entirely of forward passes; no tokens are generated at any point, and the original discrete prompt is never modified—only its continuous embeddings are. Because the proxy is computed solely from the model’s predictions on the demonstrations already present in the prompt, no predefined label set is required, making the method equally applicable to classification and free-form generation. It can therefore be freely composed with any existing demonstration selection, ordering, or calibration strategy, and applied as a plug-and-play module to any off-the-shelf autoregressive language model. Across a comprehensive suite of classification and free-form generation tasks designed to probe rule learning and exact copying [ 3 ], and over several model scales, the proposed method consistently matches or improves upon the base model while outperforming classification-specific baselines on most tasks out of the box. Furthermore, the correlation between proxy improvement and downstream accuracy gain is statistically significant across all models combined, confirming that the proxy encodes a reliable optimization signal for in-context learning. We open-source our code at https://github.com/baturaysaglam/self-improving-ICL .
+
+# 2 Related Work 
+
+2.1 In-Context Learning 
+
+In-context learning is sensitive to the choice of demonstrations, their ordering, and the decoding procedure. A complementary line of work studies why ICL works—through the role of demonstration labels [ 30 , 54 ], information flow through label tokens [ 46 ], the formation of task representations [ 13 , 24 , 41 , 38 ], and connections to implicit gradient descent [5, 43]—but lies outside our scope. 
+
+Demonstration selection. The choice of in-context examples can dramatically shift ICL performance [ 23 ]. Existing methods retrieve nearest neighbors in a pretrained embedding space [ 23 , 53 , 39 ], score candidates via the target model’s own feedback [ 48 , 32 , 22 , 20 , 50 , 34 , 58 ], apply task-specific heuristics such as reasoning complexity or structural coverage [ 7 , 19 ], or have the model generate its own demonstrations [ 16 , 27 , 45 , 44 ]. All assume access to a scorable candidate pool or a finite label space. 
+
+Demonstration ordering. The order of demonstrations alone can shift accuracy by tens of percentage points [ 26 ]. Subsequent work addresses this through instance-adaptive reordering [ 11 , 51 , 1 , 33 ] or by eliminating order sensitivity entirely [ 56 ]; however, the scoring functions used generally require a finite label set, and permutation search scales combinatorially with the number of demonstrations. 2Output calibration. A separate family corrects systematic biases—majority-label, recency, and surface-form effects—by adjusting the model’s output distribution [ 60 , 15 , 29 , 6 , 62 , 17 , 21 , 49 ] or operating on internal representations [ 12 , 4]. All require a known label set, restricting them to classification; several further need transductive access to a batch of test inputs [62, 12, 61] or to hidden states [4]. Our method is orthogonal to all three families. It optimizes the continuous representation of a fixed prompt and requires no candidate pool, test batch, label set, or access to model internals beyond the embedding layer. Its cost does not scale with the number of demonstrations, it operates identically on classification and open-ended generation, and it can be composed freely with any selection, ordering, or calibration strategy. Appendix A formalizes this comparison and explains why the listed methods are structurally incompatible with open-ended generation. 
+
+2.2 Zeroth-Order Optimization in LLMs 
+
+Finite-difference estimators [ 31 ] have been mainly used for privacy- and memory-efficient finetuning [ 57 ,25 , 28 , 8 ] and as a substitute for gradient estimation in soft prompt optimization [ 55 ]. All of these works operate at training time under a dataset-level loss. In contrast, we operate at the instance level: the gradient is estimated for a single prompt at test time, within a small forward-pass budget, in the fundamentally different regime of in-context learning. More recently, Saglam and Kalogerias [36 , 37] have shown that optimizing input embeddings can steer a model toward behavior satisfying certain properties. Our setting differs, however: we devise a self-supervised objective and operate in ICL, whereas they target safety properties (e.g., toxicity) for which a noise-free oracle is available from an external provider (e.g., an API). Moreover, we use input-embedding optimization as a tool to demonstrate the effectiveness of the proposed proxy, rather than as the objective of our study. 
+
+# 3 Background 
+
+3.1 Autoregressive Text Generation 
+
+Large language models generate text autoregressively, producing one token at a time with each prediction conditioned on all preceding tokens. Let  denote a finite vocabulary of 𝑉 = || tokens. We write a text sequence of length 𝐿 as 𝑥 1∶ 𝐿 = ( 𝑥 1, 𝑥 2, … , 𝑥 𝐿 ), where each 𝑥 𝑡 ∈ . An autoregressive model parameterized by 𝜃 defines the joint probability of the sequence via the chain rule of probability: 
+
+𝑃 𝜃 (𝑥 1∶ 𝐿 ) = 
+
+> 𝐿
+
+∏
+
+> 𝑡 =1
+
+𝑃 𝜃 (𝑥 𝑡 ∣ 𝑥 <𝑡 ) ,
+
+where 𝑥 <𝑡 = ( 𝑥 1, … , 𝑥 𝑡 −1 ) is the prefix preceding position 𝑡 .Each token 𝑥 𝑡 is first mapped to a dense vector 𝑒 𝑡 ∈ ℝ𝑑 through a learned embedding matrix 𝐸 ∈ ℝ𝑉 ×𝑑 . The transformer architecture [ 42 ] processes the resulting embedding sequence and produces, at each position, a conditional distribution over the next token. The log-probability of the observed token 𝑥 𝑡 is denoted 
+
+𝓁 𝑡 (𝑋 ) = log 𝑃 𝜃 (𝑥 𝑡 ∣ 𝑥 <𝑡 ), 𝑡 = 1 , … , 𝐿, 
+
+which satisfies 𝓁 𝑡 ≤ 0, with equality only when the model assigns probability one to 𝑥 𝑡 .When a complete sequence is provided as input—as in the prompt-based setting we consider—a single forward pass yields the full sequence of log-probabilities (𝓁 1, … , 𝓁 𝐿 ) simultaneously, which is central to the practicality of our approach. 33.2 In-Context Learning 
+
+A few-shot prompt  is constructed by concatenating 𝑇 demonstration pairs followed by a query input: 
+
+ = [ 𝑠 1, 𝑦 1, 𝑠 2, 𝑦 2, … , 𝑠 𝑇 , 𝑦 𝑇 , 𝑠 query ], (1) where each (𝑠 𝑖 , 𝑦 𝑖 ) consists of a task input 𝑠 𝑖 and its corresponding output 𝑦 𝑖 .When tokenized, the prompt  becomes a token sequence 𝑥 1∶ 𝐿 = ( 𝑥 1, … , 𝑥 𝐿 ). For each demonstration 𝑖 ,we denote by 𝑖 ⊆ {1 , … , 𝐿 } the set of token positions corresponding to the output 𝑦 𝑖 . These output-span log-probabilities reflect how confidently the model predicts each demonstrated output given its context—the optimization signal of Section 4. 
+
+3.3 Zeroth-Order Optimization 
+
+Zeroth-order methods estimate gradient information from function evaluations alone—useful when the objective is black-box or non-differentiable; we rely on the Gaussian smoothing framework of Nesterov and Spokoiny [31]. Given an objective 𝑓 ∶ ℝ𝑛 → ℝ and a smoothing parameter 𝜇 > 0, the Gaussian-smoothed counterpart of 𝑓 
+
+is defined as 
+
+𝑓 𝜇 (𝑋 ) = 𝔼 𝑈 ∼ (0 ,𝐼 𝑛 )[𝑓 (𝑋 + 𝜇𝑈 )] .
+
+If 𝑓 is Lipschitz-continuous, i.e., |𝑓 (𝑋 ) − 𝑓 (𝑌 )| ≤ 𝐿 0‖𝑋 − 𝑌 ‖ for all 𝑋, 𝑌 , then 𝑓 𝜇 is differentiable for every 
+
+𝜇 > 0 and approximates 𝑓 with a controlled error of order (𝜇 √𝑛 ). We note that these conditions are invoked only to motivate the bound; in a fully black-box setting they cannot be verified from query access to 𝑓 . Nonetheless, the resulting estimator can be applied empirically regardless of whether the underlying constants are known. A central result of Nesterov and Spokoiny [31] establishes that the gradient of 𝑓 𝜇 admits the familiar finite-difference form: 
+
+∇𝑓 𝜇 (𝑋 ) = 𝔼 𝑈 [
+
+𝑓 (𝑋 + 𝜇𝑈 ) − 𝑓 (𝑋 )
+
+𝜇 𝑈 ] . (2) This identity requires only Lipschitz continuity of 𝑓 ; differentiability of 𝑓 itself is not needed. The baseline term 𝑓 (𝑋 )/ 𝜇 does not bias the estimate (since 𝔼 [𝑈 ] = 0 ) but reduces its variance. In practice, the expectation in (2) is replaced by a Monte Carlo average over 𝑁 independent perturbations 
+
+𝑈 1, … , 𝑈 𝑁 ∼  (0 , 𝐼 𝑛 ):̂𝑔 (𝑋 ) = 1
+
+𝑁 
+
+> 𝑁
+
+∑
+
+> 𝑖 =1
+
+𝑓 (𝑋 + 𝜇𝑈 𝑖 ) − 𝑓 (𝑋 )
+
+𝜇 𝑈 𝑖 ≈ ∇ 𝑓 𝜇 (𝑋 ). (3) The smoothing parameter 𝜇 governs a bias–variance tradeoff: smaller values produce a sharper approxima-tion to ∇𝑓 but amplify the variance of the finite-difference terms, while larger values yield smoother but more biased estimates. The number of samples 𝑁 controls the variance of the Monte Carlo average. 
+
+# 4 Self-Improving In-Context Learning 
+
+Overview. Given a few-shot prompt as in (1) , we treat the language model as a black box that, for any provided prompt, returns teacher-forced token log-probabilities. Our key assumption is that the token positions corresponding to each demonstrated output span are known (denoted 1, … , 𝑇 in Section 3.2). 4Let 𝑋 ∈ ℝ𝐿 ×𝑑 denote the embedding matrix of the prompt tokens, and let 𝑓 (𝑋 ) be a scalar proxy quantifying the model’s confidence on the demonstrations given the prompt context. We seek an embedding-space optimization that increases the proxy value: 
+
+𝑋 ⋆ ∈ arg max 
+
+> 𝑋
+
+𝑓 (𝑋 ),
+
+with the understanding that the discrete prompt text is held fixed and only its continuous embeddings are modified; each embedding remains within its token subspace. The proxy 𝑓 may be non-smooth due to robust aggregation over tokens, and backpropagating through the model to obtain ∇𝑋 𝑓 (𝑋 ) is prohibitively expensive at test time. Instead, we estimate this gradient via zeroth-order optimization reviewed in Section 3.3 and defined in (3). We form a stochastic ascent direction ̂ 𝑔 𝑘 ≈ ∇𝑋 𝑓 𝜇 (𝑋 𝑘 ) from evaluations of 𝑓 at randomly perturbed embeddings 𝑋 𝑘 + 𝜇𝑈 𝑖 . Because each row of 𝑈 𝑖 is drawn independently, each token embedding is perturbed separately, allowing the estimator to capture token-specific sensitivity of 𝑓 . Since the proxy is to be computed from log-probabilities at demonstration positions, which under causal attention are unaffected by the query tokens that follow them, the perturbation is restricted to the demonstration region—noise at query positions is set to zero. The embeddings are then updated iteratively as 𝑋 𝑘 +1 = 𝑋 𝑘 + 𝜂̂𝑔 𝑘 , where 𝜂 is the step size. This update steers the prompt representation toward regions of the embedding space associated with higher in-context confidence. The procedure operates entirely at test time, requires only additional forward passes per input instance, and assumes access only to the input embeddings and model log-probabilities. 
+
+4.1 A Proxy for In-Context Learning Confidence 
+
+We define the proxy 𝑓 (⋅) subject to three design principles balancing theoretical constraints and practical considerations: 
+
+(D1) Bounded and continuous. 𝑓 (𝑋 ) ∈ [0 , 1] , ensuring compatibility with the zeroth-order estimator and controlled approximation error. 
+
+(D2) Single forward pass. Each evaluation depends only on teacher-forced log-probabilities {𝓁 𝑡 ∶ 𝑡 ∈ ⋃𝑖 𝑖 }
+
+from the demonstrations already present in the prompt; the full vocabulary distribution is neither extracted nor stored, no tokens are generated, and no ground-truth label candidates for the query are required (in contrast to, e.g., 51, 26, 11). 
+
+(D3) Behaviorally informative. 𝑓 increases as the model’s predictions on the demonstrated outputs improve, reflecting genuine task understanding and thereby translating into downstream task performance. 
+
+Component 1 – Per-demonstration absolute confidence. To make confidence comparable across labels with different token lengths, we compute a length-normalized average log-probability for each demonstrated output: ̄
+
+𝓁 𝑖 (𝑋 ) ∶= 1
+
+|𝑖 | ∑
+
+> 𝑡 ∈𝑖
+
+𝓁 𝑡 (𝑋 ).
+
+We then map it to a bounded score 𝑐 𝑖 (𝑋 ) ∶= exp( ̄𝓁 𝑖 (𝑋 )) ∈ (0 , 1] , which equals the geometric mean of the true-token probabilities over the 𝑖 -th output span. We then average the confidence scores across demonstrations for the absolute confidence, defining ̄𝐶 (𝑋 ) ∶= 1
+
+𝑇 
+
+> 𝑇
+
+∑
+
+> 𝑖 =1
+
+𝑐 𝑖 (𝑋 ).
+
+5Component 2 – Pooled robustness. High mean confidence can mask brittleness: a label may look easy on average while containing a few tokens the model assigns very low probability. To penalize such cases, we pool the true-token probabilities 𝑝 𝑡 (𝑋 ) ∶= exp( 𝓁 𝑡 (𝑋 )) ∈ (0 , 1] from all demonstration output spans into a single set, 
+
+(𝑋 ) ∶= { 𝑝 𝑡 (𝑋 ) ∶ 𝑡 ∈ 1 ∪ 2 ∪ ⋯ ∪ 𝑇 },
+
+and summarize its lower tail via a fixed quantile level 𝑞 ∈ (0 , 1) (we use 𝑞 = 0 .1): 
+
+𝑅 (𝑋 ) ∶= Quantile 𝑞 ((𝑋 )) ∈ [0 , 1] .𝑅 (⋅) is the probability threshold below which the lowest 𝑞 -fraction of all label tokens fall. Viewed as a risk measure, it coincides with Value-at-Risk at level 𝑞 on the empirical distribution of token confidences, capturing tail fragility that the mean ̄ 𝐶 may conceal. Per-demonstration quantiles degenerate for single-token labels ( Quantile 𝑞 ({ 𝑝 𝑡 }) = 𝑝 𝑡 = 𝑐 𝑖 ); pooling across all spans preserves a genuine tail measure. 
+
+Component 3 – Information gain across demonstrations. If the task is inferred progressively, later demonstrations should become more predictable as they are conditioned on a richer in-context history. To capture this trend in a single pass, we track improvements in the per-demonstration confidence sequence 
+
+{𝑐 𝑖 (𝑋 )} 𝑇 𝑖 =1 :
+
+𝐺 (𝑋 ) ∶= 
+
+⎧⎪⎪⎪⎨⎪⎪⎪⎩
+
+1
+
+𝑇 − 1 
+
+> 𝑇
+
+∑
+
+> 𝑖 =2
+
+𝛿 𝑖 (𝑋 ), 𝑇 ≥ 2,
+
+0, 𝑇 = 1 ,
+
+where 𝛿 𝑖 (𝑋 ) ∶= max(0 , 𝑐 𝑖 (𝑋 )− 𝑐 𝑖 −1 (𝑋 )) . 𝐺 (⋅) assigns credit only to increases and remains in [0 , 1] . It is order-dependent by design; rewarding progressive task inference, consistent with evidence that autoregressive models process demonstrations sequentially. Because 𝐺 (⋅)’s gradient exerts opposing pressure on early-and late-demonstration embeddings under causal attention, we assign it a small weight 𝛾 so the residual asymmetry remains negligible relative to the confidence and robustness gradients. Conceptually, 𝐺 can be viewed as a single-pass approximation to the progressive-compression principle underlying description-length approaches [ 48 ]; rather than evaluating each demonstration in isolation, it tracks confidence improvements as the in-context history grows. 
+
+Final proxy score. The final ICL-confidence proxy is the weighted linear combination of the components: 
+
+𝑓 (𝑋 ) ∶= 𝛼̄ 𝐶 (𝑋 ) + 𝛽 𝑅 (𝑋 ) + 𝛾 𝐺 (𝑋 ), 𝛼, 𝛽, 𝛾 ≥ 0, 𝛼 + 𝛽 + 𝛾 = 1 .
+
+Note that we exclude any entropic measure as it is label-agnostic and risks collapse onto incorrect tokens [ 59 ], and at exemplar positions its signal is already subsumed by ̄ 𝐶 and 𝑅 .
+
+4.2 End-to-End Test-Time Calibration 
+
+The zeroth-order ascent updates require regularization to prevent embeddings from drifting into out-of-distribution regions of the embedding space. We incorporate three lightweight mechanisms, while deliberately avoiding any external optimization components (e.g., momentum), so that any performance gains can be attributed solely to the test-time embedding adjustment driven by the proposed proxy. 
+
+Gradient clipping. Clipping preserves proportionality of per-position gradient magnitudes while bound-ing large updates: ̂ 𝑔 𝑘,𝑡 ←̂ 𝑔 𝑘,𝑡 / max(1 , ‖̂𝑔 𝑘,𝑡 ‖2) for each position 𝑡 .6Cosine similarity. We constrain the updated embeddings to remain directionally close to their initial values. At each iteration 𝑘 , if the cosine similarity between the updated embeddings 𝑋 𝑘 +1 and the original embeddings 𝑋 0 falls below a threshold 𝜅 ∈ [0 , 1] , we project 𝑋 𝑘 +1 back onto the boundary of the feasible region. 
+
+Initial proxy gate. Before entering the optimization loop, the proxy is evaluated on the unperturbed embeddings. Because each per-exemplar confidence is defined as 𝑐 𝑖 = exp( ̄𝓁 𝑖 ), its gradient with respect to ̄ 𝓁 𝑖 equals 𝑐 𝑖 itself; when 𝑓 (𝑋 0) is near zero, the proxy surface is exponentially flat and the zeroth-order gradient estimate carries no directional signal. If 𝑓 (𝑋 0) falls below a threshold 𝜏 , optimization is skipped and the original embeddings are returned unchanged. The complete procedure is summarized in Algorithm 1 (Appendix B.2). The returned embedding 𝑋 ⋆ is the one achieving the highest proxy value across all iterations; after convergence, the query output is generated under 𝑋 ⋆ for any desired number of tokens. 
+
+# 5 Experiments 
+
+Benchmark. Standard few-shot benchmarks (e.g., MMLU 14 ) conflate a model’s in-context learning ability with its pretraining knowledge and language proficiency [ 3]: a model may fail not because it cannot learn from demonstrations, but because it lacks the requisite domain knowledge. ICLEval [ 3] addresses this confound by replacing factual content with hash strings, ensuring that correct predictions can only be derived from the provided demonstrations. The benchmark comprises 12 tasks (2,040 samples) organized around two core sub-abilities: exact copying (matching a prefix and reproducing subsequent content) and rule learning (inferring format, order, statistical, and list-mapping rules from examples). Each sample includes its own dynamically generated set of 3–31 demonstrations. Further details are provided in Appendix B. 
+
+Baselines. We consider inference-time methods of Contextual Calibration (CC) [ 60 ], which corrects label biases via an affine transformation estimated from content-free inputs; domain-conditional PMI (DC-PMI) [ 15 ], which normalizes out the label prior induced by the prompt; and DEmO [ 11 ], which eliminates ordering sensitivity by processing each exemplar independently and aggregating label-distribution shifts. CC and DC-PMI require a single-token label space and are evaluated on Order Check and Duplication Check (400 of the 2,040 samples). DEmO accommodates multi-token labels and is additionally evaluated on Format Check. Methods with structural limitations preventing general-purpose use are catalogued in Table 3. 
+
+Evaluation. Following the ICLEval protocol [ 3 ], we use greedy decoding and report exact-match accuracy—the fraction of samples for which the generated string matches the gold label exactly. Exact match is the natural criterion given the unambiguous, hash-based outputs. 
+
+Models. We evaluate a range of models spanning different sizes, architectures, and developers: Llama 3.1-8B [ 9 ], Qwen3-4B [ 52 ], and Gemma 2-2B [ 40 ]. Smaller models such as GPT-2 [ 35 ] and Phi-2 [ 10 ] were excluded because their context windows (1024 and 2048 tokens) fall short of the longest prompts in ICLEval (2100 tokens). 7Llama 3.1-8B Qwen3-4B Gemma 2-2B Task 𝑛 Base Ours Δ (%) Base Ours Δ (%) Base Ours Δ (%) String Completion 100 0.57 0.57 = 0.90 0.90 = 0.87 0.87 =                                                                                                                                     
+
+> Dict. Search 190 0.87 0.87 =0.92 0.92 =0.66 0.66 =
+> Format Check 120 0.07 0.17 +122 .20.17 0.36 +104 .80.07 0.07 =
+> Format Cloning 100 0.97 0.97 =0.85 0.89 +4 .70.71 0.84 +18 .3
+> Format Conversion 120 0.86 0.88 +2 .90.72 0.77 +5 .70.65 0.71 +9 .0
+> Order Check 100 0.98 0.98 =1.00 1.00 =0.78 0.79 +1 .3
+> Order Adjustment 240 0.86 0.95 +10 .70.60 0.70 +18 .20.37 0.40 +6 .7
+> Duplication Check 300 0.69 0.76 +11 .70.73 0.75 +3 .20.49 0.53 +7 .4
+> De-Duplication 300 0.75 0.85 +13 .80.70 0.85 +20 .40.24 0.28 +15 .1
+> Count & Navigation 120 0.29 0.34 +17 .10.43 0.51 +17 .30.03 0.03 =
+> Relation Analysis 100 0.47 0.56 +19 .20.27 0.35 +29 .60.03 0.12 +300 .0
+> List Mapping 250 0.63 0.66 +5 .10.56 0.62 +11 .40.48 0.48 =
+> Mean 0.67 0.71 +6 .00.65 0.72 +10 .80.45 0.48 +6 .7
+> Table 1. Per-task exact-match accuracy on ICLEval ( 𝑛 : number of test samples). Boldface indicates strict improvement over the base model; Δdenotes relative improvement (%). One-sided McNemar test ( 𝐻 1: Ours >Base) across all 2,040 samples: 𝑝 = 0 .001 for Llama 3.1-8B, 𝑝 = 0 .038 for Qwen3-4B, 𝑝 < 0.001 for Gemma 2-2B. Baseline comparisons on the classification subset are reported in Table 2.
+
+Hyperparameters. We use 𝑁 = 16 for Llama 3.1-8B and 𝑁 = 8 for Qwen3-4B and Gemma 2-2B. The configuration 𝛼 = 0 .6, 𝛽 = 0 .3, 𝛾 = 0 .1 is selected; the small value of 𝛾 keeps the information-gain term from suppressing absolute confidence (Component 1). The proxy gate threshold is set to 𝜏 = 0 .05 . Optimization is terminated when the proxy fails to improve for 5 consecutive steps. Complete hyperparameter settings and sweep details are provided in Appendix B.3. 
+
+5.1 Main Results 
+
+Table 1 reports per-task results for all three models. Across all three models, our method either matches or improves base-model accuracy on every task, never causing degradation—a property enforced by the regularization mechanisms. The per-model improvements are statistically significant under the one-sided McNemar test ( 𝑝 = 0 .001 for Llama, 𝑝 = 0 .038 for Qwen, 𝑝 < 0.001 for Gemma), which operates at the individual-sample level and accounts for both improved and degraded predictions. On exact-copying tasks (String Completion, Dictionary Search), accuracy remains unchanged across all models. Here, improvements in the proxy do not transfer to query-level accuracy, i.e., increasing confidence on exemplar sequences does not help the model reproduce a specific target hash sequence. For rule-learning tasks, improvement depends not on base accuracy alone but on whether the model possesses a latent task-specific capability that the proxy can surface. Gemma 2-2B illustrates this clearly: Relation Analysis and Count & Navigation share the same base accuracy (0.03), yet only the former improves (0.03 → 0.12 ). At the opposite extreme, near-ceiling tasks leave no room for further gains. Between these two regimes, where capability exists but remains underutilized, improvements are consistent across format, order, statistics, and list-mapping rules. 8Task Model CC DC-PMI DEmO Ours Format Check Llama 3.1-8B — — 0.16 0.17                                    
+
+> Qwen3-4B ——0.17 0.36
+> Gemma 2-2B ——0.85 0.07 Order Check Llama 3.1-8B 0.98 0.98 0.98 0.98 Qwen3-4B 1.00 1.00 1.00 1.00 Gemma 2-2B 0.79 0.70 0.87 0.79 Duplication Check Llama 3.1-8B 0.60 0.67 0.70 0.76
+> Qwen3-4B 0.60 0.73 0.68 0.75
+> Gemma 2-2B 0.48 0.50 0.56 0.53
+> Table 2. Baseline comparison on the classification subset of ICLEval. CC and DC-PMI require a single-token label space (Order Check and Duplication Check only); DEmO also applies to Format Check. Best and tied best results are highlighted.
+
+Comparison with the baselines. Table 2 reports the numerical comparison on the classification subset. Our method outperforms all baselines on Llama and Qwen despite operating without a predefined label space. On Gemma—the smallest and most ordering-sensitive model—DEmO is the strongest baseline, most notably on Format Check ( 0.85 vs. 0.07 ): by processing exemplars independently, DEmO bypasses the compositional difficulty Gemma faces when attending over the full demonstration sequence. On larger models, DEmO’s ordering-based approach yields diminishing returns. CC and DC-PMI degrade Duplication Check accuracy on Llama and Qwen through overcalibration of their content-free bias estimates. All baselines require a finite label space, restricting them to the classification subset, whereas the proposed method applies fully task-agnostic. 
+
+Computational cost. Each optimization step requires 𝑁 +1 forward passes (one base evaluation and 
+
+𝑁 perturbations). Because the proxy is non-stationary (i.e., each embedding update changes the log-probabilities from which it is computed), conservative learning rates are necessary; per-task iteration counts are reported in Table 6 (Appendix B.6). 
+
+5.2 Proxy–Performance Correlation 
+
+For the proxy to serve as a meaningful optimization signal, improvements in its value should translate to improvements in downstream performance. We test this by examining whether tasks with greater proxy improvement also exhibit greater accuracy gains. For each of the 12 tasks, we compute the mean per-sample proxy improvement and the change in accuracy between the optimized and baseline prompts. Figure 1 plots accuracy improvement against proxy improvement, with each point representing one task. To quantify the monotonic association, we apply a one-sided Spearman rank correlation test ( 𝐻 1 ∶ 𝜌 > 0). Across all 12 tasks, the correlation between proxy and accuracy improvements is statistically significant for Llama and Gemma, but not for Qwen. Two tasks account for the weaker correlation observed in Qwen. Order Check achieves perfect baseline accuracy, leaving no room for improvement and rendering its inclusion uninformative. Duplication Check exhibits large proxy improvement with minimal accuracy gain: its label vocabulary consists of only two tokens (True/False), so the task is already well understood by the model. Continued optimization beyond consolidating this understanding begins to overfit to the output format rather than improving the input– output mapping, inflating confidence without improving discrimination. These proxy gains do not transfer 90.00 0.05 0.10 0.15 0.20 
+
+Mean Proxy Improvement 
+
+> 0.00
+> 0.02
+> 0.04
+> 0.06
+> 0.08
+> 0.10
+> Accuracy Improvement
+> Str. Completion
+> Dict. Search
+> Format Ch.
+> Format Cl. Format Conv.
+> Order Check
+> Order Adj.
+> Dup. Check
+> De-duplication
+> Count & Nav.
+> Rel. Analysis
+> List Map.
+
+(a) Llama 3.1-8B 0.00 0.05 0.10 0.15 0.20 0.25 0.30 
+
+Mean Proxy Improvement   
+
+> 0.000
+> 0.025
+> 0.050
+> 0.075
+> 0.100
+> 0.125
+> 0.150
+> 0.175
+> Accuracy Improvement
+> Str. Completion Dict. Search
+> Format Ch.
+> Format Cl. Format Conv.
+> Order Check
+> Order Adj.
+> Dup. Check
+> De-duplication
+> Count & Nav.
+> Rel. Analysis
+> List Map.
+
+(b) Qwen3-4B 0.05 0.10 0.15 0.20 0.25 0.30 0.35 0.40 
+
+Mean Proxy Improvement  
+
+> 0.00
+> 0.02
+> 0.04
+> 0.06
+> 0.08
+> 0.10
+> 0.12
+> Accuracy Improvement
+> Str. Comp.
+> Dict. Search
+> Format Ch.
+> Format Cl.
+> Format Conv.
+> Order Check
+> Order Adj.
+> Dup. Check De-duplication
+> Count & Nav.
+> Rel. Analysis
+> List Map.
+
+(c) Gemma 2-2B 
+
+Figure 1. Proxy improvement versus accuracy improvement across all 12 ICLEval tasks. A one-sided Spearman rank correlation test ( 𝐻 1 ∶ 𝜌 > 0) yields a statistically significant positive association across all models and tasks combined. (C) (R) (G)
+
+Format Check 
+
+Order Adj. 
+
+De-duplication 
+
+Count & Nav. 
+
+Rel. Analysis 
+
+Format Conv. 
+
+Str. Completion 
+
+List Map. 
+
+Format Cloning 
+
+Dup. Check 
+
+Dict. Search 
+
+Order Check 
+
+-0.19 -0.08 -0.03 
+
+-0.09 -0.03 -0.03 
+
+-0.06 +0.01 +0.03 
+
+-0.07 0.00 -0.02 
+
++0.01 +0.04 -0.04 
+
+-0.03 -0.04 -0.02 
+
+-0.02 -0.02 -0.04 
+
+-0.04 -0.01 -0.01 
+
+-0.04 0.00 -0.01 
+
+-0.02 0.00 0.00 
+
+0.00 -0.01 -0.01 
+
+0.00 0.00 0.00 
+
+(a) Proxy component ablation 0.06 0.04 0.02 0.00 0.02 0.04 
+
+Accuracy (vs. Exemplar-Only) 
+
+Str. Completion 
+
+Format Conv. 
+
+Order Adj. 
+
+Order Check 
+
+Rel. Analysis 
+
+Count & Nav. 
+
+Format Cloning 
+
+List Map. 
+
+Dict. Search 
+
+De-duplication 
+
+Format Check 
+
+Dup. Check 
+
+-0.060 
+
+-0.058 
+
+-0.046 
+
+-0.030 
+
+-0.030 
+
+-0.025 
+
+-0.020 
+
+-0.004 
+
+0.000 
+
++0.003 
+
++0.008 
+
++0.033 (b) Perturbation domain 
+
+Figure 2. Ablation studies of the proposed three-component proxy ( 𝛼 =0 .6, 𝛽 =0 .3, 𝛾 =0 .1) and the perturbation domain used in end-to-end calibration. (a) Each proxy component is ablated by setting its coefficient to zero and renormalizing the remaining weights. (b) Accuracy difference between the default perturbation domain (demonstration embeddings only) and full-sequence perturbation that includes query positions. Results are reported for Qwen3-4B. 
+
+to the query position; the model becomes more certain about predicting True or False, but no more accurate. We identify this as a mild limitation as it can be addressed with stricter early stopping. Excluding these two tasks, the Spearman test yields a statistically significant positive rank correlation at 95% confidence. Fisher’s combined Spearman test across all models achieves statistical significance ( 𝜒 2 = 13 .95 ,
+
+𝑝 = 0 .03 ) even when Order Check and Duplication Check are included, confirming that the ICL confidence proxy is a meaningful optimization signal for in-context learning .
+
+5.3 Ablations and Sensitivity Analysis 
+
+To understand the contribution of each proxy component, we perform ablations by setting the corresponding coefficient to zero and renormalizing the remaining weights relative to the original configuration ( 𝛼 =0 .6,
+
+𝛽 =0 .3, 𝛾 =0 .1). We also examine the effect of perturbing the full token sequence (including query positions) versus perturbing only the demonstration embeddings, as in the default setting. The results are shown in Figure 2. 10 N=2 N=4 N=8 * N=16 N=32                                                 
+
+> Format Check
+> Format Cloning
+> Count & Nav.
+> Format Conv.
+> Dup. Check
+> List Map.
+> Str. Completion
+> De-duplication
+> Dict. Search
+> Order Adj.
+> Order Check
+> Rel. Analysis
+> 0.00 -0.36 0.00 0.00 -0.36
+> -0.22 -0.22 0.00 0.00 +0.22
+> 0.00 +0.10 0.00 +0.10 +0.10
+> -0.10 0.00 0.00 -0.10 -0.10
+> +0.06 -0.06 0.00 -0.06 -0.06
+> -0.08 0.00 0.00 0.00 +0.08
+> 0.00 0.00 0.00 0.00 0.00
+> 0.00 -0.06 0.00 0.00 0.00
+> 0.00 0.00 0.00 -0.09 0.00
+> 0.00 0.00 0.00 0.00 0.00
+> 0.00 0.00 0.00 0.00 0.00
+> 0.00 0.00 0.00 0.00 0.00
+
+(a) 𝑁 (Monte Carlo samples) 0.1 × 0.25 × 0.5 × 1.0 × * 2.0 ×                                                  
+
+> 0.00 -0.36 +0.36 0.00 0.00
+> 0.00 +0.22 0.00 0.00 +0.22
+> -0.10 -0.10 -0.10 0.00 -0.10
+> -0.10 0.00 0.00 0.00 -0.10
+> 0.00 +0.06 -0.06 0.00 +0.06
+> 0.00 0.00 +0.08 0.00 -0.08
+> 0.00 0.00 -0.30 0.00 0.00
+> -0.06 -0.06 -0.06 0.00 -0.06
+> 0.00 0.00 -0.09 0.00 0.00
+> 0.00 0.00 0.00 0.00 0.00
+> 0.00 0.00 0.00 0.00 0.00
+> 0.00 0.00 0.00 0.00 0.00
+
+(b) 𝜇 (perturbation scale) 
+
+Figure 3. Downstream accuracy under varying perturbation sample counts 𝑁 and perturbation scales, expressed as fractions of the optimal value 𝜇 = 0 .004 , with all other hyperparameters held fixed. Results are reported for Qwen3-4B, where (∗) indicates the values used in the main experiments. 
+
+The confidence component ( ̄ 𝐶 ) is clearly the primary driver of the method’s gains: removing it reduces the fraction of samples that improve during optimization from over 90% to roughly half, and cuts the average proxy improvement by approximately 40%. The robustness component ( 𝑅 ) follows in importance—without it, the optimization remains broadly effective but achieves lower proxy improvement, indicating that low-probability outlier tokens are common enough for the tail-confidence signal to provide a meaningful complementary gradient direction that the mean alone cannot capture. Removing the information gain component ( 𝐺 ) has the least effect; its small weight ( 𝛾 = 0 .1) means the redistribution to the remaining two components preserves—and even marginally sharpens—the optimization signal. Perturbing the full token sequence degrades downstream accuracy on the tasks whose optimization trajectory is affected, confirming that noise at query positions, where the proxy gradient has zero expectation, accumulates into drift that distorts the query representation without a compensating proxy benefit. The quality of the zeroth-order gradient estimates depends directly on the perturbation strength 𝜇 and the number of perturbation samples 𝑁 , the latter of which also determines computational cost. We sweep several values of each around the optimal configuration; results are shown in Figure 3. Downstream accuracy varies non-monotonically with both parameters, consistent with the standard bias–variance tradeoff in finite-difference gradient estimation (Section 3.3). 
+
+# 6 Conclusion 
+
+We presented a test-time method that improves in-context learning through zeroth-order optimization of the prompt’s continuous embeddings, without finetuning the model, generating any tokens, or requiring auxiliary data. The optimization objective is a bounded, self-supervised confidence proxy derived entirely 11 from the model’s log-probabilities on its demonstrated outputs, capturing per-demonstration predictive confidence, tail robustness across output tokens, and progressive improvement in predictions along the demonstration sequence. Across models spanning 2B to 8B parameters, the method never degrades base-model accuracy and with statistically significant improvements across all evaluated models, it outperforms classification-specific baselines on most tasks despite requiring no predefined label set. The statistically significant correlation between proxy and accuracy improvement, consistent across diverse task types and model scales, confirms that demonstration log-probabilities constitute a reliable optimization surface—one whose ascent direction aligns with downstream performance, rather than merely a scoring function for selecting or ranking prompts. A natural extension is to compose this calibration with existing demonstration selection or ordering strategies—for instance, applying embedding optimization on a prompt whose demonstrations have already been selected or reordered. 
+
+# Limitations 
+
+The method requires that output-span positions are known and that exemplar labels are correct; it has not been validated on prompts with fewer than three demonstrations. Additionally, since the proxy is non-stationary (each embedding update changes the log-probabilities from which it is computed), conservative learning rates are necessary, which may increase the number of optimization steps. In practice, however, this overhead remained modest: the longest per-sample runtime in our experiments (Qwen3-4B on Format Check; see Table 6 in the appendix) was roughly a minute and could be further reduced with optimized inference stacks (see Appendix B.4). 
+
+# References 
+
+[1] Rahul Atul Bhope, Praveen Venkateswaran, K. R. Jayaram, Vatche Isahagian, Vinod Muthusamy, and Nalini Venkatasubramanian. OptiSeq: Ordering examples on-the-fly for in-context learning. In Christos Christodoulopoulos, Tanmoy Chakraborty, Carolyn Rose, and Violet Peng, editors, Findings of the Association for Computational Linguistics: EMNLP 2025 , pages 24864–24887, Suzhou, China, November 2025. Association for Computational Linguistics. ISBN 979-8-89176-335-7. doi: 10.18653/ v1/2025.findings-emnlp.1353. URL https://aclanthology.org/2025.findings-emnlp.1353/ .[2] Tom B. Brown, Benjamin Mann, Nick Ryder, Melanie Subbiah, Jared Kaplan, Prafulla Dhariwal, Arvind Neelakantan, Pranav Shyam, Girish Sastry, Amanda Askell, Sandhini Agarwal, Ariel Herbert-Voss, Gretchen Krueger, Tom Henighan, Rewon Child, Aditya Ramesh, Daniel M. Ziegler, Jeffrey Wu, Clemens Winter, Christopher Hesse, Mark Chen, Eric Sigler, Mateusz Litwin, Scott Gray, Benjamin Chess, Jack Clark, Christopher Berner, Sam McCandlish, Alec Radford, Ilya Sutskever, and Dario Amodei. Language models are few-shot learners, 2020. [3] Wentong Chen, Yankai Lin, ZhenHao Zhou, HongYun Huang, YanTao Jia, Zhao Cao, and Ji-Rong Wen. ICLEval: Evaluating in-context learning ability of large language models. In Owen Rambow, Leo Wanner, Marianna Apidianaki, Hend Al-Khalifa, Barbara Di Eugenio, and Steven Schockaert, editors, Proceedings of the 31st International Conference on Computational Linguistics , pages 10398– 10422, Abu Dhabi, UAE, January 2025. Association for Computational Linguistics. URL https: //aclanthology.org/2025.coling-main.693/ .[4] Hakaze Cho, Yoshihiro Sakai, Mariko Kato, Kenshiro Tanaka, Akira Ishii, and Naoya Inoue. Token-based decision criteria are suboptimal in in-context learning. In Luis Chiruzzo, Alan Ritter, and 12 Lu Wang, editors, Proceedings of the 2025 Conference of the Nations of the Americas Chapter of the Association for Computational Linguistics: Human Language Technologies (Volume 1: Long Papers) ,pages 5378–5401, Albuquerque, New Mexico, April 2025. Association for Computational Linguistics. ISBN 979-8-89176-189-6. doi: 10.18653/v1/2025.naacl-long.278. URL https://aclanthology.org/ 2025.naacl-long.278/ .[5] Damai Dai, Yutao Sun, Li Dong, Yaru Hao, Shuming Ma, Zhifang Sui, and Furu Wei. Why can GPT learn in-context? language models secretly perform gradient descent as meta-optimizers. In Anna Rogers, Jor-dan Boyd-Graber, and Naoaki Okazaki, editors, Findings of the Association for Computational Linguistics: ACL 2023 , pages 4005–4019, Toronto, Canada, July 2023. Association for Computational Linguistics. doi: 10.18653/v1/2023.findings-acl.247. URL https://aclanthology.org/2023.findings-acl.247/ .[6] Yu Fei, Yifan Hou, Zeming Chen, and Antoine Bosselut. Mitigating label biases for in-context learning. In Anna Rogers, Jordan Boyd-Graber, and Naoaki Okazaki, editors, Proceedings of the 61st Annual Meeting of the Association for Computational Linguistics (Volume 1: Long Papers) , pages 14014–14031, Toronto, Canada, July 2023. Association for Computational Linguistics. doi: 10.18653/v1/2023.acl-long.783. URL https://aclanthology.org/2023.acl-long.783/ .[7] Yao Fu, Hao Peng, Ashish Sabharwal, Peter Clark, and Tushar Khot. Complexity-based prompting for multi-step reasoning, 2023. URL https://arxiv.org/abs/2210.00720 .[8] Tanmay Gautam, Youngsuk Park, Hao Zhou, Parameswaran Raman, and Wooseok Ha. Variance-reduced zeroth-order methods for fine-tuning language models. In Forty-first International Conference on Machine Learning , 2024. URL https://openreview.net/forum?id=VHO4nE7v41 .[9] Aaron Grattafiori, Abhimanyu Dubey, Abhinav Jauhri, Abhinav Pandey, Abhishek Kadian, Ahmad Al-Dahle, Aiesha Letman, Akhil Mathur, Alan Schelten, Alex Vaughan, Amy Yang, Angela Fan, Anirudh Goyal, Anthony Hartshorn, Aobo Yang, Archi Mitra, Archie Sravankumar, Artem Korenev, Arthur Hinsvark, Arun Rao, Aston Zhang, Aurelien Rodriguez, Austen Gregerson, Ava Spataru, Baptiste Roziere, Bethany Biron, Binh Tang, Bobbie Chern, Charlotte Caucheteux, Chaya Nayak, Chloe Bi, Chris Marra, Chris McConnell, Christian Keller, Christophe Touret, Chunyang Wu, Corinne Wong, Cristian Canton Ferrer, Cyrus Nikolaidis, Damien Allonsius, Daniel Song, Danielle Pintz, Danny Livshits, Danny Wyatt, David Esiobu, Dhruv Choudhary, Dhruv Mahajan, Diego Garcia-Olano, Diego Perino, Dieuwke Hupkes, Egor Lakomkin, Ehab AlBadawy, Elina Lobanova, Emily Dinan, Eric Michael Smith, Filip Radenovic, Francisco Guzmán, Frank Zhang, Gabriel Synnaeve, Gabrielle Lee, Georgia Lewis Anderson, Govind Thattai, Graeme Nail, Gregoire Mialon, Guan Pang, Guillem Cucurell, Hailey Nguyen, Hannah Korevaar, Hu Xu, Hugo Touvron, Iliyan Zarov, Imanol Arrieta Ibarra, Isabel Kloumann, Ishan Misra, Ivan Evtimov, Jack Zhang, Jade Copet, Jaewon Lee, Jan Geffert, Jana Vranes, Jason Park, Jay Mahadeokar, Jeet Shah, Jelmer van der Linde, Jennifer Billock, Jenny Hong, Jenya Lee, Jeremy Fu, Jianfeng Chi, Jianyu Huang, Jiawen Liu, Jie Wang, Jiecao Yu, Joanna Bitton, Joe Spisak, Jongsoo Park, Joseph Rocca, Joshua Johnstun, Joshua Saxe, Junteng Jia, Kalyan Vasuden Alwala, Karthik Prasad, Kartikeya Upasani, Kate Plawiak, Ke Li, Kenneth Heafield, Kevin Stone, Khalid El-Arini, Krithika Iyer, Kshitiz Malik, Kuenley Chiu, Kunal Bhalla, Kushal Lakhotia, Lauren Rantala-Yeary, Laurens van der Maaten, Lawrence Chen, Liang Tan, Liz Jenkins, Louis Martin, Lovish Madaan, Lubo Malo, Lukas Blecher, Lukas Landzaat, Luke de Oliveira, Madeline Muzzi, Mahesh Pasupuleti, Mannat Singh, Manohar Paluri, Marcin Kardas, Maria Tsimpoukelli, Mathew Oldham, Mathieu Rita, Maya Pavlova, Melanie Kambadur, Mike Lewis, Min Si, Mitesh Kumar Singh, Mona Hassan, Naman Goyal, Narjes Torabi, Nikolay Bashlykov, Nikolay Bogoychev, Niladri Chatterji, Ning Zhang, Olivier Duchenne, Onur Çelebi, Patrick Alrassy, Pengchuan Zhang, Pengwei Li, Petar Vasic, Peter Weng, Prajjwal Bhargava, Pratik Dubal, Praveen Krishnan, Punit Singh Koura, Puxin Xu, Qing He, Qingxiao 13 Dong, Ragavan Srinivasan, Raj Ganapathy, Ramon Calderer, Ricardo Silveira Cabral, Robert Stojnic, Roberta Raileanu, Rohan Maheswari, Rohit Girdhar, Rohit Patel, Romain Sauvestre, Ronnie Polidoro, Roshan Sumbaly, Ross Taylor, Ruan Silva, Rui Hou, Rui Wang, Saghar Hosseini, Sahana Chennabasappa, Sanjay Singh, Sean Bell, Seohyun Sonia Kim, Sergey Edunov, Shaoliang Nie, Sharan Narang, Sharath Raparthy, Sheng Shen, Shengye Wan, Shruti Bhosale, Shun Zhang, Simon Vandenhende, Soumya Batra, Spencer Whitman, Sten Sootla, Stephane Collot, Suchin Gururangan, Sydney Borodinsky, Tamar Herman, Tara Fowler, Tarek Sheasha, Thomas Georgiou, Thomas Scialom, Tobias Speckbacher, Todor Mihaylov, Tong Xiao, Ujjwal Karn, Vedanuj Goswami, Vibhor Gupta, Vignesh Ramanathan, Viktor Kerkez, Vincent Gonguet, Virginie Do, Vish Vogeti, Vítor Albiero, Vladan Petrovic, Weiwei Chu, Wenhan Xiong, Wenyin Fu, Whitney Meers, Xavier Martinet, Xiaodong Wang, Xiaofang Wang, Xiaoqing Ellen Tan, Xide Xia, Xinfeng Xie, Xuchao Jia, Xuewei Wang, Yaelle Goldschlag, Yashesh Gaur, Yasmine Babaei, Yi Wen, Yiwen Song, Yuchen Zhang, Yue Li, Yuning Mao, Zacharie Delpierre Coudert, Zheng Yan, Zhengxing Chen, Zoe Papakipos, Aaditya Singh, Aayushi Srivastava, Abha Jain, Adam Kelsey, Adam Shajnfeld, Adithya Gangidi, Adolfo Victoria, Ahuva Goldstand, Ajay Menon, Ajay Sharma, Alex Boesenberg, Alexei Baevski, Allie Feinstein, Amanda Kallet, Amit Sangani, Amos Teo, Anam Yunus, Andrei Lupu, Andres Alvarado, Andrew Caples, Andrew Gu, Andrew Ho, Andrew Poulton, Andrew Ryan, Ankit Ramchandani, Annie Dong, Annie Franco, Anuj Goyal, Aparajita Saraf, Arkabandhu Chowdhury, Ashley Gabriel, Ashwin Bharambe, Assaf Eisenman, Azadeh Yazdan, Beau James, Ben Maurer, Benjamin Leonhardi, Bernie Huang, Beth Loyd, Beto De Paola, Bhargavi Paranjape, Bing Liu, Bo Wu, Boyu Ni, Braden Hancock, Bram Wasti, Brandon Spence, Brani Stojkovic, Brian Gamido, Britt Montalvo, Carl Parker, Carly Burton, Catalina Mejia, Ce Liu, Changhan Wang, Changkyu Kim, Chao Zhou, Chester Hu, Ching-Hsiang Chu, Chris Cai, Chris Tindal, Christoph Feichtenhofer, Cynthia Gao, Damon Civin, Dana Beaty, Daniel Kreymer, Daniel Li, David Adkins, David Xu, Davide Testuggine, Delia David, Devi Parikh, Diana Liskovich, Didem Foss, Dingkang Wang, Duc Le, Dustin Holland, Edward Dowling, Eissa Jamil, Elaine Montgomery, Eleonora Presani, Emily Hahn, Emily Wood, Eric-Tuan Le, Erik Brinkman, Esteban Arcaute, Evan Dunbar, Evan Smothers, Fei Sun, Felix Kreuk, Feng Tian, Filippos Kokkinos, Firat Ozgenel, Francesco Caggioni, Frank Kanayet, Frank Seide, Gabriela Medina Florez, Gabriella Schwarz, Gada Badeer, Georgia Swee, Gil Halpern, Grant Herman, Grigory Sizov, Guangyi, Zhang, Guna Lakshminarayanan, Hakan Inan, Hamid Shojanazeri, Han Zou, Hannah Wang, Hanwen Zha, Haroun Habeeb, Harrison Rudolph, Helen Suk, Henry Aspegren, Hunter Goldman, Hongyuan Zhan, Ibrahim Damlaj, Igor Molybog, Igor Tufanov, Ilias Leontiadis, Irina-Elena Veliche, Itai Gat, Jake Weissman, James Geboski, James Kohli, Janice Lam, Japhet Asher, Jean-Baptiste Gaya, Jeff Marcus, Jeff Tang, Jennifer Chan, Jenny Zhen, Jeremy Reizenstein, Jeremy Teboul, Jessica Zhong, Jian Jin, Jingyi Yang, Joe Cummings, Jon Carvill, Jon Shepard, Jonathan McPhie, Jonathan Torres, Josh Ginsburg, Junjie Wang, Kai Wu, Kam Hou U, Karan Saxena, Kartikay Khandelwal, Katayoun Zand, Kathy Matosich, Kaushik Veeraraghavan, Kelly Michelena, Keqian Li, Kiran Jagadeesh, Kun Huang, Kunal Chawla, Kyle Huang, Lailin Chen, Lakshya Garg, Lavender A, Leandro Silva, Lee Bell, Lei Zhang, Liangpeng Guo, Licheng Yu, Liron Moshkovich, Luca Wehrstedt, Madian Khabsa, Manav Avalani, Manish Bhatt, Martynas Mankus, Matan Hasson, Matthew Lennie, Matthias Reso, Maxim Groshev, Maxim Naumov, Maya Lathi, Meghan Keneally, Miao Liu, Michael L. Seltzer, Michal Valko, Michelle Restrepo, Mihir Patel, Mik Vyatskov, Mikayel Samvelyan, Mike Clark, Mike Macey, Mike Wang, Miquel Jubert Hermoso, Mo Metanat, Mohammad Rastegari, Munish Bansal, Nandhini Santhanam, Natascha Parks, Natasha White, Navyata Bawa, Nayan Singhal, Nick Egebo, Nicolas Usunier, Nikhil Mehta, Nikolay Pavlovich Laptev, Ning Dong, Norman Cheng, Oleg Chernoguz, Olivia Hart, Omkar Salpekar, Ozlem Kalinli, Parkin Kent, Parth Parekh, Paul Saab, Pavan Balaji, Pedro Rittner, Philip Bontrager, Pierre Roux, Piotr Dollar, Polina Zvyagina, Prashant Ratanchandani, Pritish Yuvraj, Qian Liang, Rachad Alao, Rachel Rodriguez, Rafi Ayub, Raghotham Murthy, Raghu Nayani, Rahul Mitra, Rangaprabhu Parthasarathy, Raymond Li, Rebekkah Hogan, Robin Battey, Rocky 14 Wang, Russ Howes, Ruty Rinott, Sachin Mehta, Sachin Siby, Sai Jayesh Bondu, Samyak Datta, Sara Chugh, Sara Hunt, Sargun Dhillon, Sasha Sidorov, Satadru Pan, Saurabh Mahajan, Saurabh Verma, Seiji Yamamoto, Sharadh Ramaswamy, Shaun Lindsay, Shaun Lindsay, Sheng Feng, Shenghao Lin, Shengxin Cindy Zha, Shishir Patil, Shiva Shankar, Shuqiang Zhang, Shuqiang Zhang, Sinong Wang, Sneha Agarwal, Soji Sajuyigbe, Soumith Chintala, Stephanie Max, Stephen Chen, Steve Kehoe, Steve Satterfield, Sudarshan Govindaprasad, Sumit Gupta, Summer Deng, Sungmin Cho, Sunny Virk, Suraj Subramanian, Sy Choudhury, Sydney Goldman, Tal Remez, Tamar Glaser, Tamara Best, Thilo Koehler, Thomas Robinson, Tianhe Li, Tianjun Zhang, Tim Matthews, Timothy Chou, Tzook Shaked, Varun Vontimitta, Victoria Ajayi, Victoria Montanez, Vijai Mohan, Vinay Satish Kumar, Vishal Mangla, Vlad Ionescu, Vlad Poenaru, Vlad Tiberiu Mihailescu, Vladimir Ivanov, Wei Li, Wenchen Wang, Wenwen Jiang, Wes Bouaziz, Will Constable, Xiaocheng Tang, Xiaojian Wu, Xiaolan Wang, Xilun Wu, Xinbo Gao, Yaniv Kleinman, Yanjun Chen, Ye Hu, Ye Jia, Ye Qi, Yenda Li, Yilin Zhang, Ying Zhang, Yossi Adi, Youngjin Nam, Yu, Wang, Yu Zhao, Yuchen Hao, Yundi Qian, Yunlu Li, Yuzi He, Zach Rait, Zachary DeVito, Zef Rosnbrick, Zhaoduo Wen, Zhenyu Yang, Zhiwei Zhao, and Zhiyu Ma. The llama 3 herd of models, 2024. URL https://arxiv.org/abs/2407.21783 .[10] Suriya Gunasekar, Yi Zhang, Jyoti Aneja, Caio César Teodoro Mendes, Allie Del Giorno, Sivakanth Gopi, Mojan Javaheripi, Piero Kauffmann, Gustavo de Rosa, Olli Saarikivi, Adil Salim, Shital Shah, Harkirat Singh Behl, Xin Wang, Sébastien Bubeck, Ronen Eldan, Adam Tauman Kalai, Yin Tat Lee, and Yuanzhi Li. Textbooks are all you need, 2023. URL https://arxiv.org/abs/2306.11644 .[11] Qi Guo, Leiyu Wang, Yidong Wang, Wei Ye, and Shikun Zhang. What makes a good order of examples in in-context learning. In Lun-Wei Ku, Andre Martins, and Vivek Srikumar, editors, Findings of the Association for Computational Linguistics: ACL 2024 , pages 14892–14904, Bangkok, Thailand, August 2024. Association for Computational Linguistics. doi: 10.18653/v1/2024.findings-acl.884. URL 
+
+https://aclanthology.org/2024.findings-acl.884/ .[12] Zhixiong Han, Yaru Hao, Li Dong, Yutao Sun, and Furu Wei. Prototypical calibration for few-shot learning of language models. In The Eleventh International Conference on Learning Representations ,2023. URL https://openreview.net/forum?id=nUsP9lFADUF .[13] Roee Hendel, Mor Geva, and Amir Globerson. In-context learning creates task vectors. In Houda Bouamor, Juan Pino, and Kalika Bali, editors, Findings of the Association for Computational Linguistics: EMNLP 2023 , pages 9318–9333, Singapore, December 2023. Association for Computational Linguis-tics. doi: 10.18653/v1/2023.findings-emnlp.624. URL https://aclanthology.org/2023.findings-emnlp.624/ .[14] Dan Hendrycks, Collin Burns, Steven Basart, Andy Zou, Mantas Mazeika, Dawn Song, and Jacob Steinhardt. Measuring massive multitask language understanding. Proceedings of the International Conference on Learning Representations (ICLR) , 2021. [15] Ari Holtzman, Peter West, Vered Shwartz, Yejin Choi, and Luke Zettlemoyer. Surface form competition: Why the highest probability answer isn’t always right. In Marie-Francine Moens, Xuanjing Huang, Lucia Specia, and Scott Wen-tau Yih, editors, Proceedings of the 2021 Conference on Empirical Methods in Natural Language Processing , pages 7038–7051, Online and Punta Cana, Dominican Republic, November 2021. Association for Computational Linguistics. doi: 10.18653/v1/2021.emnlp-main.564. URL https://aclanthology.org/2021.emnlp-main.564/ .[16] Hyuhng Joon Kim, Hyunsoo Cho, Junyeob Kim, Taeuk Kim, Kang Min Yoo, and Sang goo Lee. Self-generated in-context learning: Leveraging auto-regressive language models as a demonstration generator, 2022. URL https://arxiv.org/abs/2206.08082 .15 [17] Sawan Kumar. Answer-level calibration for free-form multiple choice question answering. In Smaranda Muresan, Preslav Nakov, and Aline Villavicencio, editors, Proceedings of the 60th Annual Meeting of the Association for Computational Linguistics (Volume 1: Long Papers) , pages 665–679, Dublin, Ireland, May 2022. Association for Computational Linguistics. doi: 10.18653/v1/2022.acl-long.49. URL 
+
+https://aclanthology.org/2022.acl-long.49/ .[18] Woosuk Kwon, Zhuohan Li, Siyuan Zhuang, Ying Sheng, Lianmin Zheng, Cody Hao Yu, Joseph E. Gonzalez, Hao Zhang, and Ion Stoica. Efficient memory management for large language model serving with pagedattention. In Proceedings of the ACM SIGOPS 29th Symposium on Operating Systems Principles , 2023. [19] Itay Levy, Ben Bogin, and Jonathan Berant. Diverse demonstrations improve in-context compositional generalization. In Anna Rogers, Jordan Boyd-Graber, and Naoaki Okazaki, editors, Proceedings of the 61st Annual Meeting of the Association for Computational Linguistics (Volume 1: Long Papers) , pages 1401– 1422, Toronto, Canada, July 2023. Association for Computational Linguistics. doi: 10.18653/v1/2023.acl-long.78. URL https://aclanthology.org/2023.acl-long.78/ .[20] Xiaonan Li and Xipeng Qiu. Finding support examples for in-context learning. In Houda Bouamor, Juan Pino, and Kalika Bali, editors, Findings of the Association for Computational Linguistics: EMNLP 2023 , pages 6219–6235, Singapore, December 2023. Association for Computational Linguistics. doi: 10. 18653/v1/2023.findings-emnlp.411. URL https://aclanthology.org/2023.findings-emnlp.411/ .[21] Yingjie Li, Yun Luo, Xiaotian Xie, and Yue Zhang. Task calibration: Calibrating large language models on inference tasks. In Wanxiang Che, Joyce Nabende, Ekaterina Shutova, and Mohammad Taher Pilehvar, editors, Findings of the Association for Computational Linguistics: ACL 2025 , pages 6937–6951, Vienna, Austria, July 2025. Association for Computational Linguistics. ISBN 979-8-89176-256-5. doi: 10.18653/v1/2025.findings-acl.362. URL https://aclanthology.org/2025.findings-acl.362/ .[22] Haoyu Liu, Jianfeng Liu, Shaohan Huang, Yuefeng Zhan, Hao Sun, Weiwei Deng, Furu Wei, and Qi Zhang. 𝑠𝑒 2: Sequential example selection for in-context learning. In Lun-Wei Ku, Andre Martins, and Vivek Srikumar, editors, Findings of the Association for Computational Linguistics: ACL 2024 ,pages 5262–5284, Bangkok, Thailand, August 2024. Association for Computational Linguistics. doi: 10.18653/v1/2024.findings-acl.312. URL https://aclanthology.org/2024.findings-acl.312/ .[23] Jiachang Liu, Dinghan Shen, Yizhe Zhang, Bill Dolan, Lawrence Carin, and Weizhu Chen. What makes good in-context examples for GPT-3? In Eneko Agirre, Marianna Apidianaki, and Ivan Vulić, editors, 
+
+Proceedings of Deep Learning Inside Out (DeeLIO 2022): The 3rd Workshop on Knowledge Extraction and Integration for Deep Learning Architectures , pages 100–114, Dublin, Ireland and Online, May 2022. Association for Computational Linguistics. doi: 10.18653/v1/2022.deelio-1.10. URL https: //aclanthology.org/2022.deelio-1.10/ .[24] Sheng Liu, Haotian Ye, Lei Xing, and James Y. Zou. In-context vectors: Making in context learning more effective and controllable through latent space steering. In Ruslan Salakhutdinov, Zico Kolter, Katherine Heller, Adrian Weller, Nuria Oliver, Jonathan Scarlett, and Felix Berkenkamp, editors, 
+
+Proceedings of the 41st International Conference on Machine Learning , volume 235 of Proceedings of Machine Learning Research , pages 32287–32307. PMLR, 21–27 Jul 2024. URL https://proceedings. mlr.press/v235/liu24bx.html .[25] Yong Liu, Zirui Zhu, Chaoyu Gong, Minhao Cheng, Cho-Jui Hsieh, and Yang You. Sparse meZO: Less parameters for better performance in zeroth-order LLM fine-tuning. In The Thirty-ninth Annual 
+
+16 Conference on Neural Information Processing Systems , 2025. URL https://openreview.net/forum? id=Tjw0ACu3NL .[26] Yao Lu, Max Bartolo, Alastair Moore, Sebastian Riedel, and Pontus Stenetorp. Fantastically ordered prompts and where to find them: Overcoming few-shot prompt order sensitivity. In Smaranda Muresan, Preslav Nakov, and Aline Villavicencio, editors, Proceedings of the 60th Annual Meeting of the Association for Computational Linguistics (Volume 1: Long Papers) , pages 8086–8098, Dublin, Ireland, May 2022. Association for Computational Linguistics. doi: 10.18653/v1/2022.acl-long.556. URL https://aclanthology.org/2022.acl-long.556/ .[27] Xinxi Lyu, Sewon Min, Iz Beltagy, Luke Zettlemoyer, and Hannaneh Hajishirzi. Z-ICL: Zero-shot in-context learning with pseudo-demonstrations. In Anna Rogers, Jordan Boyd-Graber, and Naoaki Okazaki, editors, Proceedings of the 61st Annual Meeting of the Association for Computational Linguistics (Volume 1: Long Papers) , pages 2304–2317, Toronto, Canada, July 2023. Association for Computational Linguistics. doi: 10.18653/v1/2023.acl-long.129. URL https://aclanthology.org/2023.acl-long. 129/ .[28] Sadhika Malladi, Tianyu Gao, Eshaan Nichani, Alex Damian, Jason D. Lee, Danqi Chen, and Sanjeev Arora. Fine-tuning language models with just forward passes. In Thirty-seventh Conference on Neural Information Processing Systems , 2023. URL https://openreview.net/forum?id=Vota6rFhBQ .[29] Sewon Min, Mike Lewis, Hannaneh Hajishirzi, and Luke Zettlemoyer. Noisy channel language model prompting for few-shot text classification. In Smaranda Muresan, Preslav Nakov, and Aline Villavicencio, editors, Proceedings of the 60th Annual Meeting of the Association for Computational Linguistics (Volume 1: Long Papers) , pages 5316–5330, Dublin, Ireland, May 2022. Association for Computational Linguistics. doi: 10.18653/v1/2022.acl-long.365. URL https://aclanthology.org/ 2022.acl-long.365/ .[30] Sewon Min, Xinxi Lyu, Ari Holtzman, Mikel Artetxe, Mike Lewis, Hannaneh Hajishirzi, and Luke Zettlemoyer. Rethinking the role of demonstrations: What makes in-context learning work? In Yoav Goldberg, Zornitsa Kozareva, and Yue Zhang, editors, Proceedings of the 2022 Conference on Empirical Methods in Natural Language Processing , pages 11048–11064, Abu Dhabi, United Arab Emirates, December 2022. Association for Computational Linguistics. doi: 10.18653/v1/2022.emnlp-main.759. URL https://aclanthology.org/2022.emnlp-main.759/ .[31] Yurii Nesterov and Vladimir Spokoiny. Random gradient-free minimization of convex functions. 
+
+Foundations of Computational Mathematics , 17(2):527–566, 2017. doi: 10.1007/s10208-015-9296-2. URL 
+
+https://doi.org/10.1007/s10208-015-9296-2 .[32] Keqin Peng, Liang Ding, Yancheng Yuan, Xuebo Liu, Min Zhang, Yuanxin Ouyang, and Dacheng Tao. Revisiting demonstration selection strategies in in-context learning. In Lun-Wei Ku, Andre Martins, and Vivek Srikumar, editors, Proceedings of the 62nd Annual Meeting of the Association for Computational Linguistics (Volume 1: Long Papers) , pages 9090–9101, Bangkok, Thailand, August 2024. Association for Computational Linguistics. doi: 10.18653/v1/2024.acl-long.492. URL https: //aclanthology.org/2024.acl-long.492/ .[33] Kha Pham, Hung Le, Man Ngo, and Truyen Tran. Rapid selection and ordering of in-context demonstrations via prompt embedding clustering. In Y. Yue, A. Garg, N. Peng, F. Sha, and R. Yu, editors, International Conference on Learning Representations , volume 2025, pages 43540–43556, 2025. URL https://proceedings.iclr.cc/paper_files/paper/2025/file/ 6c2745a8e20271c2e8c7067a2c3c7710-Paper-Conference.pdf .17 [34] Chengwei Qin, Aston Zhang, Chen Chen, Anirudh Dagar, and Wenming Ye. In-context learning with iterative demonstration selection. In Yaser Al-Onaizan, Mohit Bansal, and Yun-Nung Chen, editors, 
+
+Findings of the Association for Computational Linguistics: EMNLP 2024 , pages 7441–7455, Miami, Florida, USA, November 2024. Association for Computational Linguistics. doi: 10.18653/v1/2024.findings-emnlp.438. URL https://aclanthology.org/2024.findings-emnlp.438/ .[35] Alec Radford, Jeff Wu, Rewon Child, David Luan, Dario Amodei, and Ilya Sutskever. Language models are unsupervised multitask learners. OpenAI Blog , 2019. [36] Baturay Saglam and Dionysis Kalogerias. Test-time detoxification without training or learning anything, 2026. URL https://arxiv.org/abs/2602.02498 .[37] Baturay Saglam and Dionysis Kalogerias. Test-time safety alignment, 2026. URL https://arxiv. org/abs/2604.26167 .[38] Baturay Saglam, Xinyang Hu, Zhuoran Yang, Dionysis Kalogerias, and Amin Karbasi. Learning task representations from in-context learning. In Wanxiang Che, Joyce Nabende, Ekaterina Shutova, and Mohammad Taher Pilehvar, editors, Findings of the Association for Computational Linguistics: ACL 2025 , pages 6634–6663, Vienna, Austria, July 2025. Association for Computational Linguistics. ISBN 979-8-89176-256-5. doi: 10.18653/v1/2025.findings-acl.345. URL https://aclanthology.org/2025. findings-acl.345/ .[39] Hongjin SU, Jungo Kasai, Chen Henry Wu, Weijia Shi, Tianlu Wang, Jiayi Xin, Rui Zhang, Mari Ostendorf, Luke Zettlemoyer, Noah A. Smith, and Tao Yu. Selective annotation makes language models better few-shot learners. In The Eleventh International Conference on Learning Representations ,2023. URL https://openreview.net/forum?id=qY1hlv7gwg .[40] Gemma Team, Morgane Riviere, Shreya Pathak, Pier Giuseppe Sessa, Cassidy Hardin, Surya Bhupati-raju, Léonard Hussenot, Thomas Mesnard, Bobak Shahriari, Alexandre Ramé, Johan Ferret, Peter Liu, Pouya Tafti, Abe Friesen, Michelle Casbon, Sabela Ramos, Ravin Kumar, Charline Le Lan, Sammy Jerome, Anton Tsitsulin, Nino Vieillard, Piotr Stanczyk, Sertan Girgin, Nikola Momchev, Matt Hoffman, Shantanu Thakoor, Jean-Bastien Grill, Behnam Neyshabur, Olivier Bachem, Alanna Walton, Aliaksei Severyn, Alicia Parrish, Aliya Ahmad, Allen Hutchison, Alvin Abdagic, Amanda Carl, Amy Shen, Andy Brock, Andy Coenen, Anthony Laforge, Antonia Paterson, Ben Bastian, Bilal Piot, Bo Wu, Brandon Royal, Charlie Chen, Chintu Kumar, Chris Perry, Chris Welty, Christopher A. Choquette-Choo, Danila Sinopalnikov, David Weinberger, Dimple Vijaykumar, Dominika Rogozińska, Dustin Herbison, Elisa Bandy, Emma Wang, Eric Noland, Erica Moreira, Evan Senter, Evgenii Eltyshev, Francesco Visin, Gabriel Rasskin, Gary Wei, Glenn Cameron, Gus Martins, Hadi Hashemi, Hanna Klimczak-Plucińska, Harleen Batra, Harsh Dhand, Ivan Nardini, Jacinda Mein, Jack Zhou, James Svensson, Jeff Stanway, Jetha Chan, Jin Peng Zhou, Joana Carrasqueira, Joana Iljazi, Jocelyn Becker, Joe Fernandez, Joost van Amersfoort, Josh Gordon, Josh Lipschultz, Josh Newlan, Ju yeong Ji, Kareem Mohamed, Kartikeya Badola, Kat Black, Katie Millican, Keelin McDonell, Kelvin Nguyen, Kiranbir Sodhia, Kish Greene, Lars Lowe Sjoesund, Lauren Usui, Laurent Sifre, Lena Heuermann, Leticia Lago, Lilly McNealus, Livio Baldini Soares, Logan Kilpatrick, Lucas Dixon, Luciano Martins, Machel Reid, Manvinder Singh, Mark Iverson, Martin Görner, Mat Velloso, Mateo Wirth, Matt Davidow, Matt Miller, Matthew Rahtz, Matthew Watson, Meg Risdal, Mehran Kazemi, Michael Moynihan, Ming Zhang, Minsuk Kahng, Minwoo Park, Mofi Rahman, Mohit Khatwani, Natalie Dao, Nenshad Bardoliwalla, Nesh Devanathan, Neta Dumai, Nilay Chauhan, Oscar Wahltinez, Pankil Botarda, Parker Barnes, Paul Barham, Paul Michel, Pengchong Jin, Petko Georgiev, Phil Culliton, Pradeep Kuppala, Ramona Comanescu, Ra-mona Merhej, Reena Jana, Reza Ardeshir Rokni, Rishabh Agarwal, Ryan Mullins, Samaneh Saadat, 18 Sara Mc Carthy, Sarah Cogan, Sarah Perrin, Sébastien M. R. Arnold, Sebastian Krause, Shengyang Dai, Shruti Garg, Shruti Sheth, Sue Ronstrom, Susan Chan, Timothy Jordan, Ting Yu, Tom Eccles, Tom Hennigan, Tomas Kocisky, Tulsee Doshi, Vihan Jain, Vikas Yadav, Vilobh Meshram, Vishal Dharmadhikari, Warren Barkley, Wei Wei, Wenming Ye, Woohyun Han, Woosuk Kwon, Xiang Xu, Zhe Shen, Zhitao Gong, Zichuan Wei, Victor Cotruta, Phoebe Kirk, Anand Rao, Minh Giang, Ludovic Peran, Tris Warkentin, Eli Collins, Joelle Barral, Zoubin Ghahramani, Raia Hadsell, D. Sculley, Jeanine Banks, Anca Dragan, Slav Petrov, Oriol Vinyals, Jeff Dean, Demis Hassabis, Koray Kavukcuoglu, Clement Farabet, Elena Buchatskaya, Sebastian Borgeaud, Noah Fiedel, Armand Joulin, Kathleen Kenealy, Robert Dadashi, and Alek Andreev. Gemma 2: Improving open language models at a practical size, 2024. URL https://arxiv.org/abs/2408.00118 .[41] Eric Todd, Millicent L. Li, Arnab Sen Sharma, Aaron Mueller, Byron C. Wallace, and David Bau. Function vectors in large language models. In The Twelfth International Conference on Learning Representations , 2024. URL https://openreview.net/forum?id=AwyxtyMwaG . arXiv:2310.15213. [42] Ashish Vaswani, Noam Shazeer, Niki Parmar, Jakob Uszkoreit, Llion Jones, Aidan N Gomez, Ł ukasz Kaiser, and Illia Polosukhin. Attention is all you need. In I. Guyon, U. Von Luxburg, S. Bengio, H. Wallach, R. Fergus, S. Vishwanathan, and R. Garnett, editors, Advances in Neural Information Processing Systems , volume 30. Curran Associates, Inc., 2017. URL https://proceedings.neurips. cc/paper_files/paper/2017/file/3f5ee243547dee91fbd053c1c4a845aa-Paper.pdf .[43] Johannes Von Oswald, Eyvind Niklasson, Ettore Randazzo, Joao Sacramento, Alexander Mordvintsev, Andrey Zhmoginov, and Max Vladymyrov. Transformers learn in-context by gradient descent. In Andreas Krause, Emma Brunskill, Kyunghyun Cho, Barbara Engelhardt, Sivan Sabato, and Jonathan Scarlett, editors, Proceedings of the 40th International Conference on Machine Learning , volume 202 of 
+
+Proceedings of Machine Learning Research , pages 35151–35174. PMLR, 23–29 Jul 2023. URL https: //proceedings.mlr.press/v202/von-oswald23a.html .[44] Xingchen Wan, Ruoxi Sun, Hanjun Dai, Sercan Arik, and Tomas Pfister. Better zero-shot reasoning with self-adaptive prompting. In Anna Rogers, Jordan Boyd-Graber, and Naoaki Okazaki, editors, 
+
+Findings of the Association for Computational Linguistics: ACL 2023 , pages 3493–3514, Toronto, Canada, July 2023. Association for Computational Linguistics. doi: 10.18653/v1/2023.findings-acl.216. URL 
+
+https://aclanthology.org/2023.findings-acl.216/ .[45] Xingchen Wan, Ruoxi Sun, Hootan Nakhost, Hanjun Dai, Julian Eisenschlos, Sercan Arik, and Tomas Pfister. Universal self-adaptive prompting. In Houda Bouamor, Juan Pino, and Kalika Bali, editors, 
+
+Proceedings of the 2023 Conference on Empirical Methods in Natural Language Processing , pages 7437– 7462, Singapore, December 2023. Association for Computational Linguistics. doi: 10.18653/v1/2023. emnlp-main.461. URL https://aclanthology.org/2023.emnlp-main.461/ .[46] Lean Wang, Lei Li, Damai Dai, Deli Chen, Hao Zhou, Fandong Meng, Jie Zhou, and Xu Sun. Label words are anchors: An information flow perspective for understanding in-context learning. In Houda Bouamor, Juan Pino, and Kalika Bali, editors, Proceedings of the 2023 Conference on Empirical Methods in Natural Language Processing , pages 9840–9855, Singapore, December 2023. Association for Computational Linguistics. doi: 10.18653/v1/2023.emnlp-main.609. URL https://aclanthology. org/2023.emnlp-main.609/ .[47] Thomas Wolf, Lysandre Debut, Victor Sanh, Julien Chaumond, Clement Delangue, Anthony Moi, Pierric Cistac, Tim Rault, Rémi Louf, Morgan Funtowicz, Joe Davison, Sam Shleifer, Patrick von Platen, Clara Ma, Yacine Jernite, Julien Plu, Canwen Xu, Teven Le Scao, Sylvain Gugger, Mariama Drame, 19 Quentin Lhoest, and Alexander M. Rush. Transformers: State-of-the-art natural language processing. In Proceedings of the 2020 Conference on Empirical Methods in Natural Language Processing: System Demonstrations , pages 38–45, Online, October 2020. Association for Computational Linguistics. URL 
+
+https://www.aclweb.org/anthology/2020.emnlp-demos.6 .[48] Zhiyong Wu, Yaoxiang Wang, Jiacheng Ye, and Lingpeng Kong. Self-adaptive in-context learning: An information compression perspective for in-context example selection and ordering. In Anna Rogers, Jordan Boyd-Graber, and Naoaki Okazaki, editors, Proceedings of the 61st Annual Meeting of the Association for Computational Linguistics (Volume 1: Long Papers) , pages 1423–1436, Toronto, Canada, July 2023. Association for Computational Linguistics. doi: 10.18653/v1/2023.acl-long.79. URL 
+
+https://aclanthology.org/2023.acl-long.79/ .[49] Benfeng Xu, Quan Wang, Zhendong Mao, Yajuan Lyu, Qiaoqiao She, and Yongdong Zhang. $k$NN prompting: Beyond-context learning with calibration-free nearest neighbor inference. In The Eleventh International Conference on Learning Representations , 2023. URL https://openreview.net/forum? id=fe2S7736sNS .[50] Shangqing Xu and Chao Zhang. Misconfidence-based demonstration selection for llm in-context learning, 2024. URL https://arxiv.org/abs/2401.06301 .[51] Zhichao Xu, Daniel Cohen, Bei Wang, and Vivek Srikumar. In-context example ordering guided by label distributions. In Kevin Duh, Helena Gomez, and Steven Bethard, editors, Findings of the Association for Computational Linguistics: NAACL 2024 , pages 2623–2640, Mexico City, Mexico, June 2024. Association for Computational Linguistics. doi: 10.18653/v1/2024.findings-naacl.167. URL 
+
+https://aclanthology.org/2024.findings-naacl.167/ .[52] An Yang, Anfeng Li, Baosong Yang, Beichen Zhang, Binyuan Hui, Bo Zheng, Bowen Yu, Chang Gao, Chengen Huang, Chenxu Lv, Chujie Zheng, Dayiheng Liu, Fan Zhou, Fei Huang, Feng Hu, Hao Ge, Haoran Wei, Huan Lin, Jialong Tang, Jian Yang, Jianhong Tu, Jianwei Zhang, Jianxin Yang, Jiaxi Yang, Jing Zhou, Jingren Zhou, Junyang Lin, Kai Dang, Keqin Bao, Kexin Yang, Le Yu, Lianghao Deng, Mei Li, Mingfeng Xue, Mingze Li, Pei Zhang, Peng Wang, Qin Zhu, Rui Men, Ruize Gao, Shixuan Liu, Shuang Luo, Tianhao Li, Tianyi Tang, Wenbiao Yin, Xingzhang Ren, Xinyu Wang, Xinyu Zhang, Xuancheng Ren, Yang Fan, Yang Su, Yichang Zhang, Yinger Zhang, Yu Wan, Yuqiong Liu, Zekun Wang, Zeyu Cui, Zhenru Zhang, Zhipeng Zhou, and Zihan Qiu. Qwen3 technical report, 2025. URL 
+
+https://arxiv.org/abs/2505.09388 .[53] Zhao Yang, Yuanzhe Zhang, Dianbo Sui, Cao Liu, Jun Zhao, and Kang Liu. Representative demonstra-tion selection for in-context learning with two-stage determinantal point process. In Houda Bouamor, Juan Pino, and Kalika Bali, editors, Proceedings of the 2023 Conference on Empirical Methods in Natural Language Processing , pages 5443–5456, Singapore, December 2023. Association for Computational Linguistics. doi: 10.18653/v1/2023.emnlp-main.331. URL https://aclanthology.org/2023.emnlp-main.331/ .[54] Kang Min Yoo, Junyeob Kim, Hyuhng Joon Kim, Hyunsoo Cho, Hwiyeol Jo, Sang-Woo Lee, Sang-goo Lee, and Taeuk Kim. Ground-truth labels matter: A deeper look into input-label demonstrations. In Yoav Goldberg, Zornitsa Kozareva, and Yue Zhang, editors, Proceedings of the 2022 Conference on Empirical Methods in Natural Language Processing , pages 2422–2437, Abu Dhabi, United Arab Emirates, December 2022. Association for Computational Linguistics. doi: 10.18653/v1/2022.emnlp-main.155. URL https://aclanthology.org/2022.emnlp-main.155/ .20 [55] Heshen Zhan, Congliang Chen, Tian Ding, Ziniu Li, and Ruoyu Sun. Unlocking black-box prompt tuning efficiency via zeroth-order optimization. In Yaser Al-Onaizan, Mohit Bansal, and Yun-Nung Chen, editors, Findings of the Association for Computational Linguistics: EMNLP 2024 , pages 14825– 14838, Miami, Florida, USA, November 2024. Association for Computational Linguistics. doi: 10.18653/ v1/2024.findings-emnlp.871. URL https://aclanthology.org/2024.findings-emnlp.871/ .[56] Kaiyi Zhang, Ang Lv, Yuhan Chen, Hansen Ha, Tao Xu, and Rui Yan. Batch-ICL: Effective, efficient, and order-agnostic in-context learning. In Lun-Wei Ku, Andre Martins, and Vivek Srikumar, editors, 
+
+Findings of the Association for Computational Linguistics: ACL 2024 , pages 10728–10739, Bangkok, Thailand, August 2024. Association for Computational Linguistics. doi: 10.18653/v1/2024.findings-acl.638. URL https://aclanthology.org/2024.findings-acl.638/ .[57] Liang Zhang, Bingcong Li, Kiran Koshy Thekumparampil, Sewoong Oh, and Niao He. Dpzero: private fine-tuning of language models without backpropagation. In Proceedings of the 41st International Conference on Machine Learning , ICML’24. JMLR.org, 2024. [58] Qi Zhang, Zhiqing Xiao, Ruixuan Xiao, Lirong Gao, and Junbo Zhao. D.Va: Validate your demonstration first before you use it. In Wanxiang Che, Joyce Nabende, Ekaterina Shutova, and Mohammad Taher Pilehvar, editors, Proceedings of the 63rd Annual Meeting of the Association for Computational Linguistics (Volume 1: Long Papers) , pages 2580–2594, Vienna, Austria, July 2025. Association for Computational Linguistics. ISBN 979-8-89176-251-0. doi: 10.18653/v1/2025.acl-long.129. URL https://aclanthology. org/2025.acl-long.129/ .[59] Qingyang Zhang, Yatao Bian, Xinke Kong, Peilin Zhao, and Changqing Zhang. COME: Test-time adaption by conservatively minimizing entropy. In The Thirteenth International Conference on Learning Representations , 2025. URL https://openreview.net/forum?id=506BjJ1ziZ .[60] Zihao Zhao, Eric Wallace, Shi Feng, Dan Klein, and Sameer Singh. Calibrate before use: Improving few-shot performance of language models. In Marina Meila and Tong Zhang, editors, Proceedings of the 38th International Conference on Machine Learning , volume 139 of Proceedings of Machine Learning Research , pages 12697–12706. PMLR, 18–24 Jul 2021. URL https://proceedings.mlr.press/v139/ zhao21c.html .[61] Chujie Zheng, Hao Zhou, Fandong Meng, Jie Zhou, and Minlie Huang. Large language models are not robust multiple choice selectors. In The Twelfth International Conference on Learning Representations ,2024. URL https://openreview.net/forum?id=shr9PXz7T0 .[62] Han Zhou, Xingchen Wan, Lev Proleev, Diana Mincu, Jilin Chen, Katherine A Heller, and Subhrajit Roy. Batch calibration: Rethinking calibration for in-context learning and prompt engineering. In The Twelfth International Conference on Learning Representations , 2024. URL https://openreview.net/ forum?id=L3FHMoKZcS .21 A Applicability of Existing Test-Time Methods 
+
+Examined in Section 2, existing methods span over demonstration selection, demonstration ordering, and output calibration. While effective in their respective target settings—predominantly text classification with candidate demonstration pools—each category carries structural assumptions that prevent broad applicability. This discussion explains why these methods cannot serve as general-purpose baselines in our experiments, and why the three baselines we do report (CC, DC-PMI, DEmO) are restricted to the classification subset. We identify three failure modes: (i) restriction to classification tasks with a finite label space, (ii) depen-dence on the latent semantic structure of prompt inputs, and (iii) combinatorial scaling in the number of demonstrations. These are inherent properties of the methods, not artifacts of any particular benchmark; ICLEval makes all three visible in a single evaluation because it combines classification and generation tasks, masks factual content with hash strings, and the number of in-context examples can be as many as 31. Table 3 provides a systematic comparison along four operational axes that expose these structural limitations. 
+
+A.1 Demonstration Selection 
+
+Selection methods choose which examples to place in the prompt from an external candidate pool. Their gains depend on the quality of this choice, but the mechanism by which candidates are scored determines whether those gains reflect genuine ICL improvement or exploitation of the model’s parametric knowledge. 
+
+Knowledge dependence. Similarity-based methods [ 23 , 39 , 53 ] retrieve candidates whose inputs are semantically or lexically close to the test query. This strategy succeeds when some pretrained representation encodes task-relevant structure that transfers via surface similarity. When this structure is absent—for example, when factual tokens are replaced with opaque identifiers such as hash strings in ICLEval—the features these methods match on become uninformative, and selection reduces to random. This reveals that similarity-based selection improves ICL performance partly by routing the model toward inputs where its parametric knowledge is already useful, rather than by strengthening the ICL mechanism itself. LLM-feedback methods [ 48 , 32 , 22 , 20 , 50 , 34 , 58 ] avoid this dependence by scoring candidates using the model’s own output distributions, while task-specific heuristics select for reasoning complexity [ 7 ] or structural coverage [ 19 ]. In both cases, the scoring criteria are typically tied to a finite label space or a specific task format and do not extend to open-ended generation. 
+
+Candidate pool requirement. All selection methods presuppose a pool of candidate demonstrations external to the prompt. Constructing one—whether by domain-specific curation or by aggregating exemplars across test instances—introduces assumptions about data availability that fall outside the scope of test-time adaptation. Self-generated methods [ 16 , 27 , 45 , 44 ] bypass the pool requirement by generating demonstrations from scratch, but they replace the exemplar content entirely rather than improving ICL over the given original prompt. They may also require explicit task descriptions or an external text corpus, neither of which is available in plug-and-play settings. 22 A.2 Demonstration Ordering 
+
+Ordering methods optimize the sequence in which exemplars appear in the prompt. The well-documented sensitivity of ICL to ordering [ 26 , 11 ] motivates a body of work that searches over permutations to find the best arrangement. 
+
+Task generality. The scoring functions used to evaluate candidate orderings (e.g., entropy over predicted label distributions 26 , GlobalE/LocalE, label fairness 11 , label-distribution optimization 51 , prompt embed-ding clustering 33 ) all require a finite, enumerable label set. For open-ended generation tasks, there is no such set, and these scoring functions are undefined. Batch-ICL [ 56 ] takes a different approach by eliminating order sensitivity entirely: it processes each exemplar as an independent one-shot prompt and aggregates the resulting output-distribution shifts onto a zero-shot query. The aggregation, however, operates over label probabilities and has been evaluated exclusively on classification benchmarks. In ICLEval, 74.5% of the benchmark (1,520 of 2,040 samples) consists of generation tasks with free-form outputs, making these methods inapplicable to the majority of the evaluation. 
+
+Scalability. OEOICL [ 1 ] is the only ordering method whose scoring function—log-probability distin-guishability of the generated output—does not require a label space and could in principle extend to generation tasks. However, it evaluates all 𝑀 ! permutations of the demonstrations. For 𝑀 = 8 this requires approximately 40,000 forward passes per test instance; for 𝑀 ≥ 10 it is computationally intractable. Even with sampling, the cost grows combinatorially with the number of demonstrations—a limitation shared by any method that searches the permutation space. ICLEval includes tasks with up to 31 in-context examples, placing a large portion of the benchmark well beyond the reach of permutation-based methods. 
+
+A.3 Output Calibration 
+
+Calibration methods adjust the model’s output probabilities to correct systematic biases—majority-label bias, recency bias, common-token bias, and surface-form competition. 
+
+Task generality. Calibration methods usually operate by scoring, rescoring, or comparing probabilities across a known set of candidate labels [ 60 , 15 , 29 , 62 , 17 , 49 ]. In every case, the method requires a finite label set over which to operate. When the output is free-form text—as in format conversion, deduplication, sequence completion—there is no label set to calibrate over. Additionally, several calibration methods impose further constraints, such as requiring transductive access to a batch of test inputs [ 62 , 12 , 61 ] and to the model’s hidden states [4], or assuming an NLI-style premise–hypothesis input structure [21]. The proposed method does not exhibit any of the above limitations. It accepts a fixed input prompt without selecting or reordering demonstrations, operates identically on classification and open-ended generation tasks, and its computational cost is determined by a fixed perturbation batch size that does not scale with the number of in-context examples. 23 Method Test-time No hidden repr. Task-agnostic Self-contained Selection Complexity-Based [7] ✓ ✓ ✗ ✗
+
+COSP † [44] ✓ ✓ ✗ ✓
+
+D.Va [58] ✓ ✓ ✓ ✗
+
+Diverse Demos [19] ✓ ✓ ✗ ✗
+
+IDS [34] ✓ ✓ ✗ ✗
+
+KATE [23] ✓ ✓ ✓ ✗
+
+LENS [20] ✓ ✓ ✗ ✗
+
+Misconfidence [50] ✓ ✓ ✗ ✗
+
+Se 2 [22] ✓ ✓ ✗ ✗
+
+Self-Adaptive (MDL) [48] ✓ ✓ ✗ ✗
+
+SG-ICL † [16] ✓ ✓ ✗ ✓
+
+TopK+ConE [32] ✓ ✓ ✗ ✗
+
+Two-Stage DPP [53] ✓ ✓ ✓ ✗
+
+USP † [45] ✓ ✓ ✓ ✗
+
+Vote-k [39] ✓ ✓ ✓ ✗
+
+Z-ICL [27] ✓ ✓ ✗ ✗
+
+> Ordering
+
+Batch-ICL ‡ [56] ✓ ✗ ✗ ✓
+
+Cluster-Based Search [33] ✓ ✗ ✗ ✓
+
+DEmO [11] ✓ ✓ ✗ ✓
+
+GlobalE / LocalE [26] ✓ ✓ ✗ ✓
+
+Label Dist. Ordering [51] ✓ ✓ ✗ ✓
+
+OEOICL ⋆ [1] ✓ ✓ ✓ ✓
+
+> Calibration
+
+Answer-Level [17] ✓ ✓ ✗ ✓
+
+Batch Calibration [62] ✓ ✓ ✗ ✗
+
+CC [60] ✓ ✓ ✗ ✓
+
+DC-PMI [15] ✓ ✓ ✗ ✓
+
+Domain-Context [6] ✓ ✓ ✗ ✗
+
+Hidden Calibration [4] ✓ ✗ ✗ ✗
+
+kNN Prompting [49] ✓ ✓ ✗ ✗
+
+Noisy Channel [29] ✓ ✓ ✗ ✓
+
+PriDe [61] ✓ ✓ ✗ ✗
+
+ProCa [12] ✓ ✓ ✗ ✗
+
+Task Calibration [21] ✓ ✓ ✗ ✓
+
+Ours ✓ ✓ ✓ ✓ 
+
+> †
+
+Generates demonstrations from scratch, replacing the given prompt rather than improving it.  
+
+> ‡
+
+An output-level variant that aggregates label-probability shifts without hidden representation access is also conceivable; however, this approach substantially underperformed the base model in our initial experiments.  
+
+> ⋆
+
+Evaluates all 𝑀 ! orderings; intractable for large 𝑀 .
+
+Table 3. Operational comparison of prior methods against the proposed approach. ✓ and ✗ indicate whether the prop-erty is satisfied or not. Test-time : no training or optimization of any module over a dataset. No hidden representations :no access to the model’s hidden representations (hidden states, attention weights, or gradients); access to output log-probabilities and input word embeddings is permitted. Task-agnostic : applicable to general-purpose settings; not restricted to classification, structured reasoning, or other task-specific formats. Self-contained: requires no external data such as candidate pools, test batches, or corpora; methods that construct reference inputs or demonstrations internally satisfy this criterion. 
+
+24 # Tokens Category Task # Samples # Demos Min Max Avg Type 
+
+Exact Copying String Completion 100 — 246 2,100 1,045 Generation Dict. Search (String) 100 19 468 724 579 Generation Dict. Search (Number) 90 10 1,064 1,084 1,074 Generation Format Rules Format Check 120 6 192 230 207 Clf. (multi-token) Format Cloning 100 5 429 1,197 655 Generation Format Conversion 120 3 137 1,592 478 Generation Order Rules Order Check 100 8 295 319 302 Clf. (single-token) Order Adjustment 240 5 134 1,157 395 Generation Statistics Rules Duplication Check 300 8 124 1,362 475 Clf. (single-token) De-Duplication 300 5 198 1,469 536 Generation Count & Navigation 120 8 127 389 236 Generation Relation Analysis 100 5 542 1,043 686 Generation List Mapping Numbers’ List Mapping 250 31 426 1,835 1,188 Generation 
+
+Total 2,040 3–31 124 2,100 588 
+
+Table 4. Dataset statistics for ICLEval. Classification (“Clf.”) tasks have a fixed label space; generation tasks require open-ended output. Dictionary (“Dict.”) Search comprises two subtasks (String and Number), which are merged into a single task in the main results (Table 1). 
+
+# B Experimental Details 
+
+B.1 Benchmark 
+
+Table 4 reports dataset statistics for ICLEval [ 3 ]. Each task targets a specific facet of in-context learning: 
+
+exact copying tests whether the model can reproduce content from its context via prefix matching, while 
+
+rule learning tests whether it can infer and apply a transformation rule from the demonstrations. Factual entities are replaced with hash strings so that correct predictions require in-context inference rather than recall of pretraining knowledge. Demonstrations are generated dynamically per sample (i.e., each sample has a unique set of exemplars), and all predictions are scored by exact match. For full task descriptions and construction details, we refer the reader to Chen et al. [3]. 
+
+B.2 Optimization Pseudocode 
+
+Algorithm 1 presents the pseudocode for the proposed end-to-end in-context calibration. 
+
+B.3 Hyperparameters 
+
+We swept 𝜇 and learning rate 𝜂 on a small representative subset of 140 samples. We first tuned on Llama 3.1-8B. After selecting the best configuration, we constructed model-specific grids for the remaining models by scaling these values by ̄ 𝐸 /√𝑑 , where ̄𝐸 = 1
+
+||
+
+> ||
+
+∑
+
+> 𝑖 =1
+
+‖𝐸 𝑖 ‖2
+
+25 Algorithm 1 Self-Improving In-Context Learning 
+
+Require: Few-shot prompt  
+
+> 1:
+
+𝑋 0 ← Embed () ⊳ Initial prompt embeddings  
+
+> 2:
+
+if 𝑓 (𝑋 0) < 𝜏 then  
+
+> 3:
+
+return 𝑋 0 ⊳ Proxy gate  
+
+> 4:
+
+end if  
+
+> 5:
+
+for 𝑘 = 0 , 1, … , 𝐾 − 1 do  
+
+> 6:
+
+𝑓 base ← 𝑓 (𝑋 𝑘 ) ⊳ Evaluate proxy via forward pass  
+
+> 7:
+
+for 𝑖 = 1 , … , 𝑁 do  
+
+> 8:
+
+Sample 𝑈 𝑖 ∼  (0 , 𝐼 ) ⊳ Same shape as 𝑋 𝑘  
+
+> 9:
+
+𝑓 𝑖 ← 𝑓 (𝑋 𝑘 + 𝜇 𝑈 𝑖 ) ⊳ Perturbed evaluation  
+
+> 10:
+
+end for 
+
+> 11:
+
+̂ 𝑔 𝑘 ← 1 
+
+> 𝑁
+
+∑𝑁 𝑖 =1  
+
+> 𝑓 𝑖 −𝑓 base
+> 𝜇
+
+𝑈 𝑖 ⊳ Gradient estimate 
+
+> 12:
+
+̂ 𝑔 𝑘,𝑡 ←̂ 𝑔 𝑘,𝑡 / max(1 , ‖̂𝑔 𝑘,𝑡 ‖2) for each 𝑡 ⊳ Clip per token  
+
+> 13:
+
+𝑋 𝑘 +1 ← 𝑋 𝑘 + 𝜂̂𝑔 𝑘 ⊳ Ascent step  
+
+> 14:
+
+𝑋 𝑘 +1 ← CosineProject (𝑋 𝑘 +1 , 𝑋 0, 𝜅 ) ⊳ Cosine constraint  
+
+> 15:
+
+end for  
+
+> 16:
+
+return 𝑋 ⋆ ⊳ Embedding that has achieved the highest proxy 
+
+Parameter Llama 3.1-8B Qwen3-4B Gemma 2-2B Perturbation scale 𝜇 0.004 0.004 0.001 # Monte Carlo samples 𝑁 16 8 8Stepsize 𝜂 0.05 0.06 0.035 Cosine similarity threshold 𝜅 0.2 0.2 0.2 Proxy gate threshold 𝜏 0.05 0.05 0.05 Dimensionality 𝑑 4096 2560 2048 
+
+Table 5. Model-specific tuned hyperparameters of our method along with the embedding (or hidden) dimensionality. For each model, we use the same set of hyperparameters across all samples. 
+
+is the mean row-norm of the embedding matrix 𝐸 ∈ ℝ||×𝑑 and || is the vocabulary size. We then ran this scaled, model-specific grid to select the best hyperparameters for each model. The final tuned values are listed in Table 5. 
+
+B.4 Implementation 
+
+We implemented the proxy and ran all evaluations using Hugging Face’s transformers library [ 47 ]. Since no tokens are generated during optimization, the runtime overhead is modest; optimized inference stacks such as vLLM [ 18 ] could reduce it further, though as of v0.17, vLLM does not yet support log-probability output for input tokens. Baselines were implemented using the code released by the respective authors. Our benchmark implementation directly adopts the data and evaluation protocol from the ICLEval codebase 1.The only model shared with the original ICLEval evaluation is Llama 3.1-8B (compared against the Llama 3-8B results reported in the paper). Most task-level scores agree closely, with ours tending slightly higher. For Count & Navigation and Format Check, we observe notably lower scores (29% vs. 52% and 8% vs. 30%, 
+
+> 1https://github.com/RUCBM/ICLEval
+
+26 Task Llama 3.1-8B Qwen3-4B Gemma 2-2B String Completion 51.94 52.90 32.54 Dict. Search 38.59 55.42 9.17 Format Check 59.11 81.37 0.00 Format Cloning 42.13 57.41 40.65 Format Conversion 48.80 64.84 21.60 Order Check 43.68 49.65 33.82 Order Adjustment 47.99 47.43 29.58 Duplication Check 51.07 69.97 54.13 De-Duplication 52.32 55.23 43.95 Count & Navigation 51.61 68.26 35.50 Relation Analysis 40.29 49.74 71.01 List Mapping 46.42 64.66 38.57     
+
+> Average 47.83 59.74 34.21
+> Table 6. Mean number of optimization steps per task and model, averaged over all samples within each task. The corresponding runtimes range from roughly 10 to 60 seconds.
+
+respectively), which we attribute to behavioral differences between Llama 3 and Llama 3.1—both tasks are documented by the ICLEval authors as highly sensitive to model priors. For String Completion and Dictionary Search, our results (57% and 89%) are consistent with the paper’s reported values (57% and 87%) once one accounts for what appears to be a transposition of those two columns in Table 7 of the original paper, as can be verified by cross-referencing with the grouped scores in Table 2 and the task-to-category mapping in Table 1. 
+
+B.5 Computational Resources 
+
+All experiments were run on a single workstation with two NVIDIA RTX A6000 GPUs (49 GiB each). 
+
+B.6 Optimization Duration 
+
+Table 6 reports the mean number of optimization steps per task and model, averaged over all samples within each task. Optimization runs for a maximum of 250 steps with early stopping at a patience of 5. Qwen3-4B averages the most iterations ( ≈60 ), followed by Llama 3.1-8B ( ≈48 ) and Gemma 2-2B ( ≈34 ). This ordering suggests two factors: Llama uses 𝑁 =16 perturbations per step (vs. 𝑁 =8 for Qwen and Gemma), producing better gradient estimates and faster convergence; and Qwen exhibits the broadest downstream improvement (10 of 12 tasks), indicating a richer proxy landscape that sustains optimization longer before early stopping activates. Format Check on Gemma 2-2B is the only cell with exactly zero iterations, confirming that the proxy gate triggers on every sample for this task. The highest per-model iteration counts tend to coincide with the largest accuracy gains—Qwen Format Check (81 steps, +104 .8% ) and Gemma Relation Analysis (71 steps, +300% )—providing further evidence that the proxy serves as an informative optimization signal where latent capability exists. 27

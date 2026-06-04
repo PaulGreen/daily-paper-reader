@@ -1,0 +1,1087 @@
+Title: Towards Fine-Grained Robustness: Attention-Guided Test-Time Prompt Tuning for Vision-Language Models
+
+URL Source: https://arxiv.org/pdf/2605.19956v1
+
+Published Time: Wed, 20 May 2026 01:25:07 GMT
+
+Number of Pages: 17
+
+Markdown Content:
+# Towards Fine-Grained Robustness: Attention-Guided Test-Time Prompt Tuning for Vision-Language Models 
+
+Jia-Wei Hai 1 Yijun Wang 1 Xiu-Shen Wei 1 2 
+
+# Abstract 
+
+Vision-Language Models (VLMs), such as CLIP, have achieved significant zero-shot performance on downstream tasks with various fine-tuning adaptation methods. However, recent studies have proven that adversarial attacks can significantly degrade the inference ability of VLMs, posing substantial risks to their practical applications. Prevalent test-time adaptation methods typically rely on multi-view augmentation to implement various fine-tuning strategies, which struggle to identify semantic information and are prone to destroying discriminative regions in fine-grained scenarios. To address these limitations, we pro-pose Attention-Guided Test-Time Prompt Tun-ing (A-TPT), a semantics-preserving method de-signed for test-time adaptation. We first refine the gradient attention rollout mechanism to iden-tify semantically meaningful regions surviving under adversarial attacks. Furthermore, we lever-age them to guide the spatially varying augmen-tation intensities and multi-view ensemble for prompt tuning and inference. Extensive experi-ments demonstrate that A-TPT outperforms exist-ing test-time adaptation methods on both adversar-ial and clean data. Codes are available at https: //github.com/SEU-VIPGroup/A-TPT .
+
+# 1. Introduction 
+
+Vision-Language Models (VLMs) pretrained on large-scale image–text pairs (Chen et al., 2023) have become a ver-satile foundation for downstream vision tasks (Shin et al., 2022; Zhang et al., 2023; Wei & Wei, 2024; Tianyuan et al., 
+
+> 1
+
+School of Computer Science and Engineering, and Key Laboratory of New Generation Artificial Intelligence Technol-ogy and Its Interdisciplinary Applications, Southeast Univer-sity, China. 2School of Intelligence Science and Engineering, Southeast University, China. Correspondence to: Xiu-Shen Wei 
+
+<weixs.gm@gmail.com >.Comments: Accepted by ICML 2026, Project Page: this https, URL Code URL: this https URL. 80.8° 82.5° 84.3°             
+
+> PetsAircraftDTDOrigin
+> (a)CosineSimilarity
+> PetsDTD Aircraft
+> 30.0
+> 20.0
+> 10.0
+> 0.0
+> 5.8
+> 16.3
+> 31.4
+> 1.83.03.5
+> 0.10.20.8
+> Ratio (%)
+> Top-3
+> Top-5
+> Top-10
+> (b)Top-KRation
+
+Figure 1. (a) Cosine similarity in the unit circle: adversarially attacked (colored) and original (black) feature vectors are highly divergent; (b) Ratio of true labels among the Top-K predictions under adversarial attacks: the true label of the input is pushed out of the Top-K predictions (ViT-B/16). 
+
+2026). However, they exhibit significant degradation under even subtle adversarial perturbations, raising serious safety concerns for real-world deployment (Zhao et al., 2023; Yu et al., 2026; Maolin et al., 2025). Training-time adaptation methods such as VPT (Li et al., 2024) and FAP (Zhou et al., 2024), among others (Hossain & Imteaj, 2025; Dong et al., 2025), have proven to be effective defense strategies. How-ever, their reliance on large amounts of labeled adversarial data incurs high computational costs, limiting practicality. Although advanced test-time adaptation methods (Shu et al., 2022; Yoon et al., 2024; Xing et al., 2025) are primarily designed for natural distribution shifts, they provide limited robustness when the feature space is adversarially distorted. Based on multiple embeddings derived from augmented views of a test sample (Hendrycks et al., 2021a; Feng et al., 2023), existing test-time defense methods (Tong et al., 2025; Wang et al., 2025a; Zanella & Ben Ayed, 2024) have pro-posed various optimization strategies to resist adversarial attacks on generic data. However, they often perform limited on fine-grained recognition, since random region-editing be-havior leads to the loss of discriminative regions (Pu et al., 2024). Identifying and preserving discriminative semantic parts is the key to distinguishing fine-grained categories. Existing semantics-preserving augmentation methods (Wang et al., 2025b; Ye et al., 2025; Tan et al., 2025) heavily rely on the quality of semantic directions and operate in the feature space, where attacked feature representations can 1
+
+> arXiv:2605.19956v1 [cs.CV] 19 May 2026 Towards Fine-Grained Robustness: Attention-Guided Test-Time Prompt Tuning for Vision-Language Models
+
+be driven beyond the original decision boundary, as shown in Figure 1 (a). Among unsupervised semantics-preserving augmentation methods (Wang et al., 2019b; Pu et al., 2024; Ruru et al., 2024), the logits of an input are commonly used as the self-supervised signal, which loses label-preserving ability under adversarial attacks ( Figure 1 (b) ). Moreover, semantic identification is often implemented as a regulariza-tion term in the training loss, making it difficult to decouple from the training stage. 
+
+In this paper, our central question is therefore: can we de-sign a test-time adaptation method that identifies semantic information and leverages discriminative regions without learning in feature space even under adversarial attacks? 
+
+To this end, we propose Attention-Guided Test-Time Prompt Tuning (A-TPT), which utilizes robust visual attention as a semantic anchor to guide augmentation and multi-view ensemble. We first refine the Gradient Attention Rollout (GAR) (Chefer et al., 2021), since obtaining reliable se-mantic anchors requires robust attention maps. Although GAR is commonly used to identify discriminative regions, we demonstrate its vulnerability to adversarial perturba-tions. Specifically, we introduce a token-based gradient signal to refine its gradient computation, allowing atten-tion to robustly highlight the discriminative regions against adversarial attacks. Following refined attention, A-TPT con-sists of two core modules: Attention-Guided Multi-View Augmentation and TV-Based Ensemble. Attention-guided Multi-view Augmentation utilizes refined attention to guide the spatially varying augmentation intensities at image-level, preserving high-attention regions while generating a set of diverse views. To further leverage semantically meaningful views, we introduce a TV-based ensemble to measure the reliability of each view and weight them. We hypothesize that views with large anisotropic Total Variation (TV) in their attention maps are semantically corrupted, either by adversarial attacks or irrelevant background. Thus, views with lower anisotropic TV are more reliable for containing discriminative semantic parts and contribute more to the en-semble. Finally, prompt tuning and the final inference build upon reliable views generated along the semantically mean-ingful directions. Extensive experiments tasks demonstrate that A-TPT not only identifies and preserves discriminative regions, but also substantially outperforms state-of-the-art (SOTA) test-time adaptation methods. In summary, our main contributions are: • We refine the gradient signal of GAR with a simple but robust term against adversarial perturbations, en-abling effective identification of unperturbed semantic information under adversarial attacks. • We propose A-TPT, the first method that exploits discriminative semantic regions for guiding test-time adaptation, particularly in fine-grained scenarios. • Extensive experiments on nine datasets demonstrate that A-TPT substantially outperforms existing methods on both clean and adversarial data distributions. 
+
+# 2. Related Works 
+
+2.1. Adversarial Attacks and Defenses 
+
+Adversarial attacks on Vision-Language Models (VLMs) can significantly degrade model inference with even mini-mal perturbations (Szegedy et al., 2014). As a result, a vari-ety of attack methods to generate adversarial samples have been proposed (Croce & Hein, 2020; Madry et al., 2018; Goodfellow et al., 2015). Common approaches like FGSM (Goodfellow et al., 2015) generate adversarial examples by perturbing in the direction of the loss gradient. PGD (Madry et al., 2018), a standard measure of model robustness, fur-ther projects gradient descent onto a perturbed Lp ball with an ε-bounded constraint. Additionally, multi-modal adver-sarial attacks have emerged to jointly exploit weaknesses in both modalities. Co-Attack (Zhang et al., 2022) and VLATTACK (Yin et al., 2023) extend single-modal attacks by perturbing both the image and text encoders, thereby creating more effective adversarial examples. Various defense methods have been proposed to counter ad-versarial attacks (Hossain & Imteaj, 2025; Zhou et al., 2024; Cui et al., 2024). Training on adversarial data improves the robustness of VLMs. SLADE (Hossain & Imteaj, 2025) aligns clean and adversarial embeddings at both patch and global scales via symmetric stop-gradient contrastive learn-ing to enhance robustness. FAP (Zhou et al., 2024) enforces joint clean and adversarial semantic alignment through opti-mizing shared prompts, ensuring consistency between clean and adversarial distributions. Restoring adversarial inputs through a diffusion model is also a common but costly de-fense strategy (Nie et al., 2022; You et al., 2023). However, their training not only requires extra data costs but also compromises generalization across different datasets. 
+
+2.2. Test-time Adversarial Adaptation for VLMs 
+
+Test-time adaptation (Shu et al., 2022; Abdul Samadh et al., 2023; Sui et al., 2025) focuses on zero-shot generalization of pretrained models across test data, aiming to improve efficiency. Classic studies such as C-TPT (Yoon et al., 2024), DiffTPT (Feng et al., 2023), and VPT (Jia et al., 2022) have achieved significant performance on out-of-distribution (OOD) benchmarks. However, they overlook robustness under adversarial perturbations, which are more closely aligned with the quality of real-world data. Recent studies (Zanella & Ben Ayed, 2024; Tong et al., 2025; Wang et al., 2025a) extend to adversarial situations and propose different strategies based on multi-view aug-mentation. MTA (Zanella & Ben Ayed, 2024) applies mean-2Towards Fine-Grained Robustness: Attention-Guided Test-Time Prompt Tuning for Vision-Language Models 
+
+shift augmentation and optimizes feature representations through aggregation of multiple views, which focuses on the consistent mode and density peak in the feature space. AOM (Tong et al., 2025) introduces Gaussian noise into multiple embeddings and optimizes both the original and augmented anchor feature representations by minimizing Euclidean distance. Methods based on entropy optimiza-tion fine-tune model parameters or prompts. TAPT (Wang et al., 2025a) optimizes both textual and visual prompts using the marginal entropy across augmented views. The re-cent prompt tuning method R-TPT (Sheng et al., 2025) has demonstrated that entropy-based optimization yields strong robustness against adversarial attacks. R-TPT performs image-level augmentation and proposes pointwise entropy optimization for textual prompts across views. However, their augmentation mechanism suffers from destroying dis-criminative regions and semantically irrelevant background. 
+
+2.3. Semantics-Preserving Augmentations 
+
+Semantics-preserving augmentations (Wang et al., 2021; Hu et al., 2024; Yang et al., 2025) are typically employed in fine-grained scenarios, aiming to diversify samples along se-mantically meaningful directions. FN-NET (Ye et al., 2025) exchanges discriminative regions within the same subclass in the feature space and employs a distillation loss to facili-tate the learning process. NAS (Wang et al., 2025b) learns a visual dictionary as the semantic bridge between visual and linguistic representations to generate augmented samples at the token level. Studies (Wang et al., 2019b; Pu et al., 2024) use original logits as the self-supervised label to train a learn-able data aug-network, which is commonly used to preserve discriminative parts. Although these semantics-preserving augmentation methods are widely explored, they are rarely adopted for test-time adaptation because learning semantic information in the feature space is difficult to decouple from the training stage (as discussed in Appendix A). Methods (Michaeli & Fried, 2024; Islam et al., 2024; Li & Li, 2025) based on synthetic data can effectively generate high-quality views but are limited by costly diffusion models. 
+
+# 3. Methodology 
+
+We propose Attention-Guided Test-Time Prompt Tuning (A-TPT) to effectively identify and leverage discriminative semantic regions that remain under adversarial attacks. In Sec. 3.1, we review the foundational background of CLIP, test-time prompt tuning and gradient attention rollout. We then introduce three components of A-TPT in Sec. 3.2. 
+
+3.1. Preliminaries CLIP A widely used backbone in zero-shot inference top-ics, CLIP (Radford et al., 2021), has established a standard paradigm of contrastive learning for VLMs. Considering a 
+
+C-way classification task with class names {tc}Cc=1 , CLIP extracts textual features gc using a prompt template ( e.g. , “a photo of a {class }”) with the text encoder G(·), and visual features fi with the image encoder F (·). The probability that a test sample xi belongs to class c is given by: 
+
+pc(xi) = exp   cos( fi, gc)/τ PCj=1 exp   cos( fi, gj )/τ  , (1) where cos( ·, ·) denotes cosine similarity and τ is a tempera-ture. The predicted label is ˆc = arg max c pc(xi).
+
+Test-Time Prompt Tuning (TPT) Methods like TPT (Shu et al., 2022), C-TPT (Yoon et al., 2024), and RTPT (Sheng et al., 2025) have focused on tuning textual prompts 
+
+P at test time by minimizing prediction entropy across var-ious augmented views {xi}Ni=0 of a test sample x0. The optimization of TPT without additional training priors is: 
+
+LH(p) = − 1
+
+|B| 
+
+X
+
+> i∈B
+> C
+
+X
+
+> c=1
+
+pc(xi) log pc(xi), (2) where B denotes a set of low-entropy samples selected from all augmented views {xi}Ni=0 . Intuitively, P is updated for 
+
+T steps by gradient descent to refine the decision boundary: 
+
+P (T ) = P (T −1) − η ∇P LH(P (T −1) ). (3) 
+
+Gradient Attention Rollout (GAR) GAR (Chefer et al., 2021; Gupta et al., 2022) element-wise weights attention matrices using the gradient of a target logit, and obtains the final CLS-to-patch attribution after cross-layer rollout multiplication. Following GAR, attention focuses on the discriminative semantic parts for a specific target. For the 
+
+b-th transformer block, let s and h denote the number of tokens and the number of heads in each attention layer, and attention tensor is denoted as A(b)(x) ∈ Rh×s×s. Given the target logit S(x) = logits t(x) for an input x, GAR constructs a gradient-weighted transition matrix ˆA(b)(x) at the b-th block as follows: 
+
+ˆA(b)(x) = I + Eh
+
+
+
+∇A(b)(x)S(x) ⊙ A(b)(x)
+
++
+
+, (4) where ⊙ denotes the Hadamard product, ∇A(b)(x)S(x) is the gradient matrix corresponding to the attention matrix 
+
+A(b)(x), and I is the identity matrix accounting for resid-ual connections. Eh(·)+ denotes the mean operation over the head dimension, with negative values clamped to zero. The final transition matrix ˆA(x) is obtained by recursively multiplying over B blocks: 
+
+ˆA(x) = 
+
+> B
+
+Y
+
+> b=1
+
+ˆA(b)(x) ∈ Rs×s. (5) 3Towards Fine-Grained Robustness: Attention-Guided Test-Time Prompt Tuning for Vision-Language Models Image Encoder  
+
+> ···
+> Patch Embedding and Norm
+> Muli-head Attention Layer
+> ···
+
+       
+
+> )()()(ˆ)()(xxExb(b)
+> h
+> bWdiag AIΑ
+> ···
+
+Attention Refinement Attention-Guided Multi-View 
+
+Augmentation 
+
+> ···
+> Final View Last-2 Average Rollout
+> Base View
+
+·· ·
+
+··· 
+
+> Text Encoder
+> [class 1 ... class C]
+
+VT-Based Ensemble 
+
+Prompt Tuning         
+
+> 𝐀𔰀 (𝐀 (𝐀 𝐀 )) 𝐀 𝐀
+> Final Output Entroy
+> Minimization
+> 𝐀 (𝐀 𝐀 )𝐀 (𝐀 𝐀 )𝐀 (𝐀 𝐀 )
+
+Figure 2. The pipeline of A-TPT. Given an input sample, Attention Refinement based on token-gradient is used to identify semantic parts. Then, Attention-Guided Multi-View Augmentation builds a set of semantics-preserving views for fine-tuning learnable prompts. After selecting low-entropy views followed by prompt tuning, TV-Based Ensemble weights reliable views in the final inference process. 
+
+GAR takes the first row of ˆA(x) corresponding to the 
+
+[CLS ] token and removes the attention of the [CLS ] to-ken with itself. The resulting attention embedding of size (s − 1) is reshaped to size ( √s − 1 × √s − 1) to obtain the final CLS-to-patch attention map A(x).
+
+3.2. The A-TPT Framework 
+
+A-TPT performs semantics-preserving prompt tuning in at-tention space and requires neither training knowledge nor additional models. As depicted in Figure 2, 1) Attention Re-finement first accurately identifies unperturbed fine-grained parts in specific multiple views; 2) Attention-Guided Multi-View Augmentation is responsible for semantics-preserving augmentation; 3) TV-Based Ensemble weights the multiple views based on the quality of attention distribution, filtering the semantic-empty and semantic identifying failed views. 
+
+Gradient Attention Refinement Our attention-guided multi-view augmentation described in Eq. (9) – (11) requires a robust semantic anchor A(x) ∈ RH×W . Existing gradient signal ∇A(b)(x)S(x) used in GAR is sensitive to adversarial perturbations, introducing scattered isolated peaks in the spatial attention map as proven in Appendix B. Therefore, we replace the attention-based gradient signal with a robust token-based gradient signal as the target-specific weighting. Specifically, let T(b)(x) ∈ Rs×d denote the token embeddings entering the b-th block. We define a token-based weighting vector as following: 
+
+W(b)(x) = N
+
+h
+
+⟨T(b)(x), ∇T(b)(x)S(x)⟩d
+
+i
+
+> +
+
+
+
+, (6) where ⟨· , ·⟩ is the inner product over the embedding di-mension d, [·]+ clamps negatives to 0, N (·) denotes ℓ1
+
+normalization. We then weight the attention matrix along the source-token dimension via column scaling and our gradient-weighted transition matrix at block b is: 
+
+ˆA(b)(x) = I + Eh
+
+
+
+A(b)(x) diag 
+
+
+
+W(b)(x)
+
+ +
+
+. (7) Additionally, we retain only the last two transition matrices 
+
+ˆA(B−1) (x) and ˆA(B)(x) to suppress shallow-layer noise and apply a last-two-layer average stabilization. The average transition matrix of last two layers is: 
+
+ˆAavg (x) = ˆA(B−1) (x) + ˆA(B)(x)2 . (8) Finally, ˆA(x) = ˆA(B)(x) ˆAavg (x) is used to obtain the final CLS-to-patch attention A(x). In summary, we re-place the weighting term A(b)(x) ⊙ ∇ A(b)(x)S(x) with 
+
+A(b)(x) diag  W(b)(x) to decouple the weighting from attention-based gradient signal. This substitution avoids the second-order sensitivity of ∇A(b)(x)S(x) to perturba-tions, which can induce scattered peaks in the final attention map and destabilize subsequent mask construction described in Eq. (9) – (11) . By contrast, W(b)(x) aggregates contri-butions over the embedding dimension via source-token 4Towards Fine-Grained Robustness: Attention-Guided Test-Time Prompt Tuning for Vision-Language Models 
+
+column scaling rather than operating on individual atten-tion edges, and the resulting CLS-to-patch attribution is smoother and reliable for masks. (Proof in Appendix B). 
+
+Attention-Guided Multi-View Augmentation Multi-view augmentation helps mitigate adversarial noise and im-prove prediction consistency. However, for fine-grained tasks, noisy augmentations often corrupt discriminative parts (Tan et al., 2025). To address this issue, we propose attention-guided multi-view augmentation. We treat the ro-bust attention map, described in Eq. (6) –(8) , as a semantic anchor and apply spatially varying augmentation intensities: high-attention regions are prioritized for semantic protec-tion, while low-attention regions emphasize diversity. Given a test sample x0, we first construct a set of base views 
+
+{bi}Ni=0 using Random-Flip and Center-Crop, along with aggressive views {˜xi}Ni=0 generated by AugMix. The spatial attention A(bi) ∈ RH×W of a base view is extracted from the visual encoder. We divide spatial locations into high-and low-attention regions using a ratio r. Let J = ⌈rHW ⌉,and A(J)(bi) denote the J-th largest value of A(bi) (the top-
+
+r threshold). For any spatial location with attention value 
+
+A, we define the high-attention mask as: 
+
+Mhigh (r) = 
+
+(
+
+1, A ≥ A(J)(bi),
+
+0, A < A (J)(bi), (9) where the low-attention mask is Mlow (r) = 1 − Mhigh (r).The Mixing strength λ(r) ∈ { mhigh , m low } in the high-attention and low-attention regions is defined as: 
+
+λ(r) = Mhigh (r) mhigh + Mlow (r) mlow , (10) then, attention-guided augmented views are generated as: 
+
+xi =  1 − λ(r) ⊙ bi + λ(r) ⊙ ˜xi. (11) 
+
+TV-Based Ensemble of Multiple Views The TV-based ensemble strategy is employed to weight predictions from selected low-entropy views and obtain a reliable final output. Specifically, for each selected view ˜xi and its attention map 
+
+A(xi) ∈ RH×W , we quantify the spatial fragmentation of an attention map by the anisotropic Total Variation (TV) :
+
+TV( A(xi)) = 
+
+> H−1
+
+X
+
+> u=1
+> W
+
+X
+
+> v=1
+
+|Au+1 ,v − Au,v |
+
++
+
+> H
+
+X 
+
+> u=1
+> W−1
+
+X
+
+> v=1
+
+|Au,v +1 − Au,v | .
+
+(12) Here Au,v is the value at location (u, v ) in the attention map of each view. This expression sums value differences between neighboring patches along vertical and horizontal directions. |Au+1 ,v − Au,v | and |Au,v +1 − Au,v | measure the magnitude of attention change between neighboring patches. The first term compares two vertically adjacent po-sitions (u, v ) and (u + 1 , v ). The second term compares two horizontally adjacent positions (u, v ) and (u, v + 1) . Large 
+
+TV indicates that Au,v varies drastically, which means more fragmented attention maps with stronger local abrupt changes. In contrast, small TV means smoother and more continuous with more consistent neighboring position in at-tention maps. Our experiments demonstrate that more frag-mented or overly peaky attention distributions often indicate invalid augmented views, such as background-dominated views or views corrupted by high-contrast artifacts. There-fore, we use TV to measure the reliability of each view and obtain weights wi for the final prediction ˆc:
+
+wi = exp   − TV( A(xi)) P 
+
+> j∈B
+
+exp   − TV( A(xj ))  , (13) 
+
+ˆc = arg max 
+
+> c
+
+X
+
+> i∈B
+
+wi pc(xi). (14) 
+
+# 4. Experiments 
+
+To comprehensively evaluate the effectiveness of A-TPT, our experimental results are organized into three sections. In Sec. 4.2, we benchmark A-TPT against advanced test-time defense methods on both clean and adversarial data. Sec. 4.3 presents extended experiments, comparing A-TPT with training-time adaptation methods and evaluating its robustness under more attacks. Finally, Sec. 4.4 conducts ablation studies to justify the motivation of our framework and quantify the contribution of each component. 
+
+4.1. Setups Datasets Previous works (Wang et al., 2024; Xing et al., 2025) mainly focus on adversarial generalization on ImageNet-1K (Deng et al., 2009) and its variants, but of-ten ignore fine-grained scenarios. In contrast, our method effectively leverages discriminative semantic parts of the fine-grained targets while improving robustness. To evalu-ate the effectiveness, especially for fine-grained tasks, we cover diverse classification tasks including Caltech101 (Fei-Fei, 2004), OxfordPets (Parkhi et al., 2012), Flower102 (Nilsback & Zisserman, 2008), StanfordCars (Krause et al., 2013), FGVC-Aircraft (Maji et al., 2013), DTD (Cimpoi et al., 2014), EuroSAT (Helber et al., 2019), and UCF101 (Soomro et al., 2012). We also conduct experiments on Ima-geNet to identify general ability. In addition, we also con-duct experiments on ImageNet-out-of-distribution (OOD) datasets, including ImageNet-A (Hendrycks et al., 2021b), ImageNet-V2 (Recht et al., 2019), ImageNet-R (Hendrycks et al., 2021a), ImageNet-S (Wang et al., 2019a) 5Towards Fine-Grained Robustness: Attention-Guided Test-Time Prompt Tuning for Vision-Language Models      
+
+> Table 1. Adversarial accuracy of test-time adaptation methods on ImageNet and fine-grained classification tasks via pretrained ViT-B/16 and ViT-B/32, with the best results shown in bold red (ViT-B/16) and bold blue (ViT-B/32).
+
+Method Pets Caltech101 Cars DTD UCF101 EuroSAT Flower102 Aircraft Average 
+
+ViT-B/16 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 CLIP ViT-B/32 0.2 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 ViT-B/16 10.4 8.4 2.9 4.5 1.6 0.4 7.4 0.5 4.5 TTC ViT-B/32 11.8 22.7 2.3 4.7 6.1 3.0 3.2 1.0 6.9 ViT-B/16 51.2 74.7 26.0 25.1 30.6 2.2 36.3 8.7 31.9 TPT-Ensemble ViT-B/32 52.5 74.9 25.9 28.6 36.9 11.9 36.1 7.9 34.3 ViT-B/16 51.8 72.1 18.5 16.2 27.5 1.2 27.9 4.3 27.4 MTA ViT-B/32 53.6 76.3 26.4 28.8 39.1 11.3 36.5 8.2 35.0 ViT-B/16 60.2 82.0 34.7 32.8 43.2 8.5 44.6 13.2 39.9 R-TPT ViT-B/32 55.8 76.4 28.4 29.1 41.0 5.1 37.6 9.2 35.3 ViT-B/16 70.5 85.6 39.2 37.8 51.7 13.1 52.6 15.1 45.7 A-TPT (Ours) ViT-B/32 66.4 79.8 31.8 31.1 46.9 12.7 43.2 10.4 40.3      
+
+> Table 2. Clean accuracy of test-time adaptation methods on ImageNet and fine-grained classification tasks via pre-trained ViT-B/16 and ViT-B/32, with the best results shown in bold red (ViT-B/16) and bold blue (ViT-B/32).
+
+Method Pets Caltech101 Cars DTD UCF101 EuroSAT Flower102 Aircraft Average 
+
+ViT-B/16 88.3 94.0 65.5 44.4 65.2 42.2 67.4 23.9 61.4 CLIP ViT-B/32 85.1 91.4 60.1 43.0 61.6 35.8 64.0 18.1 57.4 ViT-B/16 82.3 87.6 55.0 41.0 65.8 47.4 69.0 23.3 58.9 TTC ViT-B/32 83.5 86.5 48.1 37.3 62.6 53.0 64.3 18.2 56.7 ViT-B/16 86.2 91.9 65.7 43.2 63.0 28.2 65.9 23.4 58.4 TPT-Ensemble ViT-B/32 75.0 88.2 51.7 39.8 54.9 30.8 58.1 16.4 51.9 ViT-B/16 88.0 94.3 67.7 46.5 67.5 42.5 67.4 25.0 62.4 MTA ViT-B/32 86.3 92.0 63.4 43.8 63.3 34.6 64.4 20.2 58.5 ViT-B/16 87.2 93.7 67.0 46.4 67.2 34.7 68.7 23.9 61.1 R-TPT ViT-B/32 84.5 90.6 63.1 42.1 62.8 32.0 62.6 19.1 57.1 ViT-B/16 89.5 94.6 67.9 48.0 68.9 42.2 70.1 22.5 63.0 A-TPT (Ours) ViT-B/32 87.3 92.0 63.8 44.0 63.4 35.9 64.5 17.5 58.6 
+
+Baselines We compare A-TPT against two test-time prompt tuning methods for CLIP: TPT-Ensemble (Shu et al., 2022) and the SOTA method R-TPT (Sheng et al., 2025), as well as a strong method based on the test-time distribution alignment for CLIP: MTA (Zanella & Ben Ayed, 2024). An advanced detection-then-defense method, TTC (Xing et al., 2025), is also included. Here, TPT-Ensemble employs simple averaging of predictions across selected low-entropy views. All baseline methods rely on pretrained CLIP and AugMix (Hendrycks et al., 2020) augmentation, without any other training knowledge or additional models. 
+
+Evaluation Metrics Following previous works (Sheng et al., 2025; Zanella & Ben Ayed, 2024), we report two average accuracies ( %): clean accuracy is used to measure the method’s adaptation ability on clean samples, while adversarial accuracy measures the method’s robustness on adversarial samples. 
+
+Implementation Details We use the official pretrained CLIP models (ViT-B/16, ViT-B/32 and ResNet50) as the backbone throughout our experiments. PGD (Madry et al., 2018) is used to generate adversarial samples. Specifically, we use a perturbation bound of ε = 4 /255 with 100 steps for ViT, and ε = 1 /255 with 1 step for ResNet. In the prompt tuning stage at test time, we utilize the Adam optimizer with weight decay and one step with a learning rate of 0.005. All experiments are conducted using the PyTorch framework on RTX-4090 GPUs with eight-card data parallelism. More setup details are given in Appendix C. 
+
+4.2. Main Results Results of Adversarial Robustness As shown in Table 1, we evaluate the adversarial robustness of A-TPT on eight fine-grained tasks and the ImageNet task. A-TPT achieves the best adversarial accuracy of 45 .7% (ViT-B/16) and 
+
+40 .3% (ViT-B/32), significantly outperforming existing test-time defense methods. This robustness highlights the broad applicability of A-TPT and its potential to serve as an effec-tive defense paradigm for future vision-language models. MTA aims to obtain consistent representations across aug-6Towards Fine-Grained Robustness: Attention-Guided Test-Time Prompt Tuning for Vision-Language Models 
+
+Table 3. Clean and adversarial (Adv.) accuracy of test-time adaptation methods on ImageNet-OOD datasets (ResNet50). 
+
+Method ImageNet ImageNet-A ImageNet-V2 ImageNet-R ImageNet-S Average Clean Adv. Clean Adv. Clean Adv. Clean Adv. Clean Adv. Clean Adv. 
+
+CLIP 58.2 0.1 21.8 0.0 51.5 0.1 56.1 0.8 33.3 0.5 44.2 0.3 TPT-Ensemble 58.0 40.1 22.6 10.1 52.0 37.2 51.3 39.3 29.5 20.7 42.7 29.5 MTA 60.4 30.0 27.5 5.6 54.2 24.6 58.4 29.8 35.2 11.3 47.1 20.3 R-TPT 60.9 47.7 28.4 14.4 54.9 41.6 57.6 46.9 34.0 26.2 47.1 35.4 
+
+A-TPT (Ours) 61.4 48.2 31.6 15.3 55.1 42.1 57.6 47.1 34.4 26.4 48.0 35.8 
+
+mented views through aggregation optimization. RTPT introduces pointwise entropy of augmented views to opti-mize textual prompts. However, these methods overlook the semantic information. A-TPT can identify unperturbed discriminative parts and achieves semantics-preserving di-versity, ultimately surpassing MTA by 5.3% (ViT-B/32) and R-TPT by 5.0% (ViT-B/32) in adversarial accuracy. Se-mantic preservation does matter, and what matters more is identifying discriminative semantic parts. 
+
+Results of Clean Accuracy Besides adversarial robust-ness, A-TPT also improves the clean accuracy of CLIP from 61 .4% to 63 .0% (ViT-B/16) and from 57 .4% to 58 .6% 
+
+(ViT-B/32) as shown in Table 2. Compared to previous methods, we achieve the best performance and surpass the SOTA defense method RTPT by 1.5% via ViT-B/32 in the clean distribution. These methods largely preserve CLIP’s zero-shot ability, indicating that extracting consistent infor-mation from multiple views is a reliable approach. A-TPT can further leverage discriminative semantics to guide this process, whether or not the features are corrupted. 
+
+Results on ImageNet OOD Datasets Beyond the fine-grained scenarios, we further report the experimental results on five generic benchmarks in Table 3. Although CLIP can handle natural distribution shifts, it is highly vulnerable to adversarial perturbations. A-TPT achieves the strongest adversarial robustness across both ImageNet and its out-of-distribution variants. Notably, A-TPT reaches an aver-age adversarial robustness of 35 .8% , while CLIP achieves only 0.3% . In addition, A-TPT maintains clean accuracy comparable to baselines, suggesting our effectiveness on large-scale datasets with distribution shifts. 
+
+4.3. More Experiments Results under Different Adversarial Attacks We evalu-ate A-TPT with two SOTA methods, MTA and R-TPT, under various attack methods. We employ CW (Carlini & Wag-ner, 2017), DeepFool (DF) (Moosavi-Dezfooli et al., 2016), and FGSM (Goodfellow et al., 2015) as new attacks and report the adversarial accuracy on two fine-grained datasets in Table 4. A-TPT achieves the highest adversarial accuracy across all types of attacks. Obviously, the attention-based 
+
+Table 4. Adversarial accuracies under various attacks on two fine-grained datasets (ViT-B/32). Method Flower DTD CW DF FGSM Avg. CW DF FGSM Avg. MTA 34.5 35.4 36.6 35.5 23.6 23.5 23.9 23.7 R-TPT 51.6 54.7 49.2 51.8 34.2 35.9 32.5 34.2         
+
+> A-TPT (Ours) 54.7 58.2 53.4 55.4 39.2 41.6 38.8 39.9
+
+Table 5. The average accuracy across 8 fine-grained datasets com-pared A-TPT with training-time defense methods (ViT-B/32). Methods Stage Clean Acc Adv Acc PAFT Training time 54.9 27.5 TeCoA Training time 33.4 32.2 APT+TeCoA Training time 40.2 38.9 FARE Training time 42.2 40.3 
+
+A-TPT (Ours) Test time 58.6 40.3 
+
+semantics-preserving strategy of A-TPT is stable and sub-stantial, confirming the simple but effective direction. 
+
+Results Compared with Training-Time Methods 
+
+Training-time defense methods typically require labeled data and compromise performance on clean data. To further examine the effectiveness of A-TPT, we compared A-TPT with training-time adaptation methods PAFT (Chen et al., 2020), TeCoA (Mao et al., 2023), APT (Li et al., 2024), and FARE (Schlarmann et al., 2024) on fine-grained datasets, as shown in Table 5 (Table 9 and Table 10 in Appendix C). It is shown that A-TPT not only maintains the best perfor-mance on clean data but also achieves the best robustness on adversarial data. It confirms that the discriminative regions preserved by A-TPT’s token-gradient attention cover most of the discriminative parts. 
+
+Inference Efficiency We further study the inference effi-ciency, finding that the additional computational cost stems from per-sample attention extraction, as shown in Table 6. Moreover, the inference can be accelerated by reducing the number of views to obtain better real-time performance. By reducing this number from 64 to 16, the time required for per-sample is reduced to less than 1/5 of the original, but the accuracy remains stable. 7Towards Fine-Grained Robustness: Attention-Guided Test-Time Prompt Tuning for Vision-Language Models Base Views           
+
+> Our
+> Attention
+> GAR
+> Attention
+> Figure 3. Quality of semantic identification on adversarial examples (Pets dataset). Compared with GAR, our refined attention focuses on continuous and discriminative semantic parts (ViT-B/16).
+> Table 6. Inference efficiency on the Pets dataset (ViT-B/16). Views Number Time/per-sample Adv. Accuracy 64 2.71 s 70.5 32 1.07 s 70.1 16 0.53 s 69.8
+
+4.4. Ablation Studies Quality of Semantic Identification The key to semantic preservation lies in whether a model can still accurately identify the discriminative parts under adversarial attacks. Figure 3 presents the base views and corresponding atten-tion maps under adversarial attacks. GAR fails to locate the critical regions due to the affected term ∇A(b)(x)S(x)
+
+in Eq. (4) . In contrast, our refined attention can focus on the same part across different views generated from the same test sample, indicating that unperturbed semantic informa-tion is effectively captured under adversarial attacks. 
+
+Reliability of TV-Based Ensemble To further demon-strate the reliability of TV-based ensemble, we visualize at-tention distribution across views assigned different weights, as shown in Figure 4. It can be seen that during the en-semble stage of A-TPT, the attention of highly reliable (wi > 0.1) views is more evenly concentrated on discrim-inative parts. In contrast, the attention of low-reliability (wi < 0.01 ) views is more dispersed, and these views of-ten correspond to semantically irrelevant backgrounds or perturbed features. Obviously, TV-based ensemble effec-tively distinguishes between semantically meaningful and semantically empty views, assigning them different weights. 
+
+Sensitivity of the Numbers of View We study the impact of the number of augmented views to further demonstrate the effectiveness of A-TPT. We provide the results of A-TPT with different view numbers (16, 32, 64) in Figure 5. The results show that A-TPT remains stable across different view numbers, indicating that with only a few views, A-TPT can accurately capture semantic information and effectively                              
+
+> Table 7. Ablation studies: adversarial and clean accuracy on eight fine-grained datasets (ViT-B/16). A-Refine A-Aug A-TV Adversarial Acc Clean Acc
+> ×××31.8 58.4
+> ✓××31.8 58.4
+> ×✓✓32.3 59.1
+> ✓×✓38.1 62.4
+> ✓✓×41.6 62.7
+> ✓✓✓45.7 63.0
+
+guide multi-view augmentation. 
+
+Contribution of Core Components We evaluate the con-tribution of each component included in A-TPT (A-Refine = Attention Refinement, A-Aug = Attention-Guided Multi-View Augmentation, and A-TV = TV-Based Ensemble), as shown in Table 7. The baseline is TPT-Ensemble, which conducts average ensemble after augmentation and prompt tuning. A-Refine is the foundation of A-TPT. Comparing the results in the second and third rows, it is evident that without A-Refine, A-Aug fails to protect discriminative re-gions and A-TV fails to ensemble reliable views. A-Aug and A-TV can effectively improve performance on both clean and adversarial data. Based on A-Refine, A-TV improves adversarial accuracy and clean accuracy by 6.3% and 4.0% ,respectively, while A-Aug improves by 9.8% and 4.3% .This result further supports the conclusions in Sec. 4.3 re-garding the Reliability of TV-Based Ensemble and Quality of Semantic Identification. Furthermore, applying A-Aug for discriminative parts protection, followed by A-TV to filter out views without useful semantic information, im-proves the accuracy to 45 .7% and 63 .0% , respectively. In summary, A-Aug and A-TV can fully leverage semantic information to guide prompt tuning when discriminative parts are located by A-Refine. 
+
+# 5. Conclusions and limitations 
+
+In this paper, we explored semantics-preserving adversar-ial defense for VLMs at test time and proposed Attention-8Towards Fine-Grained Robustness: Attention-Guided Test-Time Prompt Tuning for Vision-Language Models (𝐀 > 𝐀 . 𝐀 )High-reliable views selected by A-TPT (𝐀 < 𝐀 . 𝐀 𝐀 )Low-reliable views selected by A-TPT 
+
+> Sample 1 Sample 2 Sample 3
+
+Figure 4. Attention distribution of high-reliable views and low-reliable views from the same test sample on the Pets dataset (ViT-B/16). 0   
+
+> 10
+> 20
+> 30
+> 40
+> 50
+> 60
+> 70
+> 80
+> 90
+> 16 viwes 32 views 64 viwes 0
+> Accuracy (%)
+> Views Number
+> Pets
+> Caltech101
+> Cars
+> DTD
+> UCF101
+> EuroSAT
+> Flower102
+> Aircraft
+
+Figure 5. Adversarial accuracy with the various numbers of aug-mented views (ViT-B/16). 
+
+Guided Test-Time Prompt Tuning (A-TPT). Inspired by feature corruption, we first decoupled semantic identifica-tion from the training stage and leveraged the unperturbed semantic information under adversarial attacks. We found that existing gradient attention is sensitive to adversarial attacks and can introduce random attention distribution; thus, we replaced its gradient signal with a robust term to refine the attention strategy. This refined attention can guide the model to tune prompts across multiple views in a semantics-preserving way and ensemble views without corrupted features or useless backgrounds. Extensive results demonstrated that A-TPT achieves outstanding defense per-formance against various adversarial attacks and maintains adaptation performance on clean data. Our proposed method is built upon the views generated by multi-view transforma-tions that preserve stable semantic structures. Consequently, A-TPT relies on multi-view augmentation, as well as view selection and ensemble, and is not entirely immune to ad-versarial attacks. In future work, we will further explore discriminative semantic information in the latent space. 
+
+# Acknowledgments 
+
+This work was supported by National Natural Science Foun-dation of China under Grant (62522602, 62272231), Basic Research Program of Jiangsu under Grant (BK20250073), the Fundamental Research Funds for the Central Univer-sities (4009002401, 2242025K30024), and the Big Data Computing Center of Southeast University. 
+
+# Impact Statement 
+
+This paper presents work whose goal is to advance the field of Machine Learning. There are many potential societal consequences of our work, none which we feel must be specifically highlighted here. 
+
+# References 
+
+Abdul Samadh, J., Gani, M. H., Hussein, N., Khattak, M. U., Naseer, M. M., Shahbaz Khan, F., and Khan, S. H. Align your prompts: Test-time prompting with distribution alignment for zero-shot generalization. In Advances in Neural Inf. Process. Syst. , pp. 80396–80413, 2023. Carlini, N. and Wagner, D. Towards Evaluating the Robust-ness of Neural Networks. In Proc. Conf. IEEE Symposium on Security and Privacy. , pp. 39–57, 2017. Chefer, H., Gur, S., and Wolf, L. Transformer Interpretabil-ity beyond Attention Visualization. In Proc. IEEE Conf. Comp. Vis. Patt. Recogn. , pp. 782–791, 2021. Chen, F.-L., Zhang, D.-Z., Han, M.-L., Chen, X.-Y., Shi, J., Xu, S., and Xu, B. VLP: A Survey on Vision-language Pre-training. Mach. Intell. Res. , 20(1):38–56, 2023. Chen, T., Liu, S., Chang, S., Cheng, Y., Amini, L., and Wang, Z. Adversarial robustness: From self-supervised pre-training to fine-tuning. In Proc. IEEE Conf. Comp. Vis. Patt. Recogn. , pp. 699–708, 2020. 9Towards Fine-Grained Robustness: Attention-Guided Test-Time Prompt Tuning for Vision-Language Models 
+
+Cimpoi, M., Maji, S., Kokkinos, I., Mohamed, S., and Vedaldi, A. Describing textures in the wild. In Proc. IEEE Conf. Comp. Vis. Patt. Recogn. , pp. 3606–3613, 2014. Croce, F. and Hein, M. Reliable Evaluation of Adversarial Robustness with An Ensemble of Diverse Parameter-Free Attacks. In Proc. Int. Conf. Mach. Learn. , pp. 2206–2216, 2020. Cui, X., Aparcedo, A., Jang, Y. K., and Lim, S.-N. On the Robustness of Large Multimodal Models against Image Adversarial Attacks. In Proc. IEEE Conf. Comp. Vis. Patt. Recogn. , pp. 24625–24634, 2024. Deng, J., Dong, W., Socher, R., Li, L.-J., Li, K., and Fei-Fei, L. Imagenet: A large-scale hierarchical image database. In Proc. IEEE Conf. Comp. Vis. Patt. Recogn. , pp. 248– 255, 2009. Dong, J., Zhang, C., Qu, X., Ma, Z., Koniusz, P., and Ong, Y.-S. Robust SuperAlignment: Weak-to-Strong Robust-ness Generalization for Vision-Language Models. In 
+
+Advances in Neural Inf. Process. Syst. , pp. 1–33, 2025. Fei-Fei, L. Learning Generative Visual Models from Few Training Examples. In Proc. IEEE Conf. Comp. Vis. Patt. Recogn. , pp. 1077–3142, 2004. Feng, C.-M., Yu, K., Liu, Y., Khan, S., and Zuo, W. Diverse data augmentation with diffusions for effective test-time prompt tuning. In Proc. IEEE Int. Conf. Comp. Vis. , pp. 2704–2714, 2023. Goodfellow, I. J., Shlens, J., and Szegedy, C. Explaining and Harnessing Adversarial Examples. In Proc. Int. Conf. Learn. Representations , pp. 1–11, 2015. Gupta, S., Lakhotia, S., Rawat, A., and Tallamraju, R. Vitol: Vision transformer for weakly supervised object localiza-tion. In Proc. IEEE Conf. Comp. Vis. Patt. Recogn. , pp. 4101–4110, 2022. Helber, P., Bischke, B., Dengel, A., and Borth, D. Eurosat: A novel dataset and deep learning benchmark for land use and land cover classification. IEEE J. Sel. Topics Appl. Earth Observ. Remote Sens. , 12:2217–2226, 2019. Hendrycks, D., Mu, N., Cubuk, E. D., Zoph, B., Gilmer, J., and Lakshminarayanan, B. AugMix: A Simple Data Processing Method to Improve Robustness and Uncer-tainty. In Proc. Int. Conf. Learn. Representations , pp. 1–15, 2020. Hendrycks, D., Basart, S., Mu, N., Kadavath, S., Wang, F., Dorundo, E., Desai, R., Zhu, T., Parajuli, S., Guo, M., et al. The Many Faces of Robustness: A Critical Analysis of Out-of-distribution Generalization. In Proc. IEEE Int. Conf. Comp. Vis. , pp. 8340–8349, 2021a. Hendrycks, D., Zhao, K., Basart, S., Steinhardt, J., and Song, D. Natural Adversarial Examples. In Proc. IEEE Conf. Comp. Vis. Patt. Recogn. , pp. 15262–15271, 2021b. Hossain, M. Z. and Imteaj, A. SLADE: Shielding against Dual Exploits in Large Vision-Language Models. In Proc. IEEE Conf. Comp. Vis. Patt. Recogn. , pp. 24244–24254, 2025. Hu, F., Zhang, C., Guo, J., Wei, X.-S., Zhao, L., Xu, A., and Gao, L. An Asymmetric Augmented Self-Supervised Learning Method for Unsupervised Fine-Grained Image Hashing. In Proc. IEEE Conf. Comp. Vis. Patt. Recogn. ,pp. 17648–17657, 2024. Islam, K., Zaheer, M. Z., Mahmood, A., and Nandakumar, K. Diffusemix: Label-Preserving Data Augmentation with Diffusion Models. In Proc. IEEE Conf. Comp. Vis. Patt. Recogn. , pp. 27611–27620, 2024. Jia, M., Tang, L., Chen, B.-C., Cardie, C., Belongie, S., Hariharan, B., and Lim, S.-N. Visual Prompt Tuning. In 
+
+Proc. Eur. Conf. Comp. Vis. , pp. 709–727, 2022. Krause, J., Stark, M., Deng, J., and Fei-Fei, L. 3D Object Representations for Fine-Grained Categorization. In Proc. IEEE Int. Conf. Comp. Vis. , pp. 554–561, 2013. Li, H. and Li, B. Enhancing Vision-Language Composi-tional Understanding with Multimodal Synthetic Data. In 
+
+Proc. IEEE Conf. Comp. Vis. Patt. Recogn. , pp. 24849– 24861, 2025. Li, L., Guan, H., Qiu, J., and Spratling, M. One prompt word is enough to boost adversarial robustness for pre-trained vision-language models. In Proc. IEEE Conf. Comp. Vis. Patt. Recogn. , pp. 24408–24419, 2024. Madry, A., Makelov, A., Schmidt, L., Tsipras, D., and Vladu, A. Towards Deep Learning Models Resistant to Adversarial Attacks. In Proc. Int. Conf. Learn. Repre-sentations , pp. 1–23, 2018. Maji, S., Rahtu, E., Kannala, J., Blaschko, M., and Vedaldi, A. Fine-Grained Visual Classification of Aircraft. arXiv preprint arXiv:1306.5151 , 2013. Mao, C., Geng, S., Yang, J., Wang, X., and Vondrick, C. Un-derstanding Zero-shot Adversarial Robustness for Large-Scale Models. In Proc. Int. Conf. Learn. Representations ,pp. 3485–3492, 2023. Maolin, X., Yuling, C., Haiwei, S., Hui, D., and Long, C. Enhancing the Transferability of Adversarial Attacks Through Dual-Frequency Domain Transforms and High-Frequency Gradient Guided. Chinese Journal of Elec-tronics , 34(5):1438–1448, 2025. 10 Towards Fine-Grained Robustness: Attention-Guided Test-Time Prompt Tuning for Vision-Language Models 
+
+Michaeli, E. and Fried, O. Advancing Fine-Grained Clas-sification by Structure and Subject Preserving Augmen-tation. In Advances in Neural Inf. Process. Syst. , pp. 22316–22349, 2024. Moosavi-Dezfooli, S.-M., Fawzi, A., and Frossard, P. Deep-Fool: a simple and accurate method to fool deep neural networks. In Proc. IEEE Conf. Comp. Vis. Patt. Recogn. ,pp. 2574–2582, 2016. Nie, W., Guo, B., Huang, Y., Xiao, C., Vahdat, A., and Anandkumar, A. Diffusion Models for Adversarial Pu-rification. In Proc. Int. Conf. Mach. Learn. , pp. 16805– 16827, 2022. Nilsback, M.-E. and Zisserman, A. Automated Flower Classification over A Large Number of Classes. In Proc. IEEE Int. Conf. Comp. Vis. , pp. 722–729, 2008. Parkhi, O. M., Vedaldi, A., Zisserman, A., and Jawahar, C. Cats and Dogs. In Proc. IEEE Conf. Comp. Vis. Patt. Recogn. , pp. 3498–3505, 2012. Pu, Y., Han, Y., Wang, Y., Feng, J., Deng, C., and Huang, G. Fine-Grained Recognition with Learnable Semantic Data Augmentation. IEEE Trans. Image Process. , pp. 3130–3144, 2024. Radford, A., Kim, J. W., Hallacy, C., Ramesh, A., Goh, G., Agarwal, S., Sastry, G., Askell, A., Mishkin, P., and Clark, J. Learning Transferable Visual Models from Natural Nanguage Supervision. In Proc. Int. Conf. Mach. Learn. , pp. 8748–8763, 2021. Recht, B., Roelofs, R., Schmidt, L., and Shankar, V. Do Imagenet Classifiers Generalize to Imagenet? In Proc. Int. Conf. Mach. Learn. , pp. 5389–5400. PMLR, 2019. Ruru, Z., Haihong, E., and Meina, S. Fscil-eaca: Few-shot class-incremental learning network based on embedding augmentation and classifier adaptation for image classifi-cation. Chinese Journal of Electronics , 33(1):139–152, 2024. Schlarmann, C., Singh, N. D., Croce, F., and Hein, M. Robust Clip: Unsupervised Adversarial Fine-Tuning of Vision Embeddings for Robust Large Vision-Language Models. In Proc. Int. Conf. Mach. Learn. , pp. 43685– 43704, 2024. Sheng, L., Liang, J., Wang, Z., and He, R. R-TPT: Improv-ing Adversarial Robustness of Vision-Language Models through Test-Time Prompt Tuning. In Proc. IEEE Conf. Comp. Vis. Patt. Recogn. , pp. 29958–29967, 2025. Shin, G., Xie, W., and Albanie, S. ReCo: Retrieve and co-segment for zero-shot transfer. In Advances in Neural Inf. Process. Syst. , pp. 33754–33767, 2022. Shu, M., Nie, W., Huang, D.-A., Yu, Z., Goldstein, T., Anandkumar, A., and Xiao, C. Test-time prompt tuning for zero-shot generalization in vision-language models. In 
+
+Advances in Neural Inf. Process. Syst. , pp. 14274–14289, 2022. Soomro, K., Zamir, A. R., and Shah, M. A dataset of 101 human action classes from videos in the wild. Center for Research in Computer Vision , 2(11):1–7, 2012. Sui, E., Wang, X., and Yeung-Levy, S. Just shift it: Test-time prototype shifting for zero-shot generalization with vision-language models. In Proc. Winter Conf. Applica-tions of Comp. Vis. , pp. 825–835, 2025. Szegedy, C., Zaremba, W., Sutskever, I., Bruna, J., Erhan, D., Goodfellow, I., and Fergus, R. Intriguing Properties of Neural Networks. In Proc. Int. Conf. Learn. Represen-tations , pp. 1–10, 2014. Tan, B., Wei, X.-S., and Zhao, L. Prototype-based Con-trastive Learning with Stage-wise Progressive Augmenta-tion for Self-Supervised Fine-Grained Learning. In Proc. IEEE Int. Conf. Comp. Vis. , pp. 4125–4134, 2025. Tianyuan, Z., Jiangfan, L., Yongkang, G., Fangzhi, Z., Wei, B., Jian, D., Aishan, L., and Xianglong, L. To-wards Secure and Robust Vision-Language Models in Autonomous Driving: A Survey for Perception-Oriented and Decision-Oriented Attacks. Chinese Journal of Elec-tronics , 35(3):1–16, 2026. Tong, B., Lai, H., Pan, Y., and Yin, J. On the Zero-shot Adversarial Robustness of Vision-Language Models: A Truly Zero-shot and Training-free Approach. In Proc. IEEE Conf. Comp. Vis. Patt. Recogn. , pp. 19921–19930, 2025. Wang, H., Ge, S., Lipton, Z., and Xing, E. P. Learning Robust Global Representations by Penalizing Local pre-dictive Power. In Advances in Neural Inf. Process. Syst. ,volume 32, 2019a. Wang, S., Zhang, J., Yuan, Z., and Shan, S. Pre-trained Model Guided Fine-Tuning for Zero-Shot Adversarial Ro-bustness. In Proc. IEEE Conf. Comp. Vis. Patt. Recogn. ,pp. 24502–24511, 2024. Wang, X., Chen, K., Zhang, J., Chen, J., and Ma, X. TAPT: Test-Time Adversarial Prompt Tuning for Robust Infer-ence in Vision-Language Models. In Proc. IEEE Conf. Comp. Vis. Patt. Recogn. , pp. 19910–19920, 2025a. Wang, Y., Pan, X., Song, S., Zhang, H., Huang, G., and Wu, C. Implicit semantic data augmentation for deep networks. In Advances in Neural Inf. Process. Syst. , pp. 12635–12644, 2019b. 11 Towards Fine-Grained Robustness: Attention-Guided Test-Time Prompt Tuning for Vision-Language Models 
+
+Wang, Y., Huang, G., Song, S., Pan, X., Xia, Y., and Wu, C. Regularizing Deep Networks with Semantic Data Augmentation. IEEE Trans. Pattern Anal. Mach. Intell. ,44:3733–3748, 2021. Wang, Y., Gao, D., Yi, L., Jin, L., Zhang, J., Yang, L., and Cai, X. Enhancing Fine-Grained Vision-Language Pretraining with Negative Augmented Samples. In Proc. Conf. AAAI , pp. 8060–8068, 2025b. Wei, Y. and Wei, X.-S. Task-specific Part Discovery for Fine-grained Few-shot Classification. Mach. Intell. Res. ,21:954–965, 2024. Xing, S., Zhao, Z., and Sebe, N. Clip is strong enough to fight back: Test-time counterattacks towards zero-shot adversarial robustness of clip. In Proc. IEEE Conf. Comp. Vis. Patt. Recogn. , pp. 15172–15182, 2025. Yang, S., Li, P., Xiong, X., Shen, F., and Zhao, J. Adaaug-ment: A Tuning-Free and Adaptive Approach to Enhance Data Augmentation. IEEE Trans. Image Process. , 34: 4843–4855, 2025. Ye, S., Peng, Q., Cheung, Y.-m., Wang, Y., Zou, Z., and You, X. FN-NET: Adaptive Data Augmentation Network for Fine-Grained Visual Categorization. Pattern Recogn. ,165:111618, 2025. Yin, Z., Ye, M., Zhang, T., Du, T., Zhu, J., Liu, H., Chen, J., Wang, T., and Ma, F. VLAttack: Multimodal Adver-sarial Attacks on Vision-Language Tasks via Pre-trained Models. In Advances in Neural Inf. Process. Syst. , pp. 52936–52956, 2023. Yoon, H. S., Yoon, E., Tee, J. T. J., Hasegawa-Johnson, M., Li, Y., and Yoo, C. D. C-TPT: C-TPT: Calibrated Test-time Prompt Tuning for Vision-Language Models Via Text Feature Dispersion. In Proc. Int. Conf. Learn. Representations , pp. 1–25, 2024. You, Z., Liu, D., Han, B., and Xu, C. Beyond pretrained features: Noisy image modeling provides adversarial de-fense. In Advances in Neural Inf. Process. Syst. , pp. 42950–42960, 2023. Yu, H.-T., Wei, X.-S., Peng, Y., and Belongie, S. Bench-marking Large Vision-Language Models on Fine-Frained Image Tasks: A Comprehensive Evaluation. In Proc. Int. Conf. Learn. Representations , pp. 1–20, 2026. Zanella, M. and Ben Ayed, I. On the test-time zero-shot generalization of vision-language models: Do we really need prompt learning? In Proc. IEEE Conf. Comp. Vis. Patt. Recogn. , pp. 23783–23793, 2024. Zhang, H., Li, F., Zou, X., Liu, S., Li, C., Yang, J., and Zhang, L. A Simple Framework for Open-Vocabulary Segmentation and Detection. In Proc. IEEE Int. Conf. Comp. Vis. , pp. 1020–1031, 2023. Zhang, J., Yi, Q., and Sang, J. Towards Adversarial Attack on Vision-Language Pre-training Models. In Proc. ACM Int. Conf. Multimedia , pp. 5005–5013, 2022. Zhao, Y., Pang, T., Du, C., Yang, X., LI, C., Cheung, N.-M. M., and Lin, M. On Evaluating Adversarial Robust-ness of Large Vision-Language Models. In Advances in Neural Inf. Process. Syst. , pp. 54111–54138, 2023. Zhou, Y., Xia, X., Lin, Z., Han, B., and Liu, T. Few-Shot Adversarial Prompt Learning on Vision-Language Mod-els. In Proc. IEEE Conf. Comp. Vis. Patt. Recogn. , pp. 3122–3156, 2024. 12 Towards Fine-Grained Robustness: Attention-Guided Test-Time Prompt Tuning for Vision-Language Models 
+
+# A. Discussion 
+
+A.1 Why attention-guided augmentation is necessary in test-time prompt tuning? 
+
+Existing test-time prompt tuning methods (Wang et al., 2025a; Sheng et al., 2025; Shu et al., 2022; Yoon et al., 2024) use multi-view augmentation to rewrite the optimization objective as an unsupervised expectation. They minimize entropy/uncertainty or enforce cross-view consistency, yielding more stable gradients that are less prone to bias from distribution shift or adversarial perturbations. The goal of attention-guided augmentation is to generate multiple views that preserve discriminative regions under adversarial perturbations. More specifically: • Random augmentations can easily introduce spurious background or texture noises, which will corrupt fine-grained discriminative parts. • Attention, as a semantic anchor, can guide augmentation to preserve high-semantic regions while still introduce diversity. Preserving target parts or discriminative regions can effectively reduce the number of semantic-empty views. • Attention-guided augmentation improves the stability of optimization by less low-quality views, and the effectiveness of ensemble by more high-quality views. 
+
+A.2 Why is the semantic anchor attention instead of feature representations? 
+
+The key issue is not simply “ Where semantic information are? ”, but “ Is there still unperturbed and discriminative semantics exist? ”. Although semantics-preserving augmentation has been widely explored (Wang et al., 2021; Hu et al., 2024; Yang et al., 2025), existing problems in test-time adversarial satiation are: • Adversarial attacks will push the features away from the decision boundary, which break the structure of the similarity or semantic neighborhood in feature space. In such case, using attacked feature representations to identify discriminative semantics is adding fuel to the fire. • Attention is a training-independent signal. Directly learning semantics in feature space requires pre-learned prototypes, clustering, or dictionaries. As the regularization terms, it is difficult to decouple them from the training stage. 
+
+A.3 Why does A-TPT need TV-based ensemble? 
+
+Not all views retain discriminative semantics under adversarial attacks. Since multiple views are generated from adversarially perturbed samples, some of them inherit aggressive adversarial noise, causing target parts to be broken or mixed with the background. Therefore, we need a way to filter out useless views. When a view has no clear discriminative regions, its attention map exhibits larger total variation. So the TV-based ensemble serves as the last line of defense. 
+
+# B. Theoretical justification 
+
+Given that feature space corruption occurs under adversarial perturbations, we turn to attention for semantic identification. However, existing target-specific attention methods (Chefer et al., 2021; Gupta et al., 2022) remain vulnerable to adversarial attacks, primarily due to their inherent sensitivity to adversarial perturbations. We provide a theoretical proof using the PGD (Madry et al., 2018) attack algorithm as an example to demonstrate how adversarial perturbations exploit this sensitivity. 
+
+B.1. Second-Order Sensitivity of Attention Gradients Lemma B.1. The variation of ϕu(x) with respect to the input x is governed by mixed second-order derivatives of S(x).Proof. Fix an entry index u of the attention tensor A(b)(x), and define: 
+
+ϕu(x) ≜ ∇A(b)(x)S(x) 
+
+> u
+
+≜ ∂S (x)
+
+∂(A(b)(x)) u
+
+. (15) Assuming local differentiability, for any small perturbation δ, the first-order Taylor expansion yields: 
+
+ϕu(x + δ) = ϕu(x) + ⟨∇ xϕu(x), δ ⟩ + O(∥δ∥2
+
+> ∞
+
+), (16) 13 Towards Fine-Grained Robustness: Attention-Guided Test-Time Prompt Tuning for Vision-Language Models 
+
+where ∇xϕu(x) is a mixed second-order derivative of S(x) with respect to the attention entry (A(b)(x)) u and the input x:
+
+∇xϕu(x) = ∂2S(x)
+
+∂(A(b)(x)) u∂A(b)(x) · ∇ xA(b)(x). (17) Although the derivative in ϕu(x) is taken with respect to the attention entry (A(b)(x)) u, its value is evaluated on the computation graph induced by the input x. Hence, ϕu(x) : Rdx → R is a well-defined function of x, where dx denotes the dimensionality of the input. 
+
+Corollary B.2. Under the constraint ∥δ∥∞ ≤ ε, there exists a perturbation δ⋆ such that: 
+
+|ϕu(x + δ⋆) − ϕu(x)| = ε∥∇ xϕu(x)∥1 + O(ε2). (18) 
+
+Therefore, if ∥∇ xϕu(x)∥1 is non-negligible, ϕu(x) can undergo a Θ( ε) change. If, in addition, (A(b)(x)) u is bounded away from zero, then the corresponding entry of A(b)(x) ⊙ ∇ A(b)(x)S(x) can also undergo a Θ( ε) change. Proof. By H¨ older’s inequality: 
+
+|ϕu(x + δ) − ϕu(x)| ≤ ε∥∇ xϕu(x)∥1 + O(ε2), (19) the first-order upper bound is attained by: 
+
+δ⋆ = ε sign( ∇xϕu(x)) . (20) Hence, the gradient component ϕu(x) can undergo an O(ε) change under an ℓ∞-bounded perturbation, driven by mixed second-order derivatives. Consequently, the corresponding entry of the gradient attention A(b)(x) ⊙ ∇ A(b)(x)S(x) is also sensitive to ℓ∞ perturbations. 
+
+B.2. First-Order Stability of Token-Based Weights Lemma B.3. The rectified token-level gradient contribution 
+
+hD 
+
+T(b) 
+
+> v
+
+(x), g(b) 
+
+> v
+
+(x)
+
+Ei 
+
+> +
+
+has local stability under bounded 
+
+∥δ∥∞ ≤ ε perturbations, and that this contribution implicitly aggregates local second-order information at the token level. Proof. The weight W(b)(x) defined in Eq. (6) is derived from token-level gradient contributions. For the v-th token in the 
+
+b-th layer, define: 
+
+g(b) 
+
+> v
+
+(x) ≜ ∇T(b) 
+
+> v(x)
+
+S(x), (21) 
+
+q(b) 
+
+> v
+
+(x) ≜
+
+D
+
+T(b) 
+
+> v
+
+(x), g(b) 
+
+> v
+
+(x)
+
+E
+
+. (22) Let Uε(x) = {x′ : ∥x′ − x∥∞ ≤ ε} donates the perturbation neighborhood. Assume that q(b) 
+
+> v
+
+is differentiable on Uε(x) and that there exists a constant Lv > 0 satisfying: 
+
+sup 
+
+> x′∈U ε(x)
+
+∇xq(b) 
+
+> v
+
+(x′) 1
+
+≤ Lv . (23) Then, for any perturbation δ satisfying ∥δ∥∞ ≤ ε, define the rectified token-level gradient contribution as: 
+
+a(b) 
+
+> v
+
+(x) = 
+
+h
+
+q(b) 
+
+> v
+
+(x)
+
+i
+
+> +
+
+(24) It must satisfies the following inequality: 
+
+a(b) 
+
+> v
+
+(x + δ) − a(b) 
+
+> v
+
+(x) ≤ Lv ε. (25) Since q(b) 
+
+> v
+
+is differentiable on Uε(x), the mean-value theorem gives the following expression for θ ∈ (0 , 1) :
+
+q(b) 
+
+> v
+
+(x + δ) − q(b) 
+
+> v
+
+(x) = 
+
+D
+
+∇xq(b) 
+
+> v
+
+(x + θδ ), δ 
+
+E
+
+. (26) 14 Towards Fine-Grained Robustness: Attention-Guided Test-Time Prompt Tuning for Vision-Language Models 
+
+By H¨ older’s inequality and ∥δ∥∞ ≤ ε, we obtain: 
+
+q(b) 
+
+> v
+
+(x + δ) − q(b) 
+
+> v
+
+(x) ≤ ∇xq(b) 
+
+> v
+
+(x + θδ ) 1
+
+∥δ∥∞ ≤ Lv ε. (27) Since the rectifier [·]+ is 1-Lipschitz, we have: 
+
+a(b) 
+
+> v
+
+(x + δ) − a(b) 
+
+> v
+
+(x) ≤ q(b) 
+
+> v
+
+(x + δ) − q(b) 
+
+> v
+
+(x) ≤ Lv ε. (28) Moreover, when T(b) 
+
+> v
+
+(x) and g(b) 
+
+> v
+
+(x) are differentiable with respect to x, the gradient of q(b) 
+
+> v
+
+satisfies: 
+
+∇xq(b) 
+
+> v
+
+(x) = 
+
+
+
+∇xT(b) 
+
+> v
+
+(x)
+
+⊤
+
+g(b) 
+
+> v
+
+(x) + 
+
+
+
+∇xg(b) 
+
+> v
+
+(x)
+
+⊤
+
+T(b) 
+
+> v
+
+(x). (29) Then, the term ∇T(b) 
+
+> v(x)
+
+S(x) contains local second-order information of S(x), but this information is aggregated into a token-level contribution rather than assigned to individual attention edges. 
+
+Corollary B.4. Let the normalized token weight be defined as: 
+
+W (b) 
+
+> v
+
+(x) = a(b) 
+
+> v
+
+(x)
+
+Psk=1 a(b) 
+
+> k
+
+(x) . (30) 
+
+Assume that, for all x′ ∈ U ε(x), the normalization denominator is bounded away from zero: 
+
+> s
+
+X
+
+> k=1
+
+a(b) 
+
+> k
+
+(x′) ≥ c0 > 0. (31) 
+
+Also assume that each a(b) 
+
+> k
+
+satisfies the bound in Lemma B.3. with constant Lk, and define: 
+
+Mv = sup 
+
+> x′∈U ε(x)
+
+a(b) 
+
+> v
+
+(x′). (32) 
+
+Then, for any perturbation δ satisfying ∥δ∥∞ ≤ ε, the following inequality holds: 
+
+W (b) 
+
+> v
+
+(x + δ) − W (b) 
+
+> v
+
+(x) ≤ Cv ε, (33) 
+
+where Cv is obtained as: 
+
+Cv = Lv
+
+c0
+
++ Mv
+
+c20
+
+> s
+
+X
+
+> k=1
+
+Lk. (34) 
+
+Therefore, the normalized token weight W (b) 
+
+> v
+
+(x) remains Lipschitz-stable within the ℓ∞ perturbation neighborhood. Proof. Let define Z(x) as: 
+
+Z(x) = 
+
+> s
+
+X
+
+> k=1
+
+a(b) 
+
+> k
+
+(x). (35) Then the normalized token weight can be written as: 
+
+W (b) 
+
+> v
+
+(x) = a(b) 
+
+> v
+
+(x)
+
+Z(x) . (36) For ∥δ∥∞ ≤ ε, we have: 
+
+|Z(x + δ) − Z(x)| ≤ 
+
+> s
+
+X
+
+> k=1
+
+a(b) 
+
+> k
+
+(x + δ) − a(b) 
+
+> k
+
+(x) ≤ ε
+
+> s
+
+X
+
+> k=1
+
+Lk. (37) 15 Towards Fine-Grained Robustness: Attention-Guided Test-Time Prompt Tuning for Vision-Language Models 
+
+Using Z(x) ≥ c0 and Z(x + δ) ≥ c0, we obtain: 
+
+W (b) 
+
+> v
+
+(x + δ) − W (b) 
+
+> v
+
+(x) = a(b) 
+
+> v
+
+(x + δ)
+
+Z(x + δ) − a(b) 
+
+> v
+
+(x)
+
+Z(x)
+
+≤
+
+a(b) 
+
+> v
+
+(x + δ) − a(b) 
+
+> v
+
+(x)
+
+Z(x + δ) + a(b) 
+
+> v
+
+(x) 1
+
+Z(x + δ) − 1
+
+Z(x)
+
+≤ Lv
+
+c0
+
+ε + Mv
+
+c20
+
+|Z(x + δ) − Z(x)|≤ Lv
+
+c0
+
++ Mv
+
+c20
+
+> s
+
+X
+
+> k=1
+
+Lk
+
+!
+
+ε. 
+
+(38) This proves the first-order stability of the normalized token-based gradient weight. 
+
+Property 1. Under ∥δ∥∞ ≤ ε perturbations, the first-order variation of the column-scaled attention B(b)(x) is additively composed of the attention variation and the token-weight variation, while token-level weighting avoids directly using the more sensitive edge-wise gradient attention term. Proof. Consider the column-scaling operation: 
+
+B(b)(x) = A(b)(x) diag 
+
+
+
+W(b)(x)
+
+
+
+. (39) For a fixed attention head, its (i, j )-th entry is given by: 
+
+B(b) 
+
+> ij
+
+(x) = A(b) 
+
+> ij
+
+(x)W (b) 
+
+> j
+
+(x). (40) Let the perturbation operator be defined as: 
+
+∆f = f (x + δ) − f (x). (41) Then the perturbation of B(b) 
+
+> ij
+
+admits the exact decomposition: 
+
+∆B(b) 
+
+> ij
+
+=
+
+
+
+∆A(b)
+
+> ij
+
+  
+
+∆W (b)
+
+> j
+
+
+
++
+
+
+
+∆A(b)
+
+> ij
+
+
+
+W (b) 
+
+> j
+
+(x) + A(b) 
+
+> ij
+
+(x)
+
+
+
+∆W (b)
+
+> j
+
+
+
+. (42) If both A(b) 
+
+> ij
+
+and W (b) 
+
+> j
+
+vary at most linearly with ε under ∥δ∥∞ ≤ ε, then the perturbation can be written as: 
+
+∆B(b) 
+
+> ij
+
+=
+
+
+
+∆A(b)
+
+> ij
+
+
+
+W (b) 
+
+> j
+
+(x) + A(b) 
+
+> ij
+
+(x)
+
+
+
+∆W (b)
+
+> j
+
+
+
++ O(ε2). (43) Therefore, the first-order changes of A(b) 
+
+> ij
+
+and W (b) 
+
+> j
+
+enter additively. Unlike the edge-wise gradient attention term: 
+
+A(b) 
+
+> ij
+
+(x) ∂S (x)
+
+∂A (b) 
+
+> ij
+
+(x) . (44) As a result, token-level column scaling is a more aggregated and more stable attention reweighting strategy. 
+
+# C. Experimental Supplements 
+
+C.1. Setting Details 
+
+The main parameters and settings of A-TPT are provided in Table 8. Among them, the parameters of Attention-guided Augmentation are set as learnable on the validation set of ImageNet (Deng et al., 2009). After being determined through hyperparameter search, they are fixed and used for inference on the test set. The settings in Prompt Tuning follow previous 16 Towards Fine-Grained Robustness: Attention-Guided Test-Time Prompt Tuning for Vision-Language Models 
+
+studies (Shu et al., 2022; Sheng et al., 2025), ensuring a unified and fair comparison. Notably, prompts are reset and tuned per samples after attacks, which is more consistent with real-world scenarios. In our ResNet50 experiment, we use the final attention-pooling layer as the only available attention source. The pooled global query in this layer serves as the counterpart of the global token, and its attention over spatial locations is used as A(x) .Moreover, the token-gradient weighting is retained only at the final attention-pooling layer, while the multi-layer rollout and last-2 averaging used in ViT are not applicable.  
+
+> Table 8. Parameters and setting details of A-TPT
+
+Attention-guided Augmentation Prompt Tuning and Entropy optimization Mixing Strength (mhigh ) 0.8 Learning Rate 0.005 Mixing Strength (mlow ) 0.2 Learning Steps 1Mask Ratio (r) 0.2 Number of Prompts 4Number of Views N 64 Ratio of Selected Viwes 0.1 
+
+C.2. Results Compared with Training-time Methods 
+
+In the main text of Sec 4.3, we compared A-TPT with training-time defense methods. Here, we provide a comprehensive evaluation of training-time methods on fine-grained datasets in Table 9 and Table 10 to highlight the efficiency of A-TPT, even in the absence of extra data. It is shown that A-TPT achieves the best performance both on clean and adversarial data.                                                                                                               
+
+> Table 9. Clean accuracy across eight fine-grained datasets compared A-TPT with training-time defense methods (ViT-B/32). Method Pets Caltech101 Cars DTD UCF101 EuroSAT Flower102 Aircraft Average CLIP 85.1 91.4 60.1 43.0 61.6 35.8 64.0 18.1 57.4 TeCoA 66.9 79.3 10.2 24.5 34.6 14.5 30.8 6.6 33.4 APT+TeCoA 66.7 81.4 20.8 35.2 40.2 29.3 42.5 5.2 40.2 FARE 76.7 86.3 39.2 28.3 44.2 16.6 37.0 9.5 42.2 A-TPT 87.3 92.0 63.8 44.0 63.4 35.9 64.5 17.5 58.6
+> Table 10. Adversarial accuracy across eight fine-grained datasets compared A-TPT with training-time defense methods (ViT-B/32). Method Pets Caltech101 Cars DTD UCF101 EuroSAT Flower102 Aircraft Average CLIP 0.2 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 TeCoA 63.7 78.0 9.1 24.0 33.4 14.3 28.9 6.6 32.3 APT+TeCoA 63.9 80.2 18.9 33.7 39.4 29.2 40.4 5.2 38.9 FARE 73.8 85.4 34.4 27.3 41.9 16.3 34.0 9.5 40.3
+> A-TPT 66.4 79.8 31.8 31.1 46.9 12.7 43.2 10.4 40.3
+
+17

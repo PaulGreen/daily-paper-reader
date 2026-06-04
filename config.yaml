@@ -25,3 +25,78 @@ subscriptions:
     stage: A
     diff_threshold_pct: 15
   keyword_recall_mode: or
+  intent_profiles:
+    - tag: prompt-learn
+      description: 提示词学习相关研究
+      enabled: true
+      paper_sources:
+        - arxiv
+        - biorxiv
+      keywords:
+        - keyword: soft prompts
+          keyword_cn: 软提示
+          query: continuous vector representations used as prompts
+        - keyword: hard prompts
+          keyword_cn: 硬提示
+          query: discrete natural language prompts for guiding models
+        - keyword: in-context learning
+          keyword_cn: 上下文学习
+          query: learning from demonstrations provided in the prompt context
+        - keyword: few-shot prompting
+          keyword_cn: 少样本提示
+          query: providing a few examples in the prompt to adapt model behavior
+        - keyword: zero-shot prompting
+          keyword_cn: 零样本提示
+          query: using prompts without any task-specific examples
+        - keyword: continuous prompt optimization
+          keyword_cn: 连续提示优化
+          query: gradient-based tuning of continuous prompt embeddings
+      intent_queries:
+        - query: What are the latest advances in prompt learning for large language models?
+          query_cn: 大语言模型提示词学习的最新进展？
+          enabled: true
+          source: manual
+          note: ''
+        - query: How to optimize discrete prompts for few shot classification?
+          query_cn: 如何优化少样本分类的离散提示词？
+          enabled: true
+          source: manual
+          note: ''
+        - query: Comparison between soft prompt tuning and prefix tuning methods
+          query_cn: 软提示调优与前缀调优方法的比较
+          enabled: true
+          source: manual
+          note: ''
+        - query: Techniques for automatic prompt generation in natural language processing
+          query_cn: 自然语言处理中自动提示词生成技术
+          enabled: true
+          source: manual
+          note: ''
+      updated_at: '2026-06-04T00:53:50.164Z'
+source_backends:
+  arxiv:
+    papers_table: arxiv_papers
+    use_vector_rpc: true
+    vector_rpc: match_arxiv_papers
+    vector_rpc_exact: match_arxiv_papers_exact
+    use_bm25_rpc: true
+    bm25_rpc: match_arxiv_papers_bm25
+    sync_table: arxiv_sync_status
+    sync_success_value: success
+    schema: public
+    kind: supabase
+    enabled: true
+    url: https://lyucdwgefyfbmaiopjbk.supabase.co
+    anon_key: sb_publishable_lX-oi64Uxyd7SIVv3_w2Uw_MTOojeKq
+  biorxiv:
+    papers_table: biorxiv_papers
+    use_vector_rpc: true
+    vector_rpc: match_biorxiv_papers_exact
+    vector_rpc_exact: match_biorxiv_papers_exact
+    use_bm25_rpc: true
+    bm25_rpc: match_biorxiv_papers_bm25
+    schema: public
+    kind: supabase
+    enabled: true
+    url: https://lyucdwgefyfbmaiopjbk.supabase.co
+    anon_key: sb_publishable_lX-oi64Uxyd7SIVv3_w2Uw_MTOojeKq

@@ -1,0 +1,703 @@
+Title: Hyper-ICL: Attention Calibration with Hyperbolic Anchor Distillation for Multimodal In-Context Learning
+
+URL Source: https://arxiv.org/pdf/2606.04434v1
+
+Published Time: Thu, 04 Jun 2026 00:41:55 GMT
+
+Number of Pages: 14
+
+Markdown Content:
+# Hyper-ICL: Attention Calibration with Hyperbolic Anchor Distillation for Multimodal In-Context Learning 
+
+Niloufar Alipour Talemi 1 Hossein Kashiani 1 Fatemeh Afghah 1
+
+# Abstract 
+
+Multimodal In-Context Learning (ICL) has emerged as a practical inference paradigm for Multimodal Large Language Models, where a small set of interleaved image-text In-Context Demonstrations (ICDs) conditions the model to solve new tasks. Despite its flexibility, multi-modal ICL incurs high inference latency and suf-fers from instability due to sensitivity to demon-stration formatting, ordering, and content. To address these limitations, we propose Hyper-ICL, a lightweight, training-based framework for demonstration-free multimodal ICL that re-constructs demonstration effects directly without requiring ICDs at inference time. Hyper-ICL learns a parameter-efficient low-rank logit-level adapter that calibrates attention distributions to better match demonstration-induced attention re-distribution. To capture how demonstration influ-ence varies across queries, we introduce a query-adaptive modulation mechanism that adaptively controls intervention strength at token level across layers and heads based on the current query. Fi-nally, we propose a layer-wise hyperbolic anchor distillation loss that aligns intermediate student features to a demonstration-conditioned teacher via Lorentz geodesic distance. This loss encour-ages the student to reconstruct the demonstra-tion–query relationships induced by ICDs. Ex-tensive experiments across six different multi-modal benchmarks (including VQAv2, OK-VQA, and COCO Caption) demonstrate that Hyper-ICL consistently improves accuracy and stability over vanilla ICL and existing state-of-the-art methods. 
+
+> 1
+
+Holcombe Department of Electrical and Computer Engineer-ing, Clemson University, Clemson, United States. Correspondence to: Niloufar Alipour Talemi <nalipou@clemson.edu >.
+
+Proceedings of the 43 rd International Conference on Machine Learning , Seoul, South Korea. PMLR 306, 2026. Copyright 2026 by the author(s). 
+
+# 1. Introduction 
+
+Multimodal Large Language Models (MLLMs) (Zhou et al., 2022; Li et al., 2023; Liu et al., 2023) have recently become a strong paradigm for unified vision-language understanding and generation, enabling a single model to solve diverse tasks such as Visual Question Answering (VQA) (Shao et al., 2023; Goyal et al., 2017), image captioning (Chen et al., 2015) and visual reasoning (Xu et al., 2026) with minimal task-specific adaptation. A particularly attractive adaptation mechanism is In-Context Learning (ICL) (Liu et al., 2022), where the model is steered at inference time by prefixing a small set of In-Context Demonstrations (ICDs) into the prompt (Dong et al., 2024). Compared to parameter updating, ICL offers rapid and flexible adaptation, making it a practical interface for deploying MLLMs across diverse downstream applications. Despite recent progress in ICL, multimodal ICL still faces several practical and fundamental limitations. Compared with text-only ICL in Large Language Models (LLMs), MLLMs require interleaved image–text demonstrations that substantially increase the effective input length, leading to higher inference latency. Beyond this token overhead, re-cent studies (Li et al., 2024b; Qin et al., 2024) show that MLLMs can overfit to superficial ICD cues, leading to brit-tle behavior under formatting and ordering changes (Sun et al., 2025; Zhang et al., 2023; Baldassini et al., 2024). For instance, in VQA, MLLM may mimic the answer format observed in the demonstrations rather than learning the un-derlying input–output mapping, in contrast to behavior more commonly seen in language-only QA. These instabilities are exacerbated in multimodal contexts, where the inher-ent complexity of aligning cross-modal features introduces additional layers of variance. Recent work has shifted toward vector-based ICL to mitigate these overheads and reproduce in-context behaviors without long, token-heavy prompts. Rather than conditioning on raw ICDs, these methods extract a compact task represen-tation from demonstrations and inject it into the model as an additive shift in the hidden activations, reframing ICL as the induction of an internal task representation by the input context (Brown et al., 2020; Todd et al., 2023). Compress-ing multiple demonstrations into a single In-Context Vector (ICV) shortens the inference-time prompt and reduces re-1
+
+> arXiv:2606.04434v1 [cs.CV] 3 Jun 2026 Hyper-ICL: Attention Calibration with Hyperbolic Anchor Distillation for Multimodal In-Context Learning
+
+liance on carefully selecting and ordering ICDs. However, heuristic ICV extraction often fails on complex multimodal tasks like VQA, which require richer cross-modal reasoning and tighter visual-language alignment than language-only scenarios. To address these challenges, a recent study, LIVE (Peng et al., 2024), proposes a training-based approach that learns a rich shift vector from a large supporting set. LIVE dis-tills task-relevant information from many randomly sampled ICD sets into layer-wise ICVs, achieving superior perfor-mance over heuristic methods. However, it remains limited in modeling the complex interactions inherent in multimodal ICL. As shown by both empirical results and theoretical anal-ysis in Section 3.1, not only layers but also attention heads play distinct roles in processing demonstrations, which is an aspect LIVE overlooks. Moreover, to fully exploit cross-domain ICD patterns, such information should be injected into attention logits rather than final-layer hidden states. Lastly, LIVE applies a uniform adaptation across inputs, which can degrade performance when queries require differ-ent degrees of adjustment. Building on these insights, we propose Hyper-ICL, a lightweight, training-based framework that decomposes and reconstructs multimodal in-context effects directly within the attention mechanism (shown in Figure 1). Instead of injecting a uniform hidden-state shift, Hyper-ICL learns a lightweight low-rank logit-level adapter that steers where the model attends in a way that better matches the attention pat-terns induced by ICDs. To accommodate the query-adaptive nature of ICL, we further introduce a query-adaptive mod-ulation mechanism that dynamically controls intervention strength across layers and heads, ensuring query-adaptive calibration while suppressing unnecessary interference. Finally, we propose a layer-wise hyperbolic anchor distil-lation loss that aligns intermediate student representations with a demonstration-conditioned teacher via hyperbolic geodesic distance, allowing the student to recover both high-level guidance and fine-grained contextual refinements even without access to demonstrations at inference time. Hyper-bolic geometry is particularly well suited to this setting, as multimodal ICL induces a dense set of demonstration–query relationships that must remain coherent across intermediate layers. Prior work motivates negative curvature as offering effective representational capacity and mitigate distortion in low-dimensional embeddings (Fish & Bowden, 2025; Ibrahimi et al., 2024). This helps preserve relative similarity ordering when many interactions are embedded in a low-dimensional embedding (Law et al., 2019). In our work, the teacher encodes these demonstration-conditioned relations, whereas the student observes only the query. Aligning their intermediate states with Lorentz geodesic distance, there-fore, encourages the student to match the teacher’s multi-scale relational geometry, rather than relying on Euclidean proximity that can permute relative distance structure (Law et al., 2019; Poppi et al., 2025). In summary, our main contributions are: • We introduce Hyper-ICL , an efficient multimodal ICL framework that decomposes demonstration effects within self-attention and proposes a logit-level attention interven-tion that directly calibrates attention distributions rather than approximating demonstration-induced shifts only at the output level. • We propose a layer-wise hyperbolic anchor distilla-tion loss that aligns intermediate student features to a demonstration-conditioned teacher via Lorentz geodesic distance, helping preserve relative similarity ordering un-der dense demonstration–query relationships and enabling demonstration-free inference. • Experiments on two large-scale MLLMs across six widely used, challenging benchmarks (including VQAv2 (Goyal et al., 2017), OK-VQA (Marino et al., 2019), and COCO Caption (Chen et al., 2015)) show that Hyper-ICL con-sistently improves performance and stability over direct ICD prompting, vector-based ICV baselines, and training-based alternatives. 
+
+# 2. Related Work 
+
+2.1. Multimodal Large Language Models 
+
+With advances in LLMs, MLLMs have emerged as a uni-fied framework for joint vision–language understanding and generation (Liu et al., 2023; Alipour Talemi et al., 2025; Chen et al., 2024). A widely adopted formulation augments a pretrained LLM with a vision encoder and a lightweight alignment module, such as a projection layer or a query-based transformer, to map visual features into the LLM em-bedding space for multimodal reasoning (Liu et al., 2023). Idefics-9b (Lauren c¸ on et al., 2023) follows a cross-attention based architecture, where language features attend to image representations through dedicated attention blocks for multi-modal integration. In contrast, Idefics2-8b (Lauren c¸ on et al., 2024) adopts a fully autoregressive design by converting visual features into token-like embeddings and processing them jointly with text via self-attention. A widely adopted strategy for adapting MLLMs to new tasks is ICL, where task behavior is induced by conditioning on a few multi-modal demonstrations at inference. Despite its simplicity, multimodal ICL is less stable than language-only ICL, as cross-modal interactions increase sensitivity to demonstra-tion choice, order, and formatting (Ma et al., 2025). 
+
+2.2. In-Context Learning 
+
+ICL enables rapid task adaptation by conditioning on demon-strations at inference time, without updating model parame-ters. However, in multimodal ICL, each image introduces substantial token overhead, making high-shot prompting expensive and highly sensitive to demonstration choice and formatting (Doveh et al., 2024; Li et al., 2026; Baldassini et al., 2024; Li et al., 2025c). To reduce this cost, exist-2Hyper-ICL: Attention Calibration with Hyperbolic Anchor Distillation for Multimodal In-Context Learning 
+
+ing approaches develop efficient ICL mechanisms such as vector-based compression that distills demonstration effects into compact ICVs injected into intermediate activations, as well as lightweight activation-shift strategies that approxi-mate ICL through additive shifts estimated from attention statistics or layerwise representations (Brown et al., 2020; Todd et al., 2023). LIVE (Peng et al., 2024) follows a related direction by learning task-specific, layer-wise ICVs via dis-tillation from demonstration-conditioned outputs, improv-ing VQA performance while lowering inference overhead, but it still fails to precisely recover the true, query-adaptive demonstration shifts. Motivated by these limitations, we propose Hyper-ICL to faithfully decompose the effects of ICDs for effective multimodal ICL. 
+
+2.3. Learning in Hyperbolic Space 
+
+Hyperbolic geometry has emerged as an effective alternative to Euclidean representation learning when data exhibit la-tent hierarchies, power-law degree distributions, or tree-like structures. Early work such as Poincar ´e embeddings showed that spaces with constant negative curvature can represent hierarchical relations with lower distortion and higher ca-pacity than Euclidean spaces of the same dimensionality (Nickel & Kiela, 2017). Follow-up studies demonstrated that the Lorentz model improves numerical stability and optimization efficiency for large-scale taxonomy learning while preserving the same geometric advantages (Nickel & Kiela, 2018). Building on this, hyperbolic deep learn-ing extends neural operations to Riemannian manifolds via exponential and logarithmic maps, enabling hyperbolic ana-logues of linear layers, recurrent units, and classification heads (Ganea et al., 2018). Recently, hyperbolic objectives have been explored in vision and multimodal learning to encode compositional scene-object hierarchies and struc-tured vision-language alignment (Ge et al., 2023). In this work, we adopt the Lorentz model (Law et al., 2019) as a geometry-aware alignment space, using a layer-wise hy-perbolic anchor distillation loss to match intermediate stu-dent representations to teacher hidden states via geodesic distance, yielding a structure-preserving regularizer that maintains latent demonstration–query relationships. 
+
+# 3. Proposed Method 
+
+3.1. Motivation and Problem Setup 
+
+ICL enables LLMs and MLLMs to generalize to new tasks by conditioning on a small set of ICDs provided directly in the input. We define the prompt context as C = {XD , X },where XD = {X1, X 2, . . . , X m} ∈ RTD ×d denotes the concatenation of m ICDs, and X ∈ RT ×d is the query in-put. Here, TD and T represent the number of tokens in 
+
+XD and X, respectively, and d is the embedding dimen-sion. Multi-head self-attention applies the self-attention (SA) mechanism across Nh heads. Each head is parameter-ized by projection matrices Wk, W q , W v ∈ Rd×dh , which map C to keys KC , queries QC , and values VC . Typically, 
+
+dh is set to d/N h so that each head operates in a lower-dimensional subspace, reducing parameter usage while pre-serving expressivity. For a given head, the key mapping is defined as follows: 
+
+KC = CW k =
+
+XD
+
+X
+
+
+
+Wk =
+
+KD
+
+K
+
+
+
+. (1) Similarly, we compute the corresponding QD , Q , and VD , V 
+
+using Wq and Wv , respectively. For a query vector q ∈ Q,the single-head self-attention computation is given by (for clarity, we present the formulation for a single head):                      
+
+> SA
+> 
+> q,
+> KD
+> K
+> 
+> ,
+> VD
+> V
+> 
+> = softmax
+> 
+> [qK ⊤
+> D, qK ⊤]
+>  VD
+> V
+> 
+> =
+> hexp( qK ⊤
+> D)
+> Z1+Z2,exp( qK ⊤)
+> Z1+Z2
+> i VD
+> V
+> 
+> =Z2
+> Z1+Z2
+> exp( qK ⊤)
+> Z2V+Z1
+> Z1+Z2
+> exp( qK ⊤
+> D)
+> Z1VD
+> = (1 −μ) SA( q, K, V )
+> |{z }
+> attention
+> +μSA( q, K D, V D)
+> |{z }
+> shift vector
+> (2)
+
+where μ(q, K D , K ) = Z1/(Z1 + Z2), with Z1(q, K D ) = 
+
+PTD 
+
+> i=1
+
+exp( qK ⊤ 
+
+> D
+
+)i and Z2(q, K ) = PTj=1 exp( qK ⊤)j .Equation 2 shows that the self-attention over the prompt context C can be decomposed into two terms. For the for-mer “standard attention”, it is the self-attention over the query tokens, which is independent of the ICDs. While for the latter “shift vector”, it is the shift effects caused by the ICDs to shift the query space into the answer space, and such effects are calculated as the attention between the ICDs and the query q. In in-context settings, demonstra-tions primarily affect where the model attends by injecting additional key-value evidence. Approximations that add a vector to the attention output behave like value-stream shifts (Peng et al., 2024; Jiang et al., 2025); however, they do not directly calibrate the attention distribution itself. To address this, we propose an intervention that directly calibrates the attention distribution via a learnable logit-level bias. 
+
+3.2. In-Context Attention Calibration Low-rank Logit-level Adapter. At layer l, and attention head h, the standard attention logits are computed using the scaled dot product between queries Q(l,h ) and keys K(l,h ):
+
+S(l,h ) = Q(l,h ) K(l,h )⊤
+
+√dh
+
+, (3) where Q(l,h ), K(l,h ) ∈ RT ×dh and S(l,h ) ∈ RT ×T . There-fore, the head output is computed by: 
+
+O(l,h ) = softmax 
+
+
+
+S(l,h )
+
+V (l,h ). (4) Unlike prior studies that approximate demonstration effects by adding a vector to the attention output, we intervene 3Hyper-ICL: Attention Calibration with Hyperbolic Anchor Distillation for Multimodal In-Context Learning 
+
+Figure 1. Overview of Hyper-ICL. A frozen teacher processes the full demonstration-conditioned prompt, while the student receives only the query at inference time. Hyper-ICL reconstructs demonstration effects by calibrating attention through a parameter-efficient low-rank logit-level adapter, whose strength is controlled token-wise by a query-adaptive gate gl,h across layers and heads. A layer-wise hyperbolic anchor distillation loss further aligns intermediate student features to the teacher in Lorentz space via geodesic distance, preserving the demonstration–query relationships for demonstration-free inference. 
+
+directly on the pre-softmax logits to steer the attention dis-tribution. Concretely, we do this by adding a learnable bias at the logit level as below: 
+
+eS(l,h ) = S(l,h ) + Diag  gl,h 
+
+ ∆(l,h ), (5) where ∆(l,h ) ∈ RT ×T is a learnable logit-bias matrix and 
+
+gl,h is a query-adaptive token-wise modulation vector that controls the strength of the intervention for each query token. To keep this intervention parameter-efficient, we parameter-ize ∆(l,h ) with a compact low-rank bilinear form with rank 
+
+r ≪ dh as: 
+
+A(l,h ) = Q(l,h )U (l,h ) 
+
+> q
+
+∈ RT ×r,B(l,h ) = K(l,h )U (l,h ) 
+
+> k
+
+∈ RT ×r, (6) where U (l,h ) 
+
+> q
+
+, U (l,h ) 
+
+> k
+
+∈ Rdh×r are learnable projection ma-trices. Then, the logit bias is computed as: 
+
+∆(l,h ) = A(l,h )B(l,h )T
+
+√r ∈ RT ×T . (7) It should be noted that Equation 7 is equivalent to a low-rank bilinear term Q(U (l,h ) 
+
+> q
+
+U (l,h )⊤ 
+
+> k
+
+)K⊤ but parameterized with only 2dhr parameters per head while by considering 
+
+M (l,h ) ≜ U (l,h ) 
+
+> q
+
+U (l,h )⊤ 
+
+> k
+
+, learning an unconstrained matrix 
+
+M (l,h ) requires specifying all of its entries, which is equal to dh × dh = d2 
+
+> h
+
+parameters. Finally, the output of head h
+
+under the biased logits is computed as: 
+
+eO(l,h ) = softmax 
+
+ eS(l,h )
+
+V (l,h ). (8) This directly steers the attention distribution toward tokens that would have been emphasized by demonstrations. 
+
+Query-adaptive Token-wise Modulation. Our experi-ments show that the utility of logit intervention varies across the transformer depth and attention heads. Earlier layers primarily support perceptual grounding, whereas later lay-ers contribute more to compositional reasoning and gen-eration. Consequently, applying a uniform intervention strength across all layers can induce unnecessary interfer-ence, especially for inputs that do not require attention cor-rection. To address this, we propose a token-wise modu-lation mechanism that adaptively scales the intervention strength for each layer and head based on the current query representation. For layer l and head h, let the query matrix be Q(l,h ) ∈
+
+RT ×dh . We compute a query-adaptive token-wise modu-lation vector gl,h ∈ (0 , 1) T by applying a shared affine mapping to each query token after layer normalization: 
+
+gl,h = σ
+
+
+
+LN  Q(l,h ) wl,h + bl,h 1
+
+
+
+, (9) where wl,h ∈ Rdh and bl,h ∈ R are learnable parameters specific to layer l and head h, 1 ∈ RT is the all-ones vector, 
+
+LN( ·) denotes layer normalization, and σ(·) is the element-wise sigmoid function. This design produces one modula-tion coefficient per query token, enabling fine-grained and input-dependent control over the intervention magnitude within each attention head. Therefore, we not only calibrate 
+
+where attention goes through logit modulations, but also make the calibration strength query-adaptive . This enables the model to selectively activate the intervention in the lay-ers and heads where it is most helpful for the current input, while suppressing unnecessary interference elsewhere. 4Hyper-ICL: Attention Calibration with Hyperbolic Anchor Distillation for Multimodal In-Context Learning 
+
+3.3. Layer-wise Hyperbolic Anchor Distillation 
+
+Building on the token-wise modulated logit-bias attention in Equation 5, we introduce an intermediate alignment regularizer that matches the student’s internal representa-tions to those of a frozen teacher model that observes full demonstrations. Concretely, the teacher processes the full prompt context C = [ XD ; X], while the student processes only the query tokens X and relies on the learned logit intervention to recover the demonstration-conditioned be-havior. This design provides a structured distillation sig-nal beyond output-level matching, encouraging consistent layer-wise transformations. As the teacher encodes many demonstration-conditioned relations among query tokens, a Euclidean penalty can prioritize pointwise matching while distorting relative similarity ordering when many relations compete in a low-dimensional embedding. Negative cur-vature offers higher effective representational capacity and mitigates distortion in low-dimensional embeddings; thus, geodesic alignment can better preserve the multi-scale dis-tances that reflect how demonstrations reshape intermediate features. This is especially relevant when the student must reconstruct those relations without seeing demonstrations. 
+
+Lorentzian Representation of Layer Features. Let h(l) 
+
+> i
+
+∈
+
+Rd denote the student hidden state of token index i at layer 
+
+l ∈ { 1, . . . , L }, and let h′(l) 
+
+> i
+
+∈ Rd denote the corresponding teacher hidden state for the same query token, computed under the full context C. To capture hierarchical struc-ture across layers in a geometry-aware manner, we align student and teacher representations in a hyperbolic space, whose distances naturally preserve layered, tree-like rela-tionships. Specifically, we adopt the Lorentz model of hy-perbolic space with constant negative curvature magnitude 
+
+κ > 0. The Lorentzian inner product on Rd+1 is defined as: 
+
+⟨p, q ⟩L ≜ −p0q0 +
+
+> d
+
+X
+
+> t=1
+
+ptqt, (10) and the corresponding d-dimensional hyperboloid manifold is expressed as: 
+
+Hdκ ≜
+
+
+
+p ∈ Rd+1 : ⟨p, p ⟩L = − 1
+
+κ , p 0 > 0
+
+
+
+. (11) We use the canonical base point o ≜  p 1/κ, 0, . . . , 0⊤
+
+as the origin of the manifold. Next, we map Euclidean hidden states onto Hdκ using the exponential map at o. To ensure scale stability and consistency with the normalization used in Equation 9, we first apply layer normalization to each hidden state as follows: 
+
+u(l) 
+
+> i
+
+≜ LN 
+
+
+
+h(l)
+
+> i
+
+
+
+∈ Rd, ¯u(l) 
+
+> i
+
+≜  0, u (l)
+
+> i
+
+⊤ ∈ Rd+1 .
+
+(12) Since the tangent space at o can be identified with vectors whose first coordinate is zero, the padded vector ¯u(l) 
+
+> i
+
+is a valid tangent direction at o. We then apply the Lorentz exponential map as: 
+
+P (l) 
+
+> i
+
+≜ exp κo (u(l) 
+
+> i
+
+)= cosh( √κ∥u(l) 
+
+> i
+
+∥)o + sinh( √κ∥u(l) 
+
+> i
+
+∥)
+
+√κ∥u(l) 
+
+> i
+
+∥ ¯u(l) 
+
+> i
+
+∈ Hdκ,
+
+(13) where ∥ · ∥ denotes the Euclidean norm in Rd, and the fraction is defined as 1 when ∥u(l) 
+
+> i
+
+∥ = 0 . Similarly, for the teacher, we define: 
+
+P ′(l) 
+
+> i
+
+≜ exp κo
+
+
+
+u′(l)
+
+> i
+
+
+
+∈ Hdκ, (14) where u′(l) 
+
+> i
+
+≜ LN( h′(l) 
+
+> i
+
+) ∈ Rd and ¯u′(l) 
+
+> i
+
+≜ (0 , u ′(l) 
+
+> i
+
+)⊤ ∈ Rd+1 .
+
+Hyperbolic-Based Regularization. Given the hyperbolic embeddings P (l) 
+
+> i
+
+and P ′(l) 
+
+> i
+
+, we measure alignment using the Lorentz geodesic distance on Hdκ:
+
+dL(P ′, P ) = 
+
+r 1
+
+κ arcosh 
+
+
+
+− κ ⟨P ′, P ⟩L
+
+
+
+, (15) where the argument −κ ⟨P ′, P ⟩L is guaranteed to be greater than or equal to 1 for valid points on the hyperboloid, mak-ing the distance well-defined. We then define a layer-wise hyperbolic anchor distillation loss that aligns student and teacher representations across all transformer layers: 
+
+LH-anchor = 1
+
+L
+
+> L
+
+X
+
+> l=1
+
+1
+
+T
+
+> T
+
+X
+
+> i=1
+
+d2
+
+> L
+
+
+
+P ′(l) 
+
+> i
+
+, P (l)
+
+> i
+
+
+
+. (16) This loss provides explicit intermediate supervision, encour-aging the student to reproduce the teacher’s demonstration-conditioned layer-wise transformations, rather than only matching final outputs. Intuitively, since the teacher ob-serves XD while the student does not, minimizing Equation 16 forces the student to recover teacher-like representations using only the learned attention-logit interventions. In addition, we employ a standard cross-entropy loss func-tion, Lsup , as the main supervised loss objective to enhance student model’s predictions on downstream tasks. There-fore, the final training objective combines these losses as a weighted sum: L = LH-anchor + λLsup , (17) where λ ≥ 0 is a hyperparameter that balances task super-vision and intermediate alignment. This overall objective ensures that Hyper-ICL learns to apply efficient logit-level calibration while preserving layer-wise behaviors consistent with query-conditioned inference. 
+
+# 4. Experiments 
+
+4.1. Implementation Details 
+
+We evaluate Hyper-ICL on two large-scale MLLMs, Idefics-9b (Lauren c¸ on et al., 2023) and Idefics2-8B-base (Lauren c¸ on et al., 2024). Idefics-9b adopts a cross-attention architecture, whereas Idefics2-8B-base follows a fully au-toregressive design, representing two widely used architec-tural paradigms for vision-language modeling. Our experi-ments span a diverse set of benchmarks, including VQAv2 5Hyper-ICL: Attention Calibration with Hyperbolic Anchor Distillation for Multimodal In-Context Learning 
+
+Table 1. Results of VQAv2, OK-VQA, and COCO on Idefics-9b and Idefics2-8B-base. Bold numbers represent the best results. In # Params (M), the first value denotes the number of trainable parameters (in millions), and the value in parentheses reports the relative factor compared to Hyper-ICL.                                                                          
+
+> Model Type Method # Params (M) VQAv2 OK-VQA COCO Idefics-9b
+> Direct ICDs  Zero-shot -29.25 30.54 63.06 32-shot ICL -56.18 48.48 105.89 RICES -58.07 51.11 110.64
+> Non-Learnable
+> FV -30.21 31.02 74.01 TV -43.68 32.68 84.72
+> Learnable  LoRA 25.0 ( ×21.2) 55.60 47.06 97.75 LIVE 0.13 ( ×0.11) 53.71 46.05 112.76 MimIC 0.26 ( ×0.22) 59.64 52.05 114.89 Hyper-ICL 1.18 ( ×1) 62.08 55.31 117.44 Idefics2-8b
+> Direct ICDs  Zero-shot -55.39 43.08 40.00 8-shot ICL -66.20 57.68 122.51 RICES -66.44 55.73 111.44
+> Non-Learnable
+> FV -36.47 34.58 75.24 TV -47.12 38.27 87.61
+> Learnable  LoRA 17.6 ( ×14.9) 66.54 55.05 116.69 LIVE 0.13 ( ×0.11) 67.60 54.86 126.04 MimIC 0.26 ( ×0.22) 69.29 58.74 132.87 Hyper-ICL 1.18 ( ×1) 71.17 62.24 135.66
+
+(Goyal et al., 2017), OK-VQA (Marino et al., 2019), COCO Caption (Chen et al., 2015), Flickr30k (Young et al., 2014), MME (Fu et al., 2025), and SEED-Bench (Li et al., 2024a). To compare Hyper-ICL against prior SOTA methods, we focus on three widely used datasets: VQAv2, OK-VQA, and COCO Caption. VQAv2 targets open-ended visual question answering and contains 4,437,570 question-answer pairs in the training split, along with 2,143,540 pairs in the vali-dation split. OK-VQA is designed to evaluate models that require external knowledge, comprising 14,055 question-answer pairs, with 9,009 for training and 5,046 for valida-tion. COCO Caption is a standard benchmark for image cap-tioning built on the MS COCO image collection, providing multiple human-annotated descriptions per image to capture diverse yet semantically consistent views of the visual con-tent. We further extend our evaluation to Flickr30k (Young et al., 2014), which includes 31,000 images each paired with five captions, MME (Fu et al., 2025), a comprehensive benchmark with 14 subtasks assessing perceptual and cog-nitive capabilities, and SEED-Bench (Li et al., 2024a), a multi-modal benchmark comprising 24,000 multiple-choice questions. For the training stage, we randomly sample 1,000 instances from each dataset to form the training set. In addition, we randomly select 32 samples as ICDs for Idefics-9b and 8 samples for Idefics2-8B-base, along with one separate sam-ple used as the query input. Following prior evaluation protocols (Li et al., 2024b; Liu et al., 2023; Peng et al., 
+
+Table 2. Results evaluated on more challenging tasks. 
+
+Model Method Flickr30k MME SEED 
+
+Idefics-9b Zero-shot 49.17 55.36 27.56 ICL 63.41 52.11 28.30 Hyper-ICL 75.96 65.46 31.87 
+
+Idefics2-8B-base Zero-shot 53.04 74.80 12.91 ICL 84.57 71.10 47.90 Hyper-ICL 93.79 82.13 48.31 
+
+2024), we use 10,000 validation examples from VQAv2 and the full validation splits for OK-VQA and COCO. We em-ploy the AdamW optimizer with a learning rate of 5 × 10 −3,coupled with a cosine annealing scheduler with warmup, allocating 10% of the total steps for warmup. All results are reported from the best-performing epoch. 
+
+4.2. Comparison with Existing Methods 
+
+We compare Hyper-ICL with the following methods: 
+
+Direct use of ICDs. It is evaluated under three settings: zero-shot, few-shot, and Retrieval-based In-Context Exam-ples Selection (RICES) (Yang et al., 2022). For few-shot ICL, we use 32/8-shot for Idefics-9B and Idefics2-8B-base, respectively. We also compare Hyper-ICL with RICES, which retrieves visually similar support images for each query by matching features extracted from a frozen pre-trained encoder. 
+
+Non-learnable vector-based ICDs. Task Vector (TV) (Brown et al., 2020) and Function Vector (FV) (Todd et al., 2023) that extract an in-context vector from examples and inject it into the model’s hidden states during inference. 
+
+Learnable use of ICDs. We compare Hyper-ICL with LoRA (Hu et al., 2022), LIVE (Peng et al., 2024), and MimIC (Jiang et al., 2025), where LIVE and MimIC are trainable ICV methods that distill few-shot ICD effects into learnable shift vectors under the same few-shot setting. For LoRA, we follow the standard setup and apply it to all attention layers in both the vision and language encoders. Table 1 compares Hyper-ICL against a broad set of base-lines on two MLLMs and three datasets. Overall, prior non-trainable ICD selection methods remain consistently below the standard 32-shot ICL setting. For instance, while RICES improves over random selection on all datasets for Idefics-9B, it becomes less reliable on Idefics2-8B-base, where its performance on OK-VQA and COCO falls below random selection. This behavior stems from architectural differ-ences: nearest-neighbor retrieval aligns well with Idefics-9B’s cross-attention fusion, whereas Idefics2-8B-base’s fully autoregressive decoding benefits more from context diversity than visual similarity. In contrast to non-trainable approaches, trainable methods consistently improve perfor-mance across both backbones, often approaching the effec-tiveness of few-shot ICL. Notably, Hyper-ICL achieves the best results among all learnable baselines on both MLLMs, 6Hyper-ICL: Attention Calibration with Hyperbolic Anchor Distillation for Multimodal In-Context Learning  
+
+> Figure 2. Comparison of Hyper-ICL with LoRA, LIVE, and MimIC across training sample sizes on VQAv2 and OK-VQA using Idefics-9B and Idefics2-8B-base. Dashed horizontal lines denote standard ICL baselines, 32-shot for Idefics-9B and 8-shot for Idefics2-8B-base.
+
+highlighting its robustness and stability across diverse ar-chitectures and evaluation benchmarks. We further evaluate Hyper-ICL on additional MLLM backbones in Appendix A. 
+
+4.3. Generalize to More Challenging Benchmarks 
+
+We further evaluate Hyper-ICL on more diverse and chal-lenging tasks, including Flickr30k (Young et al., 2014), MME (Fu et al., 2025), and SEED-Bench (Li et al., 2024a). Table 2 shows that Hyper-ICL consistently improves over zero-shot and standard ICL across both backbones, demon-strating that our logit-level intervention and layer-wise dis-tillation generalize well across diverse multimodal tasks and evaluation suites. Due to computational constraints, we run 2-shot ICL on MME and SEED-Bench for Idefics2-8B-base. While Hyper-ICL remains lightweight and does not require storing long KV caches (in contrast to few-shot ICL), we also report Hyper-ICL results with 2 shots on MME and SEED-Bench to match the ICL setting for a fair compari-son. To further assess transferability, Appendix B evaluates Hyper-ICL on held-out benchmarks within the same task family. 
+
+4.4. Ablation Studies and Discussions Size of Training Set. Figure 2 analyzes how performance scales with the number of training samples for three train-able SOTA ICL methods, along with our proposed Hyper-ICL, on VQAv2 and OK-VQA using two MLLM backbones. As the training set grows, all methods improve, confirm-ing that supervised adaptation is beneficial in the low-data regime. However, Hyper-ICL consistently achieves higher accuracy than LoRA, LIVE, and MimIC across most sam-ple budgets and settings. Notably, Hyper-ICL surpasses the standard few-shot ICL baseline with substantially fewer training examples. The advantage is especially clear on OK-VQA, where external knowledge demands capturing demonstration–query relationships and hierarchical depen-dencies, and Hyper-ICL delivers a clear margin over prior trainable methods. 
+
+Number of Demonstrations. To further analyze shot sen-sitivity, we extend the Idefics-9B study beyond the 32-shot setting to 4, 8, 16, 48, and 64 shots. Table 3 shows that both standard ICL and Hyper-ICL improve as the number               
+
+> Table 3. Effect of the number of demonstrations on Idefics-9B.
+> Bench. Method 4816 32 48 64
+> VQAv2 ICL 53.72 54.24 55.70 56.18 56.67 56.71 Hyper-ICL 57.87 58.81 59.73 62.08 62.61 62.90
+> OK-VQA ICL 46.11 46.79 47.70 48.48 48.68 48.60 Hyper-ICL 50.21 51.79 53.22 55.31 55.53 55.26
+
+of demonstrations increases, but the gains become marginal beyond 32 shots and, on OK-VQA, slightly decline at 64 shots. This reveals a clear saturation effect: once the teacher context is sufficiently informative, additional demonstra-tions provide limited new signal and can introduce more variability. Importantly, Hyper-ICL remains clearly superior to standard ICL across all shot counts. 
+
+Effect of Training Losses. To assess the contribution of task supervision and intermediate distillation, we ablate the training objectives on Idefics-9B in Table 4. Supervised adaptation with Lsup substantially improves over zero-shot inference, confirming the effectiveness of lightweight task-specific training. Adding intermediate alignment brings further gains, with the proposed hyperbolic anchor distil-lation loss LH-anchor outperforming Euclidean alignment 
+
+LL2-anchor and achieving the best results on both VQAv2 and OK-VQA. This supports our motivation that negative curvature provides a more suitable geometry for preserving dense demonstration-conditioned relations with lower dis-tortion in a low-dimensional space. Importantly, LH-anchor 
+
+alone also outperforms Lsup alone, indicating that the im-provement is not merely due to ordinary supervised task adaptation, but also comes from recovering ICL-induced intermediate structure from the teacher. The best perfor-mance is obtained when both objectives are combined, sug-gesting that hyperbolic alignment transfers demonstration-conditioned relational geometry, while task supervision fur-ther improves final prediction accuracy. We further pro-vide a direct hyperbolicity analysis in Appendix C, showing that the hyperbolic anchor better preserves the teacher’s demonstration-conditioned hidden-state geometry than the Euclidean anchor. 
+
+Analysis of Adapter Rank and Query-Adaptive Token-
+
+7Hyper-ICL: Attention Calibration with Hyperbolic Anchor Distillation for Multimodal In-Context Learning 
+
+Figure 3. Ablation of Hyper-ICL hyperparameters and architec-tural choices on Idefics-9B (VQAv2). (a) Effect of the low-rank adapter rank r for logit-level attention calibration, comparing static interventions (layer-wise, layer & head-wise) with our query-adaptive token-wise modulated Hyper-ICL. (b) Sensitivity of the hyperbolic anchor distillation to curvature κ and the supervision weight λ, showing the best performance at κ = 0 .1 and λ = 0 .5.
+
+wise Modulation. Figure 3(a) analyzes the effect of the adapter rank ( r) in our logit-level module and compares static attention interventions against the proposed token-wise modulation. Increasing r improves performance for all variants; however, beyond r> 4, the gains become marginal while incurring additional computational cost. Also, the rank sensitivity is evaluated under multiple intervention strategies, ensuring a fair comparison across methods. Hyper-ICL consistently outperforms both static baselines (layer-wise and layer & head-wise interventions), reach-ing 60 .9, 62 .1, and 62 .2 for r=2 , 4, 8, respectively. These results highlight the advantage of token-wise intervention modulation gl,h , which enables query-adaptive calibration while avoiding uniform, query-agnostic modulations. We further analyze the learned query-adaptive gates in Ap-pendix D, showing that the modulation remains non-trivial across layers and correlates positively with the degree of demonstration-induced attention redistribution. In addition, Appendix E compares our logit-level attention calibration with an output-level correction, confirming that directly re-shaping attention logits is more effective than correcting representations after attention aggregation. 
+
+Analysis of Curvature and Loss-Weight Sensitivity. Fig-ure 3(b) studies the hyperparameter sensitivity of the pro-posed hyperbolic anchor distillation by sweeping the cur-vature κ and the supervision weight ( λ) on VQAv2 with Idefics-9B. For all λ, accuracy is maximized at an inter-mediate curvature, with a clear optimum at κ=0 .1. When 
+
+κ is too small ( 0.01 ), the geometry becomes close to Eu-clidean, weakening the hierarchy-aware layer alignment and reducing performance. Conversely, a large curvature (κ=1 .0) makes geodesic distances overly steep, which can destabilize optimization and degrade accuracy across all 
+
+λ. Overall, the best trade-off is achieved with κ=0 .1 and 
+
+λ=0 .5, indicating that effective distillation requires both a well-conditioned hyperbolic geometry and a balanced cou-pling between intermediate alignment and task supervision. 
+
+Table 4. Ablation of Hyper-ICL training objectives on Idefics-9B for VQAv2 and OK-VQA.                    
+
+> Task Zero-shot Lsup Lsup +LL2-anchor LH-anchor Lsup +LH-anchor
+> VQAv2 29.25 57.11 59.64 60.53 62.08 OK-VQA 30.54 49.23 53.76 53.78 55.31
+
+Table 5. Comparison of caption hallucination across methods on COCO. Lower CHAIR scores reflect fewer hallucinations, and higher Recall reflects stronger coverage and better performance.                                 
+
+> Metric Z-Shot 32-ICL TV FV LoRA LIVE MimIC Hyper-ICL CHAIRs 5.93 16.78 8.88 28.26 17.42 8.65 8.51 8.29
+> CHAIRi 5.58 9.77 7.50 25.44 11.55 6.05 5.74 5.63
+> Recall 30.72 42.59 36.22 27.69 42.93 42.84 43.30 44.04
+
+Hallucination Analysis. Table 5 presents caption halluci-nation on COCO using CHAIRs and CHAIRi (Rohrbach et al., 2018), which quantify object hallucination at the sen-tence level and the instance level, respectively. CHAIRs measures the percentage of captions that contain at least one object not grounded in the image, while CHAIRi measures the percentage of hallucinated object mentions among all object mentions. We additionally report Recall, which re-flects how many ground-truth objects are correctly covered by the generated caption and thus captures descriptiveness. Results show that Hyper-ICL yields fewer hallucinations than all non-zero-shot baselines while achieving the high-est Recall. Compared to zero-shot, Hyper-ICL shows a slight increase in hallucinations, consistent with the limi-tations of ICL where using more shots can amplify hallu-cinations (Qin et al., 2024; Shukor et al., 2024); however, Hyper-ICL achieves substantially higher Recall than the other approaches. The 32-shot ICL results further support this trend, as hallucinations rise markedly (CHAIRs 16.78, CHAIRi 9.77), aligning with stronger but less controlled demonstration-induced shifts. Figure 4 further provides qualitative evidence that Hyper-ICL reduces hallucinations by keeping generation anchored to visual evidence, com-pared with standard ICL, LoRA, and LIVE. In the VQA examples, LIVE, LoRA, and standard ICL either output in-correct textual content or latch onto superficial cues, such as misreading the sign text, predicting the wrong purse color, or selecting an incorrect street as straight ahead. Overall, this qualitative behavior is consistent with Table 5, suggesting that our logit-level attention calibration and query-adaptive token-wise modulation selectively correct attention when needed. 
+
+Inference Efficiency Analysis. Table 6 quantifies the in-ference efficiency of Hyper-ICL by comparing its FLOPs and runtime against zero-shot and standard few-shot ICL. Hyper-ICL remains close to zero-shot, requiring 0.955T FLOPs and 59.32 ms, while ICL incurs a sharp cost in-crease as the number of demonstrations grows due to long input context and heavy attention computation. These re-sults confirm that Hyper-ICL preserves demonstration-level 8Hyper-ICL: Attention Calibration with Hyperbolic Anchor Distillation for Multimodal In-Context Learning LoRA:  LIVE: 
+
+Hyper-ICL: ICL: 
+
+> <EOS>
+> Bus
+> Bus
+> Dark Skies
+> What does the sign say?
+
+Question: 
+
+LoRA:  LIVE: 
+
+Hyper-ICL: ICL: 
+
+> <EOS>
+> No Bikes
+> No Parking
+> Stop
+
+What does the sign say? 
+
+Question: 
+
+LoRA:  LIVE: 
+
+Hyper-ICL: ICL: 
+
+> <EOS>
+> Red
+> Red
+> Blue
+
+What color is the purse? 
+
+Question: 
+
+LoRA:  LIVE: 
+
+Hyper-ICL: ICL: 
+
+> <EOS>
+> Hoffman
+> Hoffman
+> S.8th ST
+> Which street is straight ahead?
+
+Question:                  
+
+> Figure 4. Qualitative comparison of hallucination behavior across methods on VQA. Hyper-ICL stays visually grounded on representative queries (e.g., sign text, purse color, and road direction), while standard ICL, LoRA, and LIVE produce ungrounded content.
+> Table 6. Analysis of inference FLOPs and runtime.
+> Metric Hyper-ICL 0-Shot 8-shot 16-shot 32-shot
+> FLOPs (T) 0.955 0.935 6.375 12.341 23.364 Runtime (ms) 59.32 56.69 158.21 266.13 468.55
+
+benefits while enabling demonstration-free inference with near zero-shot efficiency. 
+
+# 5. Conclusion 
+
+In this work, we present Hyper-ICL, a training-based frame-work for demonstration-free multimodal ICL that recon-structs ICD effects inside self-attention. Hyper-ICL intro-duces a parameter-efficient low-rank logit-level adapter that injects head-wise biases into attention logits, together with a query-adaptive token-wise modulation mechanism to enable query-adaptive calibration across layers and heads. To trans-fer demonstration-conditioned representations, we propose a layer-wise hyperbolic anchor distillation loss, aligning stu-dent representations to a frozen demonstration-conditioned teacher via geodesic distance. By removing ICDs at infer-ence, it shortens context length and reduces latency while retaining the benefits of few-shot prompting. Experiments on Idefics-9B and Idefics2-8B over VQAv2, OK-VQA, and COCO Caption show consistent gains and improved stabil-ity over direct ICD prompting, vector-based ICV baselines, and trainable SOTA methods. 
+
+# Acknowledgment 
+
+This material is based upon work supported by the National Science Foundation under Grant Numbers CNS-2232048, and CNS-2204445. 
+
+# Impact Statement 
+
+This work aims to improve the efficiency and practicality of multimodal ICL by eliminating the need for demonstration tokens at inference time. By reconstructing demonstration effects through a lightweight adapter, Hyper-ICL achieves near zero-shot inference cost while retaining the benefits of few-shot prompting, substantially reducing latency and com-putational overhead. This efficiency can support greener AI deployment by lowering inference-time energy consump-tion, which is especially important for large-scale vision-language systems. The low-latency profile of Hyper-ICL may also broaden the use of multimodal models in real-time applications such as assistive technologies, medical decision support, and interactive vision-language systems, where long demonstration-based prompts are often imprac-tical. A limitation of the proposed framework is that the adapter is learned for a given task or domain setting. Therefore, switch-ing to substantially different tasks, domains, or model back-bones may require retraining or re-calibrating the adapter. As with other multimodal learning systems, deployment in high-stakes settings should include careful validation, robustness testing, and human oversight. 
+
+# References 
+
+Alipour Talemi, N., Kashiani, H., Nowdeh, H. R., and Afghah, F. DiSa: Directional saliency-aware prompt learning for generalizable vision-language models. In 
+
+Proceedings of the 31st ACM SIGKDD Conference on Knowledge Discovery and Data Mining V. 2 , pp. 37–46, 2025. Baldassini, F. B., Shukor, M., Cord, M., Soulier, L., and Piwowarski, B. What makes multimodal in-context learn-ing work? In Proceedings of the IEEE/CVF Conference 
+
+9Hyper-ICL: Attention Calibration with Hyperbolic Anchor Distillation for Multimodal In-Context Learning 
+
+on Computer Vision and Pattern Recognition , pp. 1539– 1550, 2024. Brown, T., Mann, B., Ryder, N., Subbiah, M., Kaplan, J. D., Dhariwal, P., Neelakantan, A., Shyam, P., Sastry, G., Askell, A., et al. Language models are few-shot learners. 
+
+Advances in neural information processing systems , 33: 1877–1901, 2020. Chen, X., Fang, H., Lin, T.-Y., Vedantam, R., Gupta, S., Doll ´ar, P., and Zitnick, C. L. Microsoft COCO captions: Data collection and evaluation server. arXiv preprint arXiv:1504.00325 , 2015. Chen, Z., Wu, J., Wang, W., Su, W., Chen, G., Xing, S., Zhong, M., Zhang, Q., Zhu, X., Lu, L., et al. InternVL: Scaling up vision foundation models and aligning for generic visual-linguistic tasks. In Proceedings of the IEEE/CVF conference on computer vision and pattern recognition , pp. 24185–24198, 2024. Dong, Q., Li, L., Dai, D., Zheng, C., Ma, J., Li, R., Xia, H., Xu, J., Wu, Z., Chang, B., et al. A survey on in-context learning. In Proceedings of the 2024 conference on empirical methods in natural language processing , pp. 1107–1128, 2024. Doveh, S., Perek, S., Mirza, M. J., Lin, W., Alfassy, A., Arbelle, A., Ullman, S., and Karlinsky, L. Towards multi-modal in-context learning for vision and language models. In European Conference on Computer Vision Workshops ,pp. 250–267. Springer, 2024. Fish, E. and Bowden, R. Geo-Sign: Hyperbolic contrastive regularisation for geometrically aware sign language translation. Advances in Neural Information Processing Systems , 38:99293–99330, 2025. Fournier, H., Ismail, A., and Vigneron, A. Computing the Gromov hyperbolicity of a discrete metric space. Infor-mation Processing Letters , 115(6-8):576–579, 2015. Fu, C., Chen, P., Shen, Y., Qin, Y., Zhang, M., Lin, X., Yang, J., Zheng, X., Li, K., Sun, X., et al. MME: A com-prehensive evaluation benchmark for multimodal large language models. In The Thirty-ninth Annual Conference on Neural Information Processing Systems Datasets and Benchmarks Track , 2025. Ganea, O., B ´ecigneul, G., and Hofmann, T. Hyperbolic neu-ral networks. Advances in neural information processing systems , 31, 2018. Ge, S., Mishra, S., Kornblith, S., Li, C.-L., and Jacobs, D. Hyperbolic contrastive learning for visual representations beyond objects. In Proceedings of the IEEE/CVF con-ference on computer vision and pattern recognition , pp. 6840–6849, 2023. Goyal, Y., Khot, T., Summers-Stay, D., Batra, D., and Parikh, D. Making the V in VQA matter: Elevating the role of image understanding in visual question answer-ing. In Proceedings of the IEEE conference on computer vision and pattern recognition , pp. 6904–6913, 2017. Hu, E. J., Shen, Y., Wallis, P., Allen-Zhu, Z., Li, Y., Wang, S., Wang, L., Chen, W., et al. LoRA: Low-rank adaptation of large language models. ICLR , 1(2):3, 2022. Ibrahimi, S., Atigh, M. G., Van Noord, N., Mettes, P., and Worring, M. Intriguing properties of hyperbolic embed-dings in vision-language models. Transactions on Ma-chine Learning Research , 2024. Jiang, Y., Fu, J., Hao, C., Hu, X., Peng, Y., Geng, X., and Yang, X. Mimic in-context learning for multimodal tasks. In Proceedings of the Computer Vision and Pattern Recog-nition Conference , pp. 29825–29835, 2025. Khrulkov, V., Mirvakhabova, L., Ustinova, E., Oseledets, I., and Lempitsky, V. Hyperbolic image embeddings. In 
+
+Proceedings of the IEEE/CVF conference on computer vision and pattern recognition , pp. 6418–6428, 2020. Lauren c¸ on, H., Saulnier, L., Tronchon, L., Bekman, S., Singh, A., Lozhkov, A., Wang, T., Karamcheti, S., Rush, A., Kiela, D., et al. OBELICS: An open web-scale filtered dataset of interleaved image-text documents. Advances in Neural Information Processing Systems , 36:71683– 71702, 2023. Lauren c¸ on, H., Tronchon, L., Cord, M., and Sanh, V. What matters when building vision-language models? Ad-vances in Neural Information Processing Systems , 37: 87874–87907, 2024. Law, M., Liao, R., Snell, J., and Zemel, R. Lorentzian dis-tance learning for hyperbolic representations. In Interna-tional Conference on Machine Learning , pp. 3672–3681. PMLR, 2019. Li, B., Ge, Y., Ge, Y., Wang, G., Wang, R., Zhang, R., and Shan, Y. SEED-Bench: Benchmarking multimodal large language models. In Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition ,pp. 13299–13308, 2024a. Li, B., Zhang, Y., Guo, D., Zhang, R., Li, F., Zhang, H., Zhang, K., Zhang, P., Li, Y., Liu, Z., and Li, C. LLaVA-onevision: Easy visual task transfer. Transactions on Machine Learning Research , 2025a. ISSN 2835-8856. Li, F., Zhang, R., Zhang, H., Zhang, Y., Li, B., Li, W., Ma, Z., and Li, C. LLaVA-NeXT-Interleave: Tackling multi-image, video, and 3d in large multimodal models. In 
+
+International Conference on Learning Representations ,volume 2025, pp. 81182–81199, 2025b. 10 Hyper-ICL: Attention Calibration with Hyperbolic Anchor Distillation for Multimodal In-Context Learning 
+
+Li, J., Li, D., Savarese, S., and Hoi, S. BLIP-2: Boot-strapping language-image pre-training with frozen image encoders and large language models. In International con-ference on machine learning , pp. 19730–19742. PMLR, 2023. Li, L., Peng, J., Chen, H., Gao, C., and Yang, X. How to configure good in-context sequence for visual question answering. In Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition , pp. 26710– 26720, 2024b. Li, X., Liu, Y., Kang, X., Luo, Z., Lou, F., Wu, X., and Xiong, Z. HIFICL: High-fidelity in-context learning for multimodal tasks. In Proceedings of the IEEE/CVF con-ference on computer vision and pattern recognition , 2026. Li, Y., Cao, Y., He, H., Cheng, Q., Fu, X., Xiao, X., Wang, T., and Tang, R. M²IV: Towards efficient and fine-grained multimodal in-context learning via representation engi-neering. In Second Conference on Language Modeling ,2025c. Liu, H., Li, C., Wu, Q., and Lee, Y. J. Visual instruction tun-ing. Advances in neural information processing systems ,36:34892–34916, 2023. Liu, J., Shen, D., Zhang, Y., Dolan, W. B., Carin, L., and Chen, W. What makes good in-context examples for GPT-3? In Proceedings of Deep Learning Inside Out (DeeLIO 2022): The 3rd workshop on knowledge extraction and integration for deep learning architectures , pp. 100–114, 2022. Ma, Z., Zhang, S., Wei, L., and Tian, Q. Efficient multi-modal long context learning for training-free adaptation. 
+
+arXiv preprint arXiv:2505.19812 , 2025. Marino, K., Rastegari, M., Farhadi, A., and Mottaghi, R. OK-VQA: A visual question answering benchmark requiring external knowledge. In Proceedings of the IEEE/cvf conference on computer vision and pattern recognition , pp. 3195–3204, 2019. Nickel, M. and Kiela, D. Poincar ´e embeddings for learning hierarchical representations. Advances in neural informa-tion processing systems , 30, 2017. Nickel, M. and Kiela, D. Learning continuous hierarchies in the lorentz model of hyperbolic geometry. In Interna-tional conference on machine learning , pp. 3779–3788. PMLR, 2018. Peng, Y., Hu, X., Peng, J., Geng, X., Yang, X., et al. LIVE: Learnable in-context vector for visual question answering. 
+
+Advances in Neural Information Processing Systems , 37: 9773–9800, 2024. Poppi, T., Kasarla, T., Mettes, P., Baraldi, L., and Cucchiara, R. Hyperbolic safety-aware vision-language models. In 
+
+Proceedings of the Computer Vision and Pattern Recog-nition Conference , pp. 4222–4232, 2025. Qin, L., Chen, Q., Fei, H., Chen, Z., Li, M., and Che, W. What factors affect multi-modal in-context learning? an in-depth exploration. Advances in Neural Information Processing Systems , 37:123207–123236, 2024. Rohrbach, A., Hendricks, L. A., Burns, K., Darrell, T., and Saenko, K. Object hallucination in image captioning. 
+
+arXiv preprint arXiv:1809.02156 , 2018. Shao, Z., Yu, Z., Wang, M., and Yu, J. Prompting large language models with answer heuristics for knowledge-based visual question answering. In Proceedings of the IEEE/CVF Conference on computer vision and pattern recognition , pp. 14974–14983, 2023. Shukor, M., Rame, A., Dancette, C., and CORD, M. Beyond task performance: evaluating and reducing the flaws of large multimodal models with in-context-learning. In 
+
+International Conference on Learning Representations ,volume 2024, pp. 21756–21786, 2024. Sun, Y., Chen, Q., Wang, J., Wang, J., and Li, Z. Exploring effective factors for improving visual in-context learning. 
+
+IEEE Transactions on Image Processing , 2025. Todd, E., Li, M. L., Sharma, A. S., Mueller, A., Wallace, B. C., and Bau, D. Function vectors in large language models. arXiv preprint arXiv:2310.15213 , 2023. Xu, W., Wang, J., Wang, W., Chen, Z., Zhou, W., Yang, A., Lu, L., Li, H., Wang, X., Zhu, X., et al. VISULOGIC: A benchmark for evaluating visual reasoning in multi-modal large language models. In International Conference on Learning Representations , 2026. Yang, Z., Gan, Z., Wang, J., Hu, X., Lu, Y., Liu, Z., and Wang, L. An empirical study of GPT-3 for few-shot knowledge-based VQA. In Proceedings of the AAAI conference on artificial intelligence , volume 36, pp. 3081– 3089, 2022. Young, P., Lai, A., Hodosh, M., and Hockenmaier, J. From image descriptions to visual denotations: New similarity metrics for semantic inference over event descriptions. 
+
+Transactions of the association for computational linguis-tics , 2:67–78, 2014. Zhang, Y., Zhou, K., and Liu, Z. What makes good exam-ples for visual in-context learning? Advances in Neural Information Processing Systems , 36:17773–17794, 2023. Zhou, K., Yang, J., Loy, C. C., and Liu, Z. Learning to prompt for vision-language models. International Jour-nal of Computer Vision , 130(9):2337–2348, 2022. 11 Hyper-ICL: Attention Calibration with Hyperbolic Anchor Distillation for Multimodal In-Context Learning 
+
+# A. Generalize to Additional MLLMs 
+
+To further evaluate the robustness and scalability of Hyper-ICL across different multimodal architectures, we additionally conduct experiments on two recent MLLMs: LLaVA-Interleave-7B (Li et al., 2025b) and LLaVA-OneVision (Qwen2-7B) (Li et al., 2025a). Table 7 shows that Hyper-ICL consistently outperforms zero-shot, standard few-shot ICL, and the recent MimIC method (Jiang et al., 2025) on both VQAv2 (Goyal et al., 2017) and OK-VQA (Marino et al., 2019). These results further demonstrate that the proposed logit-level attention calibration and hyperbolic distillation generalize effectively across diverse MLLM architectures.                     
+
+> Table 7. Results evaluated on additional MLLMs.
+> Backbone Method VQAv2 OK-VQA
+> LLaVA-Interleave-7B Zero-shot 13.02 5.10 8-shot ICL 68.19 43.84 MimIC 74.40 52.29 Hyper-ICL 76.51 56.77
+> LLaVA-OneVision (Qwen2-7B) Zero-shot 71.75 48.19 8-shot ICL 78.70 66.59 MimIC 81.22 69.43 Hyper-ICL 82.24 75.32
+
+# B. Held-out Benchmark Transfer 
+
+We further evaluate whether Hyper-ICL can transfer to unseen benchmarks within the same task family. We conduct two held-out transfer experiments on Idefics2-8B-base (Lauren c¸ on et al., 2024). In the first setting, the model is trained on VQAv2 and evaluated on the unseen OK-VQA benchmark. In the second setting, the model is trained on COCO Caption (Chen et al., 2015) and evaluated on Flickr30k (Young et al., 2014). For a fair comparison, the 8-shot ICL baseline also uses demonstrations drawn from the source dataset rather than the target dataset. As shown in Table 8, Hyper-ICL substantially improves over both zero-shot inference and standard 8-shot ICL on unseen benchmarks within the same task family. These results indicate that the learned attention calibration is not purely dataset-specific and can capture transferable demonstration-conditioned behavior across related benchmarks.  
+
+> Table 8. Held-out benchmark transfer results on Idefics2-8B-base.
+
+Train Test Zero-shot 8-shot ICL Hyper-ICL 
+
+COCO Flickr30k 53.04 73.26 87.42 
+
+VQAv2 OK-VQA 43.08 51.43 59.11 
+
+# C. Additional Analysis of Hyperbolic Structure 
+
+In this section, we provide a direct empirical analysis of the hyperbolic anchor loss to support our assumption that multimodal ICL induces dense demonstration-conditioned relations among query tokens. Specifically, we examine this geometric assumption by measuring whether the intermediate hidden-state representations exhibit a non-uniform, tree-like relational structure. We quantify this structure using relative δ-hyperbolicity, which measures how closely a metric space satisfies the Gromov four-point condition. Smaller values indicate that pairwise metric relations are closer to those of a tree-like geometry, while larger values indicate a flatter structure. Following (Khrulkov et al., 2020), we use the scale-invariant score as follows: 
+
+δrel (X) = 2δ(X)diam( X) ∈ [0 , 1] , (18) where δ(X) is the estimated Gromov hyperbolicity of the metric space X.We conduct this analysis on Idefics2-8B-base using 1,000 VQAv2 samples. For each sample, we construct the metric space from query-token hidden states in the four middle transformer layers. We compare three settings: the demonstration-conditioned teacher hidden states, the student hidden states trained with the Euclidean anchor loss, and the student hidden states trained with the proposed hyperbolic anchor loss. For a fair comparison, we use the same sampled four-point tuples across all settings when estimating δ(X). Specifically, we estimate δ(X) using the efficient four-point procedure adopted 12 Hyper-ICL: Attention Calibration with Hyperbolic Anchor Distillation for Multimodal In-Context Learning 
+
+in (Khrulkov et al., 2020; Fournier et al., 2015): we sample 1,000 four-tuples, compute the four-point δ value for each, take the maximum sampled value, normalize by the diameter, and report mean ± std.              
+
+> Table 9. Relative δ-hyperbolicity of intermediate hidden-state representations on Idefics2-8B-base. Lower values indicate a metric geometry closer to a tree-like structure.
+> Setting δrel ↓
+> Teacher hidden states 0.228 ±0.014
+> Student hidden states + Euclidean anchor 0.314 ±0.023
+> Student hidden states + Hyperbolic anchor 0.247 ±0.016
+
+As shown in Table 9, the demonstration-conditioned teacher hidden states exhibit a measurable degree of hyperbolic structure, suggesting that the teacher representations are not merely an unstructured set of hidden vectors. Instead, they encode a non-uniform relational geometry induced by multimodal demonstrations. The student trained with the proposed hyperbolic anchor loss achieves a substantially lower δrel than the Euclidean-anchor student and more closely matches the teacher geometry. These results provide direct evidence that the gain from the hyperbolic anchor is not only due to adding an intermediate regularizer, but is also consistent with better preserving the demonstration-conditioned relational structure that Hyper-ICL is designed to reconstruct. 
+
+# D. Interpretability Analysis of Query-Adaptive Modulation 
+
+In Section 3.2, Hyper-ICL introduces a query-adaptive token-wise modulation vector gl,h ∈ (0 , 1) T to control the strength of the logit-level intervention for each query token across layers and heads. In this section, we provide an additional analysis of the learned modulation behavior to examine whether gl,h provides meaningful, input-dependent control rather than collapsing to a nearly constant scalar. For layer l, head h, and query token t, we denote the corresponding modulation value by gl,h,t . Larger values indicate stronger activation of the learned logit-level bias for that token. We analyze the learned gates on Idefics-9B (Lauren c¸ on et al., 2023) using subsets of VQAv2 and OK-VQA. First, we compute the mean gate value in early layers (0 -7) and late layers (24 -31) , together with the average per-layer standard deviation over heads and query tokens. This evaluates whether the gate saturates near 0 or 1, or instead preserves meaningful variation across the model. Second, we examine whether the learned gate becomes larger when demonstrations induce stronger changes in attention. For each query, we run the model twice: once with the full demonstration-conditioned prompt and once with the query-only prompt. We define the demonstration-induced attention shift as: 
+
+∆Al,h,t = AICD  
+
+> l,h,t
+
+− AnoICD   
+
+> l,h,t 1
+
+, (19) where AICD  
+
+> l,h,t
+
+and AnoICD  
+
+> l,h,t
+
+denote the attention distributions for token t under the demonstration-conditioned and query-only settings, respectively. We then compute the Pearson correlation between gl,h,t and ∆Al,h,t over all evaluated examples. A positive correlation indicates that the gate assigns stronger intervention weights to tokens, heads, and layers where demonstrations cause larger attention redistribution.                     
+
+> Table 10. Quantitative analysis of query-adaptive token-wise modulation on Idefics-9B. Reported metrics include the mean gate value in early and late layers, the average per-layer standard deviation, and the Pearson correlation between the learned gate gand the demonstration-induced attention shift ∆A.
+> Dataset Early-layer mean gLate-layer mean gAvg. per-layer std gCorr( g, ∆A)
+> VQAv2 0.38 0.46 0.17 0.41 OK-VQA 0.43 0.62 0.23 0.56
+
+Table 10 supports the intended behavior of the modulation mechanism in three ways. First, the mean gate values do not collapse toward 0 or 1, and the non-trivial per-layer standard deviations show that the gate preserves meaningful variation rather than acting as a nearly constant scalar. Second, the gate values increase in later layers, which is consistent with the design motivation that deeper layers contribute more strongly to compositional reasoning and answer generation. This pattern is more pronounced on OK-VQA, where the late-layer mean gate reaches 0.62 , reflecting the stronger reasoning and knowledge demands of this benchmark. Third, the positive correlations between g and ∆A on both datasets provide direct evidence that the gate is activated more strongly when demonstrations induce larger attention redistribution. 13 Hyper-ICL: Attention Calibration with Hyperbolic Anchor Distillation for Multimodal In-Context Learning 
+
+# E. Output-level Offset vs. Logit-level Attention Calibration 
+
+We further analyze whether the benefit of Hyper-ICL can be recovered by applying a learnable correction after attention, rather than intervening on the attention logits. Although modifying the attention logits ultimately changes the attention output, the two operations are not equivalent. An output-level offset directly perturbs the resulting vector representation after the attention-weighted summation, whereas our logit-level intervention changes the attention distribution before the value aggregation. Therefore, Hyper-ICL explicitly controls which tokens are attended to and how strongly they compete under the softmax normalization. This distinction is important in multimodal ICL, where demonstrations mainly affect the query by redistributing attention over relevant visual and textual tokens. Existing output-level methods, such as LIVE (Peng et al., 2024), inject learned layer-wise shift vectors into hidden activations, but they do not directly calibrate the attention probabilities. As shown in Table 1, Hyper-ICL consistently outperforms LIVE across VQAv2, OK-VQA, and COCO, indicating that output-level shifts are less effective at reconstructing demonstration-induced behavior. To further analyze the effect of intervention placement, we additionally implement a variant that uses the same low-rank, query-adaptive module as Hyper-ICL but applies it to the post-attention output O rather than to the pre-softmax logits S.As shown in Table 11, the attention-logit intervention used by Hyper-ICL leads to stronger results than applying the same module at the output level. This confirms that the improvement does not simply come from adding a learnable correction, but from applying the correction at the attention-logit level, where the model can directly reshape token competition and attention redistribution.  
+
+> Table 11. Comparison between applying the same low-rank, query-adaptive module to the post-attention output and applying it at the attention-logit level in Hyper-ICL.
+
+Method VQAv2 OK-VQA 
+
+Intervention on O 58.42 50.18 Hyper-ICL 62.08 55.31 
+
+14

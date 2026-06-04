@@ -1,0 +1,933 @@
+Title: Fast     Faithful Function Vectors
+
+URL Source: https://arxiv.org/pdf/2606.05079v1
+
+Published Time: Thu, 04 Jun 2026 01:33:54 GMT
+
+Number of Pages: 18
+
+Markdown Content:
+## Fast & Faithful Function Vectors 
+
+Minh An Pham * 1 Anton Segeler * 1 Thomas Wiegand 1 2 3 Wojciech Samek 1 2 3 Sebastian Lapuschkin 1 4 
+
+Patrick Kahardipraja 1 Reduan Achtibat 1
+
+Abstract 
+
+Function vectors (FVs) are task representations elicited during in-context learning that can be used to steer Large Language Models (LLMs). However, design choices in their formulation re-main underexplored. In this work, we study the impact of varying FV definitions for instructions along two degrees of freedom: attention head se-lection and steering. For head selection, using gradient-based attributions with Layer-wise Rele-vance Propagation (LRP) substantially improves efficiency as well as accuracy. For FV steering, applying it in a distributed manner yields a higher accuracy compared to simple aggregation. Our code is publicly available. 1
+
+1. Introduction 
+
+The universe in “Library of Babel” (Borges, 1941) takes form of an infinite library, containing every book that could ever exist, including coherent texts as well as vast amounts of nonsensical ones. Due to its nature, making sense of the library’s rule is exceptionally difficult as the content of a single book can be contradicted by countless others. For-tunately, navigating information in LLMs is much simpler. Despite its similarity to the library, the collection of plausi-ble texts within LLMs is not completely devoid of structure. With prompts as an interface, one can query LLMs to search for relevant functions in latent space that describe the rela-tion between the input sequence and the (wished) output sequence (Chollet, 2023; Schlangen, 2024). Of particular interest is the nature of the function(s) found and induced by a prompt. Recent works (Hendel et al., 2023; Todd et al., 2024) discover that these induced functions can 
+
+> *
+
+Equal contribution 1Fraunhofer Heinrich-Hertz-Institute, Berlin, Germany 2Technische Universit ¨at Berlin, Berlin, Germany 
+
+> 3
+
+BIFOLD – Berlin Institute for the Foundations of Learning and Data, Berlin, Germany 4Technological University Dublin, Dublin, Ireland. Correspondence to: Sebastian Lapuschkin, Wojciech Samek <{firstname.lastname }@hhi.fraunhofer.de >.
+
+Preprint. June 4, 2026. 
+
+> 1
+
+https://github.com/ma-pham/fast-faithful-fv 0.55 0.60 0.65 0.70 0.75 0.80 0.85  
+
+> 10 0
+> 10 1
+> 10 2
+> 10 3
+> 10 4
+> Accuracy
+> Efficiency  (Samples per Minute)
+> AIE + FV AIE + DFV
+> LRP + FV
+> LRP + DFV
+
+Figure 1. Overview on how definitions of FVs affect efficiency and accuracy on Llama-3.2-3B. 
+
+be understood as task representations for in-context learning (ICL; Brown et al., 2020). The so-called function vectors 
+
+(FVs) can be extracted from attention heads, which then triggers the execution of a task. However, despite of its usefulness (Yang et al., 2026; Liu et al., 2026), there is little consensus on how to define a FV, and in what way this would affect the task that it should represent. In this work, we examine the impact of varying the method-ological choices in defining a FV for instructions. We iden-tify two degrees of freedom: heads selection and FVs patch-ing. On the heads selection aspect, models’ activation can be used to compute the average indirect effect (AIE) of each head on the output and rank their influence (Pearl, 2001; Vig et al., 2020). Alternatively, gradient -based methods can also be used to obtain heads’ importance scores (Voita et al., 2019; Michel et al., 2019). With regards to how FVs can be applied, average outputs of top-k attention heads can either be aggregated to form a FV (Todd et al., 2024) or patched separately (Hendel et al., 2023; Kahardipraja et al., 2025). We then compare wall-clock time across FVs definition, as interpretability methods can be costly to apply, especially for large models. We show that applying FVs individually over heads considerably im-proves accuracy (Figure 1). Selecting heads using gradient-based methods, specifically AttnLRP (Achtibat et al., 2024) 1
+
+> arXiv:2606.05079v1 [cs.CL] 3 Jun 2026 Fast & Faithful Function Vectors
+
+instead of activation (AIE) also yields better performance, both in terms of accuracy and efficiency. These results highlight the sensitivity of FVs for instruction w.r.t. their methodological details. We hope this contribution can serve as recommendation for FVs selection going forward. 
+
+2. Related Work 
+
+Understanding Representations There are plethora of works on understanding language model representations. Earlier studies focus on linguistic phenomena, ranging from morphology to syntax (Belinkov et al., 2017; Blevins et al., 2018; Lakretz et al., 2019). As LMs are trained on more and more data, they accumulate various types of knowledge and thus spark the shift of focus (Rogers et al., 2020). Central to this issue are transferability of representations and the world knowledge that they encode (Liu et al., 2019; Ten-ney et al., 2019; Petroni et al., 2019; Roberts et al., 2020). Another angle is to look at how the information of interest is encoded in the representation, particularly regarding its linearity (Mikolov et al., 2013; Park et al., 2023; Merullo et al., 2024; Csord´ as et al., 2024; Engels et al., 2025). 
+
+In-Context Learning ICL (Brown et al., 2020) allows LLMs to flexibly adapt to new tasks during inference. Still, its underlying mechanism is not yet fully understood. One perspective is that ICL emerges as transformers implicitly learn to perform gradient-based optimization during forward passes (Aky ¨urek et al., 2023; Von Oswald et al., 2023). To date, ICL capability is mostly associated with induction heads (Olsson et al., 2022). Yin & Steinhardt (2025) com-plement this view by showing that many induction heads evolve to FV heads during training, which primarily drive ICL performance. There are various forms of in-context adaptation besides the standard few-shot setting (Lampinen et al., 2025), such as through role-play (Reynolds & Mc-Donell, 2021) or instructions (Ouyang et al., 2022). In this work, we study the latter, focusing on the effectiveness of task representations through the lens of FVs. 
+
+3. Methods 
+
+3.1. Head Selection 
+
+We consider two methods to select heads for FV extraction: the standard method proposed by Todd et al. (2024) using AIE and Layer-wise Relevance Propagation (LRP), specifi-cally AttnLRP (Bach et al., 2015; Achtibat et al., 2024) as representative of gradient-based methods due to its superior performance and efficiency compared to other methods. To simplify, we will use LRP and AttnLRP interchangeably for the rest of the paper unless explained otherwise. 
+
+Average Indirect Effect Constructing FVs for a task t in-volves collecting a set Pt of demonstration prompts pti ∈ Pt;
+
+pti = [( xi1, y i1), . . . , (xiN , y iN ), x iq ]. An example of this would be “ Q: old A: young, Q: tall A: ”. Then, a per-head task representation ¯ath is computed by averaging each head’s activation over Pt. We patch each in separate forward passes on uninformative prompts ˜pti ∈ ˜Pt con-structed similarly to pti but with their label (xi, ˜yi) shuffled. This results in probability changes of yiq that define the head’s causal indirect effect (CIE), described as: CIE (ah | ˜pti) = f (˜ pti | ah := ¯ a th)[ yiq ] − f (˜ pti)[ yiq ]
+
+where ah is the activation of head h, and f (p)[ y] is the probability of token y given prompt p. Averaging over tasks and corrupted prompts give us AIE per head: AIE (ah) = 1
+
+|T |
+
+X
+
+> t∈T
+
+1
+
+| ˜Pt|
+
+X  
+
+> ˜pti∈˜Pt
+
+CIE (ah | ˜pti)
+
+Our prompts follow Davidson et al. (2025) that extend the setup to instructions by transforming the demonstration prompts, taking the form of pti = [ qtm, x iq ], where qtm is a task template obtained from a set Qt and xiq is a query, 
+
+e.g., “Find the antonym. Q: old A: ”. To adapt the uninformative prompts, we sample token sequences unrelated to the task but equiprobable to the task description. 
+
+Layer-wise Relevance Propagation Although activation-based methods such as AIE (Paragraph 3.1) are highly faith-ful, they incur substantial computational cost, as ablating each component requires a separate forward pass (Lund-berg & Lee, 2017). In contrast, gradient-based methods require only a single backward pass, making them com-putationally efficient for large-scale interpretability studies (Syed et al., 2024). However, their relevance estimates are often degraded by noisy gradients arising from non-linear components such as layer normalization (Ali et al., 2022). AttnLRP (Achtibat et al., 2024) extends Layer-wise Rele-vance Propagation (Bach et al., 2015) to transformer archi-tectures by correcting relevance propagation through non-linearities. As a backpropagation-based attribution method, LRP estimates the contribution of input features and com-ponents x to an output y by propagating relevance scores 
+
+R(x | y) layer-wise while applying stabilization rules for non-linear operations. Compared to standard gradient- and decomposition-based attribution methods, this yields more faithful relevance estimates (Arras et al., 2025; Jafari et al., 2025; Arora et al., 2026) while retaining the efficiency of a single backward pass. In Appendix Table 3, LRP is imple-mented in only five lines of code. To identify attention heads responsible for representing the instruction, we follow the methodology of Kahardipraja et al. (2025). The key idea is that a minimal set of to-kens within the instruction qt determines the operation the model must perform to infer the answer. We refer to these 2Fast & Faithful Function Vectors 
+
+task-defining tokens as the intensional frame , e.g., “country” in the instruction “ Predict the country of the capital city ”. We hypothesize that heads involved in transporting the task representation should assign high rele-vance to these intensional frame tokens during prediction. Since the final token position S aggregates the contextual information used to predict the target token yt, we trace relevance from the output back to the attention weights: 
+
+ρhj = max  R(AhS,j | yt), 0, where Ahi,j denotes the atten-tion weight from query position i to key position j in head h.To compute heads’ importance, we aggregate the relevance 
+
+ρh = P 
+
+> j∈J
+
+ρhj where J denotes the set of intensional frame token positions. 
+
+3.2. Applying Function Vectors 
+
+FVs can be constructed by summing the task representations of the top-k heads H ranked by AIE or LRP relevances and reinjected at a chosen layer ℓ by adding it to the residual stream hℓ ∈ Rd at the last query position. We propose to modify this by reinjecting each head’s averaged representa-tion at its original location. We hypothesize that this would be more faithful to the model’s computation, since each intervention is applied where it was originally extracted and it also eliminates the hyperparameter of the injection layer 
+
+ℓ. We refer to this as distributed FVs (DFV). 
+
+4. Experimental Setup 
+
+Datasets We adopt the data framework of Davidson et al. (2025), where each task is associated with multiple instruc-tion formulations. We filter out classification tasks, which rely on demonstration-based rather than textual instruction formats. We further retain only tasks where the model exceeds chance performance and where each instruction formulation yields at least 20 successful predictions. In addition, we exclude three tasks where instructions are mis-aligned with the task despite near-chance performance, mak-ing the intensional frame ill-defined. The intensional frame is then identified manually for each instruction by removing non-essential tokens until further removal would render the task undefined (see Appendix G and H for a list of tasks and examples). 
+
+Models We use multiple instruction-tuned LLMs: Llama3.2-3B and Llama3.1-8B (Grattafiori et al., 2024) following Davidson et al. (2025), as well as Qwen3-4B (Yang et al., 2025) to validate the generalizability of our approach across different model families. 
+
+Head Selection Note that one can define relevant heads globally for all tasks or as a per-task set. Following David-son et al. (2025) we evaluate on the global set and report the per-task evaluation in the Appendix C. 
+
+Implementation Details The previous filtered set is used for head extraction as well as building the FV. For each task, we select 5 instructions, each evaluated with 20 samples. We compute the average activation per head, and estimate CIE using 5 randomly selected samples per instruction. We then use the activations from the top K = 20 heads, which account for ≈ 3% of the total heads on Llama-3.2-3B, ≈ 2% 
+
+on Llama-3.1-8B, and ≈ 3.5% on Qwen3-4B. For the steer-ing method of Todd et al. (2024), we add them at the opti-mal layer Lopt (see Appendix E for results on finding Lopt ). Since some functionalities can be more distributed in larger models, we explore larger values of K in the Appendix F. 
+
+Evaluation We evaluate our methods on inserting the FVs into a zero shot setting, with only the query xqt as the prompt and measure the accuracy on predicting the target token yqt .We average accuracies over the same top J = 5 instructions for each model and task. 
+
+5. Results and Discussion 
+
+We compute average accuracies over the tasks on all models and all permutations of our two degrees of freedom and plot them in Figure 2. Llama-3.2-3B Llama-3.1-8B Qwen3-4B     
+
+> Model
+> 0.0
+> 0.2
+> 0.4
+> 0.6
+> 0.8
+> 1.0
+> Accuracy
+> LRP + DFV AIE + DFV LRP + FV AIE + FV
+> Figure 2. Average accuracies over all tasks.
+
+Finding 1: Distributed FVs improve performance com-pared to averaged FVs 
+
+In Figure 2, we observe that in all models and in all head extraction settings, injecting distributed FVs achieves higher accuracy than the injection of averaged FVs, with an im-provement in accuracy as great as 0.156 . We hypothesize that the improvement in accuracy can be attributed to the distributed representation of knowledge and functionality within the model, which is captured more accurately when injecting FVs in a distributed manner, compared to a single injection in the residual stream. 3Fast & Faithful Function Vectors                  
+
+> Table 1. Samples processed per minute and improvement factor of LRP over AIE for all models on an NVIDIA RTX 5090 GPU. MODEL AIE LRP FACTOR ↑
+> LLAMA -3.2-3B-I NSTRUCT 4.57 1541.93 337.06 LLAMA -3.1-8B-I NSTRUCT 1.63 1308.41 802.98 QWEN 3-4B-I NSTRUCT 2.96 1167.67 393.97 AVERAGE 3.05 1339.34 511.34
+
+Finding 2: Extracting heads with LRP is computation-ally more efficient and leads to more faithful injections 
+
+Comparing the two head extraction methods in Figure 2, LRP improves accuracy over AIE across all models and injection settings, with gains of up to 0.194. We hypothesize that LRP yields more faithful head attributions because rule-based relevance propagation captures the interactions between model components more accurately than per-head patching, which evaluates each head in isolation. Beyond improving injection quality, head extraction via LRP is also drastically more efficient. We measure wall-clock time for both methods and report samples processed per minute in Table 1, observing an average speed-up factor of ≈ 500 . As outlined in Section 3.1, this stems from LRP requiring one forward and one backward pass per sample, whereas AIE requires one forward pass per head per sample. When analysing the per-task performance in Appendix Fig-ure 4, we notice that tasks requiring capitalization or trans-lation, can only be meaningfully reproduced by head ex-traction with LRP. This shows that LRP not only improves known head extraction methods, but can identify a global head set that captures the essence of all tasks of this diverse dataset to a certain degree. While this advantage is specific to the global setting, LRP is not uniquely superior on per-task heads, as task-averaged CIE performs with comparable accuracy across all tasks (see Appendix C). Lastly, we notice that head extraction via AIE and LRP results in mostly different sets of heads. Figure 3 displays that these heads can differ in model depth, while the shared heads are all positioned in middle layers. This phenomenon of heads used for task-processing being positioned in middle layers reaffirms the results of Kahardipraja et al. (2025). Furthermore, Davidson et al. (2025) found demonstrations and instructions elicit mostly distinct attention heads, while we show that instructions can be solved from mostly distinct head sets with similar accuracies. 
+
+5.1. Failure Analysis 
+
+We qualitatively analyze the limitations of our method by examining the failed predictions of the antonym task and find out that even in all wrong predictions, the average rank 0 5 10 15 20    
+
+> Head Index
+> 5
+> 10
+> 15
+> 20
+> 25
+> Layer Index
+> AIE LRP Overlap
+> Figure 3. Position of extracted heads within Llama-3.2-3B.
+
+of the target token among the top softmax probabilities is 4.3. Looking at the predictions themselves, we find that 26 out of 41 failures are predictions of synonyms of the target token (e.g. bad for evil , disorder for chaos ) or sub-word prefixes that plausibly continue into a valid antonym under multi-token decoding (e.g. un-, non-, anti-). Only the remaining 15 cases constitute genuine task failures and considering these, we increase our top-1 accuracy to 0.96 (See Table 6 for a list of failed predictions). Finally, we illustrate our method’s applicability in a realistic setting, steering the model toward the English-to-Spanish translation task by comparing the standard FV approach to our method, which combines LRP with DFV. Table 2 shows the resulting continuations for an example prompt. The standard FV continues in English, while our method successfully induces a Spanish continuation, illustrating the steering effect of distributed injection over relevant attention heads.  
+
+> Table 2. Next 20 tokens generated under the standard FV and our combined method (LRP-based head extraction with distributed injection) on Llama3.2-3B. Our method induces Spanish output.
+
+Prompt       
+
+> Q: Ilove Yellowstone National Park. A:
+
+AIE + FV LRP + DFV (Ours)           
+
+> Ilove Yellowstone too! Q: What’s your favorite thing about Yellowstone?
+> Me too! (¿Te gusta Yellowstone?) \nQ: ¿Cu´ al es el parque nacional
+
+4Fast & Faithful Function Vectors 
+
+6. Conclusion 
+
+Through this work, we examine how FV definitions affect the task that they should represent. We find that applying FVs in a distributed manner generally improves upon aver-aging, and that LRP yields better accuracy and efficiency compared to AIE in terms of head selection. Our study pro-vides a better understanding of FVs, which can be beneficial for model adaptation through steering (Ostermann et al., 2026). Future works could focus on how LRP captures a more faithful set of heads, for example, through Shapley val-ues (Lundberg & Lee, 2017). Another open question would be how to automatically search for the optimal intensional frame tokens. 
+
+References 
+
+Achtibat, R., Hatefi, S. M. V., Dreyer, M., Jain, A., Wiegand, T., Lapuschkin, S., and Samek, W. AttnLRP: Attention-aware layer-wise relevance propagation for transformers. In Salakhutdinov, R., Kolter, Z., Heller, K., Weller, A., Oliver, N., Scarlett, J., and Berkenkamp, F. (eds.), Pro-ceedings of the 41st International Conference on Machine Learning , volume 235 of Proceedings of Machine Learn-ing Research , pp. 135–168. PMLR, 21–27 Jul 2024. URL 
+
+https://proceedings.mlr.press/v235/a chtibat24a.html .Aky ¨urek, E., Schuurmans, D., Andreas, J., Ma, T., and Zhou, D. What learning algorithm is in-context learn-ing? investigations with linear models. In The Eleventh International Conference on Learning Representations ,2023. URL https://openreview.net/forum ?id=0g0X4H8yN4I .Ali, A., Schnake, T., Eberle, O., Montavon, G., M ¨uller, K.-R., and Wolf, L. XAI for transformers: Better expla-nations through conservative propagation. In Chaudhuri, K., Jegelka, S., Song, L., Szepesvari, C., Niu, G., and Sabato, S. (eds.), Proceedings of the 39th International Conference on Machine Learning , volume 162 of Pro-ceedings of Machine Learning Research , pp. 435–451. PMLR, 17–23 Jul 2022. URL https://proceedi ngs.mlr.press/v162/ali22a.html .Arora, A., Wu, Z., Steinhardt, J., and Schwettmann, S. Language model circuits are sparse in the neuron ba-sis. arXiv preprint arXiv:2601.22594 , 2026. URL 
+
+https://arxiv.org/abs/2601.22594 .Arras, L., Puri, B., Kahardipraja, P., Lapuschkin, S., and Samek, W. A close look at decomposition-based xai-methods for transformer language models. arXiv preprint arXiv:2502.15886 , 2025. URL https://arxiv.or g/abs/2502.15886 .Bach, S., Binder, A., Montavon, G., Klauschen, F., M ¨uller, K.-R., and Samek, W. On pixel-wise explanations for non-linear classifier decisions by layer-wise relevance propagation. PloS one , 10(7):e0130140, 2015. URL 
+
+https://doi.org/10.1371/journal.pone .0130140 .Belinkov, Y., Durrani, N., Dalvi, F., Sajjad, H., and Glass, J. What do neural machine translation models learn about morphology? In Barzilay, R. and Kan, M.-Y. (eds.), Proceedings of the 55th Annual Meeting of the Association for Computational Linguistics (Volume 1: Long Papers) , pp. 861–872, Vancouver, Canada, July 2017. Association for Computational Linguistics. doi: 10.18653/v1/P17-1080. URL https://aclantho logy.org/P17-1080/ .Blevins, T., Levy, O., and Zettlemoyer, L. Deep RNNs encode soft hierarchical syntax. In Gurevych, I. and Miyao, Y. (eds.), Proceedings of the 56th Annual Meeting of the Association for Computational Linguistics (Volume 2: Short Papers) , pp. 14–19, Melbourne, Australia, July 2018. Association for Computational Linguistics. doi: 10.18653/v1/P18-2003. URL https://aclantho logy.org/P18-2003/ .Borges, J. L. The Library of Babel . Editorial Sur, 1941. Brown, T., Mann, B., Ryder, N., Subbiah, M., Kaplan, J. D., Dhariwal, P., Neelakantan, A., Shyam, P., Sastry, G., Askell, A., Agarwal, S., Herbert-Voss, A., Krueger, G., Henighan, T., Child, R., Ramesh, A., Ziegler, D., Wu, J., Winter, C., Hesse, C., Chen, M., Sigler, E., Litwin, M., Gray, S., Chess, B., Clark, J., Berner, C., McCandlish, S., Radford, A., Sutskever, I., and Amodei, D. Language models are few-shot learners. In Larochelle, H., Ranzato, M., Hadsell, R., Balcan, M., and Lin, H. (eds.), Advances in Neural Information Processing Systems , volume 33, pp. 1877–1901. Curran Associates, Inc., 2020. URL 
+
+https://proceedings.neurips.cc/paper _files/paper/2020/file/1457c0d6bfcb4 967418bfb8ac142f64a-Paper.pdf .Chollet, F. How I think about LLM prompt engineering. 
+
+https://fchollet.substack.com/p/how-i -think-about-llm-prompt-engineering ,2023. Accessed: 2026-05-01. Csord ´as, R., Potts, C., Manning, C. D., and Geiger, A. Re-current neural networks learn to store and generate se-quences using non-linear representations. In Belinkov, Y., Kim, N., Jumelet, J., Mohebbi, H., Mueller, A., and Chen, H. (eds.), Proceedings of the 7th BlackboxNLP Workshop: Analyzing and Interpreting Neural Networks for NLP , pp. 248–262, Miami, Florida, US, Novem-ber 2024. Association for Computational Linguistics. 5Fast & Faithful Function Vectors 
+
+doi: 10.18653/v1/2024.blackboxnlp- 1.17. URL 
+
+https://aclanthology.org/2024.blackb oxnlp-1.17/ .Davidson, G., Gureckis, T., Lake, B., and Williams, A. Do different prompting methods yield a common task representation in language models? In Belgrave, D., Zhang, C., Lin, H., Pascanu, R., Koniusz, P., Ghassemi, M., and Chen, N. (eds.), Advances in neural information processing systems , volume 38, pp. 70782–70822. Curran Associates, Inc., 2025. URL https://proceeding s.neurips.cc/paper_files/paper/2025/ file/66b35d2e8d524706f39cc21f5337b00 2-Paper-Conference.pdf .Engels, J., Michaud, E. J., Liao, I., Gurnee, W., and Tegmark, M. Not all language model features are one-dimensionally linear. In The Thirteenth International Conference on Learning Representations , 2025. URL 
+
+https://openreview.net/forum?id=d63a 4AM4hb .Grattafiori, A., Dubey, A., Jauhri, A., Pandey, A., Kadian, A., Al-Dahle, A., Letman, A., Mathur, A., Schelten, A., Vaughan, A., et al. The llama 3 herd of models. arXiv preprint arXiv:2407.21783 , 2024. URL https://ar xiv.org/abs/2407.21783 .Hendel, R., Geva, M., and Globerson, A. In-context learning creates task vectors. In Bouamor, H., Pino, J., and Bali, K. (eds.), Findings of the Association for Computational Linguistics: EMNLP 2023 , pp. 9318–9333, Singapore, December 2023. Association for Computational Linguis-tics. doi: 10.18653/v1/2023.findings-emnlp.624. URL 
+
+https://aclanthology.org/2023.findin gs-emnlp.624/ .Hernandez, E., Sen Sharma, A., Haklay, T., Meng, K., Wattenberg, M., Andreas, J., Belinkov, Y., and Bau, D. Linearity of relation decoding in transformer lan-guage models. In Kim, B., Yue, Y., Chaudhuri, S., Fragkiadaki, K., Khan, M., and Sun, Y. (eds.), Inter-national conference on learning representations , vol-ume 2024, pp. 10504–10526, 2024. URL https: //proceedings.iclr.cc/paper_files/pa per/2024/file/2b6d7285306fe896fca9b2 e9a02ff6ec-Paper-Conference.pdf .Jafari, F. R., Eberle, O., Khakzar, A., and Nanda, N. Relp: Faithful and efficient circuit discovery in language models via relevance patching. arXiv preprint arXiv:2508.21258 ,2025. URL https://arxiv.org/abs/2508.2 1258 .Kahardipraja, P., Achtibat, R., Wiegand, T., Samek, W., and Lapuschkin, S. The atlas of in-context learning: How attention heads shape in-context retrieval augmenta-tion. In The Thirty-ninth Annual Conference on Neural Information Processing Systems , 2025. URL https: //openreview.net/forum?id=5h9mS87Pyt .Lakretz, Y., Kruszewski, G., Desbordes, T., Hupkes, D., De-haene, S., and Baroni, M. The emergence of number and syntax units in LSTM language models. In Burstein, J., Doran, C., and Solorio, T. (eds.), Proceedings of the 2019 Conference of the North American Chapter of the Associ-ation for Computational Linguistics: Human Language Technologies, Volume 1 (Long and Short Papers) , pp. 11– 20, Minneapolis, Minnesota, June 2019. Association for Computational Linguistics. doi: 10.18653/v1/N19-1002. URL https://aclanthology.org/N19-100 2/ .Lampinen, A. K., Chan, S. C. Y., Singh, A. K., and Shana-han, M. The broader spectrum of in-context learning, 2025. URL https://arxiv.org/abs/2412.0 3782 .Lample, G., Conneau, A., Ranzato, M., Denoyer, L., and J ´egou, H. Word translation without parallel data. In 
+
+International Conference on Learning Representations ,2018. URL https://openreview.net/forum ?id=H196sainb .Liu, E., Sun, K., Li, M., Lee, I., Tjuatja, L., tse Huang, J., and Neubig, G. What do language models learn and when? the implicit curriculum hypothesis, 2026. URL 
+
+https://arxiv.org/abs/2604.08510 .Liu, N. F., Gardner, M., Belinkov, Y., Peters, M. E., and Smith, N. A. Linguistic knowledge and transferability of contextual representations. In Burstein, J., Doran, C., and Solorio, T. (eds.), Proceedings of the 2019 Conference of the North American Chapter of the Association for Com-putational Linguistics: Human Language Technologies, Volume 1 (Long and Short Papers) , pp. 1073–1094, Min-neapolis, Minnesota, June 2019. Association for Compu-tational Linguistics. doi: 10.18653/v1/N19-1112. URL 
+
+https://aclanthology.org/N19-1112/ .Lundberg, S. M. and Lee, S.-I. A unified approach to in-terpreting model predictions. Advances in neural infor-mation processing systems , 30, 2017. URL https: //proceedings.neurips.cc/paper/2017/ file/8a20a8621978632d76c43dfd28b6776 7-Paper.pdf .Merullo, J., Eickhoff, C., and Pavlick, E. Language mod-els implement simple Word2Vec-style vector arithmetic. In Duh, K., Gomez, H., and Bethard, S. (eds.), Pro-ceedings of the 2024 Conference of the North American Chapter of the Association for Computational Linguis-tics: Human Language Technologies (Volume 1: Long 
+
+6Fast & Faithful Function Vectors 
+
+Papers) , pp. 5030–5047, Mexico City, Mexico, June 2024. Association for Computational Linguistics. doi: 10.18653/v1/2024.naacl-long.281. URL https://ac lanthology.org/2024.naacl-long.281/ .Michel, P., Levy, O., and Neubig, G. Are sixteen heads really better than one? In Wallach, H., Larochelle, H., Beygelzimer, A., d'Alch ´e-Buc, F., Fox, E., and Garnett, R. (eds.), Advances in Neural Information Processing Systems , volume 32. Curran Associates, Inc., 2019. URL 
+
+https://proceedings.neurips.cc/paper _files/paper/2019/file/2c601ad9d2ff9 bc8b282670cdd54f69f-Paper.pdf .Mikolov, T., Yih, W.-t., and Zweig, G. Linguistic regulari-ties in continuous space word representations. In Vander-wende, L., Daum ´e III, H., and Kirchhoff, K. (eds.), Pro-ceedings of the 2013 Conference of the North American Chapter of the Association for Computational Linguistics: Human Language Technologies , pp. 746–751, Atlanta, Georgia, June 2013. Association for Computational Lin-guistics. URL https://aclanthology.org/N 13-1090/ .Nguyen, K. A., Schulte im Walde, S., and Vu, N. T. Dis-tinguishing antonyms and synonyms in a pattern-based neural network. In Lapata, M., Blunsom, P., and Koller, A. (eds.), Proceedings of the 15th Conference of the Eu-ropean Chapter of the Association for Computational Linguistics: Volume 1, Long Papers , pp. 76–85, Valencia, Spain, April 2017. Association for Computational Lin-guistics. URL https://aclanthology.org/E 17-1008/ .Olsson, C., Elhage, N., Nanda, N., Joseph, N., DasSarma, N., Henighan, T., Mann, B., Askell, A., Bai, Y., Chen, A., Conerly, T., Drain, D., Ganguli, D., Hatfield-Dodds, Z., Hernandez, D., Johnston, S., Jones, A., Kernion, J., Lovitt, L., Ndousse, K., Amodei, D., Brown, T., Clark, J., Kaplan, J., McCandlish, S., and Olah, C. In-context learning and induction heads, 2022. URL https://ar xiv.org/abs/2209.11895 .Ostermann, S., Gurgurov, D., Baeumel, T., Hedderich, M. A., Lapuschkin, S., Samek, W., and Schmitt, V. From weights to activations: Is steering the next frontier of adaptation?, 2026. URL https://arxiv.org/ab s/2604.14090 .Ouyang, L., Wu, J., Jiang, X., Almeida, D., Wainwright, C., Mishkin, P., Zhang, C., Agarwal, S., Slama, K., Ray, A., Schulman, J., Hilton, J., Kelton, F., Miller, L., Simens, M., Askell, A., Welinder, P., Christiano, P. F., Leike, J., and Lowe, R. Training language models to follow instruc-tions with human feedback. In Koyejo, S., Mohamed, S., Agarwal, A., Belgrave, D., Cho, K., and Oh, A. (eds.), 
+
+Advances in Neural Information Processing Systems , vol-ume 35, pp. 27730–27744. Curran Associates, Inc., 2022. URL https://proceedings.neurips.cc/p aper_files/paper/2022/file/b1efde53b e364a73914f58805a001731-Paper-Confere nce.pdf .Park, K., Choe, Y. J., and Veitch, V. The linear represen-tation hypothesis and the geometry of large language models. In Causal Representation Learning Workshop at NeurIPS 2023 , 2023. URL https://openreview .net/forum?id=T0PoOJg8cK .Pearl, J. Direct and indirect effects. In Proceedings of the Seventeenth Conference on Uncertainty in Artificial Intelligence , UAI’01, pp. 411–420, San Francisco, CA, USA, 2001. Morgan Kaufmann Publishers Inc. ISBN 1558608001. Petroni, F., Rockt ¨aschel, T., Riedel, S., Lewis, P., Bakhtin, A., Wu, Y., and Miller, A. Language models as knowl-edge bases? In Inui, K., Jiang, J., Ng, V., and Wan, X. (eds.), Proceedings of the 2019 Conference on Empir-ical Methods in Natural Language Processing and the 9th International Joint Conference on Natural Language Processing (EMNLP-IJCNLP) , pp. 2463–2473, Hong Kong, China, November 2019. Association for Compu-tational Linguistics. doi: 10.18653/v1/D19-1250. URL 
+
+https://aclanthology.org/D19-1250/ .Reynolds, L. and McDonell, K. Prompt programming for large language models: Beyond the few-shot paradigm. In Extended Abstracts of the 2021 CHI Conference on Human Factors in Computing Systems , CHI EA ’21, New York, NY, USA, 2021. Association for Computing Ma-chinery. ISBN 9781450380959. doi: 10.1145/3411763. 3451760. URL https://doi.org/10.1145/34 11763.3451760 .Roberts, A., Raffel, C., and Shazeer, N. How much knowl-edge can you pack into the parameters of a language model? In Webber, B., Cohn, T., He, Y., and Liu, Y. (eds.), Proceedings of the 2020 Conference on Empiri-cal Methods in Natural Language Processing (EMNLP) ,pp. 5418–5426, Online, November 2020. Association for Computational Linguistics. doi: 10.18653/v1/2020.emn lp-main.437. URL https://aclanthology.org /2020.emnlp-main.437/ .Rogers, A., Kovaleva, O., and Rumshisky, A. A primer in BERTology: What we know about how BERT works. 
+
+Transactions of the Association for Computational Lin-guistics , 8:842–866, 2020. doi: 10.1162/tacl a 00349. URL https://aclanthology.org/2020.ta cl-1.54/ .7Fast & Faithful Function Vectors 
+
+Sang, E. T. K. and De Meulder, F. Introduction to the conll-2003 shared task: Language-independent named entity recognition. In Proceedings of the seventh conference on Natural language learning at HLT-NAACL 2003 , pp. 142–147, 2003. Schlangen, D. Llms as function approximators: Terminol-ogy, taxonomy, and questions for evaluation, 2024. URL 
+
+https://arxiv.org/abs/2407.13744 .Syed, A., Rager, C., and Conmy, A. Attribution patching outperforms automated circuit discovery. In Belinkov, Y., Kim, N., Jumelet, J., Mohebbi, H., Mueller, A., and Chen, H. (eds.), Proceedings of the 7th BlackboxNLP Workshop: Analyzing and Interpreting Neural Networks for NLP , pp. 407–416, Miami, Florida, US, November 2024. Association for Computational Linguistics. doi: 10.18653/v1/2024.blackboxnlp-1.25. URL https: //aclanthology.org/2024.blackboxnlp-1 .25/ .Tenney, I., Xia, P., Chen, B., Wang, A., Poliak, A., McCoy, R. T., Kim, N., Durme, B. V., Bowman, S., Das, D., and Pavlick, E. What do you learn from context? probing for sentence structure in contextualized word representations. In International Conference on Learning Representations ,2019. URL https://openreview.net/forum ?id=SJzSgnRcKX .Todd, E., Li, M., Sen Sharma, A., Mueller, A., Wallace, B., and Bau, D. Function vectors in large language mod-els. In Kim, B., Yue, Y., Chaudhuri, S., Fragkiadaki, K., Khan, M., and Sun, Y. (eds.), International conference on learning representations , volume 2024, pp. 17282–17333, 2024. URL https://proceedings.iclr.cc/ paper_files/paper/2024/file/4ae163cb 8788970e53b4fd9578141139-Paper-Confe rence.pdf .Vig, J., Gehrmann, S., Belinkov, Y., Qian, S., Nevo, D., Singer, Y., and Shieber, S. Investigating gender bias in language models using causal mediation analysis. In Larochelle, H., Ranzato, M., Hadsell, R., Balcan, M., and Lin, H. (eds.), Advances in Neural Information Pro-cessing Systems , volume 33, pp. 12388–12401. Curran Associates, Inc., 2020. URL https://proceeding s.neurips.cc/paper_files/paper/2020/ file/92650b2e92217715fe312e6fa7b90d8 2-Paper.pdf .Voita, E., Talbot, D., Moiseev, F., Sennrich, R., and Titov, I. Analyzing multi-head self-attention: Specialized heads do the heavy lifting, the rest can be pruned. In Ko-rhonen, A., Traum, D., and M `arquez, L. (eds.), Pro-ceedings of the 57th Annual Meeting of the Associa-tion for Computational Linguistics , pp. 5797–5808, Flo-rence, Italy, July 2019. Association for Computational Linguistics. doi: 10.18653/v1/P19- 1580. URL 
+
+https://aclanthology.org/P19-1580/ .Von Oswald, J., Niklasson, E., Randazzo, E., Sacramento, J., Mordvintsev, A., Zhmoginov, A., and Vladymyrov, M. Transformers learn in-context by gradient descent. In Krause, A., Brunskill, E., Cho, K., Engelhardt, B., Sabato, S., and Scarlett, J. (eds.), Proceedings of the 40th International Conference on Machine Learning , volume 202 of Proceedings of Machine Learning Research , pp. 35151–35174. PMLR, 23–29 Jul 2023. URL https: //proceedings.mlr.press/v202/von-osw ald23a.html .Yang, A., Li, A., Yang, B., Zhang, B., Hui, B., Zheng, B., Yu, B., Gao, C., Huang, C., Lv, C., et al. Qwen3 technical report. arXiv preprint arXiv:2505.09388 , 2025. URL 
+
+https://arxiv.org/abs/2505.09388 .Yang, H., Cho, H., Ding, K., and Inoue, N. Task vectors, learned not extracted: Performance gains and mechanistic insights. In The Fourteenth International Conference on Learning Representations , 2026. URL https://open review.net/forum?id=RGEbVZgf4E .Yin, K. and Steinhardt, J. Which attention heads matter for in-context learning? In Forty-second International Conference on Machine Learning , 2025. URL https: //openreview.net/forum?id=C7XmEByCFv .8Fast & Faithful Function Vectors 
+
+A. Implemention of AttnLRP 
+
+AttnLRP can be easily implemented using techniques inspired by straight-through estimators. In Table 3, we describe the PyTorch implementation. The relevance can be computed as the element-wise product of the head activations and their modified gradients. 
+
+Table 3. PyTorch implementation of AttnLRP using techniques inspired by straight-through estimators: the forward pass is unchanged, while .detach() modifies gradients to enforce LRP-style gradients. Finally, the relevance can be computed as the element-wise product of the head activations and their modified gradients. 
+
+Operation PyTorch Implementation Trick 
+
+RMSNorm y = x / [(x.pow(2).mean()).sqrt()].detach() 
+
+SiLU y = x * [torch.sigmoid(x)].detach() 
+
+Gated MLP (GLU) y = 0.5 * (z := (W u(x) * SiLU(W g(x)))) + [0.5 * z].detach() 
+
+Query-Key y = 0.5 * (s := Q @ K) + [0.5 * s].detach() 
+
+Attention y = 0.5 * (z := A @ V) + [0.5 * z].detach() 
+
+B. Results per Task 
+
+This section details the accuracy scores across all 47 tasks, accounting for every permutation of the two degrees of freedom. adjective_v_verb_3 
+
+> adjective_v_verb_5
+> alphabetically_last_3
+> animal_v_object_3
+> animal_v_object_5
+> antonym
+> capitalize
+> capitalize_first_letter
+> capitalize_last_letter
+> choose_first_of_3
+> choose_first_of_5
+> choose_last_of_3
+> choose_last_of_5
+> choose_middle_of_3
+> choose_middle_of_5
+> color_v_animal_3
+> color_v_animal_5
+> concept_v_object_3
+> concept_v_object_5
+> conll2003_location
+> conll2003_organization
+
+0.0 
+
+0.2 
+
+0.4 
+
+0.6 
+
+0.8 
+
+1.0 
+
+> Accuracy
+> conll2003_person
+> country-capital
+> country-currency
+> english-french
+> english-german
+> english-spanish
+> fruit_v_animal_3
+> fruit_v_animal_5
+> landmark-country
+> national_parks
+> next_item
+> object_v_concept_3
+> object_v_concept_5
+> park-country
+> present-past
+> prev_item
+> product-company
+> singular-plural
+> synonym
+> verb_v_adjective_3
+> verb_v_adjective_5
+> word_length
+
+Task 
+
+0.0 
+
+0.2 
+
+0.4 
+
+0.6 
+
+0.8 
+
+1.0 
+
+> Accuracy
+
+LRP + DFV AIE + DFV LRP + FV AIE + FV 
+
+Figure 4. Accuracies per task with global heads on Llama-3.2-3B. 
+
+9Fast & Faithful Function Vectors adjective_v_verb_3 
+
+> adjective_v_verb_5
+> alphabetically_last_3
+> animal_v_object_3
+> animal_v_object_5
+> antonym
+> capitalize
+> capitalize_first_letter
+> capitalize_last_letter
+> choose_first_of_3
+> choose_first_of_5
+> choose_last_of_3
+> choose_last_of_5
+> choose_middle_of_3
+> choose_middle_of_5
+> color_v_animal_3
+> color_v_animal_5
+> concept_v_object_3
+> concept_v_object_5
+> conll2003_location
+> conll2003_organization
+
+0.0 
+
+0.2 
+
+0.4 
+
+0.6 
+
+0.8 
+
+1.0 
+
+> Accuracy
+> conll2003_person
+> country-capital
+> country-currency
+> english-french
+> english-german
+> english-spanish
+> fruit_v_animal_3
+> fruit_v_animal_5
+> landmark-country
+> national_parks
+> next_item
+> object_v_concept_3
+> object_v_concept_5
+> park-country
+> present-past
+> prev_item
+> product-company
+> singular-plural
+> synonym
+> verb_v_adjective_3
+> verb_v_adjective_5
+> word_length
+
+Task 
+
+0.0 
+
+0.2 
+
+0.4 
+
+0.6 
+
+0.8 
+
+1.0 
+
+> Accuracy
+
+LRP + DFV AIE + DFV LRP + FV AIE + FV 
+
+Figure 5. Accuracies per task with global heads on Llama-3.1-8B. adjective_v_verb_3 
+
+> adjective_v_verb_5
+> alphabetically_last_3
+> animal_v_object_3
+> animal_v_object_5
+> antonym
+> capitalize
+> capitalize_first_letter
+> capitalize_last_letter
+> choose_first_of_3
+> choose_first_of_5
+> choose_last_of_3
+> choose_last_of_5
+> choose_middle_of_3
+> choose_middle_of_5
+> color_v_animal_3
+> color_v_animal_5
+> concept_v_object_3
+> concept_v_object_5
+> conll2003_location
+> conll2003_organization
+
+0.0 
+
+0.2 
+
+0.4 
+
+0.6 
+
+0.8 
+
+1.0 
+
+> Accuracy
+> conll2003_person
+> country-capital
+> country-currency
+> english-french
+> english-german
+> english-spanish
+> fruit_v_animal_3
+> fruit_v_animal_5
+> landmark-country
+> national_parks
+> next_item
+> object_v_concept_3
+> object_v_concept_5
+> park-country
+> present-past
+> prev_item
+> product-company
+> singular-plural
+> synonym
+> verb_v_adjective_3
+> verb_v_adjective_5
+> word_length
+
+Task 
+
+0.0 
+
+0.2 
+
+0.4 
+
+0.6 
+
+0.8 
+
+1.0 
+
+> Accuracy
+
+LRP + DFV AIE + DFV LRP + FV AIE + FV 
+
+Figure 6. Accuracies per task with global heads on Qwen3-4B. 
+
+10 Fast & Faithful Function Vectors 
+
+C. Results on Per-Task Heads 
+
+We now analyze performance when using separate sets of attention heads per task. Figure 7 reports accuracy averaged across models, with per-task breakdowns for each model shown in Figures 8 - 10. Llama-3.2-3B Llama-3.1-8B Qwen3-4B 
+
+Model 
+
+0.0 
+
+0.2 
+
+0.4 
+
+0.6 
+
+0.8 
+
+1.0 
+
+> Accuracy
+
+LRP + DFV AIE + DFV LRP + FV AIE + FV 
+
+Figure 7. Average accuracies over the all tasks with per-task heads. adjective_v_verb_3 
+
+> adjective_v_verb_5
+> alphabetically_last_3
+> animal_v_object_3
+> animal_v_object_5
+> antonym
+> capitalize
+> capitalize_first_letter
+> capitalize_last_letter
+> choose_first_of_3
+> choose_first_of_5
+> choose_last_of_3
+> choose_last_of_5
+> choose_middle_of_3
+> choose_middle_of_5
+> color_v_animal_3
+> color_v_animal_5
+> concept_v_object_3
+> concept_v_object_5
+> conll2003_location
+> conll2003_organization
+
+0.0 
+
+0.2 
+
+0.4 
+
+0.6 
+
+0.8 
+
+1.0 
+
+> Accuracy
+> conll2003_person
+> country-capital
+> country-currency
+> english-french
+> english-german
+> english-spanish
+> fruit_v_animal_3
+> fruit_v_animal_5
+> landmark-country
+> national_parks
+> next_item
+> object_v_concept_3
+> object_v_concept_5
+> park-country
+> present-past
+> prev_item
+> product-company
+> singular-plural
+> synonym
+> verb_v_adjective_3
+> verb_v_adjective_5
+> word_length
+
+Task 
+
+0.0 
+
+0.2 
+
+0.4 
+
+0.6 
+
+0.8 
+
+1.0 
+
+> Accuracy
+
+LRP + DFV AIE + DFV LRP + FV AIE + FV 
+
+Figure 8. Accuracies per task with per-task heads on Llama-3.2-3B. 
+
+11 Fast & Faithful Function Vectors adjective_v_verb_3 
+
+> adjective_v_verb_5
+> alphabetically_last_3
+> animal_v_object_3
+> animal_v_object_5
+> antonym
+> capitalize
+> capitalize_first_letter
+> capitalize_last_letter
+> choose_first_of_3
+> choose_first_of_5
+> choose_last_of_3
+> choose_last_of_5
+> choose_middle_of_3
+> choose_middle_of_5
+> color_v_animal_3
+> color_v_animal_5
+> concept_v_object_3
+> concept_v_object_5
+> conll2003_location
+> conll2003_organization
+
+0.0 
+
+0.2 
+
+0.4 
+
+0.6 
+
+0.8 
+
+1.0 
+
+> Accuracy
+> conll2003_person
+> country-capital
+> country-currency
+> english-french
+> english-german
+> english-spanish
+> fruit_v_animal_3
+> fruit_v_animal_5
+> landmark-country
+> national_parks
+> next_item
+> object_v_concept_3
+> object_v_concept_5
+> park-country
+> present-past
+> prev_item
+> product-company
+> singular-plural
+> synonym
+> verb_v_adjective_3
+> verb_v_adjective_5
+> word_length
+
+Task 
+
+0.0 
+
+0.2 
+
+0.4 
+
+0.6 
+
+0.8 
+
+1.0 
+
+> Accuracy
+
+LRP + DFV AIE + DFV LRP + FV AIE + FV 
+
+Figure 9. Accuracies per task with per-task heads on Llama-3.1-8B. adjective_v_verb_3 
+
+> adjective_v_verb_5
+> alphabetically_last_3
+> animal_v_object_3
+> animal_v_object_5
+> antonym
+> capitalize
+> capitalize_first_letter
+> capitalize_last_letter
+> choose_first_of_3
+> choose_first_of_5
+> choose_last_of_3
+> choose_last_of_5
+> choose_middle_of_3
+> choose_middle_of_5
+> color_v_animal_3
+> color_v_animal_5
+> concept_v_object_3
+> concept_v_object_5
+> conll2003_location
+> conll2003_organization
+
+0.0 
+
+0.2 
+
+0.4 
+
+0.6 
+
+0.8 
+
+1.0 
+
+> Accuracy
+> conll2003_person
+> country-capital
+> country-currency
+> english-french
+> english-german
+> english-spanish
+> fruit_v_animal_3
+> fruit_v_animal_5
+> landmark-country
+> national_parks
+> next_item
+> object_v_concept_3
+> object_v_concept_5
+> park-country
+> present-past
+> prev_item
+> product-company
+> singular-plural
+> synonym
+> verb_v_adjective_3
+> verb_v_adjective_5
+> word_length
+
+Task 
+
+0.0 
+
+0.2 
+
+0.4 
+
+0.6 
+
+0.8 
+
+1.0 
+
+> Accuracy
+
+LRP + DFV AIE + DFV LRP + FV AIE + FV 
+
+Figure 10. Accuracies per task with per-task heads on Qwen3-4B. 
+
+12 Fast & Faithful Function Vectors 
+
+D. Positions of extracted heads 
+
+We show the positions of the extracted heads for Llama-3.1-8B and Qwen3-4B. 0 5 10 15 20 25 30   
+
+> Head Index
+> 5
+> 10
+> 15
+> 20
+> 25
+> 30
+> Layer Index
+> AIE LRP Overlap
+
+Figure 11. Position of extracted heads within Llama-3.1-8B. 0 5 10 15 20 25 30   
+
+> Head Index
+> 5
+> 10
+> 15
+> 20
+> 25
+> 30
+> 35
+> Layer Index
+> AIE LRP Overlap
+
+Figure 12. Position of extracted heads within Qwen3-4B. 
+
+13 Fast & Faithful Function Vectors 
+
+E. Optimal Layer Analysis 
+
+This section shows the results of the search for the optimal application layer for each model, which were used to evaluate the averaged FV method. 0 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 
+
+Intervention Layer 
+
+> 0.0
+> 0.2
+> 0.4
+> 0.6
+> 0.8
+> 1.0
+> Accuracy
+
+AIE + FV LRP + FV 
+
+Figure 13. Accuracies for injecting FVs at different layers for Llama3.2-3B. 0 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31 
+
+Intervention Layer 
+
+> 0.0
+> 0.2
+> 0.4
+> 0.6
+> 0.8
+> 1.0
+> Accuracy
+
+AIE + FV LRP + FV 
+
+Figure 14. Accuracies for injecting FVs at different layers for Llama3.1-8B. 
+
+14 Fast & Faithful Function Vectors 0 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31 32 33 34 35 
+
+Intervention Layer 
+
+> 0.0
+> 0.2
+> 0.4
+> 0.6
+> 0.8
+> 1.0
+> Accuracy
+
+AIE + FV LRP + FV 
+
+Figure 15. Accuracies for injecting FVs at different layers for Qwen3-4B. 
+
+F. Exploring larger values for K
+
+Davidson et al. (2025) choose K = 20 for patching FVs, therefore we choose to adapt this. Additionally, we evaluated all models on K = 40 and show the result in Figure 16. Llama-3.2-3B Llama-3.1-8B Qwen3-4B 
+
+Model 
+
+0.0 
+
+0.2 
+
+0.4 
+
+0.6 
+
+0.8 
+
+1.0 
+
+> Accuracy
+> LRP + DFV (K=20)
+> LRP + DFV (K=40)
+> AIE + DFV (K=20)
+> AIE + DFV (K=40)
+> LRP + FV (K=20)
+> LRP + FV (K=40)
+> AIE + FV (K=20)
+> AIE + FV (K=40)
+
+Figure 16. Conparison of FV patching with K = 20 and K = 40 .
+
+G. List of Tasks 
+
+We include the list of tasks that were either used or omitted. 
+
+Table 4. Complete list of tasks, filtered out ones are annotated 
+
+Task Citation Remark 
+
+adjective v verb 3 Todd et al. (2024) adjective v verb 5 Todd et al. (2024) 
+
+Continued on next page 
+
+15 Fast & Faithful Function Vectors 
+
+Table 4 – continued from previous page 
+
+Task Citation Remark 
+
+alphabetically first 3 Todd et al. (2024) omitted for ill-defined intensional frame alphabetically first 5 Todd et al. (2024) omitted for ill-defined intensional frame alphabetically last 3 Todd et al. (2024) alphabetically last 5 Todd et al. (2024) omitted for ill-defined intensional frame animal v object 3 Todd et al. (2024) animal v object 5 Todd et al. (2024) antonym Nguyen et al. (2017) capitalize Todd et al. (2024) capitalize first letter Todd et al. (2024) capitalize last letter Yin & Steinhardt (2025) capitalize second letter Yin & Steinhardt (2025) omitted for misssing req. performance choose first of 3 Todd et al. (2024) choose first of 5 Todd et al. (2024) choose last of 3 Todd et al. (2024) choose last of 5 Todd et al. (2024) choose middle of 3 Todd et al. (2024) choose middle of 5 Todd et al. (2024) color v animal 3 Todd et al. (2024) color v animal 5 Todd et al. (2024) concept v object 3 Todd et al. (2024) concept v object 5 Todd et al. (2024) conll2003 location Sang & De Meulder (2003) conll2003 organization Sang & De Meulder (2003) conll2003 person Sang & De Meulder (2003) country-capital Todd et al. (2024) country-currency Todd et al. (2024) english-french Lample et al. (2018) english-german Lample et al. (2018) english-spanish Lample et al. (2018) fruit v animal 3 Todd et al. (2024) fruit v animal 5 Todd et al. (2024) landmark-country Hernandez et al. (2024) lowercase first letter Todd et al. (2024) omitted for misssing req. performance lowercase last letter Todd et al. (2024) omitted for misssing req. performance national parks Todd et al. (2024) next capital letter Todd et al. (2024) omitted for misssing req. performance next item Todd et al. (2024) object v concept 3 Todd et al. (2024) object v concept 5 Todd et al. (2024) park-country Todd et al. (2024) present-past Todd et al. (2024) xprev item Todd et al. (2024) product-company Hernandez et al. (2024) singular-plural Todd et al. (2024) synonym Nguyen et al. (2017) verb v adjective 3 Todd et al. (2024) verb v adjective 5 Todd et al. (2024) word length Todd et al. (2024) 16 Fast & Faithful Function Vectors 
+
+H. Example Prompts and Intensional Frames 
+
+Below we provide example prompts from 5 tasks with their respective intensional frame underlined  
+
+> Table 5. Example tasks and prompt, intensional frame underlined.
+
+Task Prompt 
+
+antonym Provide a word that is the semantic opposite Q: inside A: outside country Find the country where a specific national park is located Q: Wilpattu National Park A: Sri Lanka prev item Go one position backward in the sequence Q: March A: February fruit v animal 5 Extract the fruit word from the given list Q: apricot, toucan, mantis, reindeer, donkey A: apricot concept v object 5 Find the word that is not a concrete object Q: envelope, cheerful, beef, net, stapler A: cheerful 
+
+I. Failure Analysis 
+
+In Table 6 we list all failed samples steering with LRP-selected heads and DFVs on the antonym task dataset and evaluate each of them separately. 17 Fast & Faithful Function Vectors 
+
+Table 6. Qualitative analysis of all 41 failed predictions on the antonym task. We don’t consider the first two groups genuine task failures as they correspond to valid synonyms of the target or sub-word prefixes that plausibly continue into a valid antonym under multi-token decoding. The remaining 15 cases constitute genuine failures and are further sub-categorised. The rank column reports the rank of the target token in the model’s output distribution. 
+
+Input Target Predicted Rank Annotation 
+
+Synonyms of the target (17) 
+
+goodness evil bad 2 Synonym of target doubt certainty faith 2 Synonym of target order chaos disorder 3 Synonym of target magical mundane ordinary 3 Synonym of target rotten fresh sound 2 Synonym of target sluggish energetic brisk 8 Synonym of target hard soft easy 2 Antonym in difficulty sense obsolete modern current 2 Synonym of target approval disapproval rejection 2 Synonym of target recession boom expansion 2 Synonym of target subtle obvious overt 2 Synonym of target dumb smart intelligent 2 Synonym of target interesting boring dull 3 Synonym of target segregated integrated unified 2 Synonym of target pleased displeased unhappy 2 Synonym of target usual unusual uncommon 2 Synonym of target adulthood childhood youth 2 Synonym of target 
+
+Sub-word prefixes plausibly continuing into a valid antonym (9) 
+
+polite rude imp 2 Likely impolite 
+
+fit unfit not 2 Negation prefix radical conservative non 4 Likely non-radical 
+
+separation union un 3 Likely union /unity 
+
+oust install in 27 Likely install /instate 
+
+agricultural industrial non 2 Likely non-agricultural 
+
+privacy publicity public 2 Likely publicity 
+
+fascism democracy anti 3 Likely anti-fascism 
+
+volatile stable non 2 Likely non-volatile Synonyms of the input (6) 
+
+huge tiny enormous 3 Synonym of input lifelong temporary permanent 8 Synonym of input impede facilitate hinder 2 Synonym of input renowned unknown infamous 3 Valence-shifted synonym of input power weakness energy 5 Synonym of input epidemic endemic pandemic 2 Magnitude variant of input 
+
+Verbatim copies of the input (3) 
+
+supreme inferior supreme 2 Input copied necessity luxury necessity 20 Input copied preferable undesirable preferable 4 Input copied 
+
+Semantically related but non-antonymic (6) 
+
+copy original paste 2 Complement, not opposite futures pasts options 3 Wrong sense of input rocky smooth still 4 Antonym of different sense mainland island overseas 2 Adjacent, not antonymic erase write keep 11 Loosely related elaborate simple to 17 Function word 
+
+18

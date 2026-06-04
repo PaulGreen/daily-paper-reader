@@ -1,0 +1,671 @@
+Title: Beyond Retrieval: Learning Compact User Representations for Scalable LLM Personalization
+
+URL Source: https://arxiv.org/pdf/2606.04547v1
+
+Published Time: Thu, 04 Jun 2026 00:42:19 GMT
+
+Number of Pages: 16
+
+Markdown Content:
+## Beyond Retrieval: Learning Compact User Representations for Scalable LLM Personalization 
+
+Heng Cao ∗, Fan Zhang ∗, Jian Yao †*, Yujie Zheng ⋄, Changlin Zhao ∗, Lu Hao ∗,Yuxuan Wei ∗, Wangze Ni ‡, Huaiyu Fu ∗, Yuqian Sun ∗, Xuyan Mo ∗∗Microsoft ⋄Shanghai International Studies University ‡Zhejiang University 
+
+> †
+
+Department of Data Science and Artificial Intelligence, The Hong Kong Polytechnic University Hong Kong SAR, China 
+
+{hengcao, zhanfa, neilz, luhao, yuxwei, huaiyufu, yuqiansun, xuyanmo}@microsoft.com nige197.yao@connect.polyu.hk zhengyujie@shisu.edu.cn niwangze@zju.edu.cn 
+
+Abstract 
+
+Personalizing large language models requires adapting model behavior to individual users while preserving robustness and deployment-scale efficiency. Existing approaches typically personalize LLMs either at the input level, by retrieving user histories or constructing profile prompts, or at the parameter level, by main-taining user-specific parameter-efficient mod-ules. The former makes personalization sen-sitive to retrieval quality and prompt design, whereas the latter incurs storage and mainte-nance costs that grow with the user popula-tion. To address these limitations, we pro-pose TAP-PER (Temporal Attentive Prefix for 
+
+PER sonalization), a prefix-based framework that encodes user preferences as learnable rep-resentations, eliminating explicit prompt con-struction and replacing heavy per-user adapters with lightweight user-state prefix embeddings. Inspired by personalized recommendation sys-tems, TAP-PER decomposes user modeling into user-state and query-conditioned compo-nents, and incorporates temporal signals to cap-ture the evolving nature of user interests. Ex-periments on six LaMP tasks show that TAP-PER consistently outperforms prompt-based and model-based baselines across classifica-tion, rating, and generation settings. Moreover, TAP-PER uses 130 × fewer per-user parameters than OPPU and roughly half the total parameter footprint of PER-PCS at the 1,000-user scale, demonstrating that scalable LLM personaliza-tion can be achieved without explicit prompt construction or heavy per-user adapters. 
+
+1 Introduction 
+
+Large language models (LLMs) (Brown et al., 2020; Grattafiori et al., 2024; Yang et al., 2025) have achieved strong performance across a wide range of natural language processing tasks, yet their outputs often remain generic: the same input is typically answered in the same way regardless of  
+
+> *Corresponding author. Challenges TAP -PER(ours)
+> Retrieval -
+> sensitive
+> Temporal -
+> blind
+> User -state
+> Prefix
+> Query -aware
+> Prefix
+> Unscalable
+> Shared
+> Backbone
+
+Figure 1: Existing personalized LLMs face three chal-lenges: retrieval sensitivity, poor scalability, and tempo-ral blindness (left). TAP-PER addresses them via a user-state prefix and a temporal-aware query-conditioned prefix injected into a shared backbone (right). 
+
+the user’s long-term interests, stylistic preferences, or task-specific goals. This limitation has moti-vated growing interest in personalized LLMs (Liu et al., 2025; Chen et al., 2024; Kirk et al., 2024), which aim to adapt model behavior to individual users while retaining the general capabilities of pretrained language models. Existing approaches to LLM personalization largely fall into two categories. The first category personalizes LLMs at the input level. Retrieval-augmented generation (RAG) methods retrieve rel-evant user histories and prepend them to the query, while profile-augmented generation (PAG) meth-ods summarize user histories into natural-language profiles (Chen et al., 2024; Li et al., 2023; Mysore et al., 2024; Richardson et al., 2023). These meth-ods are flexible and require no parameter updates, but personalization is delegated to how user con-text is retrieved, summarized, and serialized into the prompt. The second category personalizes LLMs at the parameter level, typically through parameter-efficient fine-tuning (PEFT). For exam-ple, One PEFT Per User (OPPU) trains a dedi-cated adapter for each user (Tan et al., 2024b), while PER-PCS reduces redundancy by decom-posing and recombining personalized adapter com-ponents (Tan et al., 2024a). More recent methods 1
+
+> arXiv:2606.04547v1 [cs.IR] 3 Jun 2026
+
+use progressive LoRA-based mixture-of-experts or hypernetworks to generate personalized adapters from user profiles (Zhang et al., 2025; Tan et al., 2025). These methods provide a parameterized route to personalization by encoding user prefer-ences directly in model parameters. Despite recent progress, existing personalized LLM methods still face three practical limitations. 
+
+Retrieval sensitivity. Prompt-based methods such as RAG and PAG are sensitive to retrieval and prompt quality. Table 1 shows that the optimal RAG/PAG setting varies across tasks, suggesting limited robustness and possible privacy risks from exposing user histories. 
+
+Limited scalability. PEFT-based methods often allocate dedicated parameters (e.g., LoRA mod-ules) for individual users, resulting in a parameter footprint that grows with the user population. Rep-resentative approaches such as OPPU (Tan et al., 2024b) and Profile-to-PEFT (P2P) (Tan et al., 2025) either maintain user-specific parameters or gen-erate them on-the-fly via a hypernetwork. PER-PCS (Tan et al., 2024a) reduces the number of user-specific modules through collaborative decompo-sition, but still requires maintaining a sizable pool of personalized parameters. Moreover, all three still rely on RAG or PAG to capture user prefer-ences, coupling two personalization mechanisms and adding system complexity. 
+
+Temporal unawareness. Most methods treat his-tories as static context and overlook preference evolution, although recent interactions are often more indicative of current intent. These limitations lead us to ask: Can we achieve LLM personalization without prompt construction or heavy per-user parameters, while remaining scalable to large populations? 
+
+Inspired by personalized recommendation sys-tems, which model user preferences as learned embeddings, we propose TAP-PER (Temporal 
+
+Attentive Prefix for PER sonalization), a dual-track prefix framework for scalable LLM personaliza-tion. Recommendation systems have long shown that user preferences are multi-timescale, with per-sistent interests and transient, context-dependent intents (Zhou et al., 2018; Sun et al., 2020), and that temporal dynamics are crucial for sequential user modeling (Li et al., 2020). As illustrated in Figure 1, TAP-PER follows this principle by de-composing personalization into a user-state pre-fix for long-term preferences and a query-aware record prefix for dynamically activating relevant historical records. It further incorporates relative time gaps and sequence order into record selection, and uses a shared LoRA-based bridge to integrate the prefix signals end-to-end, eliminating explicit prompt construction while keeping per-user param-eters lightweight. In summary, our contributions are as follows: • To address the retrieval sensitivity of prompt-based personalization and the scalability limi-tations of per-user model adaptation, we pro-pose TAP-PER, a prefix-based framework that represents user preferences as compact learn-able states. Instead of constructing prompts or maintaining heavy per-user adapters, TAP-PER shifts personalization toward end-to-end optimized preference representations. • We design a personalized prefix mechanism that decomposes user preferences into two complementary signals: a user-state prefix for persistent preferences and a query-aware record prefix for instance-specific historical evidence. The record prefix uses temporal at-tention with learned time-gap and order-gap biases to capture evolving user interests, while a shared bridge LoRA integrates the personal-ized prefix signals into the task-adapted back-bone. • Across six LaMP tasks, TAP-PER consistently outperforms both prompt-based and model-based baselines while shrinking per-user stor-age by 130 × relative to OPPU and cutting the total parameter footprint to roughly half of PER-PCS at the 1,000-user scale; its com-pact per-user prefix state additionally supports lightweight online adaptation from streaming feedback without retraining the shared back-bone. 
+
+2 Method 
+
+Task formulation Following prior work (Tan et al., 2024b), we consider a personalized text gen-eration setting over a set of users U. Each user 
+
+u ∈ U is associated with an interaction history Hu.Given an input query q, the goal is to generate an output r that reflects the user’s preferences. Formally, we learn a conditional generator: 
+
+r = LLM( q, u, Hu; θ), (1) 2History 
+
+> Input
+
++ 
+
+> Dual -Track Prefix Model
+> Temporal Attention
+> Query -Conditioned
+> Record Prefix
+> User
+> Personalized response
+> User -State Prefix
+
+𝑃 𝑢 
+
+𝑃 𝑞 
+
+𝑃 𝑢 ,𝑞  
+
+> Shared bridge LoRA
+> Backbone LLM
+> QQuery
+> Response
+> ∑
+> Tuning parameters
+> Frozen parameters
+
+Figure 2: Overview of TAP-PER’s personalized prefix learning. With the task-adapted backbone θtask frozen, a user-state prefix Pu is fetched from a per-user embedding table and a query-aware record prefix Pq is produced by temporal-decayed attention over the user’s full interaction history. The two are summed and prepended to the query, while a shared bridge LoRA ∆θbridge is jointly trained to deeply condition the backbone on the prefix signals. Stage 1 (task-level LoRA adaptation) precedes this stage and is omitted from the diagram. 
+
+where personalization is achieved by incorporating both user identity and historical interactions. 
+
+Overall Framework TAP-PER adopts a two-stage training paradigm: Stage 1 (Task Adapta-tion) fine-tunes the backbone on data aggregated across users to acquire shared task capabilities, and Stage 2 (Personalized Prefix Learning) intro-duces user-specific prefixes jointly optimized with a shared LoRA-based bridge. Figure 2 illustrates the Stage 2 pipeline. 
+
+2.1 Task-level Adaptation 
+
+In the first stage, we adapt the backbone model to the target task using data aggregated from all users. Each task is trained independently with its own Stage 1 pipeline. Specifically, we fine-tune the base LLM with Low-Rank Adaptation (LoRA) (Hu et al., 2022) on query–response pairs {(qi, r i)},optimizing the cross-entropy loss 
+
+Ltask = X
+
+> i
+
+CE  LLM( qi; θtask ), r i
+
+, (2) where θtask denotes the task-adapted parameters (i.e., the base model with LoRA updates), and 
+
+CE( ·) is the cross-entropy loss. Following LoRA, the weight update for each target matrix is param-eterized as ∆W = B(t)A(t), where A(t) ∈ Rr×k
+
+and B(t) ∈ Rd×r with rank r ≪ min( d, k ), while the backbone parameters remain frozen. After opti-mization, the learned LoRA parameters are merged into the backbone: 
+
+Wtask = W + B(t)A(t), (3) which serves as the initialization for the subsequent personalization stage. Detailed hyperparameter set-tings are provided in Appendix A.1. 
+
+2.2 Personalized Prefix Learning 
+
+In Stage 2, we freeze the task-adapted backbone 
+
+θtask and learn user-specific adaptations through a lightweight prefix-based parameterization, together with a shared bridge LoRA. By merging the Stage 1 LoRA into the backbone before this stage, we de-couple task adaptation from personalization: the backbone retains general task capabilities, and the Stage 2 parameters focus exclusively on model-ing user preferences without risking catastrophic forgetting of the learned task knowledge. 
+
+User-State Prefix. We model persistent user char-acteristics via a learnable embedding table E ∈
+
+R|U|× (Ld ). For each user u, the embedding eu is re-shaped into a prefix matrix Pu ∈ RL×d, which cap-tures long-term preferences shared across queries. 
+
+Query-Conditioned Record Prefix. Given a query q and the user’s full interaction history Hu =
+
+{h1, . . . , h j , . . . , h n}, we first obtain the represen-tation zhj for each record hj by mean-pooling its token embeddings from the frozen backbone’s em-bedding layer. Since the embedding layer is frozen, these record representations are pre-computed once and cached, so that no per-step encoding of history records is required during training or inference. The query representation zq is obtained in the same manner. We then compute relevance scores over 
+
+all historical records using a DIN-style attention 3mechanism (Zhou et al., 2018), dispensing with the separate retriever (e.g., BM25) used by RAG-style baselines: 
+
+sj = MLP  zq∥zhj ∥(zq − zhj )∥(zq ⊙ zhj ), (4) where ∥ denotes concatenation, ⊙ denotes element-wise product, and the MLP consists of two linear layers with GELU activation. The scores are then augmented with temporal bias: 
+
+˜sj = sj −λt log(1+∆ tj )−λo log(1+∆ πj ), (5) where ∆tj denotes the time gap between the query and record hj , and ∆πj denotes the order index gap between the query and record hj in the user his-tory. The decay coefficients λt and λo are learnable scalar parameters. We normalize scores and aggregate historical signals: 
+
+αj = softmax(˜ sj ), (6) and construct the query-conditioned prefix as 
+
+Pq = MLP 
+
+
+
+> n
+
+X
+
+> j=1
+
+αj zhj
+
+ , (7) where the MLP projects the aggregated represen-tation into the prefix space RL×d. Letting the at-tention range over the full history rather than a pre-selected top-k subset removes the dependence on an external retriever and lets the model learn end-to-end which records are relevant to the query; we empirically validate this design choice in §4.5. 
+
+Prefix Composition. We combine persistent and query-conditioned signals via element-wise addi-tion: 
+
+Pu,q = Pu + Pq. (8) 
+
+Bridge LoRA. Since prefix tokens interact with the backbone only through the attention mecha-nism, their influence on intermediate representa-tions is limited. To enable deeper integration of personalized signals, we introduce a shared bridge LoRA ∆θbridge , applied to the query, key, value, and output projection layers of each transformer block. Unlike the Stage 1 LoRA, which is merged into the backbone to encode task knowledge, the bridge LoRA is initialized from scratch and trained jointly with the prefix parameters in Stage 2, con-ditioning the backbone’s internal representations on the prefix signals while keeping the number of additional shared parameters small. We empirically validate this design in Section 4.2, where remov-ing the bridge causes the largest performance drop. Detailed hyperparameter settings including LoRA ranks are provided in Appendix A.1. 
+
+Training Objective. We optimize the prefix pa-rameters (user embeddings E, the attention MLP, decay coefficients λt, λ o, and the projection MLP) together with the bridge LoRA ∆θbridge :
+
+Lpers = X
+
+> (u,q,r )
+
+CE  LLM( Pu,q , q ; θ′), r , (9) where θ′ = θtask + ∆ θbridge . Pu and Pq can be viewed as parameterized counterparts of PAG and RAG, respectively, encoded as end-to-end-optimized prefixes rather than natural-language prompts. 
+
+3 Experimental Setup 
+
+Datasets. Following prior work (Tan et al., 2024b; Zhang et al., 2025), we conduct exper-iments on the Large Language Model Personal-ization (LaMP) benchmark (Salemi et al., 2024). LaMP covers a diverse set of personalization tasks spanning classification, regression, and text genera-tion. We adopt the same data split as in OPPU (Tan et al., 2024b). Detailed task descriptions and dataset statistics are provided in Appendix A.2 and A.3. 
+
+Baselines. We compare TAP-PER with two families of personalization baselines: prompt-based methods, including RAG (Salemi et al., 2024; Lewis et al., 2020) and PAG (Richardson et al., 2023); and model-based methods, includ-ing OPPU (Tan et al., 2024b) and PER-PCS (Tan et al., 2024a). We use Llama-3.1-8B (Grattafiori et al., 2024) as the backbone for all methods. BM25 (Trotman et al., 2014) is used for retrieval-based baselines, whereas TAP-PER directly attends over each user’s full history without an external re-triever. More details are provided in Appendix A.4 and A.1. 
+
+Evaluation Metrics. Following LaMP (Salemi et al., 2024), we use accuracy and F1-score for classification tasks (LaMP-1, LaMP-2), Mean Ab-solute Error (MAE) and Root Mean Squared Error (RMSE) for LaMP-3, and ROUGE-1 and ROUGE-L (Lin, 2004) for text generation tasks (LaMP-4, LaMP-5). Higher values indicate better perfor-mance for all metrics, except for MAE and RMSE where lower values are better. 4Prompt-based Model-based                                                                                                                                                                                                                                   
+
+> Task Metric RAG PAG OPPU PER-PCS P2P TAP-PER k=1 k=2 k=4 k=0 k=1 base +rag +pag base +rag +pag single base †+Pq‡+Pu§
+> LAMP-1: PERSONALIZED Acc ↑0.659 0.642 0.659 0.683 0.675 0.654 0.675 0.715 0.626 0.626 0.691 0.724 0.642 0.699 0.732
+> CITATION IDENTIFICATION F1 ↑0.659 0.645 0.664 0.683 0.675 0.656 0.674 0.711 0.619 0.620 0.685 0.720 0.642 0.696 0.728
+> LAMP-2N: PERSONALIZED Acc ↑0.790 0.796 0.803 0.787 0.790 0.794 0.809 0.817 0.748 0.798 0.809 0.803 0.789 0.808 0.838
+> NEWS CATEGORIZE F1 ↑0.542 0.560 0.571 0.532 0.546 0.544 0.596 0.600 0.505 0.589 0.608 0.598 0.528 0.575 0.622
+> LAMP-2M: PERSONALIZED Acc ↑0.586 0.592 0.598 0.592 0.596 0.679 0.542 0.521 0.440 0.520 0.551 0.645 0.595 0.657 0.751
+> MOVIE TAGGING F1 ↑0.545 0.549 0.553 0.550 0.552 0.584 0.438 0.422 0.400 0.450 0.471 0.601 0.551 0.596 0.682
+> LAMP-3: PERSONALIZED MAE ↓0.420 0.375 0.393 0.304 0.357 0.218 0.223 0.250 0.393 0.205 0.188 0.201 0.286 0.188 0.170
+> PRODUCT RATING RMSE ↓0.796 0.744 0.866 0.598 0.694 0.453 0.430 0.540 0.581 0.491 0.472 0.507 0.567 0.453 0.430
+> LAMP-4: PERSONALIZED R-1 ↑0.198 0.202 0.201 0.193 0.200 0.202 0.207 0.195 0.188 0.197 0.201 0.209 0.202 0.212 0.219
+> NEWS HEADLINE GEN. R-L ↑0.178 0.182 0.182 0.173 0.179 0.182 0.188 0.175 0.173 0.181 0.184 0.192 0.182 0.191 0.198
+> LAMP-5: PERSONALIZED R-1 ↑0.503 0.502 0.516 0.491 0.512 0.502 0.510 0.491 0.457 0.472 0.470 0.495 0.512 0.507 0.538
+> SCHOLARLY TITLE GEN. R-L ↑0.451 0.454 0.464 0.441 0.463 0.450 0.460 0.439 0.405 0.422 0.421 0.450 0.462 0.459 0.485
+
+Table 1: Comparison results on LaMP benchmark across prompt-based and model-based personalization. Bold and underline denote the best and second-best result per metric, respectively. k denotes the number of retrieved items, with k=0 indicating no retrieval. ↑ indicates higher is better; ↓ indicates lower is better. For OPPU and PER-PCS, the columns are cumulative: +rag adds RAG on top of base , and +pag further adds PAG on top of +rag . For P2P, 
+
+single denotes the single hypernetwork-generated LoRA variant without retrieval or profile stacking. For TAP-PER: 
+
+> †
+
+base = task-adapted model (Stage 1 only); ‡+Pq = adding query-aware record prefix; §+Pu = further adding user-state prefix (full model). The Pq and Pu columns parallel the +rag and +pag columns of OPPU/PER-PCS, as they serve analogous roles through learned prefix representations. 
+
+4 Experimental Results 
+
+We evaluate TAP-PER on the LaMP benchmark through six questions: 
+
+RQ1: Does TAP-PER outperform prompt-based and model-based personalization baselines? 
+
+RQ2: What does each component contribute? 
+
+RQ3: How important are temporal signals? 
+
+RQ4: How scalable is TAP-PER? 
+
+RQ5: How sensitive is TAP-PER to retrieval pre-filtering and prefix length? 
+
+RQ6: Can TAP-PER support online adaptation? 
+
+4.1 Main Results (RQ1) 
+
+Table 1 compares TAP-PER with prompt-based and model-based personalization baselines. TAP-PER achieves the best performance on all task-metric pairs across the six LaMP tasks. The gains are especially clear on tasks requiring stronger per-sonalization: compared with the best OPPU vari-ant, TAP-PER improves accuracy by 7.2 points on LaMP-2M and ROUGE-1 by 2.8 points on LaMP-5. We further verify the same trend with an alternative 
+
+Qwen3-4B backbone in Appendix A.5. The results also expose the instability of prompt-based personalization: the best RAG size, the use-fulness of PAG, and whether the two should be com-bined vary substantially across tasks, and this sensi-tivity persists when RAG/PAG is stacked on OPPU or PER-PCS. By replacing prompt-time context with learned prefixes, TAP-PER avoids this brit-tleness; the incremental gains from base to +Pq
+
+to +Pu further indicate that query-aware and user-state modeling are complementary (Section 4.2). 
+
+4.2 Component Ablation (RQ2) 
+
+To answer RQ2, we ablate the bridge LoRA, the query-aware record prefix Pq, and the user-state prefix Pu from the full TAP-PER model. As shown in Table 2, removing any component degrades per-formance, confirming that they provide comple-mentary gains. The bridge LoRA is important for integrating prefix signals into the task-adapted backbone (e.g., removing it causes large drops on LaMP-1 and LaMP-5), while Pu and Pq capture different personalization cues: Pu is more help-ful on tasks requiring stable user preferences (e.g., LaMP-2M and LaMP-5), whereas Pq is especially important when query-specific historical evidence is needed (e.g., LaMP-3). 
+
+4.3 Temporal Analysis (RQ3) 
+
+To answer RQ3, we examine the effect of the temporal biases in the query-aware record prefix through coefficient ablation and attention visualiza-tion. 
+
+Temporal-bias ablation. We ablate the time-gap and order-gap decay coefficients, λt and λo, on LaMP-2M and LaMP-5. As shown in Table 3, the full model performs best across all metrics. Remov-ing both biases causes the largest drop on LaMP-2M, while disabling either one gives intermediate 5Task Metric Base Full −bridge −Pq −Pu                                                                              
+
+> LaMP-1 Acc ↑0.642 0.732 0.659 0.699 0.699 F1 ↑0.642 0.728 0.659 0.695 0.696 LaMP-2N Acc ↑0.789 0.838 0.814 0.837 0.808 F1 ↑0.528 0.622 0.595 0.611 0.575 LaMP-2M Acc ↑0.595 0.751 0.702 0.733 0.657 F1 ↑0.551 0.682 0.624 0.659 0.596 LaMP-3 MAE ↓0.286 0.170 0.241 0.241 0.188 RMSE ↓0.567 0.430 0.526 0.543 0.453 LaMP-4 R-1 ↑0.202 0.219 0.211 0.218 0.212 R-L ↑0.182 0.198 0.190 0.198 0.191 LaMP-5 R-1 ↑0.512 0.538 0.508 0.523 0.507 R-L ↑0.462 0.485 0.449 0.473 0.459
+
+Table 2: Component ablation of TAP-PER. Base is the Stage-1 task-adapted model. Full is the complete TAP-PER with all components. −bridge , −Pq , and −Pu
+
+denote removing the bridge LoRA, query-aware record prefix, and user-state prefix, respectively. Bold denotes the best result per row.                                 
+
+> Task Metric Base Full λt=0 λo=0 λt=λo=0
+> LaMP-2M Acc ↑0.595 0.751 0.723 0.733 0.714 F1 ↑0.551 0.682 0.641 0.660 0.635 LaMP-5 R-1 ↑0.512 0.538 0.516 0.511 0.513 R-L ↑0.462 0.485 0.464 0.452 0.464
+
+Table 3: Ablation on temporal biases in the query-aware record prefix. Base is the Stage-1 task-adapted model. 
+
+Full is the complete TAP-PER. λt=0 disables the time-gap decay, λo=0 disables the order-gap decay, and 
+
+λt=λo=0 removes both (uniform attention). Bold de-notes the best result per row. 
+
+results, indicating that both temporal recency and sequence order contribute to personalization. The effect is smaller on LaMP-5, suggesting that the usefulness of temporal cues is task-dependent. 
+
+Attention case study. Figure 3 visualizes a rep-resentative LaMP-2M example. Without temporal biases, TAP-PER fails to emphasize recent query-relevant records and predicts an incorrect tag, sim-ilar to the non-personalized baseline. In contrast, the full model assigns higher attention to recent relevant histories and recovers the ground-truth tag. This qualitative pattern is consistent with the abla-tion results in Table 3. 
+
+4.4 Parameter Efficiency (RQ4) 
+
+We evaluate scalability from two aspects: storage cost and per-user training time, comparing TAP-PER with OPPU and PER-PCS in Figure 4. 
+
+Storage efficiency. OPPU maintains a dedicated LoRA adapter for each user ( ∼4.2M parameters), whereas TAP-PER stores only a 32K user-state pre-fix per user, yielding a 130 × reduction in per-user storage. TAP-PER’s remaining footprint is shared 
+
+across all users: a bridge LoRA ( ∼4.2M) plus the DIN-style attention and projection MLPs ( ∼201M), totaling ∼205M shared parameters. As shown in Figure 4 (top), with 1,000 users, TAP-PER uses only 5.7% of OPPU’s total parameters and about 53% of PER-PCS’s, showing that it scales mainly through lightweight user embeddings rather than large personalized adapter modules. 
+
+Training time. For each user, TAP-PER only updates the user-state prefix Pu, while the query-aware prefix Pq is produced by shared parame-ters. As shown in Figure 4 (bottom), this reduces per-user training time by roughly half compared with OPPU. PER-PCS is faster because it does not perform per-user gradient updates, but TAP-PER offers a stronger accuracy-efficiency trade-off. In addition, the Pq-only variant requires no per-user training, providing a lightweight option when on-line user optimization is impractical. 
+
+4.5 Sensitivity Analysis (RQ5) 
+
+To answer RQ5, we study two design choices: history scope and prefix length. For history scope, we insert a BM25 pre-filter before tempo-ral attention and vary the retained records k ∈{10 , 20 , 30 , 50 , All }, where “All” denotes our de-fault setting over the full user history. For prefix length, we vary L ∈ { 2, 4, 8, 16 , 32 }. We evalu-ate on a representative classification task (LaMP-2M) and a representative generation task (LaMP-5), with results shown in Figure 5. 
+
+History scope. The “All” setting performs best on both tasks. Adding a BM25 pre-filter consis-tently reduces performance, and varying k within 
+
+{10 , 20 , 30 , 50 } does not recover the full-history result. This suggests that explicit pre-retrieval is un-necessary: the temporal attention in Pq can learn to down-weight less relevant records while preserving useful signals that a sparse retriever may discard. 
+
+Prefix length. Performance peaks at a moderate prefix length. Short prefixes underfit user-specific signals, while longer prefixes bring little additional gain. We therefore use the full-history setting with 
+
+L = 8 as the default configuration. 6Top3 Similar Records 
+
+Query    
+
+> Which tag does this movie relate to among
+> the following tags? [sci -fi,comdy …]
+> Description: Two 19th -century
+> opportunists become serial killers so that
+> they can maintain their profitable
+> business supplying cadavers to an
+> anatomist.
+> Tag:
+> Description: Two drifters,
+> one a gentle but slow
+> giant…
+> Tag: Based on a book
+
+Non -personalized 
+
+Dark comedy 
+
+TAP -PER w/o T 
+
+Based on a book 
+
+True story        
+
+> Tag Delta Day
+> Based on a book 799 days
+> True story 276 days
+> True story 253 days
+
+TAP -PER 
+
+Non -personalized       
+
+> Based on a book 799 days
+> True story 276 days
+> True story 253 days
+
+Dark comedy           
+
+> Retriever
+> Encoder
+> Encoder
+> user prefix ⊕record prefix
+> Based on a book 799 days
+> True story 276 days
+> True story 253 days
+> user prefix ⊕record prefix
+
+Figure 3: Case study on a representative query from LaMP-2M. The non-personalized baseline and the temporal-free TAP-PER variant predict incorrect tags, whereas the full TAP-PER correctly identifies the ground-truth tag by attending to recent query-relevant records. Darker red indicates higher attention weight. 100 200 300 400 500 600 700 800 900 1000 
+
+Number of Users 
+
+> 2000
+> 4000
+> Total Parameters (M)
+
+Storage Scaling with Number of Users       
+
+> OPPU
+> PER-PCS
+> TAP-PER (Ours)
+> 20 50 100 150 200 250 300
+
+Number of History 
+
+> 0
+> 20
+> 40
+> 60
+> Time(s)
+
+Time Complexity with Number of History 
+
+> OPPU
+> PER-PCS
+> TAP-PER (Ours)
+> TAP-PER (w/o user prefix)
+
+Figure 4: Storage and time scaling comparison. Top: total parameter count as a function of user population. Bottom: per-user training time as a function of history length on LaMP-2M; the dashed green line denotes the TAP-PER variant without user-state prefix Pu, which requires no per-user gradient updates. 
+
+4.6 Online Adaptation to Streaming Feedback (RQ6) 
+
+A deployed personalization system should absorb new feedback without full retraining. Since TAP-PER stores user-specific state in a compact L × d
+
+prefix Pu (∼32K scalars), it can be updated online by optimizing only Pu, leaving all shared param-eters unchanged. To answer RQ6, we simulate streaming feedback on LaMP-2M and LaMP-5. 
+
+Protocol. For each evaluation user, we split the training history chronologically into two equal halves: the earlier 50% is used for bootstrap (Stage 2) training, and the later 50% is partitioned 10 20 30 50 All                             
+
+> Number of Retrieved Records k
+> 0.60
+> 0.65
+> 0.70
+> 0.75
+> Score
+> (a) LaMP-2M: Sensitivity to k(L= 8)
+> Acc
+> F1
+> 10 20 30 50 All
+> Number of Retrieved Records k
+> 0.40
+> 0.45
+> 0.50
+> 0.55
+> Score
+> (b) LaMP-5: Sensitivity to k(L= 8)
+> R-1
+> R-L
+> 24816 32
+> Prefix Length L
+> 0.60
+> 0.65
+> 0.70
+> 0.75
+> Score
+> (c) LaMP-2M: Sensitivity to L(k= 10)
+> Acc
+> F1
+> 24816 32
+> Prefix Length L
+> 0.40
+> 0.45
+> 0.50
+> 0.55
+> Score
+> (d) LaMP-5: Sensitivity to L(k= 10)
+> R-1
+> R-L
+
+Figure 5: Sensitivity of TAP-PER to the number of re-trieved records k (top, with “All” denoting our default setting that attends over the full user history) and the prefix length L (bottom). Each subplot shows two met-rics: Acc (solid) and F1 (dashed) for LaMP-2M, and R-1 (solid) and R-L (dashed) for LaMP-5. 
+
+into T =5 equally sized chunks {C 1, . . . , CT } that simulate streaming feedback. The original test set is kept unchanged and used for evaluation through-out. After bootstrap training, chunks arrive sequen-tially; at step t, each method updates on Ct with the same SGD budget and is then evaluated on the fixed test set, yielding a trajectory R0, . . . , R T .
+
+Variants. We compare four variants initialized from the same bootstrap checkpoint: Static , which performs no online update; Online-Emb , which updates only the per-user prefix Pu; Online-Full ,which updates Pu together with the shared Pq net-work and bridge LoRA; and Full-Retrain , which retrains TAP-PER from scratch on all data observed so far and serves as an upper bound. 750 60 70 80 90 100                
+
+> History Absorbed (\%)
+> 0.68
+> 0.69
+> 0.70
+> 0.71
+> 0.72
+> 0.73
+> 0.74
+> 0.75
+> Accuracy
+> (a) LaMP-2M: Accuracy
+> Static
+> Online-Emb
+> Online-Full
+> Full-Retrain
+> 50 60 70 80 90 100
+> History Absorbed (\%)
+> 0.59
+> 0.60
+> 0.61
+> 0.62
+> 0.63
+> 0.64
+> 0.65
+> 0.66
+> 0.67
+> 0.68
+> F1
+> (b) LaMP-2M: Macro F1
+> Static
+> Online-Emb
+> Online-Full
+> Full-Retrain
+> 50 60 70 80 90 100
+> History Absorbed (\%)
+> 0.49
+> 0.50
+> 0.51
+> 0.52
+> 0.53
+> 0.54
+> ROUGE-1
+> (c) LaMP-5: ROUGE-1
+> Static
+> Online-Emb
+> Online-Full
+> Full-Retrain
+> 50 60 70 80 90 100
+> History Absorbed (\%)
+> 0.44
+> 0.45
+> 0.46
+> 0.47
+> 0.48
+> 0.49
+> ROUGE-L
+> (d) LaMP-5: ROUGE-L
+> Static
+> Online-Emb
+> Online-Full
+> Full-Retrain
+
+Figure 6: Online adaptation to streaming feedback on LaMP-2M (top) and LaMP-5 (bottom). x-axis: fraction of training history absorbed (50% = bootstrap, 60–100% = after each of the five streaming chunks); y-axis: test-set metric. 
+
+Results. As shown in Figure 6, Static remains flat, confirming that the model cannot benefit from new feedback without online updates. Online-Full nearly matches Full-Retrain at the final step, with less than ∼1 point difference on both tasks. This shows that incremental updates can recover most of the benefit of full retraining without replaying past data. Online-Emb provides a more lightweight alter-native. By updating only the ∼32K-parameter user prefix, it steadily improves on LaMP-5, where each user has dense histories, but gains less on LaMP-2M, where each feedback chunk contains only a few samples. Overall, TAP-PER enables practical continual personalization: dense user histories can be handled by updating only Pu, while sparse his-tories may benefit from updating the shared person-alization modules, without modifying the backbone or retraining from scratch. 
+
+5 Related Work 
+
+LLM Personalization. Existing approaches fall into two families (Liu et al., 2025; Chen et al., 2024; Kirk et al., 2024). Prompt-based methods inject user-specific context via retrieval (Salemi et al., 2024; Mysore et al., 2024) or natural-language profiles (Richardson et al., 2023; Li et al., 2023), which are flexible and training-free but sensitive to retrieval quality and prompt construction and may expose raw user histories. Model-based methods in-stead encode preferences into parameters via PEFT: OPPU (Tan et al., 2024b) and PROPER (Zhang et al., 2025) train a dedicated LoRA per user, PER-PCS (Tan et al., 2024a) reassembles shared adapter pieces, P2P (Tan et al., 2025) generates adapters from profiles via a hypernetwork, and black-box variants such as HYDRA (Zhuang et al., 2024) fac-torize behavior without internal access. Their pa-rameter footprint nonetheless grows with the user population, and most still rely on RAG or PAG at the input, coupling two personalization mecha-nisms. TAP-PER replaces both with lightweight prefix embeddings and a shared bridge LoRA. 
+
+Prefix Tuning. Prefix and prompt tuning (Li and Liang, 2021; Lester et al., 2021) steer frozen trans-formers via learnable continuous vectors, and have been extended by many PEFT variants such as LoRA (Hu et al., 2022), adapters (Houlsby et al., 2019), and BitFit (Ben Zaken et al., 2022). These methods are typically trained per task rather than per user, with no built-in mechanism for select-ing user-specific signals from interaction history. TAP-PER adapts prefix tuning to personalization by treating each user as a learnable prefix and pair-ing it with a query-aware, temporal-attentive record prefix. 
+
+Sequential Modeling in Recommendation. Per-sonalized recommendation has long modeled temporal dynamics and query-aware user inter-ests (Zhou et al., 2018; Kang and McAuley, 2018; Sun et al., 2019; Li et al., 2020; Wu et al., 2024). DIN (Zhou et al., 2018) introduces query-conditioned attention over user histories, and Ti-SASRec (Li et al., 2020) incorporates time inter-vals into self-attention to distinguish recent and distant interactions. TAP-PER ports these induc-tive biases to LLM personalization via DIN-style attention with learnable time-gap and order-gap decays, complementing the user-state prefix with context-dependent evidence. 
+
+6 Conclusion 
+
+We presented TAP-PER, a prefix-based framework that reformulates LLM personalization as learned user representation modeling. TAP-PER replaces explicit prompt construction and heavy per-user adapters with lightweight prefix states, combin-ing a user-state prefix for persistent preferences, a query-aware temporal record prefix for historical evidence, and a shared bridge LoRA for effective integration with the task-adapted backbone. Our results suggest that effective LLM personalization need not rely on retrieval-time prompt engineering or user-specific adapter modules: a compact, end-8to-end-optimized user representation can match or surpass both families while reducing per-user stor-age by 130 × over OPPU and the total parameter footprint to about half of PER-PCS at the 1,000-user scale, all while enabling continual adaptation. We hope this perspective encourages further work on representation-centric personalization. 
+
+Limitations 
+
+TAP-PER has several limitations. First, although 
+
+Pq attends over the user’s full history without an ex-ternal retriever, attention quality may still degrade for users with extremely long or noisy histories, and we have not studied how to combine our learned at-tention with an auxiliary dense or learned retriever in such regimes. Second, our experiments cover Llama-3.1-8B and Qwen3-4B only, and we have not verified whether the gains hold at substantially larger backbone sizes. 
+
+Ethical Impact 
+
+TAP-PER is designed with privacy in mind: user preferences are encoded into continuous prefix em-beddings and a shared bridge LoRA rather than injected into the prompt as raw text, which reduces the surface area for verbatim leakage of personal content in model inputs (Carlini et al., 2021). Nev-ertheless, the per-user embeddings still encode be-havioral patterns derived from private histories and should be treated as sensitive artifacts: they require secure storage, access control, and standard data-minimization practices, and users should retain the ability to inspect, update, or delete their personal-ized representations. Beyond privacy, personalized LLMs can amplify existing biases or reinforce filter-bubble effects by over-fitting to past behavior, and the temporal decay used in TAP-PER—by design—up-weights recent interactions, which may further narrow the range of content surfaced to a user. We therefore recom-mend periodic auditing of model outputs across demographic and interest groups, together with transparent controls over the strength of person-alization, before deploying frameworks like TAP-PER in user-facing applications. All datasets used in this work are publicly released research bench-marks (LaMP), and no additional user data was collected for this study. 
+
+References 
+
+Elad Ben Zaken, Yoav Goldberg, and Shauli Ravfogel. 2022. BitFit: Simple parameter-efficient fine-tuning for transformer-based masked language-models. In 
+
+Proceedings of ACL .Tom B Brown, Benjamin Mann, Nick Ryder, Melanie Subbiah, Jared Kaplan, and 1 others. 2020. Language models are few-shot learners. In Advances in Neural Information Processing Systems .Nicholas Carlini, Florian Tramer, Eric Wallace, Matthew Jagielski, Ariel Herbert-Voss, Katherine Lee, Adam Roberts, Tom Brown, Dawn Song, Ulfar Erlingsson, and 1 others. 2021. Extracting training data from large language models. In 30th USENIX Security Symposium (USENIX Security 21) , pages 2633–2650. Jin Chen, Zheng Liu, Xu Huang, Chenwang Wu, Qi Liu, Gangwei Jiang, Yuanhao Pu, Yuxuan Lei, Xiaolong Chen, Xingmei Wang, Kai Zheng, Defu Lian, and Enhong Chen. 2024. When large language models meet personalization: Perspectives of challenges and opportunities. World Wide Web , 27(4):42. Ganqu Cui, Yuchen Zhang, Jiacheng Chen, Lifan Yuan, Zhi Wang, Yuxin Zuo, Haozhan Li, Yuchen Fan, Huayu Chen, Weize Chen, and 1 others. 2025. The entropy mechanism of reinforcement learning for reasoning language models. arXiv preprint arXiv:2505.22617 .Aaron Grattafiori, Abhimanyu Dubey, Abhinav Jauhri, Abhinav Pandey, Abhishek Kadian, Ahmad Al-Dahle, Aiesha Letman, Akhil Mathur, Alan Schelten, Alex Vaughan, and 1 others. 2024. The Llama 3 herd of models. arXiv preprint arXiv:2407.21783 .Neil Houlsby, Andrei Giurgiu, Stanislaw Jastrzebski, Bruna Morrone, Quentin De Laroussilhe, Andrea Gesmundo, Mona Attariyan, and Sylvain Gelly. 2019. Parameter-efficient transfer learning for NLP. In 
+
+Proceedings of the 36th International Conference on Machine Learning , pages 2790–2799. Edward J Hu, Yelong Shen, Phillip Wallis, Zeyuan Allen-Zhu, Yuanzhi Li, Shean Wang, Liang Wang, Weizhu Chen, and 1 others. 2022. Lora: Low-rank adaptation of large language models. Iclr , 1(2):3. Wang-Cheng Kang and Julian McAuley. 2018. Self-attentive sequential recommendation. In 2018 IEEE international conference on data mining (ICDM) ,pages 197–206. IEEE. Hannah Rose Kirk, Bertie Vidgen, Paul Röttger, and Scott A Hale. 2024. The benefits, risks and bounds of personalizing the alignment of large language models to individuals. Nature Machine Intelligence , pages 1–10. Brian Lester, Rami Al-Rfou, and Noah Constant. 2021. The power of scale for parameter-efficient prompt tuning. In Proceedings of the 2021 Conference on 
+
+9Empirical Methods in Natural Language Processing ,pages 3045–3059. Patrick Lewis, Ethan Perez, Aleksandra Piktus, Fabio Petroni, Vladimir Karpukhin, Naman Goyal, Hein-rich Küttler, Mike Lewis, Wen-tau Yih, Tim Rock-täschel, and 1 others. 2020. Retrieval-augmented generation for knowledge-intensive NLP tasks. In 
+
+Advances in Neural Information Processing Systems ,volume 33, pages 9459–9474. Cheng Li, Mingyang Zhang, Qiaozhu Mei, Yaqing Wang, Spurthi Amba Hulgeri, Yi Dong, Marc Na-jork, and Michael Bendersky. 2023. Teach LLMs to personalize – an approach inspired by writing educa-tion. arXiv preprint arXiv:2308.07968 .Jiacheng Li, Yujie Wang, and Julian McAuley. 2020. Time interval aware self-attention for sequential rec-ommendation. In Proceedings of the 13th interna-tional conference on web search and data mining ,pages 322–330. Xiang Lisa Li and Percy Liang. 2021. Prefix-tuning: Optimizing continuous prompts for generation. In 
+
+Proceedings of the 59th Annual Meeting of the Asso-ciation for Computational Linguistics and the 11th International Joint Conference on Natural Language Processing (Volume 1: Long Papers) , pages 4582– 4597. Chin-Yew Lin. 2004. ROUGE: A package for automatic evaluation of summaries. In Text Summarization Branches Out , pages 74–81. Jiahong Liu, Zexuan Qiu, Zhongyang Li, Quanyu Dai, Wenhao Yu, Jieming Zhu, Minda Hu, Menglin Yang, Tat-Seng Chua, and Irwin King. 2025. A survey of personalized large language models: Progress and future directions. arXiv preprint arXiv:2502.11528 .Sheshera Mysore, Zhuoran Lu, Mengting Wan, Longqi Yang, Bahareh Sarrafzadeh, Steve Menezes, Tina Baghaee, Emmanuel Barajas Gonzalez, Jennifer Neville, and Tara Safavi. 2024. Pearl: Personal-izing large language model writing assistants with generation-calibrated retrievers. In Proceedings of the 1st Workshop on Customizable NLP: Progress and Challenges in Customizing NLP for a Domain, Application, Group, or Individual (CustomNLP4U) ,pages 198–219, Miami, Florida, USA. Association for Computational Linguistics. Samyam Rajbhandari, Jeff Rasley, Olatunji Ruwase, and Yuxiong He. 2020. ZeRO: Memory optimiza-tions toward training trillion parameter models. In 
+
+Proceedings of SC .Chris Richardson, Yao Zhang, Kellen Gillespie, Sudipta Kar, Arshdeep Singh, Zeynab Raeesy, Omar Zia Khan, and Abhinav Sethy. 2023. Integrating sum-marization and retrieval for enhanced personaliza-tion via large language models. arXiv preprint arXiv:2310.20081 .Alireza Salemi, Sheshera Mysore, Michael Bendersky, and Hamed Zamani. 2024. Lamp: When large lan-guage models meet personalization. In Proceedings of the 62nd Annual Meeting of the Association for Computational Linguistics (Volume 1: Long Papers) ,pages 7370–7392. Fei Sun, Jun Liu, Jian Wu, Changhua Pei, Xiao Lin, Wenwu Ou, and Peng Jiang. 2019. BERT4Rec: Se-quential recommendation with bidirectional encoder representations from transformer. In Proceedings of the 28th ACM International Conference on Informa-tion and Knowledge Management , pages 1441–1450. Ke Sun, Tieyun Qian, Tong Chen, Yile Liang, Quoc Viet Hung Nguyen, and Hongzhi Yin. 2020. Where to go next: Modeling long-and short-term user pref-erences for point-of-interest recommendation. In 
+
+Proceedings of the AAAI conference on artificial in-telligence , volume 34, pages 214–221. Zhaoxuan Tan, Zheyuan Liu, and Meng Jiang. 2024a. Personalized pieces: Efficient personalized large lan-guage models through collaborative efforts. In Pro-ceedings of the 2024 Conference on Empirical Meth-ods in Natural Language Processing , pages 6459– 6475. Zhaoxuan Tan, Qingkai Zeng, Yijun Tian, Zheyuan Liu, Bing Yin, and Meng Jiang. 2024b. Democratizing large language models via personalized parameter-efficient fine-tuning. In Proceedings of the 2024 Con-ference on Empirical Methods in Natural Language Processing , pages 6476–6491. Zhaoxuan Tan, Zixuan Zhang, Haoyang Wen, Zheng Li, Rongzhi Zhang, Pei Chen, Fengran Mo, Zheyuan Liu, Qingkai Zeng, Qingyu Yin, and 1 others. 2025. Instant personalized large language model adaptation via hypernetwork. arXiv preprint arXiv:2510.16282 .Andrew Trotman, Antti Puurula, and Blake Burgess. 2014. Improvements to BM25 and language models examined. Proceedings of the 2014 Australasian Document Computing Symposium , pages 58–65. Hao Wang, Hao Gu, Hongming Piao, Kaixiong Gong, Yuxiao Ye, Xiangyu Yue, Sirui Han, Yike Guo, and Dapeng Wu. 2026. Learning while staying curi-ous: Entropy-preserving supervised fine-tuning via adaptive self-distillation for large reasoning models. 
+
+arXiv preprint arXiv:2602.02244 .Thomas Wolf, Lysandre Debut, Victor Sanh, Julien Chaumond, Clement Delangue, Anthony Moi, Pier-ric Cistac, Tim Rault, Rémi Louf, Morgan Funtow-icz, and 1 others. 2020. Transformers: State-of-the-art natural language processing. In Proceedings of the 2020 Conference on Empirical Methods in Nat-ural Language Processing: System Demonstrations ,pages 38–45. Likang Wu, Zhi Zheng, Zhaopeng Qiu, Hao Wang, Hongchao Gu, Tingjia Shen, Chuan Qin, Chen Zhu, Hengshu Zhu, Qi Liu, Hui Xiong, and Enhong Chen. 2024. A survey on large language models for recom-mendation. World Wide Web Journal .
+
+10 Shuang Wu, Jian Yao, Haobo Fu, Ye Tian, Chao Qian, Yaodong Yang, Qiang Fu, and Yang Wei. 2023. Quality-similar diversity via population based rein-forcement learning. In The eleventh international conference on learning representations .An Yang, Anfeng Li, Baosong Yang, Beichen Zhang, Binyuan Hui, Bo Zheng, Bowen Yu, Chang Gao, Chengen Huang, Chenxu Lv, and 1 others. 2025. Qwen3 technical report. arXiv preprint arXiv:2505.09388 .Jian Yao, Ran Cheng, Xingyu Wu, and Jibin Wu. 2026. Diversity-aware policy optimization for large lan-guage model reasoning. Advances in Neural Infor-mation Processing Systems , 38:94801–94826. Jian Yao, Weiming Liu, Haobo Fu, Yaodong Yang, Stephen McAleer, Qiang Fu, and Wei Yang. 2023. Policy space diversity for non-transitive games. Ad-vances in Neural Information Processing Systems ,36:67771–67793. Linhai Zhang, Jialong Wu, Deyu Zhou, and Yulan He. 2025. Proper: A progressive learning framework for personalized large language models with group-level adaptation. In Proceedings of the 63rd Annual Meet-ing of the Association for Computational Linguistics (Volume 1: Long Papers) , pages 16399–16411. Guorui Zhou, Xiaoqiang Zhu, Chenru Song, Ying Fan, Han Zhu, Xiao Ma, Yanghui Yan, Junqi Jin, Han Li, and Kun Gai. 2018. Deep interest network for click-through rate prediction. In Proceedings of the 24th ACM SIGKDD international conference on knowl-edge discovery & data mining , pages 1059–1068. Yuchen Zhuang, Haotian Sun, Yue Yu, Rushi Qiang, Qi-fan Wang, Chao Zhang, and Bo Dai. 2024. HYDRA: Model factorization framework for black-box LLM personalization. In Advances in Neural Information Processing Systems 38 .
+
+11 Task Rank Epochs learning rate batch size                         
+
+> LaMP-1 833e –4 8LaMP-2N 833e –4 8LaMP-2M 833e –4 8LaMP-3 835e –4 32 LaMP-4 833e –4 8LaMP-5 833e –4 8
+
+Table 4: Stage 1 (Task Adaptation) hyperparameters.                             
+
+> Task Rank Epochs learning rate batch size
+> LaMP-1 432e –4 32 LaMP-2N 431e –4 16 LaMP-2M 431e –4 8LaMP-3 432e –4 32 LaMP-4 432e –4 32 LaMP-5 431e –4 16
+
+Table 5: Stage 2 (Personalized Prefix Learning) hyper-parameters. The prefix length L=8 is fixed across all tasks, and Pq attends over the user’s full history (no retriever). 
+
+A Appendix 
+
+A.1 Hyperparameter Settings 
+
+Tables 4 and 5 summarize the hyperparameter set-tings for Stage 1 (task adaptation) and Stage 2 (personalized prefix learning), respectively. Both stages apply LoRA to the query, key, value, and output projection layers. The Stage 1 task LoRA is merged into the backbone after training, while the Stage 2 bridge LoRA remains as a separate shared module. 
+
+A.2 LaMP Task Descriptions 
+
+We employ the LaMP benchmark (Salemi et al., 2024), which encompasses a diverse set of person-alization tasks covering both text classification and generation. We evaluate on the following tasks: • LaMP-1 (Personalized Citation Identifica-tion): A binary text classification task that involves predicting citation choices. Given a new paper and two candidate references, the model determines which paper will be cited based on the user’s historical publica-tions. This task evaluates a model’s ability to capture user-specific citation preferences. • LaMP-2N (Personalized News Categoriza-tion): A categorical text classification task that involves classifying news articles into one of 15 categories. Given an article written by a user, the model predicts its category using the user’s history of articles and their correspond-ing categories. • LaMP-2M (Personalized Movie Tagging): 
+
+An ordinal text classification task that involves predicting one of 15 tags for a movie based on a user’s tagging history. This task evaluates the model’s ability to assign tags to a movie description using the user’s historical movie-tag pairs. • LaMP-3 (Personalized Product Rating): Atext classification task that involves predicting product ratings as a five-class classification problem. The model predicts an integer rating from one to five for a given review based on the user’s historical review-rating pairs. • LaMP-4 (Personalized News Headline Gen-eration): A text generation task that involves generating personalized news headlines for given articles based on the author’s histori-cal article-title pairs. This task evaluates the model’s ability to replicate the author’s stylis-tic nuances in headline generation. • LaMP-5 (Personalized Scholarly Title Gen-eration): A text generation task that involves generating titles for research articles based on the author’s historical article-title pairs, extending personalized text generation into scholarly domains. We exclude the following two tasks from our eval-uation: • LaMP-6 (Personalized Email Subject Gen-eration): A text generation task that involves generating subject lines for emails based on the user’s historical email-subject pairs. This task is excluded because the corresponding dataset is not publicly available. • LaMP-7 (Personalized Tweet Paraphras-ing): A text generation task that involves para-phrasing an input tweet into a personalized version using the user’s historical tweet data for stylistic guidance. This task is excluded due to inconsistent formats between user his-tory and the evaluation query. 
+
+A.3 Dataset Statistics 
+
+Table 6 summarizes the dataset statistics for each stage. Stage 1 uses all users except the most active ones for task adaptation, while Stage 2 trains on the selected most active users with their full interaction histories. The evaluation set shares the same users as Stage 2. 12 Task Stage 1 Stage 2 Eval.                                          
+
+> #User #Q #User #History #User #Q LaMP-1 6,442 7,919 100 318 100 123 LaMP-2N 274 3,662 49 220 49 6,033 LaMP-2M 829 3,181 100 56 100 3,302 LaMP-3 19,899 22,388 101 960 101 112 LaMP-4 1,543 7,275 100 270 100 6,275 LaMP-5 14,581 16,075 101 443 101 107
+
+Table 6: Dataset statistics. #User is the number of users, #Q is the number of queries, and #History is the average number of historical records per user for training. 
+
+A.4 Baseline Details 
+
+• RAG (Retrieval-Augmented Genera-tion) (Salemi et al., 2024): Following the retrieval-augmented personalization method presented in LaMP, the user’s query is augmented with the top-k retrieved items from the user’s history corpus using BM25. We take k ∈ {1, 2, 4} to study the effect of retrieval size. No model parameters are modified. • PAG (Profile-Augmented Genera-tion) (Richardson et al., 2023): The user’s input sequence is concatenated with a natural language profile summarizing the user’s preferences and behavior patterns. Following the implementation of Tan et al. (2024b), user profiles are generated using the Vicuna-7B model. We evaluate PAG without retrieval ( k=0 ) and combined with retrieval augmentation ( k=1 ), following the setting of Richardson et al. (2023). No model parameters are modified. • OPPU (One PEFT Per User) (Tan et al., 2024b): A dedicated LoRA adapter is trained for each user using their individual data. We evaluate three variants: base (LoRA only, no prompt augmentation), +rag (LoRA com-bined with k=1 retrieved records), and +pag 
+
+(LoRA combined with user profile). LoRA is applied to the same target modules as our method with rank 8. • PER-PCS (Personalized Pieces) (Tan et al., 2024a): A collaborative PEFT framework that selects representative “sharer” users via clustering, trains individual LoRA adapters and post-hoc gating vectors for each sharer, and assembles personalized PEFT parameters for target users by selecting and weighting sharer pieces in an auto-regressive, training-free manner. We evaluate three variants fol-lowing OPPU: base , +rag , and +pag .• P2P (Profile-to-PEFT) (Tan et al., 2025): 
+
+A hypernetwork-based personalization frame-work that maps an encoded user profile di-rectly to a full set of LoRA adapter parame-ters, eliminating per-user training at deploy-ment time. The user profile is first generated by an upstream LLM summarizing the user’s history (following the PAG protocol), then en-coded and fed to a hypernetwork that produces a user-specific LoRA. The generated LoRA is loaded into the backbone to produce personal-ized outputs. We use a single variant per task, since P2P already incorporates PAG (its input is a user profile) and produces a personalized LoRA in one step. 
+
+A.5 Generalization to Alternative Backbone 
+
+To evaluate whether TAP-PER generalizes beyond the primary backbone used in our main experi-ments (Llama-3.1-8B), we conduct additional ex-periments using Qwen3-4B (Yang et al., 2025) as an alternative backbone. We compare TAP-PER against the same set of baselines on a representa-tive subset of LaMP tasks. Results are shown in Table 7. The trends largely mirror those on Llama-3.1-8B: TAP-PER (+ Pu) is the best on 10 out of 12 task– metric pairs and matches or exceeds every model-based baseline. The only exception is LaMP-5, where RAG with k=2 achieves the best R-1 (0.512) and R-L (0.449), narrowly ahead of TAP-PER. We attribute this to the smaller backbone offering lim-ited headroom for prefix-based personalization on short-form scholarly title generation, where surface lexical cues from the retrieved abstracts already provide a strong baseline. 
+
+A.6 Prompt Templates 
+
+Table 8 lists the prompt templates used for each task. For prompt-based methods (RAG, PAG), the user profile and/or retrieved records are prepended before the instruction. For TAP-PER, the prefix rep-resentations replace these textual augmentations. 
+
+A.7 Case Study: Output Comparison 
+
+To complement the quantitative comparison, we provide qualitative output examples. Each table shows the query, the gold answer, and the outputs from a representative non-personalized baseline, prompt-based baselines (RAG and PAG), and two 13 Prompt-based Model-based                                                                                                                                                                                                                                   
+
+> Task Metric RAG PAG OPPU PER-PCS P2P TAP-PER k=1 k=2 k=4 k=0 k=1 base +rag +pag base +rag +pag single base †+Pq‡+Pu§
+> LAMP-1: PERSONALIZED Acc ↑0.618 0.618 0.618 0.642 0.585 0.642 0.626 0.683 0.585 0.602 0.675 0.690 0.585 0.724 0.813
+> CITATION IDENTIFICATION F1 ↑0.613 0.616 0.605 0.641 0.559 0.634 0.625 0.682 0.576 0.598 0.674 0.685 0.566 0.720 0.813
+> LAMP-2N: PERSONALIZED Acc ↑0.770 0.777 0.787 0.783 0.785 0.785 0.793 0.805 0.662 0.749 0.768 0.787 0.763 0.785 0.826
+> NEWS CATEGORIZE F1 ↑0.520 0.530 0.550 0.537 0.555 0.557 0.600 0.604 0.430 0.521 0.541 0.547 0.488 0.550 0.609
+> LAMP-2M: PERSONALIZED Acc ↑0.520 0.536 0.539 0.565 0.550 0.427 0.468 0.464 0.491 0.534 0.538 0.683 0.545 0.580 0.690
+> MOVIE TAGGING F1 ↑0.475 0.486 0.482 0.520 0.499 0.358 0.362 0.368 0.402 0.432 0.434 0.525 0.505 0.527 0.620
+> LAMP-3: PERSONALIZED MAE ↓0.223 0.223 0.196 0.241 0.250 0.223 0.196 0.241 0.277 0.277 0.259 0.275 0.295 0.268 0.195
+> PRODUCT RATING RMSE ↓0.543 0.543 0.518 0.559 0.567 0.559 0.518 0.559 0.605 0.620 0.590 0.600 0.605 0.582 0.516
+> LAMP-4: PERSONALIZED R-1 ↑0.176 0.175 0.184 0.174 0.179 0.163 0.168 0.165 0.148 0.157 0.156 0.184 0.174 0.175 0.189
+> NEWS HEADLINE GEN. R-L ↑0.157 0.156 0.164 0.154 0.159 0.146 0.152 0.148 0.134 0.140 0.140 0.166 0.154 0.154 0.168
+> LAMP-5: PERSONALIZED R-1 ↑0.489 0.512 0.506 0.459 0.481 0.504 0.501 0.499 0.477 0.490 0.493 0.480 0.495 0.499 0.495 SCHOLARLY TITLE GEN. R-L ↑0.422 0.449 0.449 0.401 0.419 0.439 0.447 0.446 0.407 0.421 0.429 0.426 0.431 0.428 0.430
+
+Table 7: Comparison results on LaMP benchmark with Qwen3-4B as backbone. Notation follows Table 1. 
+
+TAP-PER variants (without and with temporal bi-ases). ✓ marks a correct answer and ✗ an incorrect one. 
+
+A.8 Computation Details 
+
+All experiments are conducted on a single node equipped with 8 NVIDIA A800 80GB GPUs. Training is distributed across GPUs using HuggingFace Trainer with the accelerate 
+
+backend (Rajbhandari et al., 2020), launched via torchrun for multi-GPU data parallelism. Stage 1 task adaptation takes approximately 5–30 minutes per task depending on dataset size, and Stage 2 personalized prefix learning takes approx-imately 10–30 minutes per task. All models are implemented using PyTorch, HuggingFace Trans-formers (Wolf et al., 2020), and PEFT. 
+
+A.9 Use of Existing Artifacts 
+
+All artifacts used in this work are publicly released for research use under their original licenses: the LaMP benchmark (Salemi et al., 2024) (MIT), Llama-3.1-8B (Grattafiori et al., 2024) (Llama 3.1 Community License), Qwen3-4B (Yang et al., 2025) (Apache 2.0), and baseline implementations of OPPU (Tan et al., 2024b), PER-PCS (Tan et al., 2024a), and P2P (Tan et al., 2025) released by the original authors. Standard libraries (PyTorch, Hug-gingFace Transformers (Wolf et al., 2020), PEFT) are used under Apache 2.0. We use each artifact strictly within its intended research purpose and do not redistribute them. 
+
+A.10 Potential Future Direction 
+
+Beyond improving personalization accuracy, fu-ture work can further explore the role of diver-sity in personalized LLMs. A highly personal-ized model should not simply collapse to a narrow user-specific pattern, since users may hold multiple plausible preferences, writing styles, or decision criteria across contexts. Inspired by recent work on diversity-aware reasoning and reinforcement learn-ing (Cui et al., 2025; Yao et al., 2026; Wang et al., 2026; Yao et al., 2023; Wu et al., 2023), future ex-tensions of TAP-PER could incorporate diversity-aware objectives to preserve multiple high-quality personalized responses or reasoning trajectories while still adapting to user-specific preferences. This direction may lead to personalized LLMs that are not only accurate and scalable, but also flexible, robust, and less prone to over-personalization. 
+
+A.11 Use of AI Assistants 
+
+We used AI assistants in a limited and clearly scoped manner during the preparation of this work. Specifically, AI assistants were used for: (i) code-level autocompletion and refactoring suggestions during the implementation of training and evalua-tion scripts; (ii) light editorial polishing of author-written text, such as rephrasing for clarity and fix-ing grammatical issues; and (iii) help in formatting LaTeX tables and figures. All research ideas, exper-imental design, analysis, and scientific claims were conceived, executed, and verified by the authors. No AI assistant was used to generate experimental results, references, or substantive technical content, and all AI-assisted text was reviewed and edited by the authors before inclusion. 14 Task Prompt 
+
+LaMP-1: Personalized Ci-tation Identification 
+
+{USER PREFIX + RECORD PREFIX} / ##USER PROFILE: {USER_PROFILE} /##USER HISTORY: {USER_HISTORY} 
+
+##INSTRUCTION: Identify the most relevant reference for the listed publication by the researcher. Select the reference paper that is most closely related to the researcher’s work. paper title: {TITLE} reference: [1]: “ {OPT1} ” [2]: “ {OPT2} ” Answer: LaMP-2M: Personalized Movie Tagging 
+
+{USER PREFIX + RECORD PREFIX} / ##USER PROFILE: {USER_PROFILE} /##USER HISTORY: {USER_HISTORY} 
+
+##INSTRUCTION: Which tag does this movie relate to among the following tags? Just answer with the tag name without further explanation. tags: [sci-fi, based on a book, comedy, action, twist ending, dystopia, dark comedy, classic, psychology, fantasy, romance, thought-provoking, social commentary, violence, true story] description: {QUERY} tag: LaMP-2N: Personalized News Categorization 
+
+{USER PREFIX + RECORD PREFIX} / ##USER PROFILE: {USER_PROFILE} /##USER HISTORY: {USER_HISTORY} 
+
+##INSTRUCTION: Which category does this article relate to among the following categories? Just answer with the category name without further explanation. categories: [travel, education, parents, style & beauty, entertainment, food & drink, science & technology, business, sports, healthy living, women, politics, crime, culture & arts, religion] article: {QUERY} category: LaMP-3: Personalized Product Rating 
+
+{USER PREFIX + RECORD PREFIX} / ##USER PROFILE: {USER_PROFILE} /##USER HISTORY: {USER_HISTORY} 
+
+##INSTRUCTION: What is the score of the following review on a scale of 1 to 5? just answer with 1, 2, 3, 4, or 5 without further explanation. review: {QUERY} score: LaMP-4: Personalized News Headline Genera-tion 
+
+{USER PREFIX + RECORD PREFIX} / ##USER PROFILE: {USER_PROFILE} /##USER HISTORY: {USER_HISTORY} 
+
+##INSTRUCTION: Generate a headline for the following article. article: {QUERY} headline: LaMP-5: Personalized Scholarly Title Genera-tion 
+
+{USER PREFIX + RECORD PREFIX} / ##USER PROFILE: {USER_PROFILE} /##USER HISTORY: {USER_HISTORY} 
+
+##INSTRUCTION: Generate a title for the following abstract of a paper. abstract: {QUERY} title: 
+
+Table 8: Prompt templates for each personalization task. {USER PREFIX + RECORD PREFIX} denotes the combined prefix Pu,q = Pu + Pq , prepended as soft tokens (present only in TAP-PER; absent for all other methods). {USER_PROFILE} is a natural language summary of user preferences (present only in PAG variants). 
+
+{USER_HISTORY} contains the top-k retrieved records (present only in RAG variants). Each placeholder and its surrounding section header are included only when the corresponding component is active; otherwise the entire block is omitted. 
+
+15 Query (qid 81348) As America recovers from the Civil War, one man tries to put the pieces of his life back together but finds himself fighting a new battle on the frontier. Cable is an embittered Confederate soldier who returns from the war to reclaim his Arizona homestead from rebel pioneers who sympathize with the Union war effort. 
+
+Gold tag based on a book 
+
+RAG top-3 retrieved 
+
+based on a book — Photographer Robert Kincaid wanders into the life of housewife Francesca Johnson for four days in the 1960s. 
+
+based on a book — Eight people embark on an expedition into the Congo . . . stumble across a race of killer apes. 
+
+based on a book — A vampire relates his epic life story of love, betrayal, loneliness, and dark hunger to an over-curious reporter. Non-Personalized violence ✗
+
+RAG classic ✗
+
+PAG classic ✗
+
+TAP-PER (no bias) based on a book ✓
+
+TAP-PER based on a book ✓
+
+(a) Case study from LaMP-2M. 
+
+Abstract Implementing security by design in practice often involves the application of threat modeling to elicit security threats and to aid designers in focusing efforts on the most stringent problems first. Existing threat modeling methodologies are capable of generating lots of threats, yet they lack even basic support to triage these threats, except for relying on the expertise and manual assessment by the threat modeler. . . 
+
+Gold title Risk-based design security analysis. 
+
+RAG top-3 retrieved 
+
+Knowledge-enriched security and privacy threat modeling. — Creating secure and privacy-protecting systems entails the simultaneous coordination of development activities along three different yet mutually influencing dimensions: translating security and privacy goals to design choices, analyzing the design for threats, and performing a risk analysis of these threats. 
+
+SPARTA: Security & Privacy Architecture Through Risk-Driven Threat Assessment. — The develop-ment of secure and privacy-preserving software systems entails the continuous consideration of the security and privacy aspects of the system under development; the SPARTA prototype facilitates capturing security and privacy design decisions, continuous threat elicitation, and risk analysis. 
+
+Interaction-Based Privacy Threat Elicitation. — Threat modeling involves the systematic identifica-tion, elicitation, and analysis of privacy- and/or security-related threats in the context of a specific system; this approach leads to better process guidance and more concrete interpretation of privacy threat types. Non-Personalized Risk-Based Threat Modeling: A Case Study on SecureDrop RAG Knowledge-enriched security and privacy threat modeling. PAG Risk-Based Threat Modeling: A Case Study on SecureDrop TAP-PER (no bias) Risk-Based Threat Modeling: A Case Study on SecureDrop TAP-PER Risk-Based Security Analysis for Threat Modeling (b) Case study from LaMP-5. 
+
+Table 9: Qualitative output comparison. ✓ marks a correct answer and ✗ an incorrect one. 
+
+16

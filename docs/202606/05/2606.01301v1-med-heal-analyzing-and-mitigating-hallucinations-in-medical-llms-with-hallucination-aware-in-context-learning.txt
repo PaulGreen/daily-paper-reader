@@ -1,0 +1,353 @@
+Title: Med-HEAL: Analyzing and Mitigating Hallucinations in Medical LLMs with Hallucination-Aware In-Context Learning
+
+URL Source: https://arxiv.org/pdf/2606.01301v1
+
+Published Time: Tue, 02 Jun 2026 01:36:05 GMT
+
+Number of Pages: 12
+
+Markdown Content:
+# Med-HEAL: Analyzing and Mitigating Hallucinations in Medical LLMs with Hallucination-Aware In-Context Learning 
+
+# Yiming Liao ∗
+
+yliao1@umbc.edu University of Maryland, Baltimore County Baltimore, Maryland, USA 
+
+# Zeno Franco 
+
+zfranco@mcw.edu Medical College of Wisconsin Milwaukee, Wisconsin USA 
+
+# Jose Eduardo Lizarraga Mazaba 
+
+jlizarraga@mcw.edu Medical College of Wisconsin Milwaukee, Wisconsin USA 
+
+# Keke Chen 
+
+kekechen@umbc.edu University of Maryland, Baltimore County Baltimore, Maryland, USA 
+
+## Abstract 
+
+Hallucinations in medical large language models (LLMs) pose seri-ous risks for clinical decision support, particularly when models must reason over complex electronic health records (EHRs). How-ever, existing benchmarks often lack a realistic clinical context and provide limited insight into how hallucinations can be mitigated in practice. We introduce Med-HEAL, a framework for systematically identifying, analyzing, and mitigating hallucinations in medical LLMs using clinically grounded data. Building on the EHRNoteQA benchmark derived from MIMIC-IV discharge summaries, we con-struct a hallucination dataset by evaluating BioMistral-7B on open-ended clinical question answering tasks. Model outputs are labeled through a dual evaluation pipeline that combines LLM-as-a-Judge assessment (GPT-4o) with human auditing by medical student re-viewers, producing correctness judgments and annotations of rea-soning errors via a custom web-based evaluation system. We then leverage this dataset to investigate mitigation strategies: a self-critique pipeline, in which the test model reviews its own answers to detect potential errors and regenerates responses for flagged cases, and retrieval-augmented in-context learning (RA-ICL), which exposes the model to hallucinated and corrected exam-ples. Experiments across five open-source LLMs—BioMistral, Llama-3.1, DeepSeek, Qwen2.5, and Qwen3, show that the self-critique strategy improves accuracy for three of five models ( 𝑝 < 0.05 )without requiring parameter updates. Med-HEAL provides both a reusable hallucination dataset and a practical framework for studying and mitigating hallucinations in medical LLMs, supporting safer deployment of AI systems in clinical environments. Our code and data are publicly available at https://github.com/yimingliao-blad/med-heal.git. 
+
+## CCS Concepts 
+
+• Computing methodologies → Few-shot learning ; Natural language processing; • Applied computing → Bioinformatics .
+
+## Keywords 
+
+Large language models, Medical AI, Hallucination detection, In-context learning, Electronic health records, Clinical decision sup-port 
+
+> ∗Also with Concordia University Wisconsin.
+
+## 1 Introduction 
+
+The integration of large language models (LLMs) into healthcare has the potential to transform how clinicians interact with medical data. Modern healthcare systems generate vast amounts of infor-mation through electronic health records (EHRs), which contain rich but largely unstructured clinical narratives [ 41 ]. LLMs provide powerful capabilities for analyzing such data, enabling automated information extraction from clinical notes, summarization of pa-tient histories, and assistance with clinical reasoning tasks [ 4]. By reducing the burden of navigating complex documentation, these systems may help alleviate the growing workload and information overload faced by healthcare professionals. Recent research has adapted general-purpose LLMs to the medi-cal domain using domain-specific corpora [ 41 ], instruction tuning [ 4, 33 , 44 ], and retrieval-augmented generation techniques [ 29 , 51 ]. The long-term vision is to deploy LLMs as on-demand clinical assis-tants that can analyze a patient’s medical history, answer clinicians’ questions, and support diagnostic decision-making. Despite these promising capabilities, the deployment of LLMs in healthcare remains constrained by the problem of hallucinations —the generation of incorrect, fabricated, or unsupported medical information. While hallucinations in general-purpose applications may cause minor inconvenience, errors in clinical contexts can lead to serious consequences. Detecting such errors is particularly challenging because evaluating clinical reasoning often requires domain expertise. Recent studies have highlighted the prevalence of hallucinations in medical LLMs and proposed benchmark datasets to measure these failures [3, 25, 37]. However, several important challenges remain. 
+
+• Non-clinically-realistic hallucinations in existing med-ical hallucination benchmarks. Many current bench-marks separate clinical questions from the complex con-texts in which healthcare decisions are made. Datasets such as MedHalu [ 3 ] and MedHallu [ 37 ] draw questions from structured knowledge bases including PubMedQA [ 22 ], LiveQA [ 6], USMLE [ 21 ], and MedicationQA [ 1]. While these sources provide high-quality medical questions, they primarily test factual recall rather than the reasoning re-quired to interpret patient records. Moreover, many bench-marks generate synthetic hallucination examples. For ex-ample, MedHallu [ 37 ] iteratively refines incorrect answers using GPT-4 to produce adversarial distractors. Such ar-tificially constructed errors may differ substantially from 
+
+> arXiv:2606.01301v1 [cs.CL] 31 May 2026 Liao et al.
+
+the spontaneous reasoning failures that occur when LLMs analyze real clinical narratives. 
+
+• Limitations of fine-tuning-based mitigation methods. 
+
+Fine-tuning has been widely used to reduce hallucinations in medical LLMs. For instance, MedCaseReasoning collects diagnostic reasoning cases from clinical reports and per-forms supervised fine-tuning to reduce logical errors in model outputs [ 48 ]. However, fine-tuning presents sev-eral practical challenges. First, medical knowledge evolves rapidly as treatment guidelines, drug approvals, and clinical protocols are updated, which can quickly render fine-tuned model parameters outdated. Second, repeated fine-tuning may introduce catastrophic forgetting [ 16 , 26 ] or degrade general reasoning ability, potentially creating new forms of hallucination [15]. 
+
+Scope of This Work. To better understand and mitigate hallu-cinations in clinical reasoning tasks, we introduce Med-HEAL , a framework for collecting realistic hallucination examples and using them to improve model reliability at inference time. First, we construct a clinically grounded hallucination dataset by leveraging the existing dataset EHRNoteQA, a benchmark built on the MIMIC-IV database that links clinical questions to multiple discharge summaries. This dataset reflects the complexity of real clinical reasoning tasks, where models must synthesize information across long and heterogeneous medical narratives. We utilize the error outputs of BioMistral-7B, a fine-tuned medical-domain LLM, and evaluate them with a dual-judge pipeline that combines LLM-as-a-Judge assessment with human auditing, enabling scalable labeling while maintaining clinical fidelity. Second, we propose an inference-time mitigation framework centered on self-critique. In this pipeline, the model first gener-ates an answer, then critiques its own response to detect potential reasoning errors, retrieves relevant demonstrations from the Med-HEAL dataset, regenerates the answer when errors are identified, and finally verdicts whether to accept the corrected answer only when it is better than the original answer. We also investigate plain retrieval-augmented in-context learning (RA-ICL) using relevant hallucination examples from the Med-HEAL dataset. Our experi-ments show that while RA-ICL alone provides limited benefits, the self-critique mechanism consistently improves performance over zero-shot answers across multiple models with statistical signifi-cance. In summary, this work makes the following contributions: 
+
+• We introduce Med-HEAL , a framework for collecting clin-ically grounded hallucination examples from LLM interac-tions with real EHR discharge summaries. 
+
+• We propose an inference-time mitigation pipeline based on self-critique, enabling models to detect and correct reason-ing errors without parameter updates. 
+
+• Through experiments across five open-source LLMs, we demonstrate that self-critique consistently improves clinical question answering accuracy on EHRNoteQA, outperform-ing retrieval-based ICL and chain-of-thoughts prompting. 
+
+## 2 Methods 
+
+We will start with an overview of the components of the Med-HEAL framework, then describe the key contributions for each component. 
+
+## 2.1 Overview 
+
+We introduce Med-HEAL , a framework for systematically identify-ing and mitigating hallucinations in medical large language models (LLMs). The framework contains two core components: 
+
+(1) Hallucination Data Collection Pipeline, which extracts clini-cally realistic hallucination cases from LLM outputs using a dual-judge evaluation system combining LLM-based evaluation and hu-man auditing. 
+
+(2) Self-critique and retrieval-augmented In-Context Learning, which incorporates hallucinated reasoning pinpoint and corrected format examples into retrieval-augmented prompts to guide LLM responses. The overall pipeline is illustrated in Fig. 1. First, a medical LLM generates answers to EHR-based clinical questions. These outputs are evaluated by both an automated LLM judge and human review-ers to identify hallucinations and collect explanatory annotations. The resulting dataset is used to construct contrastive demonstra-tions for in-context learning on downstream models. 
+
+## 2.2 Hallucination Data Collection Pipeline 
+
+Clinical QA Generation. The initial hallucination data used in the following study were generated by BioMistral-7B [ 28 ] feeding on the original EHRNoteQA [ 27 ] benchmark dataset. EHRNoteQA dataset is a novel benchmark that is specifically designed to evalu-ate LLMs in real-world clinical scenarios by answering clinicians’ questions regarding patient discharge summaries chosen from the Medical Information Mart for Intensive Care (MIMIC)-IV Clinical Database [ 23 ], which selected 962 cases and manually created ques-tions and answers in both open-ended and multiple-choice formats. EHRNoteQA covers a broad range of real-world clinical scenarios by categorizing queries into 10 diverse medical topics listed in Table 8. We select BioMistral because it is a representative, customized med-ical LLM that is prone to generating hallucinatory results, making it perfect for our hallucination data collection. BioMistral is based on the Mistral-7B-Instruct model, fine-tuned with a vast corpus of medical research papers from PubMed Central for complex medical question-answering and clinical reasoning tasks. We deliberately chose open-ended answers to generate halluci-nation data, even though EHRNoteQA supports both open-ended and multiple-choice formats. Multi-choice results include both a letter option (A-E) and a statement of reasoning, which increases the likelihood of contradictions and inconsistencies among human reviewers and LLM judges and could make the analysis of the re-sults difficult and degrade the reliability of labeling in the next procedure. However, the open-ended format also increases the diffi-culty for human reviewers in examining BioMistral’s output within the context of long discharge summary notes. For this reason, we have limited the current human validation set to 100 samples. 
+
+Dual-Judge Hallucination Identification . Med-HEAL estab-lished a dual evaluation system that combines LLM-as-a-Judge and Med-HEAL: Analyzing and Mitigating Hallucinations in Medical LLMs with Hallucination-Aware In-Context Learning 
+
+Figure 1: Overall Pipeline of Med-HEAL. Phase 1 (Left): LLM-generated labels are audited against human ground truth provided by medical student reviewers; these annotations are then consolidated to construct the hallucination dataset. Phase 2 (Right): The Self-Critique pipeline performs error detection and utilizes retrieval-augmented in-context learning (RA-ICL) with similar demonstrations to generate refined answers, which are then finalized through a self-verdict step. 
+
+Human-as-a-Judge to balance the judgment cost and accuracy. We first use GPT-4o as the LLM-as-a-Judge to compare the ground-truth answer from EHRNoteQA and the summary from BioMistral to gen-erate “match/mismatch” label. Then, we recruit medical students to evaluate the quality of LLM-as-a-Judge by manually labeling “match/mismatch” for 100 random samples from LLM judged re-sults (63% matched and 37% unmatched, to match the distribution of LLM judge’s results). To improve the efficiency of human evaluation, we also devel-oped a web application to assist the human reviewer. It provides the background discharge note(s), the ground-truth answer from the EHRNoteQA datasets, and BioMistral’s answer. Among human reviewers, we use majority-vote to resolve the conflicts of disagree-ments, which is used as the gold standard for Human-as-a-Judge. To ensure fairness, we present the same information to the LLM judge and the human reviewers. The result can be found in Table 4. We further analyze how these hallucination examples are dis-tributed across categories derived from prior work [ 25 ]. Table 1 shows these error categories. Because full human review of error rationales is resource-intensive, we use GPT-4o with category ex-emplars in the prompt to classify hallucination examples. Table 4 shows the resulting distribution, compared with reported error distributions in prior studies [25, 27]. 
+
+Med-HEAL Dataset Construction. The Med-HEAL dataset is constructed by gathering BioMistral model outputs on the EHRNoteQA benchmark. Specifically, each entry contains 𝑟 =
+
+(𝐷, 𝑞, 𝑎, 𝑎 ∗, 𝑦, 𝑒 ), which include the EHRNoteQA context (discharge summary 𝐷 ), the clinical question 𝑞 , the BioMistral-generated answer 𝑎 , the ground truth answer 𝑎 ∗, the LLM judge’s output 
+
+𝑦 ∈ { 0, 1}, where 𝑦 = 1 indicates a hallucination case, and the main error 𝑒 extracted from 𝑎 when 𝑦 = 1. Unlike synthetic hallucination benchmarks, Med-HEAL captures naturally occurring hallucina-tions from realistic EHR reasoning tasks, enabling the analysis of real-world failure modes. To facilitate efficient retrieval of correct and hallucination exam-ples, each component of the entry, i.e., 𝐷 , 𝑞 , 𝑎 , 𝑎 ∗, and 𝑒 , is vectorized for similarity-based retrieval. After testing a set of similarity-based retrieval measures, such as BM25 [ 38 ], KATE [ 45 ], and GTR-T5-Base encoding [ 35 ], we adopt GTR-T5-base encoding, as it yielded the best retrieval performance for semantic similarity when applied to RA-ICL. 
+
+## 2.3 Hallucination-Aware In-Context Learning 
+
+To mitigate clinical reasoning errors, we introduce hallucination-aware in-context learning (ICL) . This method utilizes docu-mented hallucination instances from the Med-HEAL Dataset to guide the correction of detected errors, thereby reducing overall hallucination rates. The framework includes the following core components: 
+
+Self-Critique. We employ a self-critique and retrieval frame-work to select contrastive few-shot cases that guide the down-stream model in correcting its own reasoning, thereby producing a hallucination-free response. The self-critique framework consists of two steps: error detec-tion and correction. Given a test case (𝐷 𝑡 , 𝑞 𝑡 ), the target model first generates a zero-shot answer 𝑎 𝑡 . In the first detection step, given 𝐷 𝑡 , 𝑞 𝑡 , and 𝑎 𝑡 , the target model will try to identify the most significant error, denoted by 𝑒 𝑡 . If the detection finds no error, we Liao et al. 
+
+Table 1: Taxonomy of error types, and sample errors in MedHEAL.                           
+
+> Error Type Description Example (Model Error Answer →Ground Truth)
+> 1 Omission Missing documented information such as diagnoses, medications, or procedures. Q: What discharge medications were prescribed?
+> Model: “Metoprolol and lisinopril.” Truth: “Metoprolol, lisinopril, warfarin, and atorvastatin .” 2 Fabrication Fabricating facts not present in the discharge notes. Q: How was the fracture managed?
+> Model: “Patient underwent intramedullary nailing .” Truth: “Patient underwent total hip replacement .” 3 Reasoning Failure Misinterpreting clinical information (e.g., suspected vs. confirmed diagno-sis). Q: What was the final diagnosis?
+> Model: “ Pneumonia ” (initial working diagnosis). Truth: “ Congestive heart failure ” (confirmed at discharge). 4 Specificity Providing vague answers when spe-cific values are documented. Q: What were the patient’s potassium levels?
+> Model: “Potassium was low .” Truth: “Potassium was 3.1 mEq/L .” 5 Context Confusion Conflating information across multi-ple discharge summaries. Q: What procedure was performed during the second admission?
+> Model: “ CABG ” (from 1st admission). Truth: “ Valve replacement ” (2nd admission). 6 Temporal Error Incorrect chronological ordering of clinical events. Q: Were antibiotics started before or after culture results?
+> Model: “Started after cultures returned.” Truth: “Empiric antibiotics initiated two days prior .”
+
+accept the zero-shot answer 𝑎 𝑡 without any changes. Otherwise, we will proceed to the correction step. The error correction step uses the detected error 𝑒 𝑡 to retrieve a contrastive few-shot case from the Med-HEAL lookup set. Given the current case (𝐷 𝑡 , 𝑞 𝑡 ), we query hallucination records, i.e., 𝑟 𝑖 = (𝐷 𝑖 ,𝑞 𝑖 , 𝑎 𝑖 , 𝑎 ∗ 
+
+> 𝑖
+
+, 𝑦 𝑖 , 𝑒 𝑖 ) with 𝑦 𝑖 = 1, and score each candidate by discharge-summary similarity: 
+
+sim (𝐷 𝑡 , 𝐷 𝑖 ) = cos (𝜙 (𝐷 𝑡 ), 𝜙 (𝐷 𝑖 )) ,
+
+Here, 𝜙 (·) denotes GTR-T5 encoding, which converts the given discharge-note text into an embedding representation; the record with the highest similarity score is retrieved as the most relevant case. 
+
+Self-Verdict. Finally, a self-verdict mechanism using a prompt similar to the detection step in self-critique to detect potential errors in the refined answer. If the self-verdict indicates that the correction leads to more errors than the zero-shot answer 𝑎 𝑡 , the system rejects the revision and retains 𝑎 𝑡 . Otherwise, the revised response is accepted as the output of the whole hallucination-aware in-context learning (ICL) pipeline. 
+
+## 2.4 Experiment Setup 
+
+Hardware and Software Environment. Our experiments were conducted on a local workstation equipped with an Intel Core i9-13900K processor (24 cores, 32 threads), 251 GB RAM, and a single NVIDIA GeForce RTX 4090 GPU (24 GB VRAM), running Ubuntu 24.04 LTS. Local models were served via the vLLM framework for efficient inference. All GPT-4o API calls for the dual-judge eval-uation were made through the official OpenAI API. The runtime comparison is listed in Appendix B.5. 
+
+Baselines. We compare hallucination-aware prompting with several baseline prompting strategies, including zero-shot prompt-ing, positive retrieval (correct examples only), negative retrieval (hallucination examples with corrections), naive contrastive (one correct and one hallucination example) retrieval, and Chain-of-Thought prompting. Check Table 2 for a detailed description of these methods. Unlike parameter fine-tuning approaches, the proposed method transfers hallucination knowledge entirely through prompt demon-strations. This allows the framework to be applied to multiple open-source LLMs without retraining. Med-HEAL: Analyzing and Mitigating Hallucinations in Medical LLMs with Hallucination-Aware In-Context Learning 
+
+ICL data split. For the retrieval-augmented ICL (RA-ICL) ex-periments, we use 5-fold set. Each round, one fold is used as the retrieval example set and the other four folds are used for testing. 
+
+Tested local medical LLMs serve different roles in the pipeline. BioMistral-7B is used as the source model to collect hallucination cases. Qwen2.5-7B-Instruct is used as the pilot model for designing the transfer ICL architecture, and the finalized setup is then eval-uated across the full model set. GPT-4o is used to judge answers from the tested models. 
+
+In-context learning: We evaluate Qwen2.5-7B [ 50 ], Qwen3-8B, LLaMA-3-8B [ 12 ], and DeepSeek-R1-Distill-LLaMA-8B [ 10 ], served via vLLM (temperature=0.1, maxtokens=8,096), under 5-fold cross-validation on 962 questions from EHRNoteQA. Answer correctness is assessed by GPT-4o as binary (yes/no), comparing against the ground-truth option text. All prompts follow the ChatML format with a system message and a user message. The shared user prompt contains Discharge Summary and Question fields. The system message varies by condition; the base instruction tells the model to answer questions about discharge summaries as a medical expert. For ICL conditions, demonstration examples and instructions are appended to the system message. The examples of the prompts are also in Table 2. We systematically varied all conditions, including retrieval based on note similarity, question similarity, question-type matching, and random selections. For the composed cases, we included scenarios with only correct examples, only incorrect examples, contrasted examples (correct and incorrect), or random selection. 
+
+## 3 Results 3.1 Generated Med-HEAL Dataset 
+
+To construct the Med-HEAL dataset, we first evaluate BioMistral-7B in a zero-shot setting on 962 open-ended questions from EHRNoteQA. Each input consists of a patient discharge summary and a clinical question, and the model generates a free-text answer. Answer correctness is determined through a two-stage evalua-tion pipeline. (1) GPT-4o acts as a judge that determines whether the gener-ated answer conveys the same key clinical facts/conclusions as the clinician-verified ground truth given by EHRNoteQA, producing a binary correct/incorrect label. (2) GPT-4o analyzes incorrect answers to identify hallucina-tion types, assigning scores on a 1–5 confidence scale for three categories: incomplete reasoning, factual errors, and fabricated sources, as discussed previously [ 25 ]. Scores of 
+
+≥ 4 indicate that a hallucination type is likely present. The final dataset contains both the LLM-as-a-Judge and human reviewers’ output and reasoning annotations, and we have two example cases in Table 3. In addition, Table 4 summarizes the re-sults. BioMistral-7B achieves an overall accuracy of 63.8%, with 348 incorrect answers, constituting the Med-HEAL dataset. Accuracy declines substantially as the number of discharge notes increases. When only a single note is provided, accuracy reaches 74.1%, but drops to 62.3% with two notes and 38.9% with three notes. This trend suggests that the model struggles to synthesize information from longer and more complex clinical narratives. We apply GPT-4o to categorize the incorrect answers into three hallucination types. Each answer might be labeled with multiple error types. 98.0% incorrect answers are labeled with factual errors, followed by 82.2% with incomplete reasoning, and 5.2% with fab-ricated sources. These findings indicate that hallucinations in this task primarily arise from failures to integrate multiple pieces of evidence from patient records, rather than from inventing entirely unsupported facts. 
+
+## 3.2 LLM Judgment Calibration 
+
+To evaluate the reliability of our automated assessment, we bench-marked LLM-based judgments against independent human reviews from three medical students (A, B, and C). Reviewers A and B had completed their core clinical rotations, while Reviewer C was a first-year preclinical student. Initial inter-rater reliability among the three reviewers showed fair-to-moderate agreement ( 𝜅 = 0.287 ). This was primarily due to Reviewer C’s systematically stricter labeling threshold, which lowered overall consistency. To mitigate this variance, we resolved conflicts via majority vote across a randomly sampled 100-item subset to establish a gold standard for comparison. Table 5 reports accuracy between each judge and the gold stan-dard on a randomly sampled 100-item subset. Reviewers A, B, and C have 89.0%, 87.0%, and 80.0% accuracy against the gold standard specifically. Meanwhile, instruction-tuned GPT-4o achieves 94.0% agreement against the same gold standard. We ensure GPT-4o as an LLM Judge meet the criteria we obtained from the human gold standard in evaluation. Overall, these results suggest GPT-4o as a reliable primary evalu-ator for open-ended clinical QA on EHR data, and LLM-based eval-uation can aligns well with human judgments, especially when we account for human inconsistency due to pre-bias or dual standards. In some cases provides more consistent labeling than individual human annotators. Consequently, we adopt a human-audited LLM evaluation pipeline, where GPT-4o performs the primary evaluation and human reviewers verify selected cases and annotations. Both the correctness labels and reasoning annotations produced through this process are included in the Med-HEAL dataset. Since GPT-4o may act as a noisy judge, we apply a calibration approach suggested by the Rogan-Gladen estimator [ 39 ], which corrects observed outcomes using the judge’s performance on the gold-standard dataset. Specifically, we use 100 human-verified gold-standard examples to estimate a confusion matrix (Table 6) for GPT-4o, from which we derive the true positive rate (TPR) and false positive rate (FPR). Assuming these error rates generalize to the full dataset, we calibrate the observed accuracy ˆ𝑝 given by GPT-4o to estimate the true accuracy 𝑝 as follows 
+
+𝑝 = ˆ𝑝 − FPR TPR − FPR . (1) The calibrated results (Table 7) are more reliable and less biased, indicating true performance improvements between Med-HEAL and zero-shot across models. Liao et al. 
+
+Table 2: Description of prompting strategies evaluated across models. All retrieval-augmented methods use GTR-T5-Base embeddings to retrieve the most similar discharge note from a pool of previously evaluated examples.                                                                            
+
+> Condition Group Description Prompt Keywords
+> Zero-shot Baseline Direct question answering with no examples or reasoning guidance.
+> “You are amedical expert answering questions about discharge summaries.”
+> Positive ICL RA-ICL Retrieves a correctly answered example with the most similar discharge note and presents it as a demonstration.
+> “Here is an example of agood answer: [Q]... [A]... Apply the same precision.”
+> Negative ICL RA-ICL Retrieves an incorrectly answered example and shows both the mistake and the correction.
+> “Here is acommon mistake to avoid: [Incorrect]... [Correct]... Answer based only on what is explicitly stated.”
+> Contrastive ICL RA-ICL Combines a negative example (mistake + correc-tion) followed by a positive example (good an-swer).
+> “EXAMPLE OF A MISTAKE:... EXAMPLE OF AGOOD ANSWER:... Apply the same precision and avoid the same kinds of mistakes.”
+> CoT (evidence-first) CoT Instructs the model to first extract supporting evidence from the note, then derive the answer.
+> “First, extract the specific evidence... Then provide your answer based solely on that evidence.”
+> CoT (conclusion-first) CoT Instructs the model to state the answer first, then explain its reasoning with reference to the note.
+> “First state your answer, then explain your reasoning based on the discharge summary.”
+> Self-Critique + RA-ICL Med-HEAL Model itself evaluates the zero-shot answer for clinical reasoning errors. Flagged answers are regenerated with a concise prompt that includes the critic’s error diagnosis, and a retrieved correct example with the most similar discharge note.
+> “A previous answer had this error: [diagnosis]. Provide a corrected answer in 2–3 sentences, based strictly on the discharge summary. Here is an example of agood answer: [Q]... [A]...”
+
+## 3.3 In-Context Learning for Mitigating Hallucination 
+
+We evaluate whether the Med-HEAL dataset can mitigate hallucina-tions through retrieval-augmented in-context learning (ICL). Exper-iments are conducted on five open-source models commonly used in privacy-sensitive clinical environments: BioMistral-7B, DeepSeek-R1-Distill-8B, Qwen2.5-7B, Llama-3.1-8B, and Qwen3-8B. Since each summary generated by an LLM still needs a judge to deter-mine whether it matches the ground-truth summary, we continue to use GPT-4o as the judge and report calibrated results using Eq. 1. Table 7 shows the best calibrated result given by Med-HEAL, compared to the baseline zero-shot result. All five models have shown performance improvements over Zero-shot answers, rang-ing from 1% to 9%. We use McNemar’s exact test to compare perfor-mance between zero-shot answers and observe significant improve-ments ( 𝑝 < 0.05 ) on DeepSeek, Llama3 and Qwen2.5. DeepSeek shows the most noticeable performance gain at 9%, as its zero-shot answer accuracy is the lowest and its answers are easiest to correct. Qwen3 can convert a few incorrect answers to correct ones, but is limited by its near-ceiling effect ( 96 .3% ); the improvement ( +1.7% )is very close to significant ( 𝑝 = 0.07 ). BioMistral is the base model, which has a minimum zero-shot performance ( 48 .1% ), but does not benefit significantly from the self-critique pipeline for two reasons. First, BioMistral has a maximum context window of 4K tokens because its base model, Mistral-7B-Instruct-v0.1, can largely exhaust lengthy discharge notes, leav-ing insufficient capacity for additional instructions and hallucina-tion examples. Second, the model has been fine-tuned on biomedi-cal knowledge. BioMistral cannot follow instructions to point out its owner’s mistake and frequently outputs unrelated BioMedical knowledge, likely learned during its fine-tuning. All indicate that BioMistral is unable to perform the self-critique task within the Med-HEAL pipeline. 
+
+Effect of Med-HEAL Pipeline. We compare several prompting strategies: (1) zero-shot baseline, (2) positive retrieval (correct ex-ample), (3) negative retrieval (incorrect example with correction), (4) naive contrastive retrieval (incorrect + correct example), (5) evidence-first Chain-of-Thought (CoT), (6) conclusion-first (CoT), (7) Med-HEAL: Self-Critique and RA-ICL in the Table 10 in the Appendix. Among all the strategies, we find that the simple retrieval meth-ods, (2) (3) and (4), and the CoT methods, (5) and (6), do not work satisfactorily. Med-HEAL: Analyzing and Mitigating Hallucinations in Medical LLMs with Hallucination-Aware In-Context Learning 
+
+Table 3: Examples of LLM hallucinations detected by both human expert and GPT-4o judge. BioMistral-7B open-ended answers on EHRNoteQA. Hallucinated content is underlined. 
+
+Case 1: What was the cause of the patient’s right subtrochanteric stress fracture, and how was it managed? 
+
+Ground Truth 
+
+The patient developed the fracture due to the medication phosphomax , and the fracture was corrected by total hip replacement .
+
+Incorrect Answer 
+
+The cause of the patient’s right subtrochanteric stress fracture was due to a fall from standing height while performing a squatting motion .The fracture was managed with a right total femoral nail (TFN) surgery. 
+
+Human Judge 
+
+× Incorrect — Fabricated source ( ✓), Factual error ( ✓): The model fabricated the cause of the fracture (a fall) and the surgical procedure (TFN); the discharge summary attributes the fracture to the medication phosphomax and documents total hip replacement. 
+
+GPT-4o Judge 
+
+× Incorrect — “The medication is likely misidentified; the correct name is Fosamax (alendronate), which is associated with atypical femoral fractures, and the management typically involves surgical intervention such as intramedullary nailing, not specifically trochanteric fixation nailing.” 
+
+Case 2: Did the patient’s hemoglobin levels improve from 2166-11-22 to 2167-08-25? 
+
+Ground Truth 
+
+The hemoglobin levels improved from 9.0 to 11.6. 
+
+Incorrect Answer 
+
+No, the patient’s hemoglobin levels did not improve from 9.0 g/dL on 2166-11-22 to 11.6 g/dL on 2167-08-25. 
+
+Human Judge 
+
+× Incorrect — Incomplete reasoning ( ✓), Factual error ( ✓): The model correctly states the values (9.0 → 11.6) yet contradicts itself by concluding they did not improve, directly misrepresenting the patient’s clinical progress. 
+
+GPT-4o Judge 
+
+× Incorrect — “The model falsely claims that the patient’s hemoglobin levels did not improve, despite the data showing an increase from 9.0 to 11.6.” 
+
+Table 4: BioMistral-7B zero-shot performance judged by GPT-4o on EHRNoteQA (962 questions). Hallucination types are among the 348 incorrect answers. (Confidence Level ≥ 4). 
+
+Metric Count Rate 
+
+Total questions 962 —Correct answers 614 63.8% Incorrect answers 348 36.2% 
+
+Hallucination type (multi-labels, among 348 errors, classified by GPT-4o) 
+
+Factual errors 341 / 348 98.0% Incomplete reasoning 286 / 348 82.2% Fabricated sources 18 / 348 5.2% 
+
+Table 5: Agreement for BioMistral-7B open-ended evaluation. Gold standard = 100 sampled questions agreed by human reviewers. 
+
+Judge Agreement 
+
+Reviewer A 89.0% Reviewer B 87.0% Reviewer C 80.0% GPT-4o 94.0% 
+
+## 4 Discussion 
+
+This work introduces Med-HEAL, a framework for systematically collecting clinically realistic hallucination cases and mitigating them through a self-critique regeneration pipeline. Unlike prior ap-proaches that rely on generic few-shot examples or simple retrieval 
+
+Table 6: Confusion matrix for GPT-4o judge 
+
+GPT-4o Judge Gold Standard 
+
+0 (wrong) 1 (correct) Total 0 TN = 2 FP = 2 13 1 FN = 4 TP = 83 87 Total 15 85 100 TPR (Sensitivity) 𝑇 𝑃 /( 𝑇 𝑃 + 𝐹 𝑁 ) = 83 /( 83 + 4) = 0.954 
+
+FPR 𝐹 𝑃 /( 𝐹 𝑃 + 𝑇 𝑁 ) = 2/( 2 + 11 ) = 0.154 
+
+Table 7: Calibrated Accuracy ( 𝑝 ) of Zero-shot vs. best ICL per-formance across five models using the Med-HEAL pipeline Results. 
+
+Model Zero-shot (%) Med-HEAL (%) Δ (%) 𝑝 -value 
+
+BioMistral-7B 48 .1 ± 5.0 50 .4 ± 3.3 +2.3 0.11 
+
+DeepSeek-R1-8B 76 .9 ± 1.3 85 .9 ± 0.9 +9.0 < 0.001 
+
+Llama-3.1-8B 92 .1 ± 1.1 94 .1 ± 1.6 +2.0 0.024 
+
+Qwen2.5-7B 91 .6 ± 1.7 92 .8 ± 0.5 +1.2 0.02 
+
+Qwen3-8B 96 .3 ± 1.3 98 .0 ± 1.7 +1.7 0.07 
+
+of semantically similar cases [ 13 ], Med-HEAL employs a multi-stage reasoning loop: the model first generates an answer, then critiques its own response to identify potential reasoning errors, and finally regenerates the answer when a potential hallucination is detected. This design enables models to correct reasoning failures through self-reflection without requiring parameter updates or additional training. Liao et al. 
+
+Our experiments across five open-source models on the EHRNoteQA benchmark (962 questions, 5-fold CV) reveal several critical pat-terns. First, naive retrieval-based ICL strategies provide little or no improvement over zero-shot performance and sometimes de-grade accuracy. For example, BioMistral and Qwen2.5 performance drops under contrastive retrieval (in supplementary Table 10. These results suggest that simply retrieving semantically similar demon-strations does not reliably guide models to avoid hallucinations in complex clinical reasoning tasks. Second, Chain-of-Thought prompting produces model-dependent results. While models with stronger reasoning capabilities, such as DeepSeek, occasionally benefit from CoT prompts, the improve-ments are inconsistent across models and do not systematically reduce hallucinations. In contrast, the Med-HEAL self-critique pipeline produces more consistent improvements across several models. Self-critique pipeline improves DeepSeek from 76.9% to 85.9% (+9.0%), Qwen2.5 from 91.6% to 92.8% (+1.2%), and Llama-3.1 from 92.1% to 94.1% (+2.0%). The magnitude of the improvement also depends on the model’s capability. Models with moderate baseline performance, such as DeepSeek and Qwen2.5, benefit most from self-critique, while the strongest model (Qwen3) shows limited improvement due to its already high baseline accuracy. This suggests that self-critique mechanisms are most effective when the model has sufficient rea-soning ability to detect its own errors, yet still produces a nontrivial number of reasoning failures. These results suggest that asking more capable models to explic-itly examine and revise their own reasoning, with support from correct and hallucination examples, can effectively mitigate some hallucinations in EHR-based question answering. Several limitations remain. First, the current Med-HEAL dataset is generated primarily using BioMistral-7B as the source model, which may limit the diversity of hallucination patterns captured. Expanding the dataset to include hallucinations generated by mul-tiple models would improve coverage of possible failure modes. Meanwhile, we can fully investigate and explore the reliability of LLM-as-a-judge. Second, although the dataset includes rich anno-tations from both LLM judges and human reviewers, our current experiments mainly leverage correctness labels and example re-sponses. Future work may explore alternative ways to utilize these annotations, including supervised fine-tuning, preference learning, or taxonomy-aware prompting strategies. Finally, we observe that model accuracy decreases substantially as the number of discharge notes increases, suggesting that longer clinical contexts significantly increase task difficulty. Clinical nar-ratives contain dense terminology, temporal dependencies, and heterogeneous information types, which may challenge current ar-chitectures when synthesizing information across long documents. Addressing this limitation will likely require improved context-handling strategies or architectures designed for long-context rea-soning, or experiments on more capable models. Overall, Med-HEAL demonstrates that hallucination-aware datasets, combined with self-critique prompting, provide a practical approach to improving the reliability of medical LLMs, particularly in tasks involving complex clinical narratives. 
+
+## 5 Conclusion 
+
+This paper presents Med-HEAL, a framework for studying and mit-igating hallucinations in medical LLMs through clinically grounded evaluation and hallucination-aware prompting. Our experiments demonstrate that conventional retrieval-based in-context learning offers little benefit for this task, whereas a self-critique pipeline con-sistently improves performance across multiple open-source mod-els. Combining self-critique with targeted demonstrations further improves accuracy by providing examples that address predicted reasoning failures. These findings suggest that enabling models to identify and correct their own reasoning errors is a promising direction for improving the reliability of medical LLMs. Med-HEAL provides both a dataset and a practical prompting strategy for advancing safer clinical AI systems. 
+
+## Acknowledgments 
+
+We thank the Medical College of Wisconsin student evaluators who served as human judges of LLM-generated answers, with special thanks to Sara Saif and Caitlin Schwanke for major contributions to this effort: Michael Brianna, Gabriella Schultz, Teagan Blohowiak, Lauren Loftis, Evan Robinson, Ayman Alsalhi, and Sonu Bhandari. We also thank Kushali Darak from Concordia University Wisconsin for data collection support. This work is partially supported by NSF CICI award 2517121. 
+
+## References                            
+
+> [1] Asma Ben Abacha, Chaitanya Shivade, and Dina Demner-Fushman. 2019. Overview of the MEDIQA 2019 shared task on textual inference, question entail-ment and question answering. In Proceedings of the 18th bioNLP workshop and shared task . 370–379. [2] Josh Achiam, Steven Adler, Sandhini Agarwal, Lama Ahmad, Ilge Akkaya, Floren-cia Leoni Aleman, Diogo Almeida, Janko Altenschmidt, Sam Altman, Shyamal Anadkat, et al .2023. Gpt-4 technical report. arXiv preprint arXiv:2303.08774
+> (2023). [3] Vibhor Agarwal, Yiqiao Jin, Mohit Chandra, Munmun De Choudhury, Srijan Kumar, and Nishanth Sastry. 2024. Medhalu: Hallucinations in responses to healthcare queries by large language models. arXiv preprint arXiv:2409.19492
+> (2024). [4] Monica Agrawal, Stefan Hegselmann, Hunter Lang, Yoon Kim, and David Sontag. 2022. Large language models are few-shot clinical information extractors. In
+> Proceedings of the 2022 conference on empirical methods in natural language processing . 1998–2022. [5] Ekin Akyürek, Dale Schuurmans, Jacob Andreas, Tengyu Ma, and Denny Zhou. 2022. What learning algorithm is in-context learning? investigations with linear models. arXiv preprint arXiv:2211.15661 (2022). [6] Asma Ben Abacha and Dina Demner-Fushman. 2019. A question-entailment approach to question answering. BMC bioinformatics 20, 1 (2019), 511. [7] Stephanie Cabral, Daniel Restrepo, Zahir Kanjee, Philip Wilson, Byron Crowe, Raja-Elie Abdulnour, and Adam Rodman. 2024. Clinical reasoning of a generative artificial intelligence model compared with physicians. JAMA internal medicine
+> 184, 5 (2024), 581–583. [8] Zeming Chen, Alejandro Hernández Cano, Angelika Romanou, Antoine Bon-net, Kyle Matoba, Francesco Salvi, Matteo Pagliardini, Simin Fan, Andreas Köpf, Amirkeivan Mohtashami, and others. 2023. Meditron-70b: Scaling medical pre-training for large language models. arXiv preprint arXiv:2311.16079 (2023). [9] Philip Chung, Akshay Swaminathan, Alex J Goodell, Yeasul Kim, S Mom-sen Reincke, Lichy Han, Ben Deverett, Mohammad Amin Sadeghi, Abdel-Badih Ariss, Marc Ghanem, and others. 2025. Verifying Facts in Patient Care Docu-ments Generated by Large Language Models Using Electronic Health Records.
+> NEJM AI 3, 1 (2025), AIdbp2500418. [10] DeepSeek-AI. 2025. DeepSeek-R1-Distill-Llama-8B. https://huggingface.co/ deepseek-ai/DeepSeek-R1-Distill-Llama-8B. [11] Shehzaad Dhuliawala, Mojtaba Komeili, Jing Xu, Roberta Raileanu, Xian Li, Asli Celikyilmaz, and Jason Weston. 2024. Chain-of-verification reduces hallucina-tion in large language models. In Findings of the association for computational linguistics: ACL 2024 . 3563–3578.
+
+Med-HEAL: Analyzing and Mitigating Hallucinations in Medical LLMs with Hallucination-Aware In-Context Learning 
+
+[12] Abhimanyu Dubey, Abhinav Jauhri, Abhinav Pandey, Abhishek Kadian, Ahmad Al-Dahle, Aiesha Letman, Akhil Mathur, Alan Schelten, Amy Yang, Angela Fan, et al . 2024. The Llama 3 Herd of Models. arXiv preprint arXiv:2407.21783 (2024). https://arxiv.org/abs/2407.21783 [13] Philip Feldman, James R Foulds, and Shimei Pan. 2023. Trapping llm hallucina-tions using tagged context prompts. arXiv preprint arXiv:2306.06085 (2023). [14] Shivam Garg, Dimitris Tsipras, Percy S Liang, and Gregory Valiant. 2022. What can transformers learn in-context? a case study of simple function classes. Ad-vances in neural information processing systems 35 (2022), 30583–30598. [15] Zorik Gekhman, Gal Yona, Roee Aharoni, Matan Eyal, Amir Feder, Roi Reichart, and Jonathan Herzig. 2024. Does fine-tuning llms on new knowledge encourage hallucinations?. In Proceedings of the 2024 Conference on Empirical Methods in Natural Language Processing . 7765–7784. [16] Ian J Goodfellow, Mehdi Mirza, Da Xiao, Aaron Courville, and Yoshua Bengio. 2013. An empirical investigation of catastrophic forgetting in gradient-based neural networks. arXiv preprint arXiv:1312.6211 (2013). [17] Jiawei Gu, Xuhui Jiang, Zhichao Shi, Hexiang Tan, Xuehao Zhai, Chengjin Xu, Wei Li, Yinghan Shen, Shengjie Ma, Honghao Liu, and others. 2024. A survey on llm-as-a-judge. The Innovation (2024). [18] Daya Guo, Dejian Yang, Haowei Zhang, Junxiao Song, Peiyi Wang, Qihao Zhu, Runxin Xu, Ruoyu Zhang, Shirong Ma, Xiao Bi, et al . 2025. DeepSeek-R1 incen-tivizes reasoning in LLMs through reinforcement learning. Nature 645, 8081 (2025), 633–638. [19] Tianyu Han, Lisa C Adams, Jens-Michalis Papaioannou, Paul Grundmann, Tom Oberhauser, Alexei Figueroa, Alexander Löser, Daniel Truhn, and Keno K Bressem. 2023. MedAlpaca–an open-source collection of medical conversational AI models and training data. arXiv preprint arXiv:2304.08247 (2023). [20] Yue Jiang, Jiawei Chen, Dingkang Yang, Mingcheng Li, Shunli Wang, Tong Wu, Ke Li, and Lihua Zhang. 2025. Comt: Chain-of-medical-thought reduces hallu-cination in medical report generation. In ICASSP 2025-2025 IEEE International Conference on Acoustics, Speech and Signal Processing (ICASSP) . IEEE, 1–5. [21] Di Jin, Eileen Pan, Nassim Oufattole, Wei-Hung Weng, Hanyi Fang, and Peter Szolovits. 2021. What disease does this patient have? a large-scale open domain question answering dataset from medical exams. Applied Sciences 11, 14 (2021), 6421. [22] Qiao Jin, Bhuwan Dhingra, Zhengping Liu, William Cohen, and Xinghua Lu. 2019. Pubmedqa: A dataset for biomedical research question answering. In Proceedings of the 2019 conference on empirical methods in natural language processing and the 9th international joint conference on natural language processing (EMNLP-IJCNLP) .2567–2577. [23] Alistair Johnson, Lucas Bulgarelli, Tom Pollard, Steven Horng, Leo Anthony Celi, and Roger Mark. 2020. Mimic-iv. PhysioNet. Available online at: https://physionet. org/content/mimiciv/1.0/(accessed August 23, 2021) (2020), 49–55. [24] Alistair EW Johnson, Tom J Pollard, Lu Shen, Li-wei H Lehman, Mengling Feng, Mohammad Ghassemi, Benjamin Moody, Peter Szolovits, Leo Anthony Celi, and Roger G Mark. 2016. MIMIC-III, a freely accessible critical care database. 
+
+Scientific data 3, 1 (2016), 1–9. [25] Yubin Kim, Hyewon Jeong, Shan Chen, Shuyue Stella Li, Mingyu Lu, Kumail Alhamoud, Jimin Mun, Cristina Grau, Minseok Jung, Rodrigo Gameiro, and others. 2025. Medical hallucinations in foundation models and their impact on healthcare. arXiv preprint arXiv:2503.05777 (2025). [26] James Kirkpatrick, Razvan Pascanu, Neil Rabinowitz, Joel Veness, Guillaume Desjardins, Andrei A Rusu, Kieran Milan, John Quan, Tiago Ramalho, Agnieszka Grabska-Barwinska, et al . 2017. Overcoming catastrophic forgetting in neural networks. Proceedings of the national academy of sciences 114, 13 (2017), 3521– 3526. [27] Sunjun Kweon, Jiyoun Kim, Heeyoung Kwak, Dongchul Cha, Hangyul Yoon, Kwang Kim, Jeewon Yang, Seunghyun Won, and Edward Choi. 2024. Ehrnoteqa: An llm benchmark for real-world clinical practice using discharge summaries. 
+
+Advances in Neural Information Processing Systems 37 (2024), 124575–124611. [28] Yanis Labrak, Adrien Bazoge, Emmanuel Morin, Pierre-antoine Gourraud, Mick-aël Rouvier, and Richard Dufour. 2024. BioMistral: a collection of open-source pretrained large language models for medical domains. In 62th annual meeting of the association for computational linguistics (ACL’24) .[29] Patrick Lewis, Ethan Perez, Aleksandra Piktus, Fabio Petroni, Vladimir Karpukhin, Naman Goyal, Heinrich Küttler, Mike Lewis, Wen-tau Yih, Tim Rocktäschel, and others. 2020. Retrieval-augmented generation for knowledge-intensive nlp tasks. Advances in neural information processing systems 33 (2020), 9459–9474. [30] Yuchong Li, Xiaojun Zeng, Chihua Fang, Jian Yang, Fucang Jia, and Lei Zhang. 2025. ClinBench-HPB: a clinical benchmark for evaluating llms in hepato-pancreato-biliary diseases. arXiv preprint arXiv:2506.00095 (2025). [31] Yang Liu, Dan Iter, Yichong Xu, Shuohang Wang, Ruochen Xu, and Chenguang Zhu. 2023. G-eval: NLG evaluation using gpt-4 with better human alignment. In Proceedings of the 2023 conference on empirical methods in natural language processing . 2511–2522. [32] Man Luo, Xin Xu, Zhuyun Dai, Panupong Pasupat, Mehran Kazemi, Chitta Baral, Vaiva Imbrasaite, and Vincent Y Zhao. 2024. Dr. ICL: Demonstration-retrieved in-context learning. Data Intelligence 6, 4 (2024), 909–922. [33] Renqian Luo, Liai Sun, Yingce Xia, Tao Qin, Sheng Zhang, Hoifung Poon, and Tie-Yan Liu. 2022. BioGPT: generative pre-trained transformer for biomedical text generation and mining. Briefings in Bioinformatics 23, 6 (2022). [34] Mingyu Derek Ma, Chenchen Ye, Yu Yan, Xiaoxuan Wang, Peipei Ping, Timo-thy S Chang, and Wei Wang. 2024. Clibench: A multifaceted and multigranular evaluation of large language models for clinical decision making. arXiv preprint arXiv:2406.09923 (2024). [35] Jianmo Ni, Chen Qu, Jing Lu, Zhuyun Dai, Gustavo Hernandez Abrego, Ji Ma, Vincent Zhao, Yi Luan, Keith Hall, Ming-Wei Chang, et al . 2022. Large dual encoders are generalizable retrievers. In Proceedings of the 2022 Conference on Empirical Methods in Natural Language Processing . 9844–9855. [36] Ankit Pal, Logesh Kumar Umapathi, and Malaikannan Sankarasubbu. 2023. Med-halt: Medical domain hallucination test for large language models. arXiv preprint arXiv:2307.15343 (2023). [37] Shrey Pandit, Jiawei Xu, Junyuan Hong, Zhangyang Wang, Tianlong Chen, Kaidi Xu, and Ying Ding. 2025. Medhallu: A comprehensive benchmark for detecting medical hallucinations in large language models. arXiv preprint arXiv:2502.14302 
+
+(2025). [38] Stephen Robertson and Hugo Zaragoza. 2009. The probabilistic relevance frame-work: BM25 and beyond . Vol. 4. Now Publishers Inc. [39] Walter J Rogan and Beth Gladen. 1978. Estimating prevalence from the results of a screening test. American journal of epidemiology 107, 1 (1978), 71–76. [40] Ohad Rubin, Jonathan Herzig, and Jonathan Berant. 2022. Learning to retrieve prompts for in-context learning. In Proceedings of the 2022 conference of the North American chapter of the association for computational linguistics: human language technologies . 2655–2671. [41] Karan Singhal, Shekoofeh Azizi, Tao Tu, S Sara Mahdavi, Jason Wei, Hyung Won Chung, Nathan Scales, Ajay Tanwani, Heather Cole-Lewis, Stephen Pfohl, and others. 2023. Large language models encode clinical knowledge. Nature 620, 7972 (2023), 172–180. [42] Karan Singhal, Tao Tu, Juraj Gottweis, Rory Sayres, Ellery Wulczyn, Mohamed Amin, Le Hou, Kevin Clark, Stephen R Pfohl, Heather Cole-Lewis, et al . 2025. Toward expert-level medical question answering with large language models. 
+
+Nature medicine 31, 3 (2025), 943–950. [43] Jun Sun, Yiteng Pan, and Xiaohu Yan. 2025. Improving intermediate reasoning in zero-shot chain-of-thought for large language models with filter supervisor-self correction. Neurocomputing 620 (2025), 129219. [44] Haochun Wang, Chi Liu, Nuwa Xi, Zewen Qiang, Sendong Zhao, Bing Qin, and Ting Liu. 2023. Huatuo: Tuning llama model with chinese medical knowledge. 
+
+arXiv preprint arXiv:2304.06975 (2023). [45] Wenhui Wang, Furu Wei, Li Dong, Hangbo Bao, Nan Yang, and Ming Zhou. 2020. Minilm: Deep self-attention distillation for task-agnostic compression of pre-trained transformers. Advances in neural information processing systems 33 (2020), 5776–5788. [46] Jason Wei, Xuezhi Wang, Dale Schuurmans, Maarten Bosma, Fei Xia, Ed Chi, Quoc V Le, Denny Zhou, et al . 2022. Chain-of-thought prompting elicits reason-ing in large language models. Advances in neural information processing systems 
+
+35 (2022), 24824–24837. [47] Chaoyi Wu, Weixiong Lin, Xiaoman Zhang, Ya Zhang, Weidi Xie, and Yanfeng Wang. 2024. PMC-LLaMA: toward building open-source language models for medicine. Journal of the American Medical Informatics Association 31, 9 (2024), 1833–1843. [48] Kevin Wu, Eric Wu, Rahul Thapa, Kevin Wei, Angela Zhang, Arvind Suresh, Jacqueline J Tao, Min Woo Sun, Alejandro Lozano, and James Zou. 2025. Med-CaseReasoning: Evaluating and learning diagnostic reasoning from clinical case reports. arXiv preprint arXiv:2505.11733 (2025). [49] An Yang, Anfeng Li, Baosong Yang, Beichen Zhang, Binyuan Hui, Bo Zheng, Bowen Yu, Chang Gao, Chengen Huang, Chenxu Lv, et al . 2025. Qwen3 technical report. arXiv preprint arXiv:2505.09388 (2025). [50] An Yang, Baosong Yang, Beichen Zhang, Binyuan Hui, Bo Zheng, Bowen Yu, Chengyuan Li, Dayiheng Liu, Fei Huang, Haoran Wei, Huan Lin, Jian Yang, Jianhong Tu, Jianwei Zhang, Jianxin Yang, Jiaxi Yang, Jingren Zhou, Junyang Lin, Kai Dang, Keming Lu, Keqin Bao, Kexin Yang, Le Yu, Mei Li, Mingfeng Xue, Pei Zhang, Qin Zhu, Rui Men, Runji Lin, Tianhao Li, Tianyi Tang, Tingyu Xia, Xingzhang Ren, Xuancheng Ren, Yang Fan, Yang Su, Yichang Zhang, Yu Wan, Yuqiong Liu, Zeyu Cui, Zhenru Zhang, and Zihan Qiu. 2024. Qwen2.5 Technical Report. arXiv:2412.15115 [cs.CL] https://arxiv.org/abs/2412.15115 [51] Cyril Zakka, Rohan Shad, Akash Chaurasia, Alex R Dalal, Jennifer L Kim, Michael Moor, Robyn Fong, Curran Phillips, Kevin Alexander, Euan Ashley, and others. 2024. Almanac—retrieval-augmented language models for clinical medicine. 
+
+Nejm ai 1, 2 (2024), AIoa2300068. [52] Lianmin Zheng, Wei-Lin Chiang, Ying Sheng, Siyuan Zhuang, Zhanghao Wu, Yonghao Zhuang, Zi Lin, Zhuohan Li, Dacheng Li, Eric Xing, et al . 2023. Judging llm-as-a-judge with mt-bench and chatbot arena. Advances in neural information processing systems 36 (2023), 46595–46623. Liao et al. 
+
+## A Supplementary Materials 
+
+The following supplementary materials provide extended back-ground, dataset details, runtime analysis, and additional cross-model results. 
+
+## B Related Work B.1 Large Language Models in Medicine 
+
+LLMs have been increasingly applied to clinical tasks such as di-agnostic reasoning, patient question answering, and medical docu-ment analysis. Proprietary models including Med-PaLM [ 41 ], Med-PaLM 2 [ 42 ], and other large commercial models demonstrate strong performance on medical benchmarks such as USMLE-style examina-tions [ 21 ]. General-purpose models such as GPT-4 have also shown strong medical reasoning capabilities despite not being exclusively trained for healthcare tasks [2, 7]. To address privacy and deployment constraints in healthcare environments, a number of open-source medical LLMs have been developed by adapting general foundation models with biomedical corpora. Examples include Meditron [ 8], BioMistral [ 28 ], PMC-LLaMA [ 47 ], and MedAlpaca [ 19 ], which are trained or fine-tuned on resources such as PubMed [ 22 ] and clinical guidelines. More recently, reasoning-oriented open models such as DeepSeek-R1 [ 18 ] and QwQ-32B [ 49 ] have shown promising performance in complex diagnostic reasoning tasks. These models are particularly attractive to healthcare institutions because they can run locally while maintaining competitive performance. 
+
+## B.2 Study of Medical LLM Hallucinations 
+
+A growing body of work has developed benchmarks to evaluate large language models (LLMs) in medical settings, focusing on both clinical reasoning and hallucination detection. Many datasets are built from electronic health records (EHRs), medical literature, or standardized medical examinations. Among the most widely used sources are the MIMIC datasets—particularly MIMIC-III [ 24 ] and MIMIC-IV [ 23 ]—which provide large collections of de-identified clinical records including discharge summaries, radiology reports, laboratory results, and treatment histories. These datasets enable the development of benchmarks that reflect realistic clinical work-flows. Several benchmarks derived from these resources evaluate LLM reasoning over clinical data. EHRNoteQA [ 27 ] builds on MIMIC-IV and contains clinician-validated question–answer pairs requiring models to synthesize information across multiple patient notes, providing a realistic proxy for clinical decision-making tasks. Other EHR-based benchmarks such as CliBench [ 34 ] and VeriFact-BHC [ 9 ] similarly evaluate patient-specific reasoning and fact verifica-tion using real hospital records. Beyond EHRs, datasets such as MedCaseReasoning [ 48 ] leverage thousands of clinical case reports from PubMed Central to evaluate diagnostic reasoning processes, while Med-HALT [ 36 ] uses standardized medical examinations and PubMed abstracts to test hallucination robustness under adversarial prompts. A number of datasets explicitly focus on medical hallucina-tions. MedHallu generates hallucinations through controlled LLM pipelines that introduce specific error types, such as evidence fabri-cation or misinterpretation of questions [ 37 ]. MEDHALU constructs hallucinated responses based on a taxonomy of conflicts, including fact-conflicting and context-conflicting errors [ 3]. Med-HALT [ 36 ]evaluates hallucinations through adversarial testing, such as pre-senting incorrect answers or nonsensical medical questions [ 36 ]. These benchmarks provide important testbeds for evaluating model reliability, though many primarily focus on evaluation rather than generating clinically realistic hallucination cases for training or mitigation. Reliable evaluation of medical LLM outputs remains challenging. Human expert evaluation remains the gold standard because clin-icians are better able to identify subtle medical inaccuracies and contextual errors [ 25 ]. However, human annotation is expensive and difficult to scale. To address this limitation, recent work has ex-plored LLM-as-a-Judge approaches, where large models are used to evaluate or rank model outputs like relevance, coherence, accuracy, helpfulness, or adherence to instructions [ 17 , 31 , 52 ]. This paradigm has been widely adopted in general NLP benchmarks such as MT-Bench and AlpacaEval, and is increasingly used in medical datasets. For example, ClinBench-HPB [ 30 ] employs a dual-LLM evaluation framework, while datasets such as MedCaseReasoning, VeriFact, and MedHallu use LLMs to identify hallucinated statements or eval-uate reasoning quality. Current research often combines automated LLM evaluation with selective human verification in human-in-the-loop workflows. 
+
+## B.3 EHRNoteQA 
+
+EHRNoteQA is not focused on a single medical specialty; instead, it covers a broad range of real-world clinical scenarios by categorizing queries into 10 diverse medical topics[ 27 ]. Because the benchmark is built from MIMIC-IV discharge summaries encompassing complex hospital admissions, it reflects comprehensive, multi-faceted patient care. The questions in the benchmark are designed to mirror the wide variety of inquiries a physician might actually make when reviewing patient records. 
+
+## B.4 In-Context Learning 
+
+In-context learning (ICL) enables LLMs to perform tasks by condi-tioning on a small set of demonstration examples without updating model parameters [ 5 , 14 ]. Prior studies show that retrieving demon-strations which are semantically similar to the query significantly improve performance and reduce hallucinations in general domains [ 32 ]. Retrieval-based ICL methods often rely on lexical or semantic retrievers such as BM25 [ 38 ] or other embedding-based similarity [40]. Several prompt-design strategies have been proposed to further improve reliability. Chain-of-Thought (CoT) [ 46 ] prompting encour-ages models to generate explicit reasoning steps, reducing logical errors and incomplete reasoning. Structured reasoning frameworks, such as Chain-of-Medical-Thought [ 20 ], guide models through clin-ically meaningful reasoning stages and have been shown to reduce severe hallucinations. Recent studies in other domains [ 11 , 43 , 46 ]also suggest that providing negative examples, corrections, or ex-pert feedback in prompts can improve the model’s ability to detect and avoid hallucinations. Med-HEAL: Analyzing and Mitigating Hallucinations in Medical LLMs with Hallucination-Aware In-Context Learning 
+
+Table 8: EHRNoteQA Question Topic Coverage              
+
+> Category Example %
+> Treatment What was the treatment provided for the pa-tient’s left breast cellulitis? 64% Etiology Why did the patient’s creatinine level rise signif-icantly upon admission? 20% Assessment Was the Mitral valve repair carried out success-fully? 19% Problem What was the main problem of the patient? 19% Test Results What were the abnormalities observed in the pa-tient’s CT scans? 14% Sign/Symptom What was the presenting symptom of the pa-tient’s myocardial infarction? 12% History Has the patient experienced any surgical inter-ventions prior to the acute appendicitis? 12% Plan What is the future course of action planned for patient’s left subclavian stenosis? 5% Vitals What was the range of the patient’s blood pres-sure during second stay? 3% Instruction How was the patient instructed on weight-bearing after his knee replacement? 3%
+
+Despite these advances, most existing work focuses on prompt-ing strategies or evaluation benchmarks. Relatively little research explores how clinically realistic hallucination examples themselves can be systematically constructed and leveraged within contrastive in-context learning frameworks to directly train models to recog-nize and avoid hallucinated reasoning. Addressing this gap moti-vates the framework proposed in this work. 
+
+## B.5 Per-item Runtime Cost Analysis 
+
+Table 9 summarizes the average runtime per item for the zero-shot baseline compared to the Med-HEAL pipeline. Measurements were conducted on a local workstation (Intel i9-13900K, RTX 4090). 
+
+## B.6 Cross-model Comparison Benchmark on EHRNoteQA 
+
+Baseline Performance. Zero-shot performance varies across models, with BioMistral achieving 53.8% accuracy, while larger general-purpose models such as Qwen3 and Llama-3.1 reach over 89%. These results highlight substantial variation in baseline rea-soning capability across models when answering clinical questions from discharge summaries. 
+
+Effect of Retrieval-Based ICL. . Across all models, standard retrieval-augmented ICL provides little or no improvement over the zero-shot baseline. In some cases, performance decreases slightly when positive, negative, or contrastive demonstrations are added. For example, BioMistral drops from 53.8% to 48.4% under contrastive ICL, and Qwen2.5 decreases from 88.7% to 86.9%. These results suggest that simply retrieving semantically similar examples does not effectively guide models to avoid hallucinations in complex clinical reasoning tasks. 
+
+Effect of Chain-of-Thought Prompting. Chain-of-Thought prompting produces mixed results across models. Models with stronger reasoning capabilities benefit modestly from CoT prompts. For instance, DeepSeek improves from 76.9% to 78.3% under conclusion-first CoT, while Qwen3 achieves its highest accuracy of 94.3% with the same prompting strategy. However, CoT does not consistently improve performance across all models, and in some cases slightly reduces accuracy. 
+
+Summary of Findings. Overall, the results indicate that naive retrieval-based ICL provides limited benefit for clinical question answering tasks. In contrast, hallucination-aware prompting strate-gies that incorporate a self-critique step and targeted demonstra-tions can produce modest but consistent improvements across sev-eral models. These findings highlight the importance of error-aware prompting mechanisms when applying in-context learning to miti-gate hallucinations in medical LLMs. Liao et al. 
+
+Table 9: Per-item runtime comparison between the zero-shot baseline and the Med-HEAL pipeline. 
+
+Model Zero-shot Baseline Med-HEAL Pipeline Multiplier 
+
+Local Models 
+
+Qwen2.5 ∼5 sec ∼17 sec ∼ 3.4×
+
+Llama-3.1 ∼5 sec ∼16 sec ∼3.2 ×
+
+BioMistral ∼10 sec ∼30 sec ∼3×
+
+DeepSeek-R1 ∼10–15 sec ∼30 sec ∼2–3 ×
+
+Qwen3-8B ∼10–15 sec ∼38 sec ∼2.5–4 ×
+
+Commercial Cloud API 
+
+GPT-4o ∼4 sec ∼12 sec ∼3×
+
+Claude-3.5 ∼5 sec ∼15 sec ∼3×
+
+Table 10: Cross-model comparison of ICL strategies on EHRNoteQA (5-fold CV, 𝑁 =962 , GPT-4o evaluation). For self-critique conditions, non-critiqued samples retain their zero-shot answers. Best result per model in bold. 
+
+Group Condition BioMistral DeepSeek Llama-3.1 Qwen2.5 Qwen3 Baseline Zero-shot 53.8 ±4.1 76.9 ±1.0 89.1 ±0.9 88.7 ±1.4 92.4 ±1.1 RA-ICL Positive ICL 52.2 ±3.8 74.8 ±1.4 89.0 ±2.3 88.6 ±1.3 93.1 ±0.9 Negative ICL 49.7 ±3.2 75.9 ±0.6 89.0 ±1.0 86.9 ±1.2 92.0 ±1.6 Contrastive ICL 48.4 ±2.9 74.7 ±3.2 89.0 ±1.1 86.9 ±1.4 93.0 ±0.5 CoT CoT (evidence-first) 52.9 ±2.7 76.3 ±1.8 86.5 ±0.7 87.7 ±1.8 93.7 ±0.4 CoT (conclusion-first) 52.7 ±4.4 78.3 ±1.9 89.1 ±2.2 87.4 ±2.2 94.3 ±1.0 Med-HEAL Self-Critique+RA-ICL 50.8 ±1.8 81.9 ±2.6 90.1 ±1.4 92.6 ±1.6 93.4 ±1.5

@@ -1,0 +1,69 @@
+{
+  "label": "2026-06-05",
+  "date": "2026-06-05",
+  "generated_at": "2026-06-05T21:51:10",
+  "count": 4,
+  "papers": [
+    {
+      "paper_id": "202606/05/2606.01301v1-med-heal-analyzing-and-mitigating-hallucinations-in-medical-llms-with-hallucination-aware-in-context-learning",
+      "section": "deep",
+      "title_en": "Med-HEAL: Analyzing and Mitigating Hallucinations in Medical LLMs with Hallucination-Aware In-Context Learning",
+      "authors": "Yiming Liao, Zeno Franco, Jose Eduardo Lizarraga Mazaba, Keke Chen",
+      "date": "2026-05-31",
+      "pdf": "https://arxiv.org/pdf/2606.01301v1",
+      "score": "8.0",
+      "evidence": "采用幻觉感知的情境学习，在提示中提供少量示例以调整模型行为并减少幻觉。",
+      "tldr": "医学大模型在电子健康记录推理中的幻觉风险亟需解决，但现有基准缺乏临床真实性。Med-HEAL基于MIMIC-IV出院摘要构建幻觉数据集，通过GPT-4o评判与医学生人工审核双重标注回答正确性及推理错误，并探索自我批评流程与检索增强上下文学习（RA-ICL）两种缓解策略。在BioMistral等五个开源模型的实验中，自我批评无需参数更新即显著提升三个模型的准确率（p<0.05）。该工作贡献了可复用数据集及实用框架，并公开代码与数据，助力临床AI安全部署。",
+      "tags": "query:prompt-learn",
+      "abstract_en": "Hallucinations in medical large language models (LLMs) pose serious risks for clinical decision support, particularly when models must reason over complex electronic health records (EHRs). However, existing benchmarks often lack a realistic clinical context and provide limited insight into how hallucinations can be mitigated in practice. We introduce Med-HEAL, a framework for systematically identifying, analyzing, and mitigating hallucinations in medical LLMs using clinically grounded data. Building on the EHRNoteQA benchmark derived from MIMIC-IV discharge summaries, we construct a hallucination dataset by evaluating BioMistral-7B on open-ended clinical question answering tasks. Model outputs are labeled through a dual evaluation pipeline that combines LLM-as-a-Judge assessment (GPT-4o) with human auditing by medical student reviewers, producing correctness judgments and annotations of reasoning errors via a custom web-based evaluation system.   We then leverage this dataset to investigate mitigation strategies: a self-critique pipeline, in which the test model reviews its own answers to detect potential errors and regenerates responses for flagged cases, and retrieval-augmented in-context learning (RA-ICL), which exposes the model to hallucinated and corrected examples. Experiments across five open-source LLMs-BioMistral, Llama-3.1, DeepSeek, Qwen2.5, and Qwen3, show that the self-critique strategy improves accuracy for three of five models (p < 0.05) without requiring parameter updates.   Med-HEAL provides both a reusable hallucination dataset and a practical framework for studying and mitigating hallucinations in medical LLMs, supporting safer deployment of AI systems in clinical environments. Our code and data are publicly available at https://github.com/yimingliao-blad/med-heal.git.",
+      "source": "arxiv",
+      "selection_source": "fresh_fetch"
+    },
+    {
+      "paper_id": "202606/05/2606.05486v1-localizing-prompt-ambiguity-in-large-language-models-with-probe-targeted-attribution",
+      "section": "deep",
+      "title_en": "Localizing Prompt Ambiguity in Large Language Models with Probe-Targeted Attribution",
+      "authors": "Govind Ramesh, Yao Dou, Wei Xu",
+      "date": "2026-06-03",
+      "pdf": "https://arxiv.org/pdf/2606.05486v1",
+      "score": "8.0",
+      "evidence": "提出PRIG方法，将隐式提示歧义归因到LLM提示中特定词元位置",
+      "tldr": "大型语言模型常因提示模糊而出错，但模糊性作为潜在属性难以用现有针对输出的归因方法定位。本文提出PRIG方法，通过线性探针区分清晰与模糊提示，并利用梯度将探针分数归因至输入token位置。在编程、数学等合成及人工数据集上，PRIG定位模糊片段效果显著优于基线，AUROC达0.840和0.891，且优于GPT-5.4。该工具确认了关键贡献：潜在提示属性可经中间表征而非输出层被有效定位。",
+      "tags": "query:prompt-learn",
+      "abstract_en": "Prompt ambiguity is a common source of failure in large language models, but is difficult to localize because it is a latent property of the prompt, while existing attribution methods are designed to explain observable outputs such as logits or generated tokens. We introduce PRIG, a gradient attribution method that uses a probe logit to attribute latent ambiguity to token positions. Specifically, PRIG trains a linear probe to distinguish clear prompts from ambiguous prompts and attributes the probe score to earlier token representations in the residual stream. To enable token-level evaluation, we construct synthetic ambiguity datasets across coding, math, and writing by rewriting one task-critical sentence per prompt, and complement them with a human-written gold benchmark. In this setting, PRIG localizes ambiguous spans substantially better than gradient attribution baselines, achieving 0.840 AUROC on the combined synthetic benchmark and 0.891 AUROC on the gold set. It also outperforms GPT-5.4 on sentence-level ambiguity identification and retains useful signal out-of-domain. These results establish PRIG as a practical tool for identifying which parts of a prompt are ambiguous. More broadly, they suggest that latent prompt properties can be localized through intermediate representations, rather than through output-level attribution.",
+      "source": "arxiv",
+      "selection_source": "fresh_fetch"
+    },
+    {
+      "paper_id": "202606/05/2606.05804v1-can-llms-be-constrained-to-the-past-improving-knowledge-cutoff-through-recall-based-prompting",
+      "section": "deep",
+      "title_en": "Can LLMs Be Constrained to the Past? Improving Knowledge Cutoff through Recall-Based Prompting",
+      "authors": "Michiro Asai, Ailiang Lin, Yu Kishimoto, Takao Obi, Satoshi Kosugi, Kotaro Funakoshi, Manabu Okumura",
+      "date": "2026-06-04",
+      "pdf": "https://arxiv.org/pdf/2606.05804v1",
+      "score": "8.0",
+      "evidence": "基于回忆的提示策略，无需示例即可强制知识截止",
+      "tldr": "大语言模型（LLM）的知识截止约束要求其仅使用截止日期前的信息，但现有直接回答方法难以处理与截止后知识有因果联系的问题。本文提出自回忆（Self-Recall, SR）和问题回忆（Question-Recall, QR）两种提示策略，SR要求模型重述截止约束，QR促使回忆截止前有效信息。在三个基准上，SR和QR均显著优于直接回答和逐步推理基线，尤其在反事实问题上提升突出；新建多截止历史事件基准（MHEB）显示，结合SR与QR性能始终最优。该方法增强了LLM的时序可靠性，为历史受限推理提供新思路。",
+      "tags": "query:prompt-learn",
+      "abstract_en": "Prompted knowledge cutoff instructs a large language model (LLM) to act as if information beyond a specified cutoff date were unavailable. However, prior work mainly relies on direct-answer generation, which struggles when post-cutoff knowledge is not explicitly queried but is only causally related to the question. To address this limitation, we propose two recall-based prompting strategies: Self-Recall (SR), which asks the model to restate its cutoff constraint, and Question-Recall (QR), which requires the model to recall question-relevant information valid under the cutoff. Across three existing benchmarks, our methods outperform both direct-answer prompting and conventional step-by-step reasoning baselines, with particularly strong improvements on counterfactual questions. To investigate robustness across different cutoff settings, we further construct the Multi-cutoff Historical Event Benchmark (MHEB), which evaluates the same question under multiple cutoff years. Results show that knowledge cutoff performance varies with cutoff distance, while combining SR and QR consistently yields the best performance.",
+      "source": "arxiv",
+      "selection_source": "fresh_fetch"
+    },
+    {
+      "paper_id": "202606/05/2606.03618v1-cross-lingual-token-arbitrage-optimizing-code-agent-context-windows-via-local-llm-preprocessing",
+      "section": "quick",
+      "title_en": "Cross-Lingual Token Arbitrage: Optimizing Code Agent Context Windows via Local LLM Preprocessing",
+      "authors": "Mehmet Utku Colak",
+      "date": "2026-06-02",
+      "pdf": "https://arxiv.org/pdf/2606.03618v1",
+      "score": "7.0",
+      "evidence": "提出基于本地LLM的提示重写中间件，自动生成优化后的离散提示以降低令牌成本。",
+      "tldr": "AI编码代理因处理非英语输入和冗余对话面临高昂token成本，现有压缩多为事后补救。本文提出基于本地Llama 3.2的边侧中间件，通过翻译、结构重写及安全回退，主动优化提示使其不膨胀。在OMH-Polyglot多语言测试中，提示token减少34-47%，总token降18.8%，准确率稳定；消融证实结构重写为关键，且性能超越LLMLingua-2。验证了主动提示优化可显著压缩成本，为高效全球AI编码工具提供新思路。",
+      "tags": "query:prompt-learn",
+      "abstract_en": "AI-assisted coding agents are bottlenecked by input-token cost. Two pathologies of raw human input drive much of this overhead: tokenization inefficiency for non-English text and structural entropy in conversational prompts. Existing approaches act reactively by compressing already-bloated contexts or intervening after failures occur.   We introduce a pre-flight, edge-side prompt-rewriting middleware that operates between the developer and the cloud agent. A local Llama 3.2 (3B) model performs cross-lingual translation into English, structural rewriting into a compact task-oriented format, and regex-validated rewrite-with-fallback safeguards to ensure the optimized prompt is never larger than the original.   We evaluate on OMH-Polyglot, a multilingual coding benchmark spanning Turkish, Arabic, Chinese, and code-switched specifications. Across three commercial LLM backends, the middleware reduces prompt tokens by 34-47 percent and total tokens by up to 18.8 percent while preserving or improving task accuracy. Ablation studies show that gains arise primarily from the rewriting stage rather than simple function-name extraction. Compared with LLMLingua-2 at matched compression rates, our method consistently achieves superior OckScore performance across all evaluated backends. These results demonstrate that proactive prompt optimization can substantially reduce inference costs without sacrificing coding quality.",
+      "source": "arxiv",
+      "selection_source": "fresh_fetch"
+    }
+  ],
+  "errors": []
+}

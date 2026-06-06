@@ -6,34 +6,34 @@
 </div>
 
 ## 每次日报
-- 最新运行日期：2026-06-05
-- 运行时间：2026-06-05 21:50:53 UTC
+- 最新运行日期：2026-06-06
+- 运行时间：2026-06-06 21:13:44 UTC
 - 运行状态：成功
 - 本次总论文数：4
-- 精读区：3
-- 速读区：1
+- 精读区：2
+- 速读区：2
 
 ### 今日简报（AI）
-今日深挖医学大模型幻觉的上下文疗法与提示歧义的探针定位，并速览跨语言代码代理的窗口优化。  
-最值得关注：Med-HEAL 用幻觉感知的示例学习有效降低医学 LLM 误诊风险，探针定位方法则精确追溯歧义在模型内部的落脚点。  
-建议读者将这两项成果对照阅读，思考安全可解释 AI 在垂直场景的落地路径。
-- 详情：[/202606/05/README](/202606/05/README)
+今日精读提示词自动优化与图像生成智能体 2 篇，速读数学推理知识工程与风格表达 2 篇。  
+最亮眼的方向是 SePO 自进化提示智能体，让系统指令随任务自我进化，性能上限大幅打开。  
+建议读者重点跟进“自主优化的提示工程”，把调参思维升级为让模型自己写提示、评价并迭代。
+- 详情：[/202606/06/README](/202606/06/README)
 
 ### 精读区论文标签
-1. [Med-HEAL: Analyzing and Mitigating Hallucinations in Medical LLMs with Hallucination-Aware In-Context Learning](/202606/05/2606.01301v1-med-heal-analyzing-and-mitigating-hallucinations-in-medical-llms-with-hallucination-aware-in-context-learning)  
-   标签：评分：8.0/10、query:prompt-learn
-   evidence：采用幻觉感知的情境学习，在提示中提供少量示例以调整模型行为并减少幻觉。
-2. [Localizing Prompt Ambiguity in Large Language Models with Probe-Targeted Attribution](/202606/05/2606.05486v1-localizing-prompt-ambiguity-in-large-language-models-with-probe-targeted-attribution)  
-   标签：评分：8.0/10、query:prompt-learn
-   evidence：提出PRIG方法，将隐式提示歧义归因到LLM提示中特定词元位置
-3. [Can LLMs Be Constrained to the Past? Improving Knowledge Cutoff through Recall-Based Prompting](/202606/05/2606.05804v1-can-llms-be-constrained-to-the-past-improving-knowledge-cutoff-through-recall-based-prompting)  
-   标签：评分：8.0/10、query:prompt-learn
-   evidence：基于回忆的提示策略，无需示例即可强制知识截止
+1. [SePO: Self-Evolving Prompt Agent for System Prompt Optimization](/202606/06/2606.04465v1-sepo-self-evolving-prompt-agent-for-system-prompt-optimization)  
+   标签：评分：10.0/10、query:prompt-learn
+   evidence：自进化优化离散系统提示以改善代理行为
+2. [APE: Agentic Prompt Enhancer for Image Generation and Editing](/202606/06/2606.00204v1-ape-agentic-prompt-enhancer-for-image-generation-and-editing)  
+   标签：评分：9.0/10、query:prompt-learn
+   evidence：训练小语言模型作为提示增强智能体以自动改进提示
 
 ### 速读区论文标签
-1. [Cross-Lingual Token Arbitrage: Optimizing Code Agent Context Windows via Local LLM Preprocessing](/202606/05/2606.03618v1-cross-lingual-token-arbitrage-optimizing-code-agent-context-windows-via-local-llm-preprocessing)  
+1. [KACE: Knowledge-Adaptive Context Engineering for Mathematical Reasoning](/202606/06/2606.00532v1-kace-knowledge-adaptive-context-engineering-for-mathematical-reasoning)  
    标签：评分：7.0/10、query:prompt-learn
-   evidence：提出基于本地LLM的提示重写中间件，自动生成优化后的离散提示以降低令牌成本。
+   evidence：自动将知识组织成认知树以构建数学推理的有效提示
+2. [Interpreting Style Representations via Style-Eliciting Prompts](/202606/06/2606.05716v1-interpreting-style-representations-via-style-eliciting-prompts)  
+   标签：评分：6.0/10、query:prompt-learn
+   evidence：使用自然语言提示控制LLM输出以进行风格分析
 
 
 <div class="dpr-home-promo-card">

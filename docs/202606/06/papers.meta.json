@@ -1,0 +1,69 @@
+{
+  "label": "2026-06-06",
+  "date": "2026-06-06",
+  "generated_at": "2026-06-06T21:13:58",
+  "count": 4,
+  "papers": [
+    {
+      "paper_id": "202606/06/2606.04465v1-sepo-self-evolving-prompt-agent-for-system-prompt-optimization",
+      "section": "deep",
+      "title_en": "SePO: Self-Evolving Prompt Agent for System Prompt Optimization",
+      "authors": "Wangcheng Tao, Han Wu, Weng-Fai Wong",
+      "date": "2026-06-03",
+      "pdf": "https://arxiv.org/pdf/2606.04465v1",
+      "score": "10.0",
+      "evidence": "自进化优化离散系统提示以改善代理行为",
+      "tldr": "现有系统提示优化中，提示代理自身提示固定手工设计，成为性能瓶颈。SePO提出自指进化框架，将提示代理自身也纳入优化目标，通过多任务预训练、任务微调及进化搜索积累候选提示。在数学、推理、科学、代码、谜题五类基准上，SePO平均准确率提升4.49个百分点，全面超越Manual-CoT等基线。预训练提示优化技能可泛化到新任务，展现强泛化性，为自动提示工程开辟新路径。",
+      "tags": "query:prompt-learn",
+      "abstract_en": "System prompt optimization improves agent behavior without modifying the underlying model, yielding human-readable, model-agnostic instructions. Existing methods build a prompt agent that refines task agents' system prompts, yet leave the prompt agent's own system prompt hand-engineered and fixed. We propose Self-Evolving Prompt Optimization (SePO), which treats the prompt agent's own system prompt as an optimization target alongside task agents' system prompts. SePO adopts a self-referential design. A single prompt agent improves both task agents' system prompts and its own under an open-ended evolutionary search that maintains an archive of candidate prompts as stepping stones. Training proceeds in two stages: pre-training evolves the prompt agent on a multi-task pool, and fine-tuning then applies it to a target task. Across five benchmarks spanning math (AIME'25), abstract reasoning (ARC-AGI-1), graduate-level science (GPQA), code generation (MBPP), and logic puzzles (Sudoku), SePO consistently outperforms Manual-CoT, TextGrad, and MetaSPO, improving the average accuracy by 4.49 points compared to Manual-CoT. The prompt optimization skill from pre-training also generalizes to tasks beyond the pre-training mixture, rather than memorizing per-task prompts.",
+      "source": "arxiv",
+      "selection_source": "fresh_fetch"
+    },
+    {
+      "paper_id": "202606/06/2606.00204v1-ape-agentic-prompt-enhancer-for-image-generation-and-editing",
+      "section": "deep",
+      "title_en": "APE: Agentic Prompt Enhancer for Image Generation and Editing",
+      "authors": "Zijian Huang, Jay Zhangjie Wu, Zian Wang, Tianshi Cao, Jiasi Chen, Sanja Fidler, Huan Ling, Xuanchi Ren",
+      "date": "2026-05-29",
+      "pdf": "https://arxiv.org/pdf/2606.00204v1",
+      "score": "9.0",
+      "evidence": "训练小语言模型作为提示增强智能体以自动改进提示",
+      "tldr": "文本到图像生成与编辑对提示词高度敏感，语义相近的请求可能因措辞差异导致输出不同，现有提示增强方案多依赖大型闭源LLM，增加成本与部署负担。为此，提出轻量级框架APE，后训练小型语言模型作为提示增强代理，支持单智能体重写SAPE与多智能体路由改写组合MAPE。在生成与编辑基准上，后训练小模型显著优于基础模型，缩小与闭源方案的差距，MAPE在复杂组合任务中表现尤为突出。该方法在不改动视觉模型的前提下提升了视觉对齐与提示跟随能力。",
+      "tags": "query:prompt-learn",
+      "abstract_en": "Natural language has become a powerful interface for image generation and editing, yet text-guided visual systems remain highly sensitive to prompt formulation. Semantically similar requests can produce different outputs depending on wording, specificity, and how explicitly visual constraints are stated, motivating prompt enhancement as a trainable component rather than a peripheral user choice. Existing strong enhancers often rely on large, proprietary LLMs such as ChatGPT or Gemini, adding cost, latency, and deployment dependence to the visual generation pipeline. We propose Agentic Prompt Enhancer (APE), a lightweight framework that post-trains small language models (SLMs) as prompt-enhancement agents. APE supports both single-agent rewriting and role-specialized multi-agent enhancement. Its single-agent instantiation, SAPE, rewrites the prompt in one pass, while its multi-agent instantiation, MAPE, decomposes enhancement into a router--rewriter--composer process for handling compositional constraints over objects, attributes, spatial relations, and edits. With task-aware rewards and post-training protocols, APE improves visual alignment and prompt following without modifying the downstream visual model. Experiments on challenging image generation and editing benchmarks demonstrate that post-trained small prompt enhancers reliably outperform their base counterparts, narrowing the gap to closed-source prompt enhancers; in addition, MAPE proves particularly strong on complex compositional tasks within these benchmarks.",
+      "source": "arxiv",
+      "selection_source": "fresh_fetch"
+    },
+    {
+      "paper_id": "202606/06/2606.00532v1-kace-knowledge-adaptive-context-engineering-for-mathematical-reasoning",
+      "section": "quick",
+      "title_en": "KACE: Knowledge-Adaptive Context Engineering for Mathematical Reasoning",
+      "authors": "Jayant Parashar, Suchendra M. Bhandarkar",
+      "date": "2026-05-30",
+      "pdf": "https://arxiv.org/pdf/2606.00532v1",
+      "score": "7.0",
+      "evidence": "自动将知识组织成认知树以构建数学推理的有效提示",
+      "tldr": "大型语言模型在数学推理中采用上下文工程时，反馈累积导致提示膨胀，限制可用的学习指导量。现有方法混淆存储与使用，加重了这一问题。KACE将存储与使用分离，离线构建难度-领域分层的认知树知识库，在线用分层自一致性动态分类问题难度并按需检索。在AIME2025上KACE准确率达62.2%，以可比算力超越Best-of-5自一致性10.4点，并提升问题难度分类能力。",
+      "tags": "query:prompt-learn",
+      "abstract_en": "Context engineering can improve large language models without updating their weights, but mathematical reasoning exposes a key limitation: feedback accumulated in one growing prompt causes context bloat and limits the amount of learned guidance that can be used. Existing methods often conflate storage, what is learned across runs, with usage, what is included for a particular problem, and therefore inherit this prompt-size ceiling. We introduce Knowledge-Adaptive Context Engineering (KACE), which separates storage from usage through difficulty- and domain-based organization. Offline, a self-reflective learning loop distills training traces into an epistemic tree: a knowledge base of typed cards stratified by problem difficulty and epistemic domain. Each card is assigned to the difficulty-domain node corresponding to the failure from which it originated. At evaluation time, tiered self-consistency with per-tier agreement gates dynamically classifies each problem as easy, medium, or hard. Easy problems exit without retrieved cards, while harder problems retrieve only the matching branch of the tree. This tiered scheme matches or exceeds Best-of-N while using comparable compute, and it classifies problem difficulty with 78 percent pairwise concordance. The main empirical contribution is the construction and use of a difficulty- and domain-stratified knowledge base enabled by tiered self-consistency. On AIME 2025, KACE achieves 62.2 percent accuracy, a 10.4-point absolute gain over fixed Best-of-5 self-consistency at a comparable solver-call budget and a 5.6-point gain over the strongest learned-context baseline, Tiered + GEPA. We also observe consistent gains on MATH-HARD and the verifiable subset of OlymMATH.",
+      "source": "arxiv",
+      "selection_source": "fresh_fetch"
+    },
+    {
+      "paper_id": "202606/06/2606.05716v1-interpreting-style-representations-via-style-eliciting-prompts",
+      "section": "quick",
+      "title_en": "Interpreting Style Representations via Style-Eliciting Prompts",
+      "authors": "Junghwan Kim, David Jurgens",
+      "date": "2026-06-04",
+      "pdf": "https://arxiv.org/pdf/2606.05716v1",
+      "score": "6.0",
+      "evidence": "使用自然语言提示控制LLM输出以进行风格分析",
+      "tldr": "风格表示学习广泛用于作者分析，但其潜在特性导致难以解释。现有工作通过大语言模型基于文本生成描述，但易受模型偏见和幻觉影响，且缺乏明确目标和实用性。本文提出风格诱发提示新框架，即设计自然语言指令引导LLM生成特定风格文本。我们精心策划了1010个涵盖26个风格类别的特征，并据此生成文本构建数据集，训练解码器从风格表示恢复风格提示。在三个任务上评估：从生成文本恢复原始提示、利用恢复提示生成同风格文本、以及引导LLM输出匹配人类写作风格，均显著超越直接提示的强基线。这表明风格诱发提示为风格表示提供了可解释且实用的接口。",
+      "tags": "query:prompt-learn",
+      "abstract_en": "Style representation learning is a powerful tool for authorship analysis and modeling writing style, yet the latent nature of learned representations makes them difficult to interpret. Recent work has attempted to explain these representations by generating natural language descriptions with large language models (LLMs) conditioned on input text. However, such descriptions are often prone to the LLM's biases and hallucinations, and they lack an explicit objective and practical utility. In this work, we propose a novel framework for interpreting style representations through style-eliciting prompts: natural language instructions designed to steer LLMs to generate text that reflects specific stylistic attributes. We curate 1,010 distinct style features spanning 26 stylistic categories and construct a dataset by prompting an LLM to generate text conditioned on these features. Using this data, we train a decoder to generate a style prompt from the style representation of the generated text. We evaluate our approach on three tasks: (1) recovering original style prompts from generated text, (2) generating text in the same style using the recovered prompts, and (3) steering LLM outputs to match the style of human-written texts. Experiments demonstrate that our method consistently outperforms strong baselines that directly prompt LLMs with target text, achieving superior performance in both style description and style imitation. These results highlight that style-eliciting prompts can provide a practical and interpretable interface to stylistic information encoded in style representations.",
+      "source": "arxiv",
+      "selection_source": "fresh_fetch"
+    }
+  ],
+  "errors": []
+}

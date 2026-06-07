@@ -1,0 +1,51 @@
+{
+  "mode": "standard",
+  "generated_at": "2026-06-07T20:20:18.680500+00:00",
+  "stats": {
+    "mode": "standard",
+    "tag_count": 1,
+    "deep_divecandidates": 1,
+    "deep_cap": 6,
+    "deep_selected": 1,
+    "quick_candidates": 0,
+    "quick_skim_target": 11,
+    "quick_selected": 0
+  },
+  "deep_dive": [
+    {
+      "id": "biorxiv-10-64898-2026-05-29-728877-v1",
+      "source": "biorxiv",
+      "title": "Bridging Ancestry Gaps in Genomic Risk Prediction with Tabular Foundation Models",
+      "abstract": "MotivationModels deployed for genomic prediction of diseases perform unevenly across populations, limiting clinical utility. Two factors drive this limitation: large imbalances in sample availability across ancestry groups and non-stationarity of genotype-phenotype effect sizes across the ancestry continuum. While tabular foundation models with in-context learning (ICL) have shown strong sample efficiency in other domains, their effectiveness for genotype-to-phenotype prediction and their robustness to ancestry-driven effect heterogeneity remain unclear.\n\nResultsUsing large, ancestrally diverse biobank data, we show that ICL-capable tabular foundation models reduce performance degradation in under-sampled ancestry groups compared to conventional supervised approaches. However, we find that prevailing models trained on existing synthetic tabular tasks fail when allele effect sizes vary across ancestry space. Treating genetic ancestry as a continuous variable, we introduce an instruction-tuning framework that exposes models to synthetic tasks with ancestry-dependent non-stationary effects. Instruction-tuned models achieve improved and more stable predictive performance across the genetic ancestry continuum, including for individuals distant from in-context exemplars in ancestry space.\n\nAvailability and ImplementationAll code for instruction-tuning models, synthetic task generation, data wrangling, and model evaluation, is publicly available at https://github.com/ai4pm/Bridging-Ancestry-Gaps-in-Genomic-Risk-Prediction-with-Tabular-Foundation-Models. The final instruction-tuned model (ICL-NS-G2P-proto) is also released in this repository. Detailed documentation is provided, including environment setup instructions and guidelines for running various parts. The instruction-tuning task datasets are available at https://zenodo.org/records/18309187.\n\nContactadas23@uthsc.edu, ycui2@uthsc.edu\n\nSupplementary InformationSupplementary data are available online.",
+      "authors": [
+        "Das, A.",
+        "Cui, Y."
+      ],
+      "primary_category": "bioinformatics",
+      "categories": [
+        "bioinformatics"
+      ],
+      "published": "2026-06-02T00:00:00+00:00",
+      "link": "https://www.biorxiv.org/content/10.64898/2026.05.29.728877v1.full.pdf",
+      "tags": [
+        "keyword:prompt-learn"
+      ],
+      "llm_score": 8.0,
+      "llm_evidence_en": "uses in-context learning with tabular foundation models, providing ancestry examples as demonstrations in the prompt to adapt genomic prediction",
+      "llm_evidence_cn": "利用表格基座模型的上下文学习，在提示中提供祖源示例作为演示以适应性基因组预测",
+      "llm_evidence": "利用表格基座模型的上下文学习，在提示中提供祖源示例作为演示以适应性基因组预测",
+      "canonical_evidence": "利用表格基座模型的上下文学习，在提示中提供祖源示例作为演示以适应性基因组预测",
+      "llm_tldr_en": "To address performance disparities in genomic risk prediction across ancestry groups, this work leverages in-context learning with tabular foundation models. By including demonstrations in the prompt, the model adapts to under-sampled groups without retraining, reducing degradation. This shows the effectiveness of learning from prompt context in a biomedical domain, aligning with in-context prompt learning.",
+      "llm_tldr_cn": "为解决基因组风险预测在不同祖源群体间的性能不均，本文利用表格基座模型的上下文学习能力，通过在提示中提供示例进行无重训练的适应，减轻了欠采样群体的性能下降。结果表明在生物医学领域中从提示上下文学习是有效的，体现了上下文提示学习的潜力。",
+      "llm_tldr": "为解决基因组风险预测在不同祖源群体间的性能不均，本文利用表格基座模型的上下文学习能力，通过在提示中提供示例进行无重训练的适应，减轻了欠采样群体的性能下降。结果表明在生物医学领域中从提示上下文学习是有效的，体现了上下文提示学习的潜力。",
+      "llm_tags": [
+        "query:prompt-learn"
+      ],
+      "matched_query_tag": "query:prompt-learn",
+      "matched_query_text": "learning from demonstrations provided in the prompt context",
+      "matched_requirement_id": "req-3",
+      "selection_source": "fresh_fetch"
+    }
+  ],
+  "quick_skim": []
+}

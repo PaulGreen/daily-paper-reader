@@ -1,6 +1,9 @@
 * <a class="dpr-sidebar-root-link" href="#/">首页</a>
 * <a class="dpr-sidebar-root-link dpr-sidebar-noactive-link" href="javascript:void(0)" data-dpr-hash="#/tutorial/README">使用教程</a>
 * Daily Papers
+  * 2026-06-07 <!--dpr-date:20260607-->
+    * 精读区
+      * <a class="dpr-sidebar-item-link dpr-sidebar-item-structured" href="#/202606/07/biorxiv-10-64898-2026-05-29-728877-v1-bridging-ancestry-gaps-in-genomic-risk-prediction-with-tabular-foundation-models" data-sidebar-item="{&quot;title&quot;: &quot;Bridging Ancestry Gaps in Genomic Risk Prediction with Tabular Foundation Models&quot;, &quot;link&quot;: &quot;https://arxiv.org/abs/biorxiv-10-64898-2026-05-29-728877-v1-bridging-ancestry-gaps-in-genomic-risk-prediction-with-tabular-foundation-models&quot;, &quot;score&quot;: &quot;8.0&quot;, &quot;tags&quot;: [{&quot;kind&quot;: &quot;query&quot;, &quot;label&quot;: &quot;prompt-learn&quot;}], &quot;evidence&quot;: &quot;利用表格基座模型的上下文学习，在提示中提供祖源示例作为演示以适应性基因组预测&quot;}">Bridging Ancestry Gaps in Genomic Risk Prediction with Tabular Foundation Models</a>
   * 2026-06-06 <!--dpr-date:20260606-->
     * 精读区
       * <a class="dpr-sidebar-item-link dpr-sidebar-item-structured" href="#/202606/06/2606.04465v1-sepo-self-evolving-prompt-agent-for-system-prompt-optimization" data-sidebar-item="{&quot;title&quot;: &quot;SePO: Self-Evolving Prompt Agent for System Prompt Optimization&quot;, &quot;link&quot;: &quot;https://arxiv.org/abs/2606.04465v1-sepo-self-evolving-prompt-agent-for-system-prompt-optimization&quot;, &quot;score&quot;: &quot;10.0&quot;, &quot;tags&quot;: [{&quot;kind&quot;: &quot;query&quot;, &quot;label&quot;: &quot;prompt-learn&quot;}], &quot;evidence&quot;: &quot;自进化优化离散系统提示以改善代理行为&quot;}">SePO: Self-Evolving Prompt Agent for System Prompt Optimization</a>

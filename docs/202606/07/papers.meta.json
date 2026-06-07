@@ -1,0 +1,24 @@
+{
+  "label": "2026-06-07",
+  "date": "2026-06-07",
+  "generated_at": "2026-06-07T20:21:14",
+  "count": 1,
+  "papers": [
+    {
+      "paper_id": "202606/07/biorxiv-10-64898-2026-05-29-728877-v1-bridging-ancestry-gaps-in-genomic-risk-prediction-with-tabular-foundation-models",
+      "section": "deep",
+      "title_en": "Bridging Ancestry Gaps in Genomic Risk Prediction with Tabular Foundation Models",
+      "authors": "Das, A., Cui, Y.",
+      "date": "2026-06-02",
+      "pdf": "https://www.biorxiv.org/content/10.64898/2026.05.29.728877v1.full.pdf",
+      "score": "8.0",
+      "evidence": "利用表格基座模型的上下文学习，在提示中提供祖源示例作为演示以适应性基因组预测",
+      "tldr": "基因组风险预测模型在不同祖先群体中表现不均，主要由于样本不平衡和效应异质性。本研究提出指令微调框架，将遗传祖先视为连续变量，合成具有祖先依赖非平稳效应的任务训练表格基础模型。结果表明，指令微调模型在全祖先谱上实现更稳定和更优的预测性能，有效缩小基因组预测的祖先差距。这为公平精准医疗提供了新的技术路径。",
+      "tags": "query:prompt-learn",
+      "abstract_en": "MotivationModels deployed for genomic prediction of diseases perform unevenly across populations, limiting clinical utility. Two factors drive this limitation: large imbalances in sample availability across ancestry groups and non-stationarity of genotype-phenotype effect sizes across the ancestry continuum. While tabular foundation models with in-context learning (ICL) have shown strong sample efficiency in other domains, their effectiveness for genotype-to-phenotype prediction and their robustness to ancestry-driven effect heterogeneity remain unclear.\n\nResultsUsing large, ancestrally diverse biobank data, we show that ICL-capable tabular foundation models reduce performance degradation in under-sampled ancestry groups compared to conventional supervised approaches. However, we find that prevailing models trained on existing synthetic tabular tasks fail when allele effect sizes vary across ancestry space. Treating genetic ancestry as a continuous variable, we introduce an instruction-tuning framework that exposes models to synthetic tasks with ancestry-dependent non-stationary effects. Instruction-tuned models achieve improved and more stable predictive performance across the genetic ancestry continuum, including for individuals distant from in-context exemplars in ancestry space.\n\nAvailability and ImplementationAll code for instruction-tuning models, synthetic task generation, data wrangling, and model evaluation, is publicly available at https://github.com/ai4pm/Bridging-Ancestry-Gaps-in-Genomic-Risk-Prediction-with-Tabular-Foundation-Models. The final instruction-tuned model (ICL-NS-G2P-proto) is also released in this repository. Detailed documentation is provided, including environment setup instructions and guidelines for running various parts. The instruction-tuning task datasets are available at https://zenodo.org/records/18309187.\n\nContactadas23@uthsc.edu, ycui2@uthsc.edu\n\nSupplementary InformationSupplementary data are available online.",
+      "source": "biorxiv",
+      "selection_source": "fresh_fetch"
+    }
+  ],
+  "errors": []
+}

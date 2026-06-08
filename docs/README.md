@@ -6,23 +6,30 @@
 </div>
 
 ## 每次日报
-- 最新运行日期：2026-06-07
-- 运行时间：2026-06-07 20:21:05 UTC
+- 最新运行日期：2026-06-08
+- 运行时间：2026-06-08 21:57:35 UTC
 - 运行状态：成功
-- 本次总论文数：1
-- 精读区：1
+- 本次总论文数：4
+- 精读区：4
 - 速读区：0
 
 ### 今日简报（AI）
-今日精读一篇高分研究：用表格基础模型弥合基因组风险预测中的血统差距。  
-核心结论：新型表格大模型能大幅提升非欧洲人群的多基因风险评分准确性，有望打破基因组医学的种族偏见。  
-建议关注此类跨血统迁移方法，或自行尝试用公开测序数据验证模型泛化能力。
-- 详情：[/202606/07/README](/202606/07/README)
+精读两篇高分论文，聚焦提示调优的持续适应与对抗鲁棒性。值得关注回归评估框架RECAP对遗忘问题的监控，以及SS-TPT用稳定性与适应性引导测试时提示调优的新思路。建议读者可结合这两篇论文的方法，思考在实际视觉-语言模型部署中如何平衡适应效率与安全鲁棒性。
+- 详情：[/202606/08/README](/202606/08/README)
 
 ### 精读区论文标签
-1. [Bridging Ancestry Gaps in Genomic Risk Prediction with Tabular Foundation Models](/202606/07/biorxiv-10-64898-2026-05-29-728877-v1-bridging-ancestry-gaps-in-genomic-risk-prediction-with-tabular-foundation-models)  
+1. [RECAP: Regression Evaluation for Continual Adaptation of Prompts](/202606/08/2606.06698v1-recap-regression-evaluation-for-continual-adaptation-of-prompts)  
+   标签：评分：9.0/10、query:prompt-learn
+   evidence：约束变化下提示持续适应的评估基准
+2. [SS-TPT: Stability and Suitability-Guided Test-Time Prompt Tuning for Adversarially Robust Vision-Language Models](/202606/08/2606.06943v1-ss-tpt-stability-and-suitability-guided-test-time-prompt-tuning-for-adversarially-robust-vision-language-models)  
+   标签：评分：9.0/10、query:prompt-learn
+   evidence：针对视觉语言模型的连续嵌入测试时提示调优
+3. [Supervision versus Demonstration-Based In-Context Learning for Multiword Expression Classification](/202606/08/2606.07479v1-supervision-versus-demonstration-based-in-context-learning-for-multiword-expression-classification)  
+   标签：评分：9.0/10、query:prompt-learn
+   evidence：使用演示的上下文学习
+4. [The Effect of Training Task Diversity on In-Context Learning through the Lens of Low-Dimensional Subspaces](/202606/08/2606.06814v1-the-effect-of-training-task-diversity-on-in-context-learning-through-the-lens-of-low-dimensional-subspaces)  
    标签：评分：8.0/10、query:prompt-learn
-   evidence：利用表格基座模型的上下文学习，在提示中提供祖源示例作为演示以适应性基因组预测
+   evidence：分析在提示中提供演示的上下文学习
 
 ### 速读区论文标签
 - 本次无速读推荐。

@@ -1,0 +1,69 @@
+{
+  "label": "2026-06-08",
+  "date": "2026-06-08",
+  "generated_at": "2026-06-08T21:57:47",
+  "count": 4,
+  "papers": [
+    {
+      "paper_id": "202606/08/2606.06698v1-recap-regression-evaluation-for-continual-adaptation-of-prompts",
+      "section": "deep",
+      "title_en": "RECAP: Regression Evaluation for Continual Adaptation of Prompts",
+      "authors": "Harsh Deshpande, Kushal Chawla, Sangwoo Cho, William Campbell",
+      "date": "2026-06-04",
+      "pdf": "https://arxiv.org/pdf/2606.06698v1",
+      "score": "9.0",
+      "evidence": "约束变化下提示持续适应的评估基准",
+      "tldr": "生产环境代理系统面临不断变化的合规约束，必须从下次交互起立即遵守，而现有基准假设静态约束或反应式评估，未涵盖主动适应场景。为此，我们提出RECAP基准，通过主动适应后测试协议，在仅有约束规范时即需泛化，衡量约束级别的遗忘、回归和正向迁移等持续学习现象。在四个LLM、三种调度下评估六种提示优化方法，发现它们均无显著改进，甚至带来更高延迟。结果表明，现有针对离线或反应式设计的方法无法胜任主动范式，亟需开发能在演化需求下保持鲁棒性的主动提示适应方法。",
+      "tags": "query:prompt-learn",
+      "abstract_en": "Production agentic systems routinely face evolving constraints and must comply from the very next interaction. Scenarios like a tool-call notification changing a compliance threshold or a policy update adding disclosure requirements fit this criteria, having close to no room for errors in production. This proactive adaptation setting is common in deployment, but absent from current benchmarks, which assume either static constraint sets or reactive protocols with evaluation feedback. We introduce RECAP, a benchmark that measures continual-learning phenomena (forgetting, regression, forward transfer) at the constraint level under a strictly proactive adapt-then-test protocol: prompt optimization methods receive only the constraint specification and must generalize before seeing any test data. Evaluating six methods across four LLMs and three schedules with evolving constraints, we find that these methods show no significant improvement in performance, even after incurring a higher latency. These methods, designed for offline or reactive settings, are inadequate for the proactive paradigm. Our work emphasizes the growing need for designing proactive prompt adaptation methods, where the models must remain robust to evolving needs in deployment.",
+      "source": "arxiv",
+      "selection_source": "fresh_fetch"
+    },
+    {
+      "paper_id": "202606/08/2606.06943v1-ss-tpt-stability-and-suitability-guided-test-time-prompt-tuning-for-adversarially-robust-vision-language-models",
+      "section": "deep",
+      "title_en": "SS-TPT: Stability and Suitability-Guided Test-Time Prompt Tuning for Adversarially Robust Vision-Language Models",
+      "authors": "Sunoh Kim, Daeho Um",
+      "date": "2026-06-05",
+      "pdf": "https://arxiv.org/pdf/2606.06943v1",
+      "score": "9.0",
+      "evidence": "针对视觉语言模型的连续嵌入测试时提示调优",
+      "tldr": "视觉语言模型（如CLIP）虽零样本识别能力强，但在对抗扰动下极易出错，现有测试时自适应防御通过多增强视图提升鲁棒性，但导致推理速度大幅下降并形成鲁棒性-吞吐量权衡。为解决此挑战，本文提出SS-TPT，引入稳定性和适宜性双分数来筛选增强视图质量：稳定性衡量预测对弱增强的不变性，适宜性刻画视图间特征密度。这些分数指导自适应调优的SS一致性损失和推理时的SS加权预测，从而放大可信视图、抑制受损视图。大量实验表明，SS-TPT在多个数据集和不同视图数下均显著优于先前最先进方法，取得最优鲁棒性-吞吐量平衡，兼具实用性和通用性。",
+      "tags": "query:prompt-learn",
+      "abstract_en": "Vision-language models (VLMs) such as CLIP achieve strong zero-shot recognition but remain highly fragile under adversarial perturbations. Recent test-time adaptation defenses improve robustness by leveraging many augmented views, but this leads to impractical slowdown and a clear robustness-throughput trade-off. To address this challenge, we present Stability and Suitability-guided Test-time Prompt Tuning (SS-TPT), evaluating the quality of each augmented view via two complementary scores: (1) stability, measuring prediction invariance to weak augmentations, and (2) suitability, measuring feature-space density among views. These stability and suitability (SS) scores guide both adaptation and inference through an SS-guided consistency loss and an SS-weighted prediction, amplifying trustworthy views while suppressing corrupted ones. Extensive experiments demonstrate that SS-TPT significantly outperforms prior state-of-the-art methods, achieving superior robustness-throughput trade-offs across diverse datasets and varying numbers of views, thereby demonstrating both strong practicality and generality. Our code is available at https://github.com/sunoh-kim/SS-TPT.",
+      "source": "arxiv",
+      "selection_source": "fresh_fetch"
+    },
+    {
+      "paper_id": "202606/08/2606.07479v1-supervision-versus-demonstration-based-in-context-learning-for-multiword-expression-classification",
+      "section": "deep",
+      "title_en": "Supervision versus Demonstration-Based In-Context Learning for Multiword Expression Classification",
+      "authors": "Sercan Karakaş, Yusuf Şimşek",
+      "date": "2026-06-05",
+      "pdf": "https://arxiv.org/pdf/2606.07479v1",
+      "score": "9.0",
+      "evidence": "使用演示的上下文学习",
+      "tldr": "土耳其语习语轻动词结构（LVC）因表面形式与字面组合共享而难以自动检测。研究将其作为二分类任务，在匹配对照集上对比有监督BERTurk微调与三种指令微调LLM的零样本、单样本和少样本提示表现。零样本LLM对负样本高精度但LVC召回极低；单样本提示显著改善召回却引入模型特异性偏差；少样本提示使GPT-OSS-20B和Qwen 2.5-14B校准更优，达到稳健整体性能。结果揭示提示敏感性，精心设计的演示可让LLM匹配或超越有监督基线。",
+      "tags": "query:prompt-learn",
+      "abstract_en": "Turkish idiomatic light verb constructions (LVCs) are challenging for multiword expression processing because they often share the same surface form as fully literal verb-object combinations while functioning as a single, partially idiomatic predicate. We frame Turkish LVC detection as a binary classification task (literal meaning vs. idiomatic meaning) and evaluate on a manually created controlled set (N=147) with matched negatives: out-of-domain random sentences and in-domain literal controls (NLVC), alongside LVC positives. We compare a supervised Turkish encoder baseline (BERTurk with a classifier head) to three instruction-tuned LLMs from different families under zero-shot, one-shot, and few-shot prompting, and analyze how demonstrations shift error profiles. In zero-shot, LLMs perform well on negatives but show very low LVC recall. One-shot prompting sharply improves LVC detection but can induce strong, model-specific biases, leading models to overpredict or underpredict LVCs. A richer few-shot prompt improves calibration and yields robust overall performance for GPT-OSS-20B and Qwen 2.5-14B. Overall, the results highlight substantial prompt sensitivity in Turkish metalinguistic classification: the supervised baseline remains competitive, while prompted LLMs can match or exceed it on LVCs with carefully constructed demonstrations.",
+      "source": "arxiv",
+      "selection_source": "fresh_fetch"
+    },
+    {
+      "paper_id": "202606/08/2606.06814v1-the-effect-of-training-task-diversity-on-in-context-learning-through-the-lens-of-low-dimensional-subspaces",
+      "section": "deep",
+      "title_en": "The Effect of Training Task Diversity on In-Context Learning through the Lens of Low-Dimensional Subspaces",
+      "authors": "Soo Min Kwon, Alec S. Xu, Can Yaras, Dogyoon Song, Laura Balzano, Qing Qu",
+      "date": "2026-06-05",
+      "pdf": "https://arxiv.org/pdf/2606.06814v1",
+      "score": "8.0",
+      "evidence": "分析在提示中提供演示的上下文学习",
+      "tldr": "上下文学习（ICL）的训练任务多样性如何影响学习动态和泛化，现有研究基于任务向量数量或函数类数量两种定义，后者观察到的现象缺乏理论解释。本文提出最小解析模型，通过低维子空间视角，将训练任务向量建模为低秩高斯混合，以协方差子空间间的非重叠列数定义多样性。理论证明该多样性改善线性注意力ICL的泛化与优化轨迹，缩短ICL平台期并实现分布外泛化。提供了一个可统一现有观察的易处理框架，并展示其对非线性变压器和函数类的可扩展性。",
+      "tags": "query:prompt-learn",
+      "abstract_en": "The transformer's emergent ability to perform in-context learning (ICL) has sparked a wide range of studies designed to understand its underlying mechanisms. Existing works often study how training task diversity, defined either as the number of ICL training task vectors or as the number of function classes from which the task vectors are drawn, shapes both the learning dynamics and generalization capabilities of ICL. While both definitions have uncovered many interesting phenomena, many observations under the latter definition remain theoretically unexplained. This paper presents a minimal analytical model under which these phenomena provably emerge from the properties of the training data. By modeling the training task vectors as a mixture of low-rank Gaussians, we show how training task diversity, defined by the number of non-overlapping columns between subspaces that parameterize the covariance matrices, improves both the generalization and optimization trajectory of ICL with linear attention. In particular, we show that our model can explain (i) why training with task diversity shortens the ICL plateau and (ii) why ICL appears to achieve out-of-distribution generalization. We conclude by empirically demonstrating how our results extend to nonlinear transformers and nonlinear function classes. Overall, our work presents a tractable framework to unify existing observations.",
+      "source": "arxiv",
+      "selection_source": "fresh_fetch"
+    }
+  ],
+  "errors": []
+}

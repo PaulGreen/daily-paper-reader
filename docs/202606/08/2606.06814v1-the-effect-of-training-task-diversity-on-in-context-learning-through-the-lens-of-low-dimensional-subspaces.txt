@@ -1,0 +1,4976 @@
+Title: The Effect of Training Task Diversity on In-Context Learning through the Lens of Low-Dimensional Subspaces
+
+URL Source: https://arxiv.org/pdf/2606.06814v1
+
+Published Time: Mon, 08 Jun 2026 00:24:29 GMT
+
+Number of Pages: 43
+
+Markdown Content:
+# The Effect of Training Task Diversity on In-Context Learning through the Lens of Low-Dimensional Subspaces 
+
+Soo Min Kwon 1, Alec S. Xu 1, Can Yaras 1, Dogyoon Song 2, Laura Balzano 1, Qing Qu 1
+
+> 1
+
+Department of Electrical and Computer Engineering, University of Michigan 
+
+> 2
+
+Department of Statistics, University of California, Davis 
+
+Abstract 
+
+The transformer’s emergent ability to perform in-context learning (ICL) has sparked a wide range of studies designed to understand its underlying mechanisms. Existing works often study how training task diversity, defined either as the number of ICL training task vectors or as the number of function classes from which the task vectors are drawn, shapes both the learning dynamics and generalization capabilities of ICL. While both definitions have uncovered many interesting phenomena, many obser-vations under the latter definition remain theoretically unexplained. This paper presents a minimal analytical model under which these phenomena provably emerge from the properties of the training data. By modeling the training task vectors as a mixture of low-rank Gaussians, we show how training task diversity, defined by the number of non-overlapping columns between subspaces that parameterize the covariance matrices, improves both the generalization and optimization trajectory of ICL with linear attention. In particular, we show that our model can explain (i) why training with task diversity shortens the ICL plateau and (ii) why ICL appears to achieve out-of-distribution generalization. We conclude by empirically demonstrating how our results extend to nonlinear transformers and nonlinear function classes. Overall, our work presents a tractable framework to unify existing observations. 
+
+Date: June 8, 2026 
+
+Correspondence: kwonsm@umich.edu 
+
+Resources: https://github.com/soominkwon/ood-icl-generalize https://deepthink-umich.github.io ✗
+
+Task Diversity Accelerates Convergence 
+
+w/ task diversity w/o task diversity 
+
+Task Diversity Enables Out-of-Distribution Generalization 
+
+: testing subspace 
+
+Figure 1: An illustrative overview. We introduce a subspace-based notion of task diversity and prove its benefits for transformer learning dynamics and generalization. Top: task diversity accelerates convergence in both linear attention and GPT-2. Bottom: at the global minimum, a transformer trained with diverse tasks can generalize to all subspaces within the span of training subspaces at principal angle 𝜃 , even in zero-density regions, but cannot generalize beyond this span. 
+
+1
+
+> arXiv:2606.06814v1 [stat.ML] 5 Jun 2026
+
+# Contents 
+
+1 Introduction 32 Background and Problem Setup 4
+
+2.1 In-Context Learning Setup . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 52.2 Single-Layer Linear Attention . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 52.3 Linear Regression and Training Task Diversity . . . . . . . . . . . . . . . . . . . . . . 6
+
+3 Task Diversity Accelerates Convergence 7
+
+3.1 Gradient Flow Training Trajectory . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 83.2 Main Result: Convergence-Time Decomposition . . . . . . . . . . . . . . . . . . . . . 93.3 Convergence Time with a Single Task . . . . . . . . . . . . . . . . . . . . . . . . . . . 12 3.4 Convergence Time with Task Diversity: A Two-Stage Learning Paradigm . . . . . . . 12 
+
+4 Task Diversity Enables Out-of-Distribution Generalization 14 
+
+4.1 Training and Testing Data Distributions . . . . . . . . . . . . . . . . . . . . . . . . . . 14 4.2 ICL Can Generalize to the Span of Training Subspaces . . . . . . . . . . . . . . . . . . 15 4.3 ICL Cannot Generalize Outside of the Training Subspaces . . . . . . . . . . . . . . . . 16 
+
+5 Experimental Results 18 
+
+5.1 Experimental Setup . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 18 5.2 Experiments for Accelerating Convergence . . . . . . . . . . . . . . . . . . . . . . . . 18 5.3 Experiments for Out-of-Distribution Generalization . . . . . . . . . . . . . . . . . . . 20 
+
+6 Conclusion 22 A Deferred Proofs from Section 3 28 
+
+A.1 Proof of Proposition 1 . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 28 A.2 Proof of Lemma 1 . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 31 A.3 Derivation for Single Task Case . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 32 A.4 Derivation for Task Diverse Case . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 32 A.5 Derivation for Result 2 . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 35 A.6 Comparing Convergence Times Directly . . . . . . . . . . . . . . . . . . . . . . . . . . 37 
+
+B Deferred Proofs from Section 4 39 
+
+B.1 Proof of Theorem 1 and Theorem 2 . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 39 B.2 Proof of Theorem 3 . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 41 B.3 Miscellaneous Results . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 43 21 Introduction 
+
+Transformer-based large language models (LLMs) [Vas+17] have revolutionized natural language processing and driven significant progress across a wide range of domains, including logical reason-ing [Wei+22b], sentiment classification [Che+24b; Wan+24b; Xu+24], machine translation [Vil+22; Agr+23], and code generation [Li+23; Pat+24]. Their success is largely attributed to scaling up model size, which has been shown to improve both performance and sample efficiency [Kap+20]. Interestingly, large-scale transformers also exhibit emergent capabilities—abilities that arise only beyond a certain scale [Wei+22a]. One striking example is in-context learning (ICL), where a model can perform a task simply by being prompted with a few input–output examples, without any gradient-based updates. This sparked both theoretical [ZFB24; HCL24; Li+24; Aky+23; Von+23; Ahn+23; LRO24] and empirical [Gar+22; Rav+23; YDT23; Wan+25; AL23; ZFB24; Li+24; Pan+23; KGR24] research aimed at understanding its strengths, limitations, and underlying mechanisms. To better understand the capabilities of ICL, a growing body of work has focused on the effect of training data and how it shapes ICL. Specifically, these works aim to identify how task diversity affects ICL, where a “task” refers to the function that generates the output corresponding to a given input. Then, there are actually two different definitions of training task diversity used in the literature: (i) the number of training tasks in the training data, where each task is drawn from the 
+
+same function class, and (ii) the number of different function classes represented in the training data. The first definition is often used to study the transition from memorization to generalization of ICL, and is better theoretically understood [Rav+23; Lu+25]. The second definition has been used to explain a variety of other observations, including its effect on ICL’s training dynamics [Kim+25] as well as ICL’s out-of-distribution (OOD) capabilities [God+25]. However, many of these observations under the second definition remain theoretically underexplored, primarily because this notion of task diversity varies across works and is often defined in a way that is not amenable to analysis. For example, when training transformers to perform ICL, it is often observed that the training loss remains plateaued for a substantial number of iterations before abruptly decreasing to near-optimal values [Che+24a; GLH24; Kim+25]. Interestingly, [Kim+25] empirically showed that training task diversity shortens this plateau, demonstrating that sampling task functions from different classes (e.g., linear regression, quadratic regression, and LeakyReLU regression) during training accelerates learning over training each function class independently. We reproduce this observation in Figure 2 (left), where we show that a model trained with task diversity converges to a solution much faster than when training on each task individually. Their hypothesis is that this plateau arises from the difficulty of learning a common structure across tasks, and that jointly training multiple tasks with shared structure accelerates learning. This in turn supports the use of diverse yet similar task functions in training data for more efficient transformer training. While [Kim+25] provide strong empirical evidence for this hypothesis, a rigorous theoretical justification remains lacking. Moreover, [God+25] propose another definition of task diversity with an aim to demystify the OOD capabilities of ICL. In the literature, there exist mixed conclusions on whether ICL can gener-alize OOD: while many works claim that ICL is robust to distribution shifts in a linear regression setting [Gar+22; ZFB24], [Wan+25] recently challenged these views, empirically demonstrating that ICL generally succeeds only on in-distribution language data. To unify these views, [God+25] consider a setting in which training task vectors are drawn from a subset of the unit hypersphere and define task diversity as the size of this subset. They show that increasing this size (and thus greater task diversity) is key to enabling OOD generalization. Unfortunately, their definition of the task vector made theoretical analysis intractable, restricting their study to empirical results. While the works of [Kim+25] and [God+25] highlight and advocate for task diversity in the 3training data for training transformers, there is no clear theoretical justification for when and how task diversity specifically helps training transformers. In this work, we propose a mathematical framework that aims to unify these works and clearly identify how task diversity benefits ICL. We analyze the training dynamics and generalization behavior of ICL in a single-layer linear attention model for linear regression, where the training task vectors are drawn from a mixture of Gaussians. Specifically, each mixture component is parameterized using a low-dimensional subspace, where subspaces across components share a common subspace. Then, we use this parameterization along with overlapping subspaces to define a notion of task diversity in a more principled way, while still reproducing a shortened plateau as observed by [Kim+25] and enabling OOD generalization similar to that of [God+25] (see Figure 1 for an illustrative overview). Overall, our findings can be summarized as follows: Summary of Contributions: 
+
+• Task Diversity Accelerates Convergence (Section 3): Using gradient flow, we show that having diverse task vectors yields a two-phase learning dynamic: an initial phase in which overlapping components across subspaces are learned, followed by a rapid learning phase of non-overlapping subspace components. We derive the discrete-time convergence to a 𝛿 -stationary point with an ansatz, and show that the convergence time largely scales with the number of shared components. This implies that the ICL plateau corresponds to learning this shared structure; once learned, individual components converge quickly, confirming the hypothesis of [Kim+25] in our mathematical setting. 
+
+• Task Diversity Enables Out-of-Distribution Generalization (Section 4): Our mathe-matical model allows us to define subspaces at specific principal angles relative to the training subspaces. We show that a transformer trained on tasks drawn from a mixture of Gaussians can generalize to subspaces across all principal angles within the training span, including regions with zero probability density under the training distribution. In contrast, when tested on subspaces outside the training span, the model incurs test risk as a function of the angle, indicating it cannot generalize beyond the training subspaces. Together, these results provide a principled explanation for the OOD capabilities of ICL observed in the literature: test task vectors must lie within the span of the training task vectors. 
+
+Notation. We denote scalars with unbolded letters (e.g., 𝑚, 𝑀 ), vectors with bold lower-case letters (e.g., x) and matrices with bold upper-case letters (e.g., X). We use I𝑛 to denote an identity matrix of size 𝑛 ∈ N. We use ℛ( X) to denote the range or the column space of the matrix X. Lastly, given any 𝑛 ∈ N, we use [𝑛 ] to denote the index set {1, . . . , 𝑛 }.
+
+# 2 Background and Problem Setup 
+
+To facilitate analysis, we require a tractable model and experimental setup that exhibit ICL. [Ahn+24] empirically demonstrated that many phenomena observed in vanilla transformers can also be repli-cated in transformers with linear attention. These findings motivated subsequent works [Ahn+23; ZFB24; LRO24; Wu+24; Goz+25; Cha+25] to adopt linear attention together with linear regression as a testbed for studying ICL, an approach we also follow in our analysis. In the following, we introduce these two components in detail, discuss their relationship to ICL, and explain how we use linear regression to define a new notion of task diversity. 42.1 In-Context Learning Setup 
+
+Given a sequence of 𝑛 input-output example pairs {x𝑖 , 𝑦 𝑖 }𝑛 𝑖 =1 ⊂ R𝑑 × R, the objective of ICL is to predict the output 𝑦 𝑛 +1 ∈ R corresponding to an unseen query x𝑛 +1 ∈ R𝑑 . Following prior works [Gar+22], we assume each output is generated via 𝑦 𝑖 = 𝑓 (x𝑖 ) for some function 𝑓 : R𝑑 → R, where 
+
+𝑓 ∈ ℱ is sampled from a distribution over a function class ℱ . By convention, a transformer takes in these pairs as a prompt Z ∈ R(𝑛 +1)×( 𝑑 +1) constructed in the following form: 
+
+Z = z1 . . . z𝑛 z𝑛 +1
+
+⊤ =
+
+x1 . . . x𝑛 x𝑛 +1
+
+𝑦 1 . . . 𝑦 𝑛 0
+
+⊤
+
+,
+
+where z𝑖 := x⊤ 
+
+> 𝑖
+
+𝑦 𝑖 
+
+⊤ and z𝑛 +1 := x⊤ 
+
+> 𝑛 +1
+
+0⊤. Then, a transformer 𝑔 𝒲 : R(𝑛 +1)×( 𝑑 +1) → R,parameterized by weights 𝒲 , takes these prompts as input and is trained by minimizing the following expected squared loss with respect to 𝒲 :
+
+min  
+
+> 𝒲
+
+ℒ(𝒲 ) := E
+
+h 𝑦 𝑛 +1 − 𝑔 𝒲 (Z)2i
+
+. (1) During inference time, we test the trained model denoted 𝑔 ★ 
+
+> 𝒲
+
+using 𝑚 +1 paired examples {x𝑗 , ˜𝑦 𝑗 }𝑚 +1 
+
+> 𝑗 =1
+
+.The input prompts are constructed in the same manner: 
+
+eZ =
+
+x1 . . . x𝑚 x𝑚 +1
+
+e𝑦 1 . . . e𝑦 𝑚 0
+
+⊤
+
+and ez𝑚 +1 =
+
+x𝑚 +1
+
+0
+
+
+
+,
+
+where the labels are generated via e𝑦 𝑗 = e𝑓 (x𝑗 ) for some function e𝑓 ∈ ℱ .
+
+2.2 Single-Layer Linear Attention 
+
+For linear attention, given the full prompt Z, we consider the following masked prompt [Ahn+23; MHM24]: 
+
+Zℳ = z1 . . . z𝑛 0⊤ .
+
+Then, the single-layer linear attention model sets 𝑔 𝒲 as follows to make the prediction b𝑦 𝑛 +1:
+
+b𝑦 𝑛 +1 = 𝑔 𝒲 (Z) = 1
+
+𝑛 
+
+
+
+z⊤
+
+> 𝑛 +1
+
+W𝑄 W⊤ 
+
+> 𝐾
+
+Z⊤ℳ
+
+
+
+ZℳW𝑉 p, (2) where p = [0𝑑 1]⊤ and W𝐾 , W𝑄 , W𝑉 ∈ R(𝑑 +1)×( 𝑑 +1) are the key, query, and value weight matrices, respectively. This sets 𝒲 = {W𝐾 , W𝑄 , W𝑉 } as the collection of trainable weights corresponding to the linear attention model. Then, let 𝒲 ★ = {W★ 
+
+> 𝐾
+
+, W★ 
+
+> 𝑄
+
+, W★ 
+
+> 𝑉
+
+} be the optimal weights obtained by minimizing the loss in Equation (1). During inference time, we test the optimal linear attention model denoted as 𝑔 ★ 
+
+> 𝒲
+
+using the 𝑚 + 1 paired examples: 
+
+b𝑦 𝑚 +1 = 𝑔 ★
+
+> 𝒲
+
+eZ
+
+
+
+= 1
+
+𝑚 
+
+ez⊤
+
+> 𝑚 +1
+
+W★ 
+
+> 𝑄
+
+W★⊤ 
+
+> 𝐾
+
+eZ⊤ℳ
+
+ eZℳW★ 
+
+> 𝑉
+
+p,
+
+where we normalize by a factor of 𝑚 instead of 𝑛 .50 100 200 300 400 500        
+
+> Iterations (x100)
+> 0.0
+> 0.2
+> 0.4
+> 0.6
+> 0.8
+> 1.0
+> Train Loss
+> Linear
+> Sparse
+> Leaky ReLU
+> All Tasks 0100 200 300 400 500
+> Iterations (x100)
+> 0.0
+> 0.2
+> 0.4
+> 0.6
+> 0.8
+> 1.0
+> Train Loss
+> 1 Task
+> 2 Tasks ( nover = 2)
+> 3 Tasks ( nover = 3)
+
+Figure 2: Demonstrating the effects of training task diversity. We train a GPT-2 model for ICL, and show that task diversity shortens the ICL plateau. Left: Reproducing the observations of [Kim+25] with 𝑑 = 10 ; training on all tasks jointly (linear, sparse, Leaky ReLU) drops the training loss faster than that of training on each task individually. Right: Plot of the training loss using our definition of task diversity with 𝑑 = 15 and 𝑞 = 12 . When drawn from multiple tasks with shared directions across all task vectors, the ICL plateau drops more quickly than for a single individual task. In both figures, we draw from each task (or function class) with equal probability. 
+
+2.3 Linear Regression and Training Task Diversity 
+
+With linear attention, the most commonly studied ICL setup is the linear regression setting, which specifies 𝑓 (x) = w⊤x for some task vector w ∈ R𝑑 . In this section, our goal is to use linear regression to define a notion of task diversity similar to [God+25; Kim+25], but in a more tractable manner. Recall that [Kim+25] defines training task diversity as drawing from multiple different task functions during training (e.g., linear regression, Leaky ReLU regression), sampled according to some probability distribution, rather than from a single task function. Following this definition, suppose there are a total of 𝐾 different source tasks we wish to learn. Instead of using different function classes, we capture task diversity through 𝐾 Gaussian distributions that differ only in their covariance structure: Task 1: 𝒩 ( 0, Σ𝑠, 1), Task 2: 𝒩 ( 0, Σ𝑠, 2), . . . , Task 𝐾 : 𝒩 ( 0, Σ𝑠,𝐾 ),
+
+where Σ𝑠,𝑘 ∈ R𝑑 ×𝑑 . We parameterize each covariance matrix using a low-rank orthonormal basis 
+
+U𝑠,𝑘 ∈ R𝑑 ×𝑟 𝑘 . We require that these task bases share a common subspace: 
+
+𝑛 over B dim 
+
+> 𝐾
+
+Ù
+
+> 𝑘 =1
+
+span  U𝑠,𝑘 
+
+!
+
+> 0, with 𝑛 over < 𝑞, 
+
+where we assume that any two task subspaces intersect only in this common subspace and are otherwise mutually orthogonal. Then, each covariance matrix takes the form: 
+
+Σ𝑠,𝑘 = U𝑠,𝑘 U⊤ 
+
+> 𝑠,𝑘
+
++ 𝜖 · I𝑑 ,
+
+where 𝜖 > 0 is a small constant to ensure a non-degenerate distribution. The intuition for this setup is as follows: [Kim+25] hypothesize that task diversity shortens the ICL plateau because jointly training on multiple tasks with shared structure makes that structure easier to learn. This setup allows us to directly test this hypothesis by checking whether having 60 < 𝑛 over < 𝑞 accelerates convergence, while the mutual orthogonality constraint ensures that each task contains independent components to be learned alongside the shared structure. Then, we say that a training task vector is diverse if it is drawn from a mixture of at least two distributions whose subspaces have a non-trivial intersection. We compare this to the non-diverse (or single-task) setting, which draws from a single orthonor-mal basis U𝑠 ∈ R𝑑 ×𝑞 that spans the union of all task subspaces, 𝒰 𝑠 , defined as: 
+
+𝒰 𝑠 B span (U𝑠, 1) + . . . + span (U𝑠,𝐾 ) , where dim (𝒰 𝑠 ) = 𝑞 < 𝑑. 
+
+While both setups span the same overall subspace 𝒰 𝑠 and aim to learn all 𝐾 tasks, this allows us to study task diversity can accelerate learning, as shown in Figure 2. Below, we formalize the data generation process for both task diverse and non-diverse setups. 
+
+Definition 1 (Task Diversity) . The training prompts consist of pairs {( x𝑖 , 𝑦 𝑖 )} 𝑛 +1 
+
+> 𝑖 =1
+
+, where for each 
+
+𝑖 ∈ [ 𝑛 + 1], the inputs are drawn independently as x𝑖 ∼ 𝒩 ( 0, I𝑑 ) and the targets are generated by 
+
+𝑦 𝑖 = w⊤x𝑖 + 𝜉 𝑖 , where 𝜉 𝑖 ∼ 𝒩 ( 0, 𝜎 2), (3) 
+
+and 𝜎 ≥ 0 represents the noise level. We define task diversity based on the distribution of the task vector w:
+
+(i) With Diversity: w is drawn from a mixture of 𝐾 ≥ 2 Gaussians: 
+
+w ∼ 1
+
+𝐾 
+
+> 𝐾
+
+Õ
+
+> 𝑘 =1
+
+𝒩 ( 0, Σ𝑠,𝑘 ) =
+
+
+
+𝒩 ( 0, Σ𝑠, 1) w.p. 1/𝐾, ...
+
+𝒩 ( 0, Σ𝑠,𝐾 ) w.p. 1/𝐾. 
+
+(4) (ii) Without Diversity: w is drawn from a single Gaussian, w ∼ 𝒩 ( 0, Σ𝑠 ):
+
+Σ𝑠 = U𝑠 U⊤ 
+
+> 𝑠
+
++ 𝜖 · I𝑑 , where U𝑠 ∈ R𝑑 ×𝑞 is an orthonormal basis for 𝒰 𝑠 . (5) We remark that this formulation for the task vectors employs a union-of-subspaces model, which has recently served as a theoretical testbed across a wide range of domains [Wan+24a; Xu+25]. 
+
+# 3 Task Diversity Accelerates Convergence 
+
+In this section, we study how task diversity, as defined in Section 2.3, benefits transformer learning dynamics. This section is organized as follows: Section 3.1 establishes the general gradient flow (GF) dynamics of a single-layer linear attention model; Section 3.2 states our main result quantifying the convergence speedup from task diversity; and Section 3.3 and Section 3.4 develop the proof sketch for the single-task and task-diverse cases, respectively. To simplify the analysis, we consider the 𝐾 = 2 case of Definition 1 where 𝑟 = 𝑟 1 = 𝑟 2: for 
+
+𝑖 ∈ [ 𝑛 + 1], we draw x𝑖 ∼ 𝒩 ( 0, I𝑑 ) independently and 
+
+𝑦 𝑖 = w⊤x𝑖 + 𝜉 𝑖 , 𝜉 𝑖 ∼ 𝒩 ( 0, 𝜎 2), w ∼
+
+(
+
+𝒩 ( 0, Σ𝑠, 1) w.p. 1/2,
+
+𝒩 ( 0, Σ𝑠, 2) w.p. 1/2. (6) 7We compare this to the single-task case, which sets 𝒰 𝑠 = span (U𝑠, 1) + span (U𝑠, 2) with dim (𝒰 𝑠 ) =
+
+𝑞 , rank (U𝑠, 1) = rank (U𝑠, 2) = 𝑟 , and 𝑟 > 𝑞 /2 such that 𝑛 over > 0. Furthermore, we will make the following assumptions throughout this section: (i) the component covariance matrices are normalized, i.e., Tr (Σ𝑠, 1) = Tr (Σ𝑠, 2) = 1 (which implies Tr (Σ𝑠 ) = 1), and (ii) the covariance matrices are exactly low-rank, i.e., 𝜖 = 0.
+
+3.1 Gradient Flow Training Trajectory 
+
+Following the work of [Zha+25], we first derive the general GF dynamics of linear attention with respect to the expected loss in Equation (1), subject to the following initial conditions: 
+
+W𝑄 (0) = W𝐾 (0) = 𝛼 · I𝑑 +1 and W𝑉 (0) = 𝜙 · I𝑑 +1 , (7) where 𝛼 > 0 is a small constant and 𝜙 = 𝛼 √𝑞 . The small initialization constant along with GF is often used in analyzing learning dynamics, as it has been shown to yield richer behavior compared to operating in the kernel regime [Zha+25; Jac+22; Dom+25; GSD20; SS21; Min+24; LLL21]. The value matrix is initialized using 𝜙 instead of 𝛼 to satisfy a conservation law used in our analysis (see Lemma 1). Then, the following result describes the limiting GF dynamics. 
+
+Proposition 1. Suppose the task vector w ∈ R𝑑 is a zero-mean random vector with covariance matrix 
+
+Σ𝑠 B E[ww ⊤], whose eigendecomposition is given by Σ𝑠 = U𝑠 Λ𝑠 U⊤ 
+
+> 𝑠
+
+. Given the initial conditions in Equation (7) , the linear attention model in Equation (2) is equivalent to 
+
+𝑔 𝒲 (Z) = 𝑣 x⊤
+
+> 𝑛 +1
+
+QK ⊤c, where c = 1
+
+𝑛 
+
+> 𝑛
+
+Õ
+
+> 𝑖 =1
+
+𝑦 𝑖 x𝑖 ,𝑣 ∈ R is the (𝑑 +1, 𝑑 +1) entry of W𝑉 , and Q, K ∈ R𝑑 ×𝑑 are the top-left principal submatrices of W𝑄 
+
+and W𝐾 , respectively. Furthermore, they have the following limiting GF dynamics: 
+
+𝜏 ¤Q B 𝜏 lim 
+
+> 𝑛 →∞
+
+¤Q = 𝜏 lim  
+
+> 𝑛 →∞
+
+U𝑠 ¤Λ𝑄 U⊤ 
+
+> 𝑠
+
+= U𝑠 
+
+ 𝑣  Λ𝑠 − 𝑣 Λ𝑄 Λ𝐾 Λ𝑠 
+
+ Λ𝐾 
+
+ U⊤ 
+
+> 𝑠
+
+,
+
+𝜏 ¤K B 𝜏 lim 
+
+> 𝑛 →∞
+
+¤K = 𝜏 lim  
+
+> 𝑛 →∞
+
+U𝑠 ¤Λ𝐾 U⊤ 
+
+> 𝑠
+
+= U𝑠 
+
+ 𝑣 Λ𝑄 
+
+ Λ𝑠 − 𝑣 Λ𝑄 Λ𝐾 Λ𝑠 
+
+ U⊤ 
+
+> 𝑠
+
+,
+
+𝜏 ¤𝑣 B 𝜏 lim  
+
+> 𝑛 →∞
+
+¤𝑣 = Tr  Λ𝑄 
+
+ Λ𝑠 − 𝑣 Λ𝑄 Λ𝐾 Λ𝑠 
+
+ Λ𝐾 
+
+ ,
+
+where 𝜏 is a time constant, and Q(𝑡 ) = U𝑠 Λ𝑄 (𝑡 )U⊤ 
+
+> 𝑠
+
+and K(𝑡 ) = U𝑠 Λ𝐾 (𝑡 )U⊤ 
+
+> 𝑠
+
+, with Λ𝑄 (𝑡 ) and Λ𝐾 (𝑡 )
+
+diagonal. 
+
+The time constant 𝜏 is set to 𝜏 = 1/𝜂 for some learning rate 𝜂 , and can be viewed as a conversion factor between the discrete iteration index and the continuous-time derivative used for analysis. Proposition 1 provides the dynamics for a general task vector whose mean is centered at zero and whose covariance matrix is Σ𝑠 ∈ R𝑑 ×𝑑 , under a weight simplification used in related work [Zha+25; Lu+25]. The initial identity condition in Equation (7) simplifies the dynamics such that Q, K ∈ R𝑑 ×𝑑 
+
+are simultaneously diagonalizable in the eigenbasis of Σ𝑠 ∈ R𝑑 ×𝑑 , and remain static throughout learning. This allows us to reduce the limiting dynamics into Λ𝑄 and Λ𝐾 :
+
+𝜏 ¤Λ𝑄 = 𝑣  Λ𝑠 − 𝑣 Λ𝑄 Λ𝐾 Λ𝑠 
+
+ Λ𝐾 and 𝜏 ¤Λ𝐾 = 𝑣 Λ𝑄 
+
+ Λ𝑠 − 𝑣 Λ𝑄 Λ𝐾 Λ𝑠 
+
+ . (8) Intuitively, this implies that in the limit, the linear attention model simply learns to scale the magnitudes of the features along the fixed principal directions defined by U𝑠 . Then, since all 8components in Equation (8) are diagonal, it suffices to track the dynamics of each coordinate separately. Moreover, because Λ𝑄 (0) = Λ𝐾 (0) = 𝛼 · I𝑑 , they follow identical dynamics. Let 𝜆 𝑖 denote the 𝑖 -th diagonal element of both Λ𝑄 and Λ𝐾 , and let 𝜎 𝑖 ≥ 0 denote the 𝑖 -th diagonal element of Λ𝑠 .Then, we have the following: 
+
+𝜏 ¤𝑣 =
+
+> 𝑑
+
+Õ
+
+> 𝑖 =1
+
+ 𝜎 𝑖 − 𝑣 𝜎 𝑖 𝜆 2
+
+> 𝑖
+
+ · 𝜆 2 
+
+> 𝑖
+
+and 𝜏 ¤𝜆 𝑖 =  𝜎 𝑖 − 𝑣 𝜎 𝑖 𝜆 2
+
+> 𝑖
+
+ · 𝑣 𝜆 𝑖 , ∀𝑖 ∈ [ 𝑑 ]. (9) The dynamics are now determined solely by the initial conditions on the weights and the signal strengths 𝜎 𝑖 ≥ 0. This is the primary machinery we will need for this section: the signal strengths 𝜎 𝑖 
+
+are the only quantities in Equation (9) that differ between the single-task and task-diverse settings, so any difference in convergence time must trace back to them. In the following subsections, we plug in 𝜎 𝑖 for each case and derive the number of discrete steps required to reach a 𝛿 -stationary point. Due to the nature of gradient flow, the dynamics in Equation (9) admit a conservation law that will be useful in the analysis: 
+
+Lemma 1. With the initial conditions in Equation (7) , the gradient flow dynamics in Equation (9) 
+
+admit the following conservation law: 
+
+> 𝑞
+
+Õ
+
+> 𝑖 =1
+
+𝜆 2 
+
+> 𝑖
+
+(𝑡 ) − 𝑣 2(𝑡 ) =
+
+> 𝑞
+
+Õ
+
+> 𝑖 =1
+
+𝜆 2 
+
+> 𝑖
+
+(0) − 𝑣 2(0) = 0.
+
+3.2 Main Result: Convergence-Time Decomposition 
+
+With the GF dynamics in place, we are in a position to present our main result for this section, which establishes the discrete iteration time required to reach a 𝛿 -stationary point in both settings and shows that task diversity accelerates convergence. The following result shows that both settings have a growth time, which denotes the time spent escaping the small-initialization regime, and a 
+
+saturation time, which denotes the time spent saturating near the stationary point. However, the task-diverse setting further decomposes the growth time into a stage in which the overlapping components are learned, followed by a stage in which the individual components are learned, yielding a two-stage learning phenomenon. 
+
+Result 1 (Convergence Time Decomposition) . Suppose the linear attention model follows the GF dynamics in Proposition 1 with initialization scale 𝛼 > 0 in Equation (7) and fix a stationarity tolerance 𝛿 ∈ ( 0, 𝑞 −1/6).Then the discrete convergence times are as follows: 
+
+(i) Single-Task Setting: The convergence time to reach a 𝛿 -stationary point satisfies 
+
+𝑡 single = 𝜏 √𝑞 
+
+ 1
+
+𝛼 − 1
+
+𝑞 −1/6 − 𝛿 
+
+| {z } 
+
+> C𝑡 single,growth
+
++ 𝜏 𝑞 2/3
+
+
+
+ℎ(1 − 𝑞 1/6 𝛿 ) − ℎ(𝑞 1/6 𝛼 )
+
+| {z } 
+
+> C𝑡 single,sat
+
+, (10) 
+
+where 𝑡 single,growth denotes the time spent escaping the small-initialization regime, 𝑡 single,sat denotes the time spent saturating near the stationary point, and 
+
+ℎ(𝑥 ) B − 13 log |𝑥 − 1| + 16 log (𝑥 2 + 𝑥 + 1) − √33 arctan 
+
+ 2𝑥 + 1
+
+√3
+
+
+
+. (11) 9(ii) Task-Diverse Setting: Using an ansatz on the GF dynamics, the convergence time 𝑡 mix to reach a 𝛿 -stationary point decomposes as 𝑡 mix = 𝑡 over + 𝑡 ind , where 𝑡 over is the time during which the shared, overlapping components are learned first, and 𝑡 ind is the time during which the individual components are learned thereafter: 
+
+(a) The shared-stage time 𝑡 over further decomposes into growth and saturation contributions: 
+
+𝑡 over = 2𝜏 𝑎 
+
+𝛼 𝑛 ind 
+
+√𝑞 −
+
+r
+
+𝑛 over + 𝑛 ind 𝛼 𝜆 ★ 
+
+> over
+
+− 𝛿 
+
+| {z } 
+
+> C𝑡 over,growth
+
++ 𝑎 𝜏  𝜆 ★
+
+> over
+
+2 ·
+
+
+
+ℎ
+
+ 𝜆 ★ 
+
+> over
+
+− 𝛿 𝜆 ★
+
+> over
+
+
+
+− ℎ
+
+ 𝛼 𝜆 ★
+
+> over
+
+ | {z } 
+
+> C𝑡 over,sat
+
+, (12) 
+
+where 𝑎 B (2𝑛 over + 𝑛 ind )/ 2 is a normalization constant, ℎ(·) is defined in Equation (11) , and 𝜆 ★
+
+> over
+
+is the unique positive root of 
+
+𝑛 over 
+
+ 𝜆 ★
+
+> over
+
+6 + 𝛼 𝑛 ind 
+
+ 𝜆 ★
+
+> over
+
+5 − 1 = 0. (13) (b) The individual-stage time 𝑡 ind satisfies the bounds 
+
+𝜏 𝐿 · 𝑔 (1 − 𝛿 ) ≤ 𝑡 ind ≤ 𝜏 𝐿 · 𝑔 (𝛼 /𝜆 ★
+
+> over
+
+), (14) 
+
+where we define 
+
+𝐿 B 𝑎 log 
+
+ (1 − 𝛿 )( 1 − 𝛼 /𝜆 ★
+
+> over
+
+)
+
+𝛿𝛼 /𝜆 ★
+
+> over
+
+
+
+and 𝑔 (𝑢 ) B (𝑛 over + 𝑛 ind 𝑢 )2/3
+
+𝑛 over + 2𝑛 ind 𝑢 , 𝑢 ∈ ( 0, 1).
+
+We provide proof sketches for 𝑡 single and 𝑡 mix in Section 3.3 and Section 3.4, respectively. Com-pared to the single-task setting, we show in Section 3.4 that the task-diverse case yields complicated, coupled GF dynamics. To handle this coupling, we introduce an ansatz: by assuming the indi-vidual components follow a power-law relationship with the shared components until the shared components reach stationarity, we can reduce the dynamics to a 1D system. Furthermore, this coupled nature means we can only derive upper and lower bounds for 𝑡 ind , which consequently bound the total convergence time 𝑡 mix . We find empirically that the lower bound provides a tight approximation of 𝑡 ind (see Figure 3), but more importantly, 𝑡 ind is itself negligible compared to 𝑡 over :both bounds in Equation (14) scale as 𝜏 𝑎 · log (1/𝛼 ) · 𝑔 (𝑢 ) for 𝑢 ∈ ( 0, 1), where 𝑔 is decreasing on this interval with 
+
+sup 
+
+> 𝑢 ∈( 0,1)
+
+𝑔 (𝑢 ) = lim  
+
+> 𝑢 →0+
+
+𝑔 (𝑢 ) = 𝑛 2/3
+
+> over
+
+𝑛 over 
+
+= 𝑛 −1/3 
+
+> over
+
+.
+
+Hence 𝑡 ind = 𝒪( log (1/𝛼 )) , whereas 𝑡 over = Θ (1/𝛼 ), so the primary bottleneck in 𝑡 mix is the growth time of 𝑡 over . We further show in the derivation of Result 2 that the saturation times are likewise subleading, and so it suffices to compare 𝑡 single,growth to 𝑡 over,growth to establish the speedup. This leads to the following result: 
+
+Result 2 (Strict Acceleration Approximation via Task Diversity) . Define the overlap ratio 
+
+𝜅 B 𝑛 over 
+
+𝑞 ∈ [ 0, 1], (15) 10 4500 5000 5500 6000 6500 
+
+Iterations (x100) 
+
+0.0 
+
+0.5 
+
+1.0  
+
+> Magnitude
+> tmix ,over
+> uover (t)
+> uind (t)
+
+5000 5500 6000 6500 
+
+Iterations (x100) 
+
+0.0 
+
+0.5 
+
+1.0   
+
+> Magnitude ( v)
+> tsingle tmix ,low tmix ,over
+
+w/o diversity 
+
+w/ diversity Figure 3: Plots for simulated GF dynamics. We choose with 𝑞 = 10 , 𝑛 ind = 4, 𝑛 over = 6, 𝛼 = 0.005 ,
+
+𝜂 = 0.001 , and 𝛿 = 0.001 . 𝑡 mix, over denotes the predicted value of 𝑡 over for the task-diverse case. 
+
+Left: Plot of the learning trajectories of 𝑢 ind (𝑡 ) = 𝑣 (𝑡 )𝜆 2
+
+> ind
+
+(𝑡 ) and 𝑢 over (𝑡 ) = 𝑣 (𝑡 )𝜆 2
+
+> over
+
+(𝑡 ). 𝑢 ind (𝑡 ) stays close to its initialization until 𝑢 over (𝑡 ) reaches 1, at which point 𝑢 ind (𝑡 ) then begins to learn. This demonstrates the power-law relationship between 𝜆 ind and 𝜆 over , and hence two-phase learning dynamics. Right: Plot of the gradient norm of 𝑣 for simulated GF dynamics. 𝑡 mix, low denotes the total time computed using the lower bound on 𝑡 ind . While the total times with both the upper and lower bounds yield values that are less than 𝑡 single , 𝑡 mix, low serves as an accurate approximation. 
+
+which measures the fraction of the training subspace shared by the two tasks: 𝜅 = 0 corresponds to disjoint subspaces, while 𝜅 = 1 corresponds to a single shared subspace. For sufficiently small 𝛼 , the leading growth times satisfy 
+
+𝑡 over,growth 
+
+𝑡 single,growth 
+
+≈ 𝜌 (𝜅 ) B 1 + 𝜅 
+
+1 + √𝜅 , (16) 
+
+where 𝜌 has the following properties: 
+
+(i) Strict Acceleration: 𝜌 (𝜅 ) < 1 for every 𝜅 ∈ ( 0, 1).
+
+(ii) Optimal Diversity: 𝜌 attains its minimum at 𝜅 ★ = 3 − 2√2, with 𝜌 (𝜅 ★) = 2(√2 − 1), corresponding to roughly a 17% reduction in the leading growth time. 
+
+The full derivation is deferred to Section A.5, and a comparison of the leading-order terms without the approximation is provided in Section A.6. The approximation in Result 2 follows by taking the small-initialization limit 𝛼 → 0: in this regime, 𝜆 ★ 
+
+> over
+
+≈ 𝑛 −1/6 
+
+> over
+
+by Equation (13), the lower-order terms in the growth times become negligible, and the leading growth-time ratio simplifies to 𝜌 (𝜅 ). Thus, Result 2 states that task diversity yields a strict reduction in the leading growth bottleneck whenever the two task subspaces have both shared and non-overlapping components, thereby leading to overall convergence acceleration. Intuitively, this speedup arises from the two-stage learning phenomenon in the task-diverse setting. As we show in the following sections, the overlapping subspace components carry amplified signal strengths and therefore grow faster than the non-overlapping components, quickly driving 𝑣 
+
+toward its stationary value. Once 𝑣 is large, the remaining 𝑛 ind non-overlapping subspaces inherit a warm start from the shared structure rather than growing from near-zero. In contrast, in the single-task case, all 𝑞 subspace components must grow from the same small initialization simultaneously. 11 This verifies the hypothesis of [Kim+25]: the ICL plateau arises from learning the common task structures, and once those are learned, the individual task structures follow quickly. 
+
+3.3 Convergence Time with a Single Task 
+
+Here, we aim to derive 𝑡 single . Under normalization, the signal strengths in the single-task case are 𝜎 𝑖 = 1/𝑞 for 𝑖 ∈ [ 𝑞 ] and 𝜎 𝑖 = 0 for the remaining 𝑑 − 𝑞 singular values. Plugging this into the dynamics in Equation (9) gives 
+
+𝜏 ¤𝑣 =  1 − 𝑣 𝜆 2 · 𝜆 2 and 𝜏 ¤𝜆 = 1
+
+𝑞 
+
+ 1 − 𝑣 𝜆 2 · 𝑣 𝜆 , (17) where we dropped the subscript since the top-𝑞 elements follow the same learning dynamics. Note that the condition 𝑣 𝜆 2 = 1 is sufficient for the entire system to be stationary, so we can focus on the number of iterations required for 𝜆 to reach the stationary point. This involves computing the following integral: 
+
+𝑡 single = 𝜏 𝑞 
+
+∫ 𝜆 ★−𝛿 𝛼 
+
+𝑑 𝜆 
+
+(1 − 𝑣 𝜆 2) · 𝑣 𝜆 = 𝜏 𝑞 
+
+∫ 𝜆 ★−𝛿 𝛼 
+
+𝑑 𝜆 
+
+𝑣 𝜆 
+
+| {z }
+
+> growth time
+
++ 𝜏 𝑞 
+
+∫ 𝜆 ★−𝛿 𝛼 
+
+𝜆 
+
+1 − 𝑣 𝜆 2 𝑑 𝜆 
+
+| {z }
+
+> saturation time
+
+, (18) where 𝜆 ★ denotes the optimal solution. Equation (18) shows that the convergence time can be split into growth and saturation times: the growth time captures the rapid learning phase where the weights grow exponentially from near-zero initialization, and the saturation time captures the time for the system to slow down to a stationary point without overshooting. Using the conservation law in Lemma 1, both of these times admit closed-form integrals, which yields the following overall convergence time (see Section A.3 for the full derivation): 
+
+𝑡 single = 𝜏 √𝑞 
+
+ 1
+
+𝛼 − 1
+
+𝑞 −1/6 − 𝛿 
+
+| {z }
+
+> =𝑡 single, growth
+
++ 𝜏 𝑞 2/3
+
+
+
+ℎ(1 − 𝑞 1/6 𝛿 ) − ℎ(𝑞 1/6 𝛼 )
+
+| {z }
+
+> =𝑡 single, sat
+
+, (19) where we plugged in the optimal solution 𝜆 ★ = 𝑞 −1/6 and ℎ(𝑥 ) is the function 
+
+ℎ(𝑥 ) B − 13 log |𝑥 − 1| + 16 log (𝑥 2 + 𝑥 + 1) − √33 arctan 
+
+ 2𝑥 + 1
+
+√3
+
+
+
+. (20) This provides the convergence time as shown in Equation (10). Again, the primary bottleneck in Equation (19) is the growth-time term, since 𝛼 is small and 𝑞 ∈ N can be arbitrarily large (assuming 𝑑 is also large). This term governs the “ICL plateau” often observed during transformer training [Zha+25; Kim+25], and scales with 𝑞 since all 𝑞 components of the training subspace 
+
+U𝑞 ∈ R𝑑 ×𝑞 must be learned from scratch. 
+
+3.4 Convergence Time with Task Diversity: A Two-Stage Learning Paradigm 
+
+Following the same strategy as in Section 3.3, we determine the signal strengths 𝜎 𝑖 for the task-diverse case to derive 𝑡 mix . The mixture of two low-rank Gaussians in Equation (6) yields the 12 covariance matrix Σ = 12 · Σ𝑠, 1 + 12 · Σ𝑠, 2. With 𝑛 over overlapping components and 𝑛 ind B 𝑞 − 𝑛 over 
+
+non-overlapping components, the spectrum and induced dynamics are 
+
+Λ𝑠 =
+
+
+
+𝑎 −1 · I𝑛 over 
+
+(2𝑎 )−1 · I𝑛 ind 
+
+0𝑑 −𝑞 
+
+
+
+=⇒
+
+𝜏 ¤𝜆 𝑖 = 1
+
+𝑎 (1 − 𝑣 𝜆 2 
+
+> 𝑖
+
+) 𝑣 𝜆 𝑖 , 𝑖 ∈ [ 𝑛 over ],
+
+𝜏 ¤𝜆 𝑗 = 12𝑎 (1 − 𝑣 𝜆 2 
+
+> 𝑗
+
+) 𝑣 𝜆 𝑗 , 𝑗 ∈ [ 𝑛 ind ],
+
+𝜏 ¤𝑣 = 1
+
+𝑎 
+
+> 𝑛 over
+
+Õ
+
+> 𝑖 =1
+
+(1 − 𝑣 𝜆 2 
+
+> 𝑖
+
+)𝜆 2 
+
+> 𝑖
+
++ 12𝑎 
+
+> 𝑛 ind
+
+Õ
+
+> 𝑗 =1
+
+(1 − 𝑣 𝜆 2 
+
+> 𝑗
+
+)𝜆 2 
+
+> 𝑗
+
+,
+
+where 𝑎 = 2𝑛 over +𝑛 ind  
+
+> 2
+
+is the normalization constant. Since all the 𝜆 𝑖 start from the same initial condition, we can drop subscripts and track the following dynamics: 
+
+𝜏 ¤𝜆 over = 1
+
+𝑎 
+
+ 1 − 𝑣 𝜆 2
+
+> over
+
+ 𝑣 𝜆 over 
+
+𝜏 ¤𝜆 ind = 12𝑎 
+
+ 1 − 𝑣 𝜆 2
+
+> ind
+
+ 𝑣 𝜆 ind 
+
+𝜏 ¤𝑣 = 𝑛 over 
+
+𝑎 
+
+ 1 − 𝑣 𝜆 2
+
+> over
+
+ 𝑣 𝜆 over + 𝑛 ind 
+
+2𝑎 
+
+ 1 − 𝑣 𝜆 2
+
+> ind
+
+ 𝑣 𝜆 ind .
+
+These differential equations reveal interesting insights into the learning dynamics: the growth rate of 𝜆 over is twice that of 𝜆 ind , while 𝑣 couples the dynamics together. The faster growth rate of 𝜆 over 
+
+arises from the fact that the shared directions have their signal strengths amplified. The coupled nature makes the difference in growth rates pivotal: the dynamics of 𝑣 are dominated by 𝜆 over early on, with 𝜆 ind only beginning to contribute once 𝜆 over saturates. To see this more clearly, consider the following ratio in the early stages of training: 
+
+¤𝜆 over 
+
+¤𝜆 ind 
+
+= 
+
+> 1
+> 𝑎
+
+𝑣 𝜆 over + 𝒪( 𝛼 5) 
+
+> 12𝑎
+
+𝑣 𝜆 ind + 𝒪( 𝛼 5) =⇒¤𝜆 over 
+
+¤𝜆 ind 
+
+≈ 2𝜆 over 
+
+𝜆 ind 
+
+=⇒¤𝜆 over 
+
+2𝜆 over 
+
+=
+
+¤𝜆 ind 
+
+𝜆 ind 
+
+.
+
+Then, integrating both sides with some algebraic manipulation gives the following expression: 
+
+∫ ¤𝜆 over 
+
+2𝜆 over 
+
+=
+
+∫ ¤𝜆 ind 
+
+𝜆 ind 
+
+=⇒ ln (𝜆 ind ) = 12 ln (𝜆 over ) + 𝐶 =⇒ 𝜆 ind = 𝑒 𝐶 · p𝜆 over 
+
+for some constant 𝐶 . To determine the constant, we can plug in the initial conditions to obtain 
+
+𝜆 ind = √𝛼𝜆 over . This reveals an approximate power-law relationship between 𝜆 ind and 𝜆 over . For the system to be stationary, we require both 𝑢 over B 𝑣 𝜆 2 
+
+> over
+
+= 1 and 𝑢 ind B 𝑣 𝜆 2 
+
+> ind
+
+= 1. Since 𝜆 over has a faster growth rate, consider the moment at which 𝑢 over = 1. Then, the power-law relation gives 
+
+𝑢 ind = 𝑣 𝜆 2 
+
+> ind
+
+≈ 𝑣 𝛼𝜆 over = 𝛼 /𝜆 over . This implies that 𝑢 ind (and hence 𝜆 ind ) remains close to its initial condition until 𝜆 over saturates, yielding a two-stage learning phenomenon: (i) an initial phase in which the shared (or common) subspace components are learned, followed by (ii) a second phase in which the individual components are learned (see Figure 3). Consequently, this gives the decomposition of 𝑡 mix into the two parts: 𝑡 mix = 𝑡 over + 𝑡 ind . These times are computed in closed-form using the power-law relation together with an ansatz on the dynamics: 
+
+𝑡 over = 2𝜏 𝑎 
+
+𝛼 𝑛 ind 
+
+√𝑞 −
+
+r
+
+𝑛 over + 𝑛 ind 𝛼 𝜆 ★ 
+
+> over
+
+− 𝛿 
+
+| {z }
+
+> =𝑡 over, growth
+
++ 𝑎 𝜏  𝜆 ★
+
+> over
+
+2 ·
+
+
+
+ℎ
+
+ 𝜆 ★ 
+
+> over
+
+− 𝛿 𝜆 ★
+
+> over
+
+
+
+− ℎ
+
+ 𝛼 𝜆 ★
+
+> over
+
+ | {z }
+
+> =𝑡 over, sat
+
+, (21) 13 𝜏 𝑎 · log 
+
+ (1 − 𝛿 )( 1 − 𝛼 /𝜆 ★
+
+> over
+
+)
+
+𝛿𝛼 /𝜆 ★
+
+> over
+
+
+
+𝑔 (1 − 𝛿 ) ≤ 𝑡 ind ≤ 𝜏 𝑎 · log 
+
+ (1 − 𝛿 )( 1 − 𝛼 /𝜆 ★
+
+> over
+
+)
+
+𝛿𝛼 /𝜆 ★
+
+> over
+
+
+
+𝑔 (𝛼 /𝜆 ★
+
+> over
+
+), (22) where ℎ(·) is defined in Equation (20), 𝜆 ★ 
+
+> over
+
+is the positive root of 
+
+𝑛 over 
+
+ 𝜆 ★
+
+> over
+
+6 + 𝛼 𝑛 ind 
+
+ 𝜆 ★
+
+> over
+
+5 − 1 = 0 and 𝑔 (𝑢 ) = (𝑛 over + 𝑛 ind 𝑢 )2/3
+
+𝑛 over + 2𝑛 ind 𝑢 for 𝑢 ∈ ( 0, 1), (23) which gives us the times stated in Result 1. For brevity, we defer the full derivation to Section A.4. Overall, Result 1 demonstrates the benefit of task diversity, as the two-stage learning dynamics accelerate convergence. However, notice that when there is no shared structure (i.e., 𝜅 = 0), there is no signal amplification, and the training time matches the single-task case. This raises the question: what conclusions, if any, can we draw about the converged solution? In the following section, we show that for any 𝑛 over ≥ 0, the converged solution enables OOD capabilities for ICL. 
+
+# 4 Task Diversity Enables Out-of-Distribution Generalization 
+
+Following our previous discussion, in this section we study how training-task diversity affects the converged transformer weights. In particular, we demonstrate how training with diverse task vectors can enable transformers to exhibit OOD ICL capabilities. For ICL, there are several types of distribution shifts: covariate shifts (i.e., shifts in the inputs), task-function shifts (i.e., shifts in the function that generates outputs), and query shifts (i.e., the query input differs from the inputs in the test prompt). Since we focus on the effects of training with diverse task vectors, we restrict our attention to distribution shifts in the task vector while keeping other components fixed. To show this, we construct a task vector with zero density under the training distribution and prove that the test risk on this constructed task vector is negligible, indicating that ICL can generalize OOD. 
+
+4.1 Training and Testing Data Distributions 
+
+For the training task vectors, we again consider the task-diverse setup from Definition 1 with 𝐾 = 2
+
+to facilitate discussion, and then generalize our results to the 𝐾 > 2 case. Let U𝑠, 1 , U𝑠, 2 ∈ R𝑑 ×𝑟 be the two (training) orthonormal bases such that 𝒰 𝑠 = span (U𝑠, 1) + span (U𝑠, 2), where dim (𝒰 𝑠 ) = 𝑞 
+
+and 𝑟 = 𝑞 /2.1 Our goal is to define a testing subspace U𝑡 ∈ R𝑑 ×𝑟 such that the train task vector 
+
+w ∈ R𝑑 is sampled from U𝑡 with probability zero. Then, if we sample a testing task vector ew from 
+
+U𝑡 , and the trained transformer achieves negligible test risk with respect to ew, we can conclude that transformers are capable of OOD generalization via ICL. To this end, we parameterize U𝑡 as such [AMS04, Section 3.8]: 
+
+U𝑡 B U𝑡 (Θ) = U𝑠, 1 · cos  Θ + U𝑠, 2 · sin  Θ ∈ R𝑑 ×𝑟 . (24) Here, Θ ∈ R𝑟 ×𝑟 is a diagonal matrix with entries 𝜃 𝑖 ∈ [ 0, 𝜋 /2], and cos (·) and sin (·) are applied entrywise to the diagonal of Θ. For simplicity, we will assume all principal angles are equal, i.e., for all 𝑖 ∈ [ 𝑟 ], 𝜃 𝑖 = 𝜃 for some 𝜃 ∈ 0, 𝜋 
+
+> 2
+
+ so that Θ = 𝜃 · I𝑟 . Notice when 𝜃 = 0, U𝑡 = U𝑠, 1, and when 
+
+𝜃 = 𝜋  
+
+> 2
+
+, U𝑡 = U𝑠, 2. Intuitively, U𝑡 defines an “interpolating path” between the training subspaces through 𝜃 . When 𝜃 ∈ ( 0, 𝜋 /2), span (U𝑡 ) is distinct from both span (U𝑠, 1) and span (U𝑠, 2), ensuring                                    
+
+> 1Note that this assumes that 𝑛 over =0.For the case in which 𝑛 over >0(i.e., rank (U𝑠, 1)=rank (U𝑠, 2)=𝑤 for some 𝑤 >𝑞 /2), we can WLOG always construct orthonormal bases bU𝑠, 1,bU𝑠, 2∈R𝑑 ×𝑟 such that bU𝑠, 1⊥bU𝑠, 2and
+> c𝒰 𝑠 =span (bU𝑠, 1) + span (bU𝑠, 2)with 𝒰 𝑠 =c𝒰 𝑠 .
+
+14 that the test-task vector has zero probability of being sampled from the train subspace. Now, we can set the testing covariance matrix as follows: 
+
+Σ𝑡 = U𝑡 U⊤ 
+
+> 𝑡
+
++ 𝜖 · I𝑑 , (25) and each testing pair (x𝑗 , e𝑦 𝑗 ) is generated independently of the training data: for all 𝑗 ∈ [ 𝑚 + 1],
+
+x𝑗 ∼ 𝒩 ( 0, I𝑑 ) and 
+
+e𝑦 𝑗 = ew⊤x𝑗 + 𝜉 𝑗 , where ew ∼ 𝒩 ( 0, Σ𝑡 ), (26) with 𝜉 𝑗 ∼ 𝒩 ( 0, 𝜎 2).
+
+4.2 ICL Can Generalize to the Span of Training Subspaces 
+
+In this section, we consider the optimal single-layer linear attention model trained using the setup in Section 4.1 and derive the test risk when the test prompts are drawn from Equation (26) for any angle 𝜃 ∈ [ 0, 𝜋  
+
+> 2
+
+]. The following result shows that for sufficiently large prompt lengths, the test risk is independent of 𝜃 and achieves a value that is only a function of the irreducible noise variance. 
+
+Theorem 1. Let 𝑔 ★ 
+
+> 𝒲
+
+denote the optimal linear attention model corresponding to the independent training task diverse data setting in Definition 1 with 𝐾 = 2. For all 𝑗 ∈ [ 𝑚 + 1], suppose that the test prompts are constructed as in Equation (26) . Then, for any 𝜃 ∈ [ 0, 𝜋  
+
+> 2
+
+], we have 
+
+lim  
+
+> 𝑚 →∞
+
+lim  
+
+> 𝑛 →∞
+
+lim  
+
+> 𝜖 →0
+
+E
+
+e𝑦 𝑚 +1 − 𝑔 ★
+
+> 𝒲
+
+eZ
+
+ 2
+
+= 𝜎 2.
+
+Remarkably, Theorem 1 states that task diversity enables OOD generalization, as the optimal linear attention model trained using task vectors drawn from a mixture of Gaussians can generalize to all angles 𝜃 ∈ [ 0, 𝜋  
+
+> 2
+
+], or in other words, generalize to any test task vector drawn from the span of the training subspaces. In Figure 4, we corroborate Theorem 1 on both linear attention and GPT-2, demonstrating that test loss approaches zero for larger prompt lengths and that the result generalizes beyond linear attention. Hence, we hypothesize that this explains why ICL achieves OOD generalization: the test data actually lies within the span of the training data. We remark that in Theorem 1, we take 𝜖 → 0 for two reasons: (i) to eliminate any dependence on 𝜖 and isolate its effect on test risk as it is assumed to be a small constant, and (ii) to analyze the test risk when the covariance matrices are exactly low-rank. Next, we generalize the above result to a mixture of 𝐾 > 2 Gaussians. To this end, let us assume 
+
+𝑑 ≥ 𝐾𝑟 C 𝑞 . Then, for all 𝑘 ∈ [ 𝐾 ], we define U𝑠,𝑘 ∈ R𝑑 ×𝑟 such that U⊤ 
+
+> 𝑠,𝑘
+
+U𝑠,ℓ = 0 for all 𝑘 ≠ ℓ . Then, we assume the training task w ∈ R𝑑 is sampled as such: 
+
+w ∼
+
+> 𝐾
+
+Õ
+
+> 𝑘 =1
+
+𝛾 𝑘 · 𝒩 ( 0, Σ𝑠,𝑘 ), where Σ𝑠,𝑘 = U𝑠,𝑘 U⊤ 
+
+> 𝑠,𝑘
+
++ 𝜖 · I𝑑 and 
+
+> 𝐾
+
+Õ
+
+> 𝑘 =1
+
+𝛾 𝑘 = 1. (27) Similarly, we define an orthonormal testing basis U𝑡 ∈ R𝑑 ×𝑟 that lies within the span of {U𝑠,𝑘 }𝐾 𝑘 =1:
+
+U𝑡 =
+
+> 𝐾
+
+Õ
+
+> 𝑘 =1
+
+𝛼 𝑘 U𝑠,𝑘 , for {𝛼 𝑘 }𝐾 𝑘 =1 such that 
+
+> 𝐾
+
+Õ
+
+> 𝑘 =1
+
+𝛼 2 
+
+> 𝑘
+
+= 1. (28) 15 0 50 100 150 200 250            
+
+> Prompt Length
+> 0.0
+> 0.1
+> 0.2
+> 0.3
+> Test Loss
+> 020 40 60 80 100
+> Prompt Length
+> 0.0
+> 0.1
+> 0.2
+> 0.3
+> = 0 =/8 =/4 =/2
+
+Figure 4: Plot of the test risk as a function of the prompt length when trained using diverse task vectors with test subspace drawn from Equation (24). Left: Plot of the risk for linear attention. 
+
+Right: Plot of the risk for GPT-2. For both plots, when the prompt length at test time is large enough, the test risk goes nearly to zero for all 𝜃 ∈ 0, 𝜋 
+
+> 2
+
+, corroborating Theorem 1. This shows that both transformers can generalize to the span of the training task vectors at test-time. The constraint on {𝛼 𝑘 }𝐾 𝑘 =1 ensures U𝑡 ∈ R𝑑 ×𝑟 is an orthonormal basis. Then, we consider testing on task vectors 
+
+ew ∼ 𝒩 
+
+
+
+0, Σ𝑡 
+
+
+
+, where Σ𝑡 = U𝑡 U⊤ 
+
+> 𝑡
+
++ 𝜖 · I𝑑 .
+
+Again, we emphasize U𝑡 is unseen during training, but lies within the span of the training subspaces. 
+
+Theorem 2. Let 𝑔 ★ 
+
+> 𝒲
+
+denote the optimal linear attention model corresponding to the independent training task diverse data setting in Definition 1, where the task vector is drawn from Equation (27) 
+
+with 𝛾 𝑘 = 1 
+
+> 𝐾
+
+for all 𝑘 ∈ [ 𝐾 ]. For all 𝑗 ∈ [ 𝑚 + 1], suppose the test prompts are constructed with features x𝑗 ∼ 𝒩 ( 0, I𝑑 ) and labels whose task vectors are parameterized using the basis U𝑡 defined in Equation (28) . For any {𝛼 𝑘 }𝐾 𝑘 =1 with Í𝐾 𝑘 =1 𝛼 2 
+
+> 𝑘
+
+= 1, we have 
+
+lim  
+
+> 𝑚 →∞
+
+lim  
+
+> 𝑛 →∞
+
+lim  
+
+> 𝜖 →0
+
+E
+
+e𝑦 𝑚 +1 − 𝑔 ★
+
+> 𝒲
+
+eZ
+
+ 2
+
+= 𝜎 2.
+
+Similar to Theorem 1, if the linear attention model is trained on task vectors that lie in a union of 
+
+𝐾 subspaces, it can generalize well to any region within the span of the 𝐾 subspaces, even if those regions have zero probability density during training. Lastly, note that by setting 𝐾 = 2, 𝛼 1 = cos (𝜃 ),and 𝛼 2 = sin (𝜃 ), we exactly recover Theorem 1. 
+
+4.3 ICL Cannot Generalize Outside of the Training Subspaces 
+
+Previously, we saw that when a transformer is trained with diverse task vectors, transformers can generalize to any test task vector drawn from the span of the training subspaces via ICL, despite not being present in the training data. This leaves us with the following question: what happens if we test the model with a subspace outside of the training subspaces, and what is its effect on the test 16 0 100 200 
+
+Prompt Length             
+
+> 0.0
+> 0.2
+> 0.4
+> 0.6
+> Test Loss
+> qdsin 2(/8)
+> qdsin 2(/4)
+> qdsin 2(/2)
+> 050 100 150
+
+Prompt Length                
+
+> 0.0
+> 0.2
+> 0.4
+> 0.6
+> 0.8
+> qdsin 2(/8)
+> qdsin 2(/4)
+> qdsin 2(/2)
+> = 0 =/8 =/4 =/2
+
+Figure 5: Plot of the test risk as a function of prompt length when trained using diverse task vectors, but with the test subspace drawn from Equation (29). Left: Plot of the risk for linear attention. Right: Plot of the risk for GPT-2. The test loss does not approach zero even with large prompt lengths, and instead converges to the (normalized) test risk in Theorem 3 as the test subspace shifts away from the training subspaces at angle 𝜃 for both architectures. risk? To investigate this, we can similarly define a test subspace at an angle outside of the training subspaces, and consequently compute the test risk with respect to this new test subspace. To this end, with a slight abuse of notation, let us go back to the 𝐾 = 2 case and define a new testing subspace 
+
+U𝑡 = U𝑠 · cos  Θ + U𝑠, ⊥ · sin  Θ ∈ R𝑑 ×𝑞 , (29) where U𝑠 ∈ R𝑑 ×𝑞 is an orthonormal basis for the span of training subspaces 𝒰 𝑠 = span (U𝑠, 1) + 
+
+span (U𝑠, 2) and U𝑠, ⊥ ∈ R𝑑 ×𝑞 is any arbitrary 𝑞 -dimensional subspace orthogonal to U𝑠 , i.e., U⊤ 
+
+> 𝑠
+
+U𝑠, ⊥ =
+
+0. The following result presents the test risk with respect to U𝑡 .
+
+Theorem 3. Let 𝑔 ★ 
+
+> 𝒲
+
+denote the optimal linear attention model corresponding to the independent training task diverse data setting in Definition 1 with 𝐾 = 2. For all 𝑗 ∈ [ 𝑚 + 1], suppose that the test prompts are constructed as in Equation (26) , where the testing subspace U𝑡 takes the form in Equation (29) . Then, for some 𝜃 ∈ [ 0, 𝜋  
+
+> 2
+
+], we have 
+
+lim  
+
+> 𝑚 →∞
+
+lim  
+
+> 𝑛 →∞
+
+lim  
+
+> 𝜖 →0
+
+E
+
+e𝑦 𝑚 +1 − 𝑔 ★ 
+
+> 𝒲
+
+(eZ)
+
+2
+
+= 𝑞 sin 2(𝜃 ) + 𝜎 2.
+
+In contrast to Theorem 1 and Theorem 2, Theorem 3 states that when the testing subspace is at an angle 𝜃 away from the training subspace, the test risk is a function of 𝜃 scaled by the subspace rank 𝑞 . Of course, when 𝜃 = 0, we have U𝑡 = U𝑠 , and the test risk reduces to that of Theorem 1, but for any 𝜃 ∈ ( 0, 𝜋  
+
+> 2
+
+], the test risk has a non-negligible dependence on 𝜃 . This result further implies that OOD generalization in this setup can only occur when the test subspace lies within the span of the training subspaces (and hence when the train task vectors are diverse), and so the apparent OOD capabilities arise precisely from that condition. In Figure 5, we corroborate our result on both linear attention and GPT-2, showing that this limitation does not arise from analyzing linear attention but is a fundamental limitation of ICL. 17 0 500 1000 1500 2000 2500           
+
+> Iterations
+> 0.0
+> 0.2
+> 0.4
+> 0.6
+> 0.8
+> 1.0
+> Loss
+> 1100 1200 1300 1400 1500
+> Iterations
+> 0.0
+> 0.2
+> 0.4
+> 0.6
+> 0.8
+> 1.0
+> Train Loss Test Loss (Overlap) Test Loss (Independent) Train Loss Test Loss (Overlap) Test Loss (Independent)
+> Stage I Stage II Convergence
+
+Figure 6: Depiction of the two-stage learning phenomenon on a single-layer linear attention model. We verify the two stages by testing on two different test-task vectors: one drawn from the overlapping subspace, and another drawn from the independent components (i.e., the remaining components orthogonal to the overlapping subspace). The right figure shows a zoomed-in version of the test losses, showing that the test loss corresponding to the overlapping subspace drops first, followed by a rapid drop of the test loss of the independent components, indicating the two-stage learning dynamics. 
+
+# 5 Experimental Results 
+
+This section is organized as follows: in Section 5.1, we describe the experimental setup for both linear attention and GPT-2; in Section 5.2, we provide results related to the acceleration analysis in Section 3; and finally, in Section 5.3, we present our findings regarding OOD generalization as in Section 4. 
+
+5.1 Experimental Setup 
+
+Unless otherwise stated, the setup is as follows. For experiments with GPT-2, we follow Garg et al. [Gar+22] and use a model with 6 layers, 4 heads, and a 128-dimensional embedding space. We append a learnable linear transformation to map the vector predicted by the model to a scalar. We use a learning rate of 𝜂 = 10 −4, a batch size of 128, and prompt lengths of 𝑚 = 𝑛 = 150 , and we train for a total of 100K iterations. We train the model using a single A100 GPU. For experiments with linear attention, the setup differs between Section 5.2 and Section 5.3. For Section 5.3, no training is performed, as we test the model using optimal linear attention weights that can be derived in closed form (see [Kwo+26, Appendix B]). For Section 5.2, we train a single-layer transformer with a fixed training dataset size of 6000 and a test dataset size of 3000, where applicable. We use a learning rate of 𝜂 = 2.5 × 10 −3 and 𝛼 = 0.001 , and we train for a total of 2500 iterations. We train the model on a MacBook Pro with an M2 chip. 
+
+5.2 Experiments for Accelerating Convergence 
+
+Linear Attention. First, we provide experiments corroborating the two-stage learning dynamics discussed in Section 3, where common subspace components are learned first, followed by the 18 5500 6000 6500 7000          
+
+> Iterations (x100)
+> 0.0
+> 0.2
+> 0.4
+> 0.6
+> 0.8
+> 1.0
+> Magnitude ( v)
+> tsingle tmix ,low tmix ,upper
+> w/o diversity
+> w/ diversity 500 750 1000 1250 1500 1750 2000
+> Iterations
+> 0.0
+> 0.2
+> 0.4
+> 0.6
+> 0.8
+> 1.0
+> Train Loss
+> w/o diversity
+> w/ diversity
+
+Figure 7: Demonstrating that task diversity shortens the ICL plateau and accelerates convergence. 
+
+We consider the case in which 𝑛 over = 4 and 𝑛 ind = 8 (which sets 𝑛 over = 12 without diversity). Left: 
+
+Simulated GF dynamics demonstrating that 𝑡 mix, low , defined as 𝑡 mix evaluated at the lower bound of 𝑡 ind , is strictly less than 𝑡 single and serves as an accurate approximation of the convergence time. 
+
+Right: Plot of the training loss for a single-layer linear attention model, showing that task diversity accelerates convergence. 0 100 200 300 400 500     
+
+> Iterations (x100)
+> 0.0
+> 0.2
+> 0.4
+> 0.6
+> 0.8
+> 1.0
+> Train Loss
+> 0100 200 300 400
+> Iterations (x100)
+> 0.0
+> 0.2
+> 0.4
+> 0.6
+> 0.8
+> 1.0
+> Test Loss
+> Linear
+> Sparse
+
+Figure 8: Depiction of the two-stage learning phenomenon on GPT-2, where we train the model using two function classes, linear regression and sparse regression, sampled with equal proba-bility. For sparse regression, we mask out 5 components such that the unmasked components can be viewed as the overlapping components. The ICL plateau drops once the sparse regression com-ponents (i.e., the common components) are learned, after which the test loss for linear regression drops shortly thereafter. independent components. To this end, we train a single-layer linear attention model with 𝑑 = 15 and 
+
+𝑞 = 12 . We construct training orthonormal bases U𝑠, 1 , U𝑠, 2 ∈ R15 ×8 such that 𝑛 over = 4 and 𝑛 ind = 8.Recall that for the single-task setting, we then use U𝑠 , which is defined as an orthonormal basis for the subspace span (U𝑠, 1) + span (U𝑠, 2). Let Uover ∈ R𝑑 ×𝑛 over and Uind ∈ R𝑑 ×𝑛 ind denote the subspaces spanned by the overlapping and independent components of U𝑠, 1 and U𝑠, 2, respectively. To verify the two-stage phenomenon, we draw test task vectors from the subspaces Uover and Uind and record the test loss during training. As shown in Figure 6, the test loss corresponding to the overlapping subspace drops first, followed by the test loss corresponding to the independent subspace. Second, we consider the same setup as above to demonstrate that training with diverse task vectors speeds up convergence. In Figure 7 (left), we present results using simulated GF dynamics, 19 69 65 61 57 53 49 45 41 37 33      
+
+> Prompt Length ( n=m)
+> 1.00
+> 0.86
+> 0.71
+> 0.57
+> 0.43
+> 0.29
+> 0.14
+> 0.00
+> tr(  s t) / tr(  s)
+> 0.045
+> 0.050
+> 0.055
+> 0.060
+> 0.065 100 200 300 400
+> Prompt Length
+> 0.0
+> 0.2
+> 0.4
+> 0.6
+> 0.8
+> 1.0
+> Test Risk
+
+Figure 9: Left: Phase plot of the test risk as we vary the angle between Σ𝑠 and Σ𝑡 and the prompt length with 𝑚 = 𝑛 for a linear attention model trained with a mixture of Gaussians. The test risk is low across all angle shifts, and decreases further as the prompt length increases. Right: Plot of the test risk as a function of the prompt length for a case in which Σ𝑠 ≠ Σ𝑡 but with 𝜃 = 0, following the OOD example in [Gat+24]. This serves to explain why ICL can seemingly do OOD generalization as observed in the literature. similar to the approach in Figure 3. Here, 𝑡 mix, low and 𝑡 mix, upper denote the estimated convergence times for the task-diverse setting, evaluated using the lower and upper bounds of 𝑡 ind , respectively. We demonstrate that while both bounds are smaller than 𝑡 single , 𝑡 mix, low serves as a tight approxi-mation of the actual convergence time. In Figure 7 (right), we show the training loss of a linear attention model, where the loss decreases faster in the task-diverse case. 
+
+Softmax Attention. Here, we aim to show that the two-stage learning phenomenon holds more generally, specifically for GPT-2. We consider a setting with 𝑑 = 10 and 𝑛 = 150 , training the model on task vectors drawn with equal probability from two function classes: linear regression, where 
+
+w, x𝑖 ∼ 𝒩 ( 0, I𝑑 ), and sparse regression, where 5 components are masked. By viewing the sparse regression components as a subset of the full linear regression space (the overlapping components), one would expect the test loss for sparse regression to drop first, followed by the loss for linear regression. As shown in Figure 8, the test loss for linear regression exhibits a delayed drop, while the total ICL plateau begins to descend only after the sparse regression task is learned, i.e., the common task is learned. 
+
+5.3 Experiments for Out-of-Distribution Generalization 
+
+For experiments on both linear and softmax attention models (including Figure 4 and Figure 5), we use 𝐾 = 2 with 𝑑 = 20 , 𝑞 = 10 , 𝑟 = 5, and 𝜎 2 = 0. To construct the subspaces, we sample an orthogonal matrix U ∈ R𝑑 ×𝑑 uniformly at random, then set U𝑠 as the first 𝑞 columns of U and U𝑠, ⊥
+
+as the second 𝑞 columns. Consequently, U𝑠, 1 and U𝑠, 2 are formed by taking the first and last 𝑟 
+
+columns of U𝑠 , respectively. 
+
+Linear Attention. To supplement Figure 4, in Figure 9 (left), we present a phase plot of the test risk as a function of Tr (Σ⊤ 
+
+> 𝑠
+
+Σ𝑡 ) / Tr (Σ𝑠 ) (which measures the angle between two covariance matrices) and the prompt length on linear attention with task vectors drawn from a mixture of two Gaussians. Similar to Figure 4, the test risk is low for all values of 𝑚 = 𝑛 , and it decreases further as the prompt 20 0.00 
+
+> 0.11
+> 0.22
+> 0.33
+> 0.44
+> 0.55
+> 0.66
+> 0.77
+> 0.88
+> 0.99
+> Risk 0.00
+> 0.11
+> 0.22
+> 0.33
+> 0.44
+> 0.55
+> 0.66
+> 0.77
+> 0.88
+> 0.99
+> Risk
+
+Figure 10: Visualization of the generalization behavior of transformers for learning nonlinear function classes in-context. Each corner of a triangle represents a one-dimensional subspace spanned by 𝜓 1 (bottom left), 𝜓 2 (bottom right), or 𝜓 3 (top), with all possible convex combi-nations given by the interior. In all cases, we show the risk when evaluated at different points in span ({ 𝜓 1 , 𝜓 2 , 𝜓 3}) for the appropriate function space. Left: Experiments using cosine bases. The first trains on prompts drawn from span ({ 𝜓 𝐶  
+
+> 1
+
+}) , while the second trains on prompts drawn from span ({ 𝜓 𝐶  
+
+> 1
+
+}) ∪ span ({ 𝜓 𝐶  
+
+> 2
+
+}) ∪ span ({ 𝜓 𝐶  
+
+> 3
+
+}) . Right: Experiments with Hermite polynomials. The third trains on prompts drawn from span ({ 𝜓 𝐻  
+
+> 1
+
+}) . The fourth trains on prompts drawn from span ({ 𝜓 𝐻  
+
+> 1
+
+}) ∪ span ({ 𝜓 𝐻  
+
+> 2
+
+}) ∪ span ({ 𝜓 𝐻  
+
+> 3
+
+}) .length increases. Note that the largest possible normalized test risk in this setting is 𝑟 /𝑑 = 0.25 , so the test risk is still considered low even when the prompt length is small. Next, we present an additional experiment supporting our primary message in Section 4 by adopting the setting from [Gat+24], with Σ𝑠 = I5 and Σ𝑡 = VΛ 𝑡 V⊤, where V ∈ R5×5 is a random orthogonal matrix and Λ𝑡 = Diag (1, 1, 1/2, 1/4, 1). As shown in Figure 9 (right), the test risk ap-proaches zero given a sufficient number of samples. This suggests that our results may help explain various observations of OOD generalization in ICL; specifically, because the testing covariance matrix is a subset of the training covariance matrix, our framework offers a unifying perspective on findings reported in the literature. 
+
+Softmax Attention. We use the GPT-2 model to extend our observations beyond linear function classes. Specifically, we look at two function spaces, namely 𝐿 2([ 0, 1]) and 𝐿 2(R, 𝑒 −𝑥 2/2/√2𝜋 𝑑𝑥 ), i.e., square-integrable functions under the uniform and Gaussian measures respectively, which model rich sets of signals observed in real-world data. For the former, we construct an orthonormal basis via cosines, i.e., 𝜓 𝐶 𝑛 (𝑥 ) = (1/√2) cos (𝑛 𝜋 𝑥 ) for 𝑛 ∈ N. For the latter, we construct an orthonormal basis via Hermite polynomials: 
+
+𝜓 𝐻 𝑛 (𝑥 ) = (− 1)𝑛 
+
+√𝑛 ! 𝑒 𝑥 2/2 𝑑 𝑛 (𝑒 −𝑥 2/2)
+
+𝑑𝑥 𝑛 for 𝑛 ∈ N.
+
+As described in previous sections, we consider two settings: observing instances of a single (one-dimensional) subspace, as well as for a union of three (one-dimensional) subspaces. As before, we draw the function coefficients from standard multivariate Gaussian. We draw the inputs from the distribution appropriate to the function space measure, i.e., 𝑥 ∼ 𝒰 ([ 0, 1]) for 𝐿 2([ 0, 1]) and 𝑥 ∼𝒩 ( 0, 1) for 𝐿 2(R, 𝑒 −𝑥 2/2/√2𝜋 𝑑𝑥 ). All other details are identical to previous (nonlinear) transformer experiments. The results are shown in Figure 10. As shown in panels (a) and (c) of Figure 10, we see that transformers are not robust to subspace shifts for either function class, with increasing test risk with respect to the subspace angle from the train subspace, in accordance with Theorem 3. On the other hand, as shown in panels (b) and (d) 21 of Figure 10, we have the generalization behavior described by Theorem 1, where training on the mixture of subspaces results in low risk in the space spanned by the basis vectors. 
+
+# 6 Conclusion 
+
+In this work, we proposed a new notion of task diversity, distinct from existing definitions in the literature, using low-dimensional subspaces. We showed that this provides a tractable framework for analysis and demonstrated how task diversity can both accelerate convergence to a stationary point and enable OOD generalization in ICL. For convergence, we showed that task diversity induces a two-stage learning paradigm: common structures are learned first, and once learned, the distinct components are learned much more quickly, thereby accelerating convergence. For OOD generalization, we showed that task diversity enables generalization to regions with zero probability density under the training distribution. Furthermore, we demonstrated empirically that our theoretical results from both parts extend to transformer models such as GPT-2. 
+
+# Acknowledgement 
+
+QQ, SK, AX, and CY acknowledge NSF CAREER CCF-2143904, NSF IIS 2312842, NSF IIS 2402950, and DARPA HR00112520042. QQ also acknowledges the Google Research Scholar and Google TPU Award. LB, CY, and SK acknowledge NSF CAREER CCF-1845076 and NSF CCF-2331590. We would like to thank Emrullah Ildiz (University of Michigan), Samet Oymak (University of Michigan), and Daniel Hsu (Columbia University) for fruitful discussions. 22 References 
+
+[Agr+23] Sweta Agrawal, Chunting Zhou, Mike Lewis, Luke Zettlemoyer, and Marjan Ghazvinine-jad. “In-context Examples Selection for Machine Translation”. In: Findings of the Asso-ciation for Computational Linguistics: ACL 2023 . 2023, pp. 8857–8873. [Ahn+23] Kwangjun Ahn, Xiang Cheng, Hadi Daneshmand, and Suvrit Sra. “Transformers learn to implement preconditioned gradient descent for in-context learning”. In: 
+
+Advances in Neural Information Processing Systems 36 (2023), pp. 45614–45650. [Ahn+24] Kwangjun Ahn, Xiang Cheng, Minhak Song, Chulhee Yun, Ali Jadbabaie, and Suvrit Sra. “Linear attention is (maybe) all you need (to understand Transformer optimiza-tion)”. In: The Twelfth International Conference on Learning Representations . 2024. url :
+
+https://openreview.net/forum?id=0uI5415ry7 .[Aky+23] Ekin Akyürek, Dale Schuurmans, Jacob Andreas, Tengyu Ma, and Denny Zhou. “What learning algorithm is in-context learning? investigations with linear models”. In: The Eleventh International Conference on Learning Representations (2023). [AL23] Kartik Ahuja and David Lopez-Paz. “A closer look at in-context learning under distribution shifts”. In: arXiv preprint arXiv:2305.16704 (2023). [AMS04] P-A Absil, Robert Mahony, and Rodolphe Sepulchre. “Riemannian geometry of Grass-mann manifolds with a view on algorithmic computation”. In: Acta Applicandae Mathematica 80.2 (2004), pp. 199–220. [Cha+25] Xiangyu Chang, Yingcong Li, Muti Kara, Samet Oymak, and Amit Roy-Chowdhury. “Provable Benefits of Task-Specific Prompts for In-context Learning”. In: Proceed-ings of The 28th International Conference on Artificial Intelligence and Statistics . Ed. by Yingzhen Li, Stephan Mandt, Shipra Agrawal, and Emtiyaz Khan. Vol. 258. Proceed-ings of Machine Learning Research. PMLR, Mar. 2025, pp. 1558–1566. url : https: //proceedings.mlr.press/v258/chang25b.html .[Che+24a] Angelica Chen, Ravid Shwartz-Ziv, Kyunghyun Cho, Matthew L Leavitt, and Naomi Saphra. “Sudden Drops in the Loss: Syntax Acquisition, Phase Transitions, and Sim-plicity Bias in MLMs”. In: The Twelfth International Conference on Learning Representa-tions . 2024. url : https://openreview.net/forum?id=MO5PiKHELW .[Che+24b] Huiyao Chen, Yu Zhao, Zulong Chen, Mengjia Wang, Liangyue Li, Meishan Zhang, and Min Zhang. “Retrieval-style In-context Learning for Few-shot Hierarchical Text Classification”. In: Transactions of the Association for Computational Linguistics 12 (2024), pp. 1214–1231. [Dom+25] Clémentine Carla Juliette Dominé, Nicolas Anguita, Alexandra Maria Proca, Lukas Braun, Daniel Kunin, Pedro A. M. Mediano, and Andrew M Saxe. “From Lazy to Rich: Exact Learning Dynamics in Deep Linear Networks”. In: The Thirteenth International Conference on Learning Representations . 2025. url : https://openreview.net/forum? id=ZXaocmXc6d .[Gar+22] Shivam Garg, Dimitris Tsipras, Percy Liang, and Gregory Valiant. “What Can Trans-formers Learn In-Context? A Case Study of Simple Function Classes”. In: Advances in Neural Information Processing Systems . 2022. url : https://openreview.net/forum? id=flNZJ2eOet .23 [Gat+24] Khashayar Gatmiry, Nikunj Saunshi, Sashank J. Reddi, Stefanie Jegelka, and Sanjiv Kumar. “Can Looped Transformers Learn to Implement Multi-step Gradient Descent for In-context Learning?” In: Forty-first International Conference on Machine Learning .2024. url : https://openreview.net/forum?id=o8AaRKbP9K .[GLH24] Pulkit Gopalani, Ekdeep Singh Lubana, and Wei Hu. “Abrupt Learning in Trans-formers: A Case Study on Matrix Completion”. In: Advances in Neural Information Processing Systems . Ed. by A. Globerson, L. Mackey, D. Belgrave, A. Fan, U. Paquet, J. Tomczak, and C. Zhang. Vol. 37. Curran Associates, Inc., 2024, pp. 55053–55085. [God+25] Chase Goddard, Lindsay M. Smith, Vudtiwat Ngampruetikorn, and David J. Schwab. “When can in-context learning generalize out of task distribution?” In: Forty-second International Conference on Machine Learning . 2025. url : https://openreview.net/ forum?id=YKyza9lrv4 .[Goz+25] Halil Alperen Gozeten, Muhammed Emrullah Ildiz, Xuechen Zhang, Mahdi Soltanolkotabi, Marco Mondelli, and Samet Oymak. “Test-Time Training Provably Improves Trans-formers as In-context Learners”. In: Forty-second International Conference on Machine Learning . 2025. url : https://openreview.net/forum?id=bma2FB5MNs .[GSD20] Daniel Gissin, Shai Shalev-Shwartz, and Amit Daniely. “The Implicit Bias of Depth: How Incremental Learning Drives Generalization”. In: International Conference on Learning Representations . 2020. url : https://openreview.net/forum?id=H1lj0nNFwB .[HCL24] Yu Huang, Yuan Cheng, and Yingbin Liang. “In-context Convergence of Transform-ers”. In: International Conference on Machine Learning . PMLR. 2024, pp. 19660–19722. [Jac+22] Arthur Jacot, François Ged, Berfin Şimşek, Clément Hongler, and Franck Gabriel. “Saddle-to-Saddle Dynamics in Deep Linear Networks: Small Initialization Training, Symmetry, and Sparsity”. In: arXiv preprint arXiv:2106.15933 (2022). url : https : //arxiv.org/abs/2106.15933 .[Kap+20] Jared Kaplan, Sam McCandlish, Tom Henighan, Tom B. Brown, Benjamin Chess, Rewon Child, Scott Gray, Alec Radford, Jeffrey Wu, and Dario Amodei. “Scaling Laws for Neural Language Models”. In: arXiv preprint arXiv:2001.08361 (2020). url :
+
+https://arxiv.org/abs/2001.08361 .[KGR24] Jannik Kossen, Yarin Gal, and Tom Rainforth. “In-Context Learning Learns Label Rela-tionships but Is Not Conventional Learning”. In: The Twelfth International Conference on Learning Representations . 2024. url : https://openreview.net/forum?id=YPIA7bgd5y .[Kim+25] Jaeyeon Kim, Sehyun Kwon, Joo Young Choi, Jongho Park, Jaewoong Cho, Jason D. Lee, and Ernest K. Ryu. “Task Diversity Shortens the In-Context Learning Plateau”. In: Transactions on Machine Learning Research (2025). issn : 2835-8856. url : https : //openreview.net/forum?id=7t5DzaJOdB .[Kwo+26] Soo Min Kwon, Alec S. Xu, Can Yaras, Laura Balzano, and Qing Qu. “Out-of-Distribution Generalization of In-Context Learning: A Low-Dimensional Subspace Perspective”. In: The 29th International Conference on Artificial Intelligence and Statistics . 2026. url :
+
+https://openreview.net/forum?id=xrmPHv8SNT .[Li+23] Jia Li, Chongyang Tao, Jia Li, Ge Li, Zhi Jin, Huangzhao Zhang, Zheng Fang, and Fang Liu. “Large language model-aware in-context learning for code generation”. In: 
+
+ACM Transactions on Software Engineering and Methodology (2023). 24 [Li+24] Hongkang Li, Meng Wang, Songtao Lu, Xiaodong Cui, and Pin-Yu Chen. “How Do Nonlinear Transformers Learn and Generalize in In-Context Learning?” In: Interna-tional Conference on Machine Learning . PMLR. 2024, pp. 28734–28783. [LLL21] Zhiyuan Li, Yuping Luo, and Kaifeng Lyu. “Towards Resolving the Implicit Bias of Gradient Descent for Matrix Factorization: Greedy Low-Rank Learning”. In: Inter-national Conference on Learning Representations . 2021. url : https://openreview.net/ forum?id=AHOs7Sm5H7R .[LRO24] Yingcong Li, Ankit Singh Rawat, and Samet Oymak. “Fine-grained Analysis of In-context Linear Estimation: Data, Architecture, and Beyond”. In: The Thirty-eighth Annual Conference on Neural Information Processing Systems . 2024. url : https : / / openreview.net/forum?id=lYPAYmfQqm .[Lu+25] Yue M. Lu, Mary Letey, Jacob A. Zavatone-Veth, Anindita Maiti, and Cengiz Pehlevan. “Asymptotic theory of in-context learning by linear attention”. In: Proceedings of the Na-tional Academy of Sciences 122.28 (2025), e2502599122. doi : 10.1073/pnas.2502599122 .eprint: https://www.pnas.org/doi/pdf/10.1073/pnas.2502599122 . url : https: //www.pnas.org/doi/abs/10.1073/pnas.2502599122 .[MHM24] Arvind V. Mahankali, Tatsunori Hashimoto, and Tengyu Ma. “One Step of Gradient Descent is Provably the Optimal In-Context Learner with One Layer of Linear Self-Attention”. In: The Twelfth International Conference on Learning Representations . 2024. 
+
+url : https://openreview.net/forum?id=8p3fu56lKc .[Min+24] Soo Min Kwon, Zekai Zhang, Dogyoon Song, Laura Balzano, and Qing Qu. “Efficient Low-Dimensional Compression of Overparameterized Models”. In: Proceedings of The 27th International Conference on Artificial Intelligence and Statistics . Ed. by Sanjoy Das-gupta, Stephan Mandt, and Yingzhen Li. Vol. 238. Proceedings of Machine Learning Research. PMLR, Feb. 2024, pp. 1009–1017. url : https://proceedings.mlr.press/ v238/min-kwon24a.html .[Pan+23] Jane Pan, Tianyu Gao, Howard Chen, and Danqi Chen. “What In-Context Learning "Learns" In-Context: Disentangling Task Recognition and Task Learning”. In: The 61st Annual Meeting Of The Association For Computational Linguistics . 2023. [Pat+24] Arkil Patel, Siva Reddy, Dzmitry Bahdanau, and Pradeep Dasigi. “Evaluating In-Context Learning of Libraries for Code Generation”. In: Proceedings of the 2024 Confer-ence of the North American Chapter of the Association for Computational Linguistics: Human Language Technologies (Volume 1: Long Papers) . 2024, pp. 2908–2926. [Rav+23] Allan Raventós, Mansheej Paul, Feng Chen, and Surya Ganguli. “Pretraining task diversity and the emergence of non-bayesian in-context learning for regression”. In: 
+
+Advances in neural information processing systems 36 (2023), pp. 14228–14246. [SS21] Dominik Stöger and Mahdi Soltanolkotabi. “Small random initialization is akin to spectral learning: Optimization and generalization guarantees for overparameterized low-rank matrix reconstruction”. In: Advances in Neural Information Processing Systems .Ed. by M. Ranzato, A. Beygelzimer, Y. Dauphin, P.S. Liang, and J. Wortman Vaughan. Vol. 34. Curran Associates, Inc., 2021, pp. 23831–23843. url : https://proceedings. neurips.cc/paper_files/paper/2021/file/c82836ed448c41094025b4a872c5341e-Paper.pdf .25 [Var+23] Aditya Vardhan Varre, Maria-Luiza Vladarean, Loucas Pillaud-Vivien, and Nicolas Flammarion. “On the spectral bias of two-layer linear networks”. In: Thirty-seventh Conference on Neural Information Processing Systems . 2023. url : https://openreview. net/forum?id=FFdrXkm3Cz .[Vas+17] Ashish Vaswani, Noam Shazeer, Niki Parmar, Jakob Uszkoreit, Llion Jones, Aidan N Gomez, Łukasz Kaiser, and Illia Polosukhin. “Attention is all you need”. In: Advances in neural information processing systems 30 (2017). [Vil+22] David Vilar, Markus Freitag, Colin Cherry, Jiaming Luo, Viresh Ratnakar, and George Foster. “Prompting palm for translation: Assessing strategies and performance”. In: 
+
+arXiv preprint arXiv:2211.09102 (2022). [Von+23] Johannes Von Oswald, Eyvind Niklasson, Ettore Randazzo, João Sacramento, Alexan-der Mordvintsev, Andrey Zhmoginov, and Max Vladymyrov. “Transformers learn in-context by gradient descent”. In: International Conference on Machine Learning . PMLR. 2023, pp. 35151–35174. [Wan+24a] Peng Wang, Huijie Zhang, Zekai Zhang, Yi Ma, and Qing Qu. “Diffusion Models Learn Low-Dimensional Distributions via Subspace Clustering”. In: arXiv preprint arXiv:2409.02426 (2024). [Wan+24b] Zengzhi Wang, Qiming Xie, Yi Feng, Zixiang Ding, Zinong Yang, and Rui Xia. “Is ChatGPT a Good Sentiment Analyzer?” In: First Conference on Language Modeling .2024. [Wan+25] Qixun Wang, Yifei Wang, Yisen Wang, and Xianghua Ying. “Can In-context Learning Really Generalize to Out-of-distribution Tasks?” In: The Thirteenth International Con-ference on Learning Representations . 2025. url : https://openreview.net/forum?id= INe4otjryz .[Wei+22a] Jason Wei, Yi Tay, Rishi Bommasani, Colin Raffel, Barret Zoph, Sebastian Borgeaud, Dani Yogatama, Maarten Bosma, Denny Zhou, Donald Metzler, Ed H. Chi, Tatsunori Hashimoto, Oriol Vinyals, Percy Liang, Jeff Dean, and William Fedus. “Emergent Abilities of Large Language Models”. In: Transactions on Machine Learning Research 
+
+(2022). Survey Certification. issn : 2835-8856. url : https://openreview.net/forum? id=yzkSU5zdwD .[Wei+22b] Jason Wei, Xuezhi Wang, Dale Schuurmans, Maarten Bosma, Fei Xia, Ed Chi, Quoc V Le, Denny Zhou, et al. “Chain-of-thought prompting elicits reasoning in large language models”. In: Advances in neural information processing systems 35 (2022), pp. 24824–24837. [Wu+24] Jingfeng Wu, Difan Zou, Zixiang Chen, Vladimir Braverman, Quanquan Gu, and Peter Bartlett. “How Many Pretraining Tasks Are Needed for In-Context Learning of Linear Regression?” In: The Twelfth International Conference on Learning Representations .2024. url : https://openreview.net/forum?id=vSh5ePa0ph .[Xu+24] Hongling Xu, Qianlong Wang, Yice Zhang, Min Yang, Xi Zeng, Bing Qin, and Ruifeng Xu. “Improving In-Context Learning with Prediction Feedback for Sentiment Analy-sis”. In: Findings of the Association for Computational Linguistics ACL 2024 . 2024, pp. 3879– 3890. [Xu+25] Alec S Xu, Can Yaras, Peng Wang, and Qing Qu. “Understanding How Nonlinear Layers Create Linearly Separable Features for Low-Dimensional Data”. In: arXiv preprint arXiv:2501.02364 (2025). 26 [YDT23] Steve Yadlowsky, Lyric Doshi, and Nilesh Tripuraneni. “Pretraining data mixtures enable narrow model selection capabilities in transformer models”. In: arXiv preprint arXiv:2311.00871 (2023). [ZFB24] Ruiqi Zhang, Spencer Frei, and Peter L Bartlett. “Trained transformers learn linear models in-context”. In: Journal of Machine Learning Research 25.49 (2024), pp. 1–55. [Zha+25] Yedi Zhang, Aaditya K Singh, Peter E Latham, and Andrew M Saxe. “Training Dy-namics of In-Context Learning in Linear Attention”. In: Forty-second International Conference on Machine Learning . 2025. 27 Appendix 
+
+# A Deferred Proofs from Section 3 
+
+A.1 Proof of Proposition 1 
+
+Proof. We begin by simplifying the linear attention model. Let us define the following: 
+
+W𝑄 =
+
+ Q q1
+
+q⊤ 
+
+> 2
+
+𝑞 
+
+
+
+, W𝐾 =
+
+ K k1
+
+k⊤ 
+
+> 2
+
+𝑘 
+
+
+
+, W𝑉 =
+
+ V v1
+
+v⊤ 
+
+> 2
+
+𝑣 
+
+
+
+, and p =
+
+0𝑑 
+
+1
+
+
+
+,
+
+where Q, K, V ∈ R𝑑 ×𝑑 . Then, note that the initialization conditions in Equation (7) sets q𝑖 , k𝑖 , v𝑖 = 0𝑑 
+
+for 𝑖 ∈ { 1, 2}. Some algebraic manipulations allow us to simplify the model as such: 
+
+𝑔 𝒲 (Z) = 1
+
+𝑛 
+
+
+
+z⊤ 
+
+> 𝑞
+
+W𝑄 W⊤ 
+
+> 𝐾
+
+Z⊤ℳ
+
+
+
+ZℳW𝑉 p (z𝑞 denotes query) 
+
+= 1
+
+𝑛 
+
+x⊤ 
+
+> 𝑞
+
+0| {z }
+
+> Cz⊤
+> 𝑞
+
+W𝑄 W⊤ 
+
+> 𝐾
+
+Z⊤ℳZℳ
+
+v1
+
+𝑣 
+
+|{z} 
+
+> Bv
+
+(Due to 0𝑑 in p)
+
+= x⊤ 
+
+> 𝑞
+
+0  Q q1
+
+0⊤ 
+
+> 𝑑
+
+0
+
+  K⊤ k2
+
+k⊤ 
+
+> 1
+
+𝑘 
+
+  1
+
+> 𝑛
+
+Í𝑛 𝑖 =1 x𝑖 x⊤
+
+> 𝑖
+> 1
+> 𝑛
+
+Í𝑛 𝑖 =1 𝑦 𝑖 x𝑖 
+
+> 1
+> 𝑛
+
+Í𝑛 𝑖 =1 𝑦 𝑖 x⊤
+
+> 𝑖
+> 1
+> 𝑛
+
+Í𝑛 𝑖 =1 𝑦 2
+
+> 𝑖
+
+| {z } 
+
+> =Z⊤ℳZℳ
+
+v (Due to 0 in z𝑞 )
+
+=
+
+h
+
+x⊤ 
+
+> 𝑞
+
+bQbK⊤ x⊤ 
+
+> 𝑞
+
+bQk 
+
+i  1
+
+> 𝑛
+
+Í𝑛 𝑖 =1 x𝑖 x⊤
+
+> 𝑖
+> 1
+> 𝑛
+
+Í𝑛 𝑖 =1 𝑦 𝑖 x𝑖 
+
+> 1
+> 𝑛
+
+Í𝑛 𝑖 =1 𝑦 𝑖 x⊤
+
+> 𝑖
+> 1
+> 𝑛
+
+Í𝑛 𝑖 =1 𝑦 2
+
+> 𝑖
+
+
+
+v,
+
+where we have defined bQ = Q q1
+
+ ∈ R𝑑 ×( 𝑑 +1), bK = K k1
+
+ ∈ R𝑑 ×( 𝑑 +1) and k⊤ = k⊤ 
+
+> 2
+
+𝑘 .Consider the following notation: 
+
+bΛ = 1
+
+𝑛 
+
+> 𝑛
+
+Õ
+
+> 𝑖 =1
+
+x𝑖 x⊤ 
+
+> 𝑖
+
+, c = 1
+
+𝑛 
+
+> 𝑛
+
+Õ
+
+> 𝑖 =1
+
+𝑦 𝑖 x𝑖 , and 𝛼 = 1
+
+𝑛 
+
+> 𝑛
+
+Õ
+
+> 𝑖 =1
+
+𝑦 2 
+
+> 𝑖
+
+.
+
+We can then express linear attention as follows: 
+
+𝑔 𝒲 (Z) =
+
+h
+
+x⊤ 
+
+> 𝑞
+
+bQbK⊤ bΛ + x⊤ 
+
+> 𝑞
+
+bQkc ⊤ x⊤ 
+
+> 𝑞
+
+bQbK⊤c + 𝛼 x⊤ 
+
+> 𝑞
+
+bQk 
+
+i
+
+v
+
+=
+
+
+
+x⊤ 
+
+> 𝑞
+
+bQbK⊤ bΛ + x⊤ 
+
+> 𝑞
+
+bQkc ⊤
+
+
+
+v1 +
+
+
+
+x⊤ 
+
+> 𝑞
+
+bQbK⊤c + 𝛼 x⊤ 
+
+> 𝑞
+
+bQk 
+
+
+
+𝑣. 
+
+Now, recall that we initialize v1 = 0𝑑 and k = 0𝑑 +1. Then, the model simplifies to 
+
+𝑔 𝒲 (Z) = 𝑣 x⊤ 
+
+> 𝑞
+
+bQbK⊤c.
+
+28 We show that if they are initialized such that v1 = 0𝑑 and k = 0𝑑 +1, they will remain zero: 
+
+𝜏 ¤v1 = E
+
+h 𝑦 𝑞 − 𝑔 𝒲 (Z) ·
+
+bΛ⊤ bKbQ⊤x𝑞 + ck ⊤ bQ⊤x𝑞 
+
+i 
+
+= E
+
+h 
+
+w⊤x𝑞 − 𝑣 c⊤ bKbQ⊤x𝑞 
+
+
+
+·
+
+bΛ⊤ bKbQ⊤x𝑞 
+
+i 
+
+(k = 0𝑑 +1)
+
+= E
+
+h 
+
+w⊤x𝑞 − 𝑣 w⊤ bΛbKbQ⊤x𝑞 
+
+
+
+·
+
+bΛ⊤ bKbQ⊤x𝑞 
+
+i 
+
+(c⊤ = 1
+
+> 𝑛 𝑛
+
+Í
+
+> 𝑖 =1
+
+w⊤x𝑖 x⊤ 
+
+> 𝑖
+
+= w⊤ bΛ)
+
+= E[w]⊤E
+
+h 
+
+x𝑞 − 𝑣 bΛbKbQ⊤x𝑞 
+
+
+
+·
+
+bΛ⊤ bKbQ⊤x𝑞 
+
+i 
+
+= 0𝑑 .
+
+𝜏 ¤k = E
+
+h
+
+𝑣 bQ⊤x𝑞 ·  b𝑦 𝑞 − 𝑔 𝒲 (Z)i
+
+= 𝑣 bQ⊤E x𝑞 ·  b𝑦 𝑞 − 𝑔 𝒲 (Z) 
+
+= 𝑣 bQ⊤E x𝑞 
+
+ · E   b𝑦 𝑞 − 𝑔 𝒲 (Z) 
+
+= 0𝑑 +1.
+
+This gives us the following gradients: 
+
+𝜏 ¤bQ = 𝑣 E
+
+h
+
+x𝑞 (b𝑦 𝑞 − 𝑣 x⊤ 
+
+> 𝑞
+
+bQbK⊤c)c⊤
+
+i bK
+
+𝜏 ¤bK = 𝑣 bQ⊤E
+
+h
+
+x𝑞 (b𝑦 𝑞 − 𝑣 x⊤ 
+
+> 𝑞
+
+bQbK⊤c)c⊤
+
+i
+
+.
+
+Note that we also initialize q1 = k1 = 0𝑑 . We show that these also remain zero: 
+
+𝜏 ¤q1 = 𝜏 ¤bQ · e𝑑 +1 = 𝑣 E
+
+h
+
+x𝑞 (b𝑦 𝑞 − 𝑣 x⊤ 
+
+> 𝑞
+
+bQbK⊤c)c⊤
+
+i bK · e𝑑 +1
+
+= 𝑣 E
+
+h
+
+x𝑞 (b𝑦 𝑞 − 𝑣 x⊤ 
+
+> 𝑞
+
+bQbK⊤c)c⊤
+
+i
+
+k1
+
+= 0. (k1(0) = 0)The proof for k1 follows verbatim. Hence, we have the dynamics 
+
+𝜏 ¤𝑣 = E
+
+h
+
+(b𝑦 𝑞 − 𝑣 x⊤ 
+
+> 𝑞
+
+QK ⊤c) · x⊤ 
+
+> 𝑞
+
+QK ⊤c
+
+i
+
+= E
+
+h
+
+Tr 
+
+
+
+(b𝑦 𝑞 − 𝑣 x⊤ 
+
+> 𝑞
+
+QK ⊤c) · x⊤ 
+
+> 𝑞
+
+QK ⊤c
+
+i 
+
+= E
+
+h
+
+Tr 
+
+
+
+(b𝑦 𝑞 − 𝑣 x⊤ 
+
+> 𝑞
+
+QK ⊤c) · c⊤KQ ⊤x𝑞 
+
+i 
+
+= E
+
+h
+
+Tr 
+
+
+
+Q⊤x𝑞 · ( b𝑦 𝑞 − 𝑣 x⊤ 
+
+> 𝑞
+
+QK ⊤c) · c⊤K
+
+i 
+
+= Tr 
+
+
+
+Q⊤E
+
+h
+
+x𝑞 · ( b𝑦 𝑞 − 𝑣 x⊤ 
+
+> 𝑞
+
+QK ⊤c) · c⊤
+
+i
+
+K
+
+
+
+𝜏 ¤Q = 𝑣 E
+
+h
+
+x𝑞 (b𝑦 𝑞 − 𝑣 x⊤ 
+
+> 𝑞
+
+QK ⊤c)c⊤
+
+i
+
+K
+
+𝜏 ¤K = 𝑣 Q⊤E
+
+h
+
+x𝑞 (b𝑦 𝑞 − 𝑣 x⊤ 
+
+> 𝑞
+
+QK ⊤c)c⊤
+
+i
+
+.
+
+Note that 
+
+c = 1
+
+𝑛 
+
+> 𝑛
+
+Õ
+
+> 𝑖 =1
+
+𝑦 𝑖 x𝑖 = 1
+
+𝑛 
+
+> 𝑛
+
+Õ
+
+> 𝑖 =1
+
+x𝑖 x⊤ 
+
+> 𝑖
+
+w = bΛw .
+
+29 With this in mind, let us simplify the common term: 
+
+E
+
+h
+
+x𝑞 (b𝑦 𝑞 − 𝑣 x⊤ 
+
+> 𝑞
+
+QK ⊤c)c⊤
+
+i
+
+= E
+
+h
+
+x𝑞 (x⊤ 
+
+> 𝑞
+
+w − 𝑣 x⊤ 
+
+> 𝑞
+
+QK ⊤c)c⊤
+
+i
+
+= E
+
+h
+
+x𝑞 x⊤ 
+
+> 𝑞
+
+· ( w − 𝑣 QK ⊤c)c⊤
+
+i
+
+= E
+
+h
+
+x𝑞 x⊤
+
+> 𝑞
+
+i| {z }
+
+> =I𝑑
+
+·E (w − 𝑣 QK ⊤c)c⊤
+
+= E
+
+h
+
+(I𝑑 − 𝑣 QK ⊤ bΛ) · ww ⊤ bΛ⊤
+
+i
+
+= E
+
+h
+
+ww ⊤ bΛ
+
+i
+
+− 𝑣 QK ⊤E
+
+hbΛww ⊤Λ
+
+i
+
+= E ww ⊤ E
+
+hbΛ
+
+i
+
+− 𝑣 QK ⊤EbΛ
+
+hbΛEw
+
+ww ⊤ bΛ
+
+i
+
+= Σ𝑠 − 𝑣 QK ⊤EbΛ
+
+hbΛΣ 𝑠 bΛ
+
+i
+
+.
+
+Focusing on the EbΛ =
+
+hbΛΣ 𝑠 bΛ
+
+i
+
+:
+
+EbΛ
+
+hbΛΣ 𝑠 bΛ
+
+i
+
+= 1
+
+𝑛 2 E
+
+
+
+> 𝑛
+
+Õ
+
+> 𝑖 =1
+
+x𝑖 x⊤ 
+
+> 𝑖
+
+Σ𝑠 𝑛 Õ
+
+> 𝑗 =1
+
+x𝑗 x⊤
+
+> 𝑗
+
+
+
+= 1
+
+𝑛 2
+
+> 𝑛
+
+Õ
+
+> 𝑖 =1
+> 𝑛
+
+Õ
+
+> 𝑗 =1
+
+E
+
+h
+
+x𝑖 x⊤ 
+
+> 𝑖
+
+Σ𝑠 x𝑗 x⊤
+
+> 𝑗
+
+i
+
+= 1
+
+𝑛 2
+
+©«
+
+> 𝑛
+
+Õ
+
+> 𝑖 =1
+
+Õ
+
+> 𝑗 ≠𝑖
+
+E
+
+h
+
+x𝑖 x⊤ 
+
+> 𝑖
+
+Σ𝑠 x𝑗 x⊤
+
+> 𝑗
+
+i| {z }
+
+> =Σ𝑠
+
++
+
+> 𝑛
+
+Õ
+
+> 𝑖 =1
+
+E x𝑖 x⊤ 
+
+> 𝑖
+
+Σ𝑠 x𝑖 x⊤
+
+> 𝑖
+
+ª®®®®¬
+
+= 1
+
+𝑛 2 𝑛 (𝑛 − 1)Σ𝑠 +
+
+> 𝑛
+
+Õ
+
+> 𝑖 =1
+
+(2Σs + Tr (Σ𝑠 ) I𝑑 )
+
+!
+
+= 𝑛 + 1
+
+𝑛 Σ𝑠 + Tr (Σ𝑠 )
+
+𝑛 I𝑑 .
+
+Therefore, 
+
+E
+
+h
+
+x𝑞 (𝑦 𝑞 − 𝑣 x⊤ 
+
+> 𝑞
+
+QK ⊤c)c⊤
+
+i
+
+= Σ𝑠 − 𝑣 QK ⊤
+
+ 𝑛 + 1
+
+𝑛 Σ𝑠 + Tr (Σ𝑠 )
+
+𝑛 I𝑑 
+
+
+
+,
+
+which imply the dynamics: 
+
+𝜏 ¤𝑣 = Tr 
+
+
+
+Q⊤
+
+
+
+Σ𝑠 − 𝑣 QK ⊤
+
+ 𝑛 + 1
+
+𝑛 Σ𝑠 + Tr (Σ𝑠 )
+
+𝑛 I𝑑 
+
+ 
+
+K
+
+
+
+,
+
+𝜏 ¤Q = 𝑣 
+
+
+
+Σ𝑠 − 𝑣 QK ⊤
+
+ 𝑛 + 1
+
+𝑛 Σ𝑠 + Tr (Σ𝑠 )
+
+𝑛 I𝑑 
+
+ 
+
+K,
+
+𝜏 ¤K = 𝑣 Q⊤
+
+
+
+Σ𝑠 − 𝑣 QK ⊤
+
+ 𝑛 + 1
+
+𝑛 Σ𝑠 + Tr (Σ𝑠 )
+
+𝑛 I𝑑 
+
+ 
+
+.
+
+30 By taking the limit 𝑛 → ∞ , we obtain the following: This gives us the dynamics 
+
+𝜏 ¤𝑣 B 𝜏 lim  
+
+> 𝑛 →∞
+
+¤𝑣 = Tr  Q⊤  Σ𝑠 − 𝑣 QK ⊤Σ𝑠 
+
+ K ,
+
+𝜏 ¤Q B 𝜏 lim 
+
+> 𝑛 →∞
+
+¤Q = 𝑣  Σ𝑠 − 𝑣 QK ⊤Σ𝑠 
+
+ K,
+
+𝜏 ¤K B 𝜏 lim 
+
+> 𝑛 →∞
+
+¤K = 𝑣 Q⊤  Σ𝑠 − 𝑣 QK ⊤Σ𝑠 
+
+ .
+
+Now it remains to show that the updates of Q ∈ R𝑑 ×𝑑 and K ∈ R𝑑 ×𝑑 occur in invariant subspaces. Let Σ𝑠 = U𝑠 Λ𝑠 U⊤ 
+
+> 𝑠
+
+denote the eigendecomposition of the task covariance matrix Σ𝑠 ∈ R𝑑 ×𝑑 . Consider the following change of variables: 
+
+Λ𝑄 = U⊤ 
+
+> 𝑠
+
+QU 𝑠 and Λ𝐾 = U⊤ 
+
+> 𝑠
+
+KU 𝑠 
+
+By plugging in the dynamics for ¤Q and ¤K, we obtain 
+
+𝜏 ¤Λ𝑄 = 𝑣  Λ𝑠 − 𝑣 Λ𝑄 Λ𝐾 Λ𝑠 
+
+ Λ𝐾 
+
+𝜏 ¤Λ𝐾 = 𝑣 Λ𝑄 
+
+ Λ𝑠 − 𝑣 Λ𝑄 Λ𝐾 Λ𝑠 
+
+
+
+By initialization, note that 
+
+Q(0) = 𝛼 I𝑑 = 𝛼 U𝑠 U⊤ 
+
+> 𝑠
+
+=⇒ Λ𝑄 (0) = 𝛼 I𝑑 and K(0) = 𝛼 I𝑑 = 𝛼 U𝑠 U⊤ 
+
+> 𝑠
+
+=⇒ Λ𝐾 (0) = 𝛼 I𝑑 .
+
+Since they are diagonal matrices at initialization, the GF dynamics are also diagonal, and remain diagonal for all 𝑡 ≥ 0. Returning to the original coordinates, this implies that both Q(𝑡 ) and K(𝑡 ) are jointly diagonalizable in the Σ𝑠 basis for all 𝑡 ≥ 0, and so we have the following dynamics: 
+
+𝜏 ¤Q B 𝜏 lim 
+
+> 𝑛 →∞
+
+¤Q = 𝜏 lim  
+
+> 𝑛 →∞
+
+U𝑠 ¤Λ𝑄 U⊤ 
+
+> 𝑠
+
+= U𝑠 
+
+ 𝑣  Λ𝑠 − 𝑣 Λ𝑄 Λ𝐾 Λ𝑠 
+
+ Λ𝐾 
+
+ U⊤ 
+
+> 𝑠
+
+,
+
+𝜏 ¤K B 𝜏 lim 
+
+> 𝑛 →∞
+
+¤K = 𝜏 lim  
+
+> 𝑛 →∞
+
+U𝑠 ¤Λ𝐾 U⊤ 
+
+> 𝑠
+
+= U𝑠 
+
+ 𝑣 Λ𝑄 
+
+ Λ𝑠 − 𝑣 Λ𝑄 Λ𝐾 Λ𝑠 
+
+ U⊤ 
+
+> 𝑠
+
+,
+
+𝜏 ¤𝑣 B 𝜏 lim  
+
+> 𝑛 →∞
+
+¤𝑣 = Tr  Λ𝑄 
+
+ Λ𝑠 − 𝑣 Λ𝑄 Λ𝐾 Λ𝑠 
+
+ Λ𝐾 
+
+ .
+
+This completes the proof. □
+
+A.2 Proof of Lemma 1 
+
+Proof. It suffices to show that 𝑑 𝑑𝑡 
+
+Í 𝑞 𝑖 =1 𝜆 2 
+
+> 𝑖
+
+(𝑡 ) − 𝑣 2(𝑡 ) = 0. Recall from the gradient flow dynamics that 𝜏 ¤𝑣 = Í𝑑 𝑖 =1 𝜎 𝑖 (1 − 𝑣 𝜆 2 
+
+> 𝑖
+
+)𝜆 2 
+
+> 𝑖
+
+. Because the task covariance matrices are exactly rank 𝑞 , the signal strength 𝜎 𝑖 = 0 for all 𝑖 > 𝑞 . Therefore, the tail sum vanishes, and we can write the derivative of the invariant as: 
+
+𝜏 𝑑 𝑑𝑡 
+
+" 𝑞 Õ
+
+> 𝑖 =1
+
+𝜆 2 
+
+> 𝑖
+
+− 𝑣 2
+
+#
+
+= 2
+
+> 𝑞
+
+Õ
+
+> 𝑖 =1
+
+𝜆 𝑖 · 𝜏 ¤𝜆 𝑖 − 2𝑣 · 𝜏 ¤𝑣 
+
+= 2
+
+> 𝑞
+
+Õ
+
+> 𝑖 =1
+
+𝜆 𝑖 · 𝜎 𝑖 (1 − 𝑣 𝜆 2 
+
+> 𝑖
+
+)𝑣 𝜆 𝑖 − 2𝑣 
+
+> 𝑞
+
+Õ
+
+> 𝑖 =1
+
+𝜎 𝑖 (1 − 𝑣 𝜆 2 
+
+> 𝑖
+
+)𝜆 2
+
+> 𝑖
+
+= 2𝑣 
+
+> 𝑞
+
+Õ
+
+> 𝑖 =1
+
+𝜎 𝑖 (1 − 𝑣 𝜆 2 
+
+> 𝑖
+
+)𝜆 2 
+
+> 𝑖
+
+− 2𝑣 
+
+> 𝑞
+
+Õ
+
+> 𝑖 =1
+
+𝜎 𝑖 (1 − 𝑣 𝜆 2 
+
+> 𝑖
+
+)𝜆 2 
+
+> 𝑖
+
+= 0.
+
+Since the derivative is zero, the quantity Í𝑞 𝑖 =1 𝜆 2 
+
+> 𝑖
+
+(𝑡 ) − 𝑣 2(𝑡 ) is constant for all 𝑡 ≥ 0. By the initial conditions in Equation (7), Í𝑞 𝑖 =1 𝜆 2 
+
+> 𝑖
+
+(0) − 𝑣 2(0) = 0, which completes the proof. □
+
+31 A.3 Derivation for Single Task Case 
+
+Proof. For the case in which the training task vectors are drawn from a single subspace (i.e., 𝑛 ind = 0), we need to compute 
+
+𝑡 single = 𝜏 𝑞 
+
+∫ 𝜆 ★−𝛿 𝛼 
+
+𝑑 𝜆 
+
+(1 − 𝑣 𝜆 2) · 𝑣 𝜆 = 𝜏 𝑞 
+
+∫ 𝜆 ★−𝛿 𝛼 
+
+𝑑 𝜆 
+
+𝑣 𝜆 
+
+| {z }
+
+> =𝑡 single, growth
+
++ 𝜏 𝑞 
+
+∫ 𝜆 ★−𝛿 𝛼 
+
+𝜆 
+
+1 − 𝑣 𝜆 2 𝑑 𝜆 
+
+| {z }
+
+> =𝑡 single, sat
+
+,
+
+as stated in Equation (18). By Lemma 1, the conservation law gives us 
+
+𝑣 2(𝑡 ) = 𝑞 𝜆 2(𝑡 ) =⇒ 𝑣 (𝑡 ) = √𝑞 𝜆 (𝑡 ).
+
+By plugging this into 𝑡 single , we obtain 
+
+𝑡 single = 𝜏 √𝑞 
+
+∫ 𝜆 ★−𝛿 𝛼 
+
+𝑑 𝜆 𝜆 2 + 𝜏 𝑞 
+
+∫ 𝜆 ★−𝛿 𝛼 
+
+𝜆 
+
+1 − √𝑞 𝜆 3 𝑑 𝜆 
+
+= 𝜏 √𝑞 
+
+ 1
+
+𝛼 − 1
+
+𝜆 ★ − 𝛿 
+
+
+
++ 𝜏 𝑞 
+
+∫ 𝜆 ★−𝛿 𝛼 
+
+𝜆 
+
+1 − √𝑞 𝜆 3 𝑑 𝜆 .
+
+We focus on the saturation term: it is straightforward to show that 
+
+ℎ(𝑥 ) B − 13 log |𝑥 − 1| + 16 log (𝑥 2 + 𝑥 + 1) − √33 arctan 
+
+ 2𝑥 + 1
+
+√3
+
+
+
+=⇒ ℎ′(𝑥 ) = 𝑥 
+
+1 − 𝑥 3 ,
+
+and so 
+
+𝜏 𝑞 
+
+∫ 𝜆 ★−𝛿 𝛼 
+
+𝜆 
+
+1 − 𝑣 𝜆 2 𝑑 𝜆 = 𝜏 𝑞 · 𝑞 −1/3
+
+h
+
+ℎ
+
+
+
+𝑞 1/6  𝜆 ★ − 𝛿 
+
+− ℎ
+
+
+
+𝑞 1/6 𝛼 
+
+i 
+
+.
+
+Recall that in order for the system to be stationary, we require 𝑣 𝜆 ★2 = 1, and with the conservation law, this gives us 𝜆 ★ = 𝑞 −1/6. Plugging this in, we obtain the following: 
+
+𝑡 single = 𝜏 √𝑞 
+
+ 1
+
+𝛼 − 1
+
+𝜆 ★ − 𝛿 
+
+
+
++ 𝜏 𝑞 2/3 ·
+
+
+
+ℎ
+
+
+
+1 − 𝑞 1/6 𝛿 
+
+
+
+− ℎ
+
+
+
+𝑞 1/6 𝛼 
+
+ 
+
+,
+
+which is exactly the expression in Equation (19). This completes the derivation. □
+
+A.4 Derivation for Task Diverse Case 
+
+Proof. Recall that our GF dynamics are given by 
+
+𝜏 ¤𝜆 over = 1
+
+𝑎 
+
+ 1 − 𝑣 𝜆 2
+
+> over
+
+ 𝑣 𝜆 over 
+
+𝜏 ¤𝜆 ind = 12𝑎 
+
+ 1 − 𝑣 𝜆 2
+
+> ind
+
+ 𝑣 𝜆 ind 
+
+𝜏 ¤𝑣 = 𝑛 over 
+
+𝑎 
+
+ 1 − 𝑣 𝜆 2
+
+> over
+
+ 𝑣 𝜆 over + 𝑛 ind 
+
+2𝑎 
+
+ 1 − 𝑣 𝜆 2
+
+> ind
+
+ 𝑣 𝜆 ind .
+
+Our goal is to derive 𝑡 mix , which can be decomposed into 𝑡 over +𝑡 ind under the power-law assumption, which states that 𝜆 ind can be approximated using 𝜆 ind = √𝛼𝜆 over during 𝑡 over . Then, at 𝑡 ind , we solve for the remaining time it takes for 𝜆 over to reach stationarity. 32 Stage I: Learning the Common Subspace Components. Following the derivation strategy in Section A.3, we have that 
+
+𝑡 over = 𝑎 𝜏 
+
+∫ 𝜆 ★
+
+> over −𝛿 𝛼
+
+𝑑 𝜆 over 
+
+ 1 − 𝑣 𝜆 2
+
+> over
+
+ 𝑣 𝜆 over 
+
+, (30) which admits the following decomposition: 
+
+𝑡 over = 𝑎 𝜏 
+
+∫ 𝜆 ★
+
+> over −𝛿 𝛼
+
+𝑑 𝜆 over 
+
+ 1 − 𝑣 𝜆 2
+
+> over
+
+ 𝑣 𝜆 over 
+
+= 𝑎 𝜏 
+
+∫ 𝜆 ★
+
+> over −𝛿 𝛼
+
+1
+
+𝑣 𝜆 over 
+
+| {z }
+
+> =𝑡 over, growth
+
++ 𝑎 𝜏 
+
+∫ 𝜆 ★
+
+> over −𝛿 𝛼
+
+𝑣 𝜆 2
+
+> over
+
+1 − 𝑣 𝜆 2
+
+> over
+
+· 1
+
+𝑣 𝜆 over 
+
+| {z }
+
+> =𝑡 over, sat
+
+. (31) For this setting, we have the following conservation law by Lemma 1: 
+
+𝑣 2(𝑡 ) = 𝑛 over 𝜆 2
+
+> over
+
+(𝑡 ) + 𝑛 ind 𝜆 2
+
+> ind
+
+(𝑡 ).
+
+However, due to the coupled nature of 𝜆 ind and 𝜆 over , we cannot straightforwardly plug in the conservation law to derive the time as done in Section A.3. Instead, note that under the power-law assumption, 𝜆 ind = √𝛼𝜆 over , and so 
+
+𝑣 2(𝑡 ) = 𝑛 over 𝜆 2 
+
+> over
+
++ 𝛼 𝑛 ind 𝜆 over .
+
+By plugging this into 𝑡 over, growth , we obtain 
+
+𝑡 over, growth = 𝜏 𝑎 
+
+∫ 𝜆 ★
+
+> over −𝛿 𝛼
+
+𝑑 𝜆 over 
+
+𝜆 3/2
+
+> over
+
+√𝑛 over 𝜆 over + 𝛼 𝑛 ind 
+
+= 2𝜏 𝑎 
+
+𝛼 𝑛 ind 
+
+√𝑛 ind 𝛼 + 𝑛 over 𝛼 
+
+√𝛼 −
+
+p𝑛 ind 𝛼 + 𝑛 over (𝜆 ★ 
+
+> over
+
+− 𝛿 )
+
+p𝜆 ★ 
+
+> over
+
+− 𝛿 
+
+!
+
+= 2𝜏 𝑎 
+
+𝛼 𝑛 ind 
+
+√𝑞 −
+
+p𝑛 ind 𝛼 + 𝑛 over (𝜆 ★ 
+
+> over
+
+− 𝛿 )
+
+p𝜆 ★ 
+
+> over
+
+− 𝛿 
+
+!
+
+.
+
+The challenging part is the saturation time, which does not admit a closed-form integral, even with the (approximate) conservation law. To handle this, we can make an ansatz on the GF dynamics to simplify into a 1D system. We highlight that this is commonly done in the literature [Zha+25; Var+23]. Let us define 𝑢 over B 𝑣 𝜆 2
+
+> over
+
+, which gives us 
+
+𝑡 over, sat = 𝑎 𝜏 
+
+∫ 𝜆 ★
+
+> over −𝛿 𝛼
+
+𝑣 𝜆 2
+
+> over
+
+1 − 𝑣 𝜆 2
+
+> over
+
+· 1
+
+𝑣 𝜆 over 
+
+= 𝑎 𝜏 
+
+∫ 𝜆 ★
+
+> over −𝛿 𝛼
+
+𝑢 over 
+
+1 − 𝑢 over 
+
+· 1
+
+𝑣 𝜆 over 
+
+By the conservation law: 
+
+𝑣 2(𝑡 ) = 𝑛 over 𝜆 2 
+
+> over
+
++ 𝛼 𝑛 ind 𝜆 over =⇒ 𝑢 over (𝑡 ) = 𝜆 2
+
+> over
+
+q
+
+𝑛 over 𝜆 2 
+
+> over
+
++ 𝛼 𝑛 ind 𝜆 over ,
+
+which implies that 𝑢 over ∝ √𝑛 over 𝜆 3 
+
+> over
+
+for sufficiently small 𝛼 . However, using the ansatz that 
+
+𝑢 over = √𝑛 over 𝜆 3 
+
+> over
+
+may be inaccurate, as 𝑢 over ≠ 1 when 𝜆 over = 𝜆 ★
+
+> over
+
+. To this end, we make the ansatz that 𝑢 over can be approximated using the following calibrated cubic: 
+
+𝑢 over =
+
+ 𝜆 over 
+
+𝜆 ★
+
+> over
+
+3
+
+.
+
+33 Then we have 
+
+𝑢 over 
+
+1 − 𝑢 over 
+
+· 1
+
+𝑣 𝜆 over 
+
+= 𝑢 over 
+
+1 − 𝑢 over 
+
+· 𝜆 over 
+
+𝑢 over 
+
+= 𝜆 over 
+
+1 − ( 𝜆 over /𝜆 ★
+
+> over
+
+)3 .
+
+This gives us the following saturation time: 
+
+𝑡 over, sat = 𝑎 𝜏 
+
+∫ 𝜆 ★
+
+> over −𝛿 𝛼
+
+𝜆 over 
+
+1 − ( 𝜆 over /𝜆 ★
+
+> over
+
+)3 𝑑 𝜆 over = 𝑎 𝜏𝜆 ★2
+
+> over
+
+
+
+ℎ
+
+ 𝜆 ★ 
+
+> over
+
+− 𝛿 𝜆 ★
+
+> over
+
+
+
+− ℎ
+
+ 𝛼 𝜆 ★
+
+> over
+
+ 
+
+,
+
+where 
+
+ℎ(𝑥 ) = − 13 log |𝑥 − 1| + 16 log (𝑥 2 + 𝑥 + 1) − √33 arctan 
+
+ 2𝑥 + 1
+
+√3
+
+
+
+.
+
+is the same function as seen in Section A.3. Furthermore, note that if 𝜆 ★ 
+
+> over
+
+= 𝑞 −1/6 as in Section A.3, the two saturation times are equivalent, corroborating the use of the ansatz. Now it remains to compute 𝜆 ★
+
+> over
+
+. By plugging in the approximate conservation law into the dynamics of 𝜆 over , the stationarity condition for 𝜆 over gives us that that optimal solution 𝜆 ★ 
+
+> over
+
+should satisfy 
+
+𝑣 𝜆 2 
+
+> over
+
+= 1 =⇒ 𝜆 2
+
+> over
+
+p𝑛 over 𝜆 over + 𝑛 ind 𝛼 1/2𝜆 over = 1
+
+=⇒ 𝑛 over 𝜆 ★6 
+
+> over
+
++ 𝛼 𝑛 ind 𝜆 ★5 
+
+> over
+
+− 1 = 0.
+
+Putting it all together, we have that the time for Stage I is given by: 
+
+𝑡 over = 2𝜏 𝑎 
+
+𝛼 𝑛 ind 
+
+√𝑛 ind 𝛼 + 𝑛 over 𝛼 
+
+√𝛼 −
+
+p𝑛 ind 𝛼 + 𝑛 over (𝜆 ★ 
+
+> over
+
+− 𝛿 )
+
+p𝜆 ★ 
+
+> over
+
+− 𝛿 
+
+!| {z }
+
+> 𝑡 over, growth
+
++ 𝑎 𝜏𝜆 ★2
+
+> over
+
+
+
+ℎ
+
+ 𝜆 ★ 
+
+> over
+
+− 𝛿 𝜆 ★
+
+> over
+
+
+
+− ℎ
+
+ 𝛼 𝜆 ★
+
+> over
+
+ | {z }
+
+> 𝑡 over, sat
+
+where 𝜆 ★ 
+
+> over
+
+is the positive root of 
+
+𝑛 over 𝜆 ∗6 
+
+> over
+
++ 𝛼 𝑛 ind 𝜆 ∗5 
+
+> over
+
+− 1 = 0.
+
+This completes the derivation. 
+
+Stage II: Learning the Independent Subspace Components. Once the shared subspace has been learned and saturated, we are left with the dynamics in terms of 𝜆 ind and 𝑣 . We can set 
+
+𝑢 over = 𝑣 𝜆 ★2 
+
+> over
+
+= 1, which also gives us the conservation law 
+
+𝑣 2(𝑡 ) = 𝑛 over 𝜆 ★2
+
+> over
+
+(𝑡 ) + 𝑛 ind 𝜆 2
+
+> ind
+
+(𝑡 ).
+
+Now, we can take the latter approach in Section A.3, and write the dynamics in terms of ¤𝑢 ind B 𝑣 𝜆 2
+
+> ind
+
+:
+
+𝜏 ¤𝑢 ind = 𝑛 ind 
+
+𝑢 2
+
+> ind
+
+(1 − 𝑢 ind )(𝑛 over + 𝑛 ind 𝑢 ind )2/3 + ( 𝑛 over + 𝑛 ind 𝑢 ind )1/3(1 − 𝑢 ind )𝑢 ind 
+
+= 𝑢 ind (1 − 𝑢 ind )( 𝑛 over + 2𝑛 ind 𝑢 ind )(𝑛 over + 𝑛 ind 𝑢 ind )2/3
+
+34 The time it takes for 𝑢 ind to reach 1 − 𝛿 from its initial value 𝑢 ind (0) > 0 involves solving the integral 
+
+𝑡 ind = 𝜏 𝑎 
+
+∫ 1−𝛿 
+
+> 𝑢 ind (0)
+
+(𝑛 over + 𝑛 ind 𝑢 ind )2/3
+
+𝑢 ind (1 − 𝑢 ind )( 𝑛 over + 2𝑛 ind 𝑢 ind )
+
+Unfortunately, this integral does not have a closed-form solution. Instead, we can derive upper and lower bounds on 𝑡 ind . Consider the function 
+
+𝑔 (𝑢 ind ) = (𝑛 over + 𝑛 ind 𝑢 ind )2/3
+
+𝑛 over + 2𝑛 ind 𝑢 ind 
+
+.
+
+We are interested in the case where 𝑢 ind ∈ ( 0, 1). On this interval, notice that 𝑔 (𝑢 ind ) is decreasing: 
+
+𝑔 ′(𝑢 ind ) = − 2𝑛 ind (2𝑛 over + 𝑛 ind 𝑢 ind )
+
+3(𝑛 over + 𝑛 ind 𝑢 ind )1/3(𝑛 over + 2𝑛 ind 𝑢 ind )2 < 0 =⇒ 𝑔 (1 − 𝛿 ) ≤ 𝑔 (𝑢 ind ) ≤ 𝑔 (𝑢 ind (0)) .
+
+This gives us the following bounds: 
+
+𝑔 (1 − 𝛿 )
+
+∫ 1−𝛿 
+
+> 𝑢 ind (0)
+
+𝑑𝑢 ind 
+
+𝑢 ind (1 − 𝑢 ind ) ≤ 𝑡 ind 
+
+𝜏 𝑎 ≤ 𝑔 (𝑢 ind (0)) 
+
+∫ 1−𝛿 
+
+> 𝑢 ind (0)
+
+𝑑𝑢 ind 
+
+𝑢 ind (1 − 𝑢 ind )
+
+𝜏 𝑎 · log 
+
+ (1 − 𝛿 )( 1 − 𝑢 ind (0)) 
+
+𝛿 𝑢 ind (0)
+
+
+
+𝑔 (1 − 𝛿 ) ≤ 𝑡 ind ≤ 𝜏 𝑎 · log 
+
+ (1 − 𝛿 )( 1 − 𝑢 ind (0)) 
+
+𝛿 𝑢 ind (0)
+
+
+
+𝑔 (𝑢 ind (0)) .
+
+It remains to plug in a value for 𝑢 ind (0). With the power law and the fact that 𝑣 𝜆 ★2 
+
+> over
+
+= 1 at the end of Stage I, we have 
+
+𝑢 ind (0) =  1/𝜆 ★2
+
+> over
+
+ · 𝛼𝜆 ★ 
+
+> over
+
+= 𝛼 /𝜆 ★
+
+> over
+
+.
+
+This completes the derivation. 
+
+□
+
+A.5 Derivation for Result 2 
+
+Proof. Recall that the primary bottleneck in 𝑡 mix is 𝑡 over , i.e., the time it takes to learn the common subspace components. We first show that the saturation terms, namely 𝑡 single,sat and 𝑡 over,sat , are subleading. Indeed, ℎ is finite at 𝑥 = 0:
+
+ℎ(0) = −√33 arctan 
+
+ 1
+
+√3
+
+
+
+= − 𝜋 √318 = 𝒪( 1),
+
+and has only a logarithmic singularity as 𝑥 → 1. Consequently, both 𝑡 single,sat and 𝑡 over,sat scale as 
+
+𝒪( log (1/𝛿 )) . In contrast, their growth counterparts diverge hyperbolically as 𝛼 → 0. Therefore, for fixed 𝛿 and sufficiently small 𝛼 , the growth time is the dominant bottleneck in both the single-task and task-diverse settings. We now derive the leading-order growth-time approximations. From Equation (10), the single-task growth time is 
+
+𝑡 single,growth = 𝜏 √𝑞 
+
+ 1
+
+𝛼 − 1
+
+𝑞 −1/6 − 𝛿 
+
+
+
+.
+
+35 Since 𝛿 ∈ ( 0, 𝑞 −1/6) is fixed, the second term is independent of 𝛼 . Therefore, as 𝛼 → 0,
+
+𝑡 single,growth = 𝜏 √𝑞 
+
+𝛼 − 𝜏 √𝑞 𝑞 −1/6 − 𝛿 ≈ 𝜏 √𝑞 
+
+𝛼 .
+
+Similarly, from Equation (12), the shared-stage growth time is 
+
+𝑡 over,growth = 2𝜏 𝑎 
+
+𝛼 𝑛 ind 
+
+√𝑞 −
+
+r
+
+𝑛 over + 𝑛 ind 𝛼 𝜆 ★ 
+
+> over
+
+− 𝛿 
+
+
+
+, where 𝑎 B 2𝑛 over + 𝑛 ind 
+
+2 .
+
+Since 𝑞 = 𝑛 over + 𝑛 ind , we have 
+
+2𝑎 = 2𝑛 over + 𝑛 ind = 𝑞 + 𝑛 over .
+
+Thus, 
+
+2𝜏 𝑎 
+
+𝛼 𝑛 ind 
+
+= 𝜏 (𝑞 + 𝑛 over )
+
+𝛼 𝑛 ind 
+
+.
+
+For sufficiently small 𝛼 , we have 𝜆 ★ 
+
+> over
+
+≈ 𝑛 −1/6 
+
+> over
+
+from Equation (13). Since 𝛿 < 𝑞 −1/6 ≤ 𝑛 −1/6 
+
+> over
+
+, the denominator 𝜆 ★ 
+
+> over
+
+− 𝛿 remains positive and bounded away from zero as 𝛼 → 0. Therefore, 
+
+𝑛 ind 𝛼 𝜆 ★ 
+
+> over
+
+− 𝛿 = 𝒪( 𝛼 ),
+
+and hence 
+
+r
+
+𝑛 over + 𝑛 ind 𝛼 𝜆 ★ 
+
+> over
+
+− 𝛿 ≈ √𝑛 over .
+
+It follows that 
+
+𝑡 over,growth ≈ 𝜏 (𝑞 + 𝑛 over )
+
+𝛼 𝑛 ind 
+
+ √𝑞 − √𝑛 over 
+
+ .
+
+Using 𝑛 ind = 𝑞 − 𝑛 over , we simplify 
+
+√𝑞 − √𝑛 over 
+
+𝑛 ind 
+
+=
+
+√𝑞 − √𝑛 over 
+
+𝑞 − 𝑛 over 
+
+= 1
+
+√𝑞 + √𝑛 over 
+
+,
+
+where the last equality follows from 
+
+𝑞 − 𝑛 over =  √𝑞 − √𝑛 over 
+
+   √𝑞 + √𝑛 over 
+
+ .
+
+Therefore, 
+
+𝑡 over,growth ≈ 𝜏 (𝑞 + 𝑛 over )
+
+𝛼 (√𝑞 + √𝑛 over ) .
+
+Combining the two leading-order approximations gives 
+
+𝑡 over,growth 
+
+𝑡 single,growth 
+
+≈ 𝑞 + 𝑛 over 
+
+√𝑞 (√𝑞 + √𝑛 over ) = 𝑞 + 𝑛 over 
+
+𝑞 + √𝑞𝑛 over 
+
+= 1 + 𝑛 over /𝑞 
+
+1 + p𝑛 over /𝑞 .
+
+36 Recalling that 𝜅 B 𝑛 over /𝑞 , we obtain 
+
+𝑡 over,growth 
+
+𝑡 single,growth 
+
+≈ 𝜌 (𝜅 ) B 1 + 𝜅 
+
+1 + √𝜅 .
+
+Now, it remains to verify the claimed properties of 𝜌 . First, for every 𝜅 ∈ ( 0, 1),
+
+𝜌 (𝜅 ) < 1 ⇐⇒ 1 + 𝜅 < 1 + √𝜅 
+
+⇐⇒ 𝜅 < √𝜅 ,
+
+which holds exactly when 𝜅 ∈ ( 0, 1). Hence, task diversity gives a strict reduction in the leading growth time whenever the two task subspaces have both shared and non-overlapping components. To find the optimal overlap ratio, set 𝑠 = √𝜅 ∈ [ 0, 1]. Then 
+
+𝜌 (𝜅 ) = 1 + 𝜅 
+
+1 + √𝜅 = 1 + 𝑠 2
+
+1 + 𝑠 C e𝜌 (𝑠 ).
+
+Differentiating with respect to 𝑠 gives 
+
+e𝜌 ′(𝑠 ) = 2𝑠 (1 + 𝑠 ) − ( 1 + 𝑠 2)(1 + 𝑠 )2 = 𝑠 2 + 2𝑠 − 1
+
+(1 + 𝑠 )2 .
+
+Thus, the unique critical point in [0, 1] satisfies 
+
+𝑠 2 + 2𝑠 − 1 = 0.
+
+Solving this quadratic gives 
+
+𝑠 ★ = √2 − 1.
+
+Therefore, 
+
+𝜅 ★ = (𝑠 ★)2 = (√2 − 1)2 = 3 − 2√2.
+
+At this value, 
+
+𝜌 (𝜅 ★) = 1 + ( √2 − 1)2
+
+1 + ( √2 − 1) = 4 − 2√2
+
+√2 = 2(√2 − 1).
+
+Since 2(√2 − 1) ≈ 0.828 , the optimal overlap ratio yields roughly a 17% reduction in the leading growth time. This completes the derivation. □
+
+A.6 Comparing Convergence Times Directly 
+
+In this section, rather than using approximations for 𝑡 single, growth and 𝑡 over, growth as done in Sec-tion A.5, we prove the result directly, which reduces to showing that 
+
+2𝜏 𝑎 
+
+𝛼 𝑛 ind 
+
+√𝑞 −
+
+p𝑛 ind 𝛼 + 𝑛 over (𝜆 ★ 
+
+> over
+
+− 𝛿 )
+
+p𝜆 ★ 
+
+> over
+
+− 𝛿 
+
+!| {z }  
+
+> C𝑓 (𝜆 ★
+> over )
+
+< 𝜏 √𝑞 
+
+ 1
+
+𝛼 − 1
+
+𝑞 −1/6 − 𝛿 
+
+
+
+.
+
+37 We first aim to upper bound 𝑓 (𝜆 ★
+
+> over
+
+). Note that 
+
+𝑓 ′(𝜆 ★
+
+> over
+
+) = 2𝜏 𝑎 
+
+2(𝜆 ★ 
+
+> over
+
+− 𝛿 )2
+
+q
+
+𝑛 over + 𝑛 ind 𝛼 𝜆 ★
+
+> over −𝛿
+
+> 0,
+
+and so 𝑓 is increasing for 𝜆 ★ 
+
+> over
+
+> 𝛿 . Recall that 𝜆 ★ 
+
+> over
+
+is the positive root of the polynomial 
+
+𝑔 (𝜆 ★
+
+> over
+
+) B 𝑛 over 𝜆 ∗6 
+
+> over
+
++ 𝛼 𝑛 ind 𝜆 ∗5 
+
+> over
+
+− 1.
+
+It is straightforward to show that 𝑔 (·) is also an increasing function, and so by monotonicity: 
+
+𝑔 (𝑛 −1/6 
+
+> over
+
+) = 𝛼 𝑛 −5/6 
+
+> over
+
+≥ 0 =⇒ 𝜆 ★ 
+
+> over
+
+≤ 𝑛 −1/6 
+
+> over
+
+.
+
+By plugging in this upper bound to 𝑓 (·) , it suffices to show that 
+
+2𝑎 
+
+𝛼 𝑛 ind 
+
+©«
+
+√𝑞 −
+
+q
+
+𝑛 ind 𝛼 + 𝑛 over (𝑛 −1/6 
+
+> over
+
+− 𝛿 )
+
+q
+
+𝑛 −1/6 
+
+> over
+
+− 𝛿 
+
+ª®®¬
+
+< √𝑞 
+
+ 1
+
+𝛼 − 1
+
+𝑞 −1/6 − 𝛿 
+
+
+
+,
+
+where we have the following definitions: 
+
+𝑎 = 2𝑛 over + 𝑛 ind 
+
+2 and 𝑞 = 𝑛 ind + 𝑛 over .
+
+To show this relation, let us first define the following constants: 
+
+𝐵 = 𝑛 −1/6over − 𝛿 and 𝐷 = 𝑞 −1/6 − 𝛿 .
+
+Then, we focus on simplifying the left-hand side: 
+
+√𝑛 ind 𝛼 + 𝑛 over 𝐵 
+
+√𝐵 =
+
+r
+
+𝑛 over + 𝑛 ind 𝛼 
+
+𝐵 ,
+
+and so we obtain 
+
+2𝑎 
+
+𝛼 𝑛 ind 
+
+·
+
+√𝑞 −
+
+r
+
+𝑛 over + 𝑛 ind 𝛼 
+
+𝐵 
+
+
+
+< √𝑞 
+
+ 1
+
+𝛼 − 1
+
+𝐷 
+
+
+
+2𝑎 𝑛 ind 
+
+·
+
+√𝑞 −
+
+r
+
+𝑛 over + 𝑛 ind 𝛼 
+
+𝐵 
+
+
+
+< √𝑞 
+
+
+
+1 − 𝛼 
+
+𝐷 
+
+
+
+(Multiply by 𝛼 > 0)
+
+𝐾 √𝑞 − 𝐾 
+
+r
+
+𝑛 over + 𝑛 ind 𝛼 
+
+𝐵 < √𝑞 − 𝛼 √𝑞 𝐷 (𝐾 B 2𝑛 over +𝑛 ind  
+
+> 𝑛 ind
+
+)
+
+𝐾 
+
+r
+
+𝑛 over + 𝑛 ind 𝛼 
+
+𝐵 > (𝐾 − 1)√𝑞 + 𝛼 √𝑞 𝐷 
+
+r
+
+𝑛 over + 𝑛 ind 𝛼 
+
+𝐵 > 𝐾 − 1
+
+𝐾 
+
+√𝑞 + 1
+
+𝐾𝐷 𝛼 √𝑞 (Divide by 𝐾 > 0)
+
+r
+
+𝑛 over + 𝑛 ind 𝛼 
+
+𝐵 > 𝑛 over 
+
+√𝑞 𝑎 + 𝛼 𝑛 ind 
+
+√𝑞 
+
+2𝑎𝐷 𝑛 over + 𝑛 ind 𝛼 
+
+𝐵 >
+
+ 𝑛 over 
+
+√𝑞 𝑎 + 𝛼 𝑛 ind 
+
+√𝑞 
+
+2𝑎𝐷 
+
+2
+
+.
+
+38 Bringing everything to one side, we have that 
+
+𝑞 𝑛 2ind 
+
+4𝑎 2𝐷 2 𝛼 2 + 𝑛 ind 
+
+ 𝑞 𝑛 over 
+
+𝑎 2𝐷 − 1
+
+𝐵 
+
+
+
+𝛼 +
+
+ 𝑞 𝑛 2over 
+
+𝑎 2 − 𝑛 over 
+
+
+
+< 0, (32) which shows that the condition for this to hold is quadratic in 𝛼 . Notice that 
+
+𝑞 𝑛 2over 
+
+𝑎 2 − 𝑛 over = − 𝑛 over 𝑛 2ind 
+
+4𝑎 2 < 0.
+
+Then, the parabola in Equation (32) opens upward after 𝛼 > 0, implying that there exists one positive root, say 𝛼 ′ such that for all 0 < 𝛼 < 𝛼 ′, the condition in Equation (32) holds. In other words, for a sufficiently small initialization scale 𝛼 > 0, task diversity will have a faster growth time, thereby accelerating convergence. 
+
+# B Deferred Proofs from Section 4 
+
+B.1 Proof of Theorem 1 and Theorem 2 
+
+Proof. We only provide a proof for Theorem 2, as Theorem 1 is a special case of Theorem 2 when 
+
+𝐾 = 2, 𝛼 1 = sin (𝜃 ), and 𝛼 2 = cos (𝜃 ) for any 𝜃 ∈ [ 0, 𝜋 /2].For simplicity, let e𝑦 := e𝑦 𝑚 +1. By [Kwo+26, Lemma 1 and Lemma 4], we have 
+
+E
+
+e𝑦 − 𝑔 ★ 
+
+> 𝒲
+
+(eZ)
+
+2
+
+=
+
+ 1
+
+𝑚 Tr  A⊤A + 1
+
+  
+
+Tr 
+
+
+
+Σ𝑡 
+
+
+
++ 𝜎 2
+
+
+
+− 2 Tr 
+
+
+
+Σ𝑡 A
+
+
+
++ 𝑚 + 1
+
+𝑚 Tr 
+
+
+
+AΣ 𝑡 A⊤
+
+
+
+, (33) where A =
+
+ 𝑛 +1 
+
+> 𝑛
+
+I𝑑 + 𝑀 𝑠  
+
+> 𝑛
+
+Σ−1
+
+−1
+
+, 𝑀 𝑠 = Tr (Σ) + 𝜎 2, and Σ = 𝐾 Í
+
+> 𝑘 =1
+
+𝛾 𝑘 · Σ𝑠,𝑘 .Let U := U𝑠, 1 U𝑠, 2 . . . U𝑠,𝐾 U⊥
+
+, where U⊥ ∈ R𝑑 ×( 𝑑 −𝐾𝑟 ) completes the orthonormal basis for 
+
+R𝑑 . By Lemma 2, 
+
+A =
+
+ 𝑛 + 1
+
+𝑛 I𝑑 + 𝑀 𝑠 
+
+𝑛 Σ−1
+
+−1
+
+= UΛU ⊤ ,
+
+where 
+
+Λ =
+
+
+
+𝜈 1I𝑟 
+
+. . .
+
+𝜈 𝐾 I𝑟 
+
+𝜈 𝐾 +1I𝑑 −𝐾𝑟 
+
+
+
+with 𝜈 𝑘 = 𝑛 (𝛾 𝑘 +𝜖 )(𝑛 +1)( 𝛾 𝑘 +𝜖 )+ 𝑀 𝑠 for all 𝑘 ∈ [ 𝐾 ], and 𝜈 𝐾 +1 = 𝑛 𝜖  
+
+> (𝑛 +1)𝜖 +𝑟 +𝜖 𝑑 +𝜎 2
+
+.
+
+Simplifying Tr (Σ𝑡 ). We can write Tr (Σ𝑡 ) as such: 
+
+Tr (Σ𝑡 ) = Tr (U𝑡 U⊤ 
+
+> 𝑡
+
+) + 𝜖 Tr (I𝑑 ) = 𝑟 + 𝜖 𝑑. 
+
+39 Simplifying Tr (A) and Tr (A⊤A). We can write Tr (A) and Tr (A⊤A) as such: 
+
+Tr (A) = 𝑟 
+
+> 𝐾
+
+Õ
+
+> 𝑘 =1
+
+𝜈 𝑘 + ( 𝑑 − 𝐾𝑟 )𝜈 𝐾 +1 and Tr (A⊤A) = Tr (A2) = 𝑟 
+
+> 𝐾
+
+Õ
+
+> 𝑘 =1
+
+𝜈 2 
+
+> 𝑘
+
++ ( 𝑑 − 𝐾𝑟 )𝜈 2
+
+> 𝐾 +1
+
+.
+
+Simplifying Tr (Σ𝑡 A) and Tr (AΣ 𝑡 A⊤). Note Tr (AΣ 𝑡 A⊤) = Tr (Σ𝑡 A2). We first focus on Tr (Σ𝑡 A):
+
+Σ𝑡 A =
+
+
+
+U𝑡 U⊤ 
+
+> 𝑡
+
++ 𝜖 I𝑑 
+
+
+
+UΛU ⊤ = U𝑡 U⊤ 
+
+> 𝑡
+
+UΛU ⊤ + 𝜖 UΛU ⊤
+
+=⇒ Tr 
+
+
+
+Σ𝑡 A
+
+
+
+= Tr 
+
+
+
+U⊤ 
+
+> 𝑡
+
+UΛU ⊤U𝑡 
+
+
+
++ 𝜖 Tr (A).
+
+Recall U𝑡 = 𝐾 Í
+
+> 𝑘 =1
+
+𝛼 𝑘 U𝑠,𝑘 where 𝐾 Í
+
+> 𝑘 =1
+
+𝛼 2 
+
+> 𝑘
+
+= 1, and so we have 
+
+U⊤ 
+
+> 𝑡
+
+U =
+
+> 𝐾
+
+Õ
+
+> 𝑘 =1
+
+𝛼 𝑘 U𝑘 
+
+!⊤
+
+U𝑠, 1 . . . U𝑠,𝐾 U⊥
+
+ =
+
+
+
+𝛼 1I𝑟 
+
+. . .
+
+𝛼 𝐾 I𝑟 
+
+0(𝑑 −𝐾𝑟 )×( 𝑑 −𝐾𝑟 )
+
+
+
+Thus, 
+
+Tr 
+
+
+
+U⊤ 
+
+> 𝑡
+
+UΛU ⊤U𝑡 
+
+
+
+= Tr 
+
+©«
+
+𝛼 21𝜈 1I𝑟 
+
+. . .
+
+𝛼 2 
+
+> 𝐾
+
+𝜈 𝐾 I𝑟 
+
+0(𝑑 −𝐾𝑟 )×( 𝑑 −𝐾𝑟 )
+
+ª®®®®¬
+
+= 𝑟 
+
+> 𝐾
+
+Õ
+
+> 𝑘 =1
+
+𝛼 2 
+
+> 𝑘
+
+𝜈 𝑘 
+
+Using a similar argument, 
+
+Tr 
+
+
+
+Σ⊤ 
+
+> 𝑡
+
+A2
+
+
+
+= 𝑟 
+
+> 𝐾
+
+Õ
+
+> 𝑘 =1
+
+𝛼 2 
+
+> 𝑘
+
+𝜈 2 
+
+> 𝑘
+
++ 𝜖 Tr  A2 .
+
+Simplifying the test risk. Substituting the expressions for the Tr (·) terms into Equation (33) yields 
+
+E
+
+e𝑦 − 𝑔 ★ 
+
+> 𝒲
+
+(eZ)
+
+2
+
+= 1
+
+𝑚 𝑟 
+
+> 𝐾
+
+Õ
+
+> 𝑘 =1
+
+𝜈 2 
+
+> 𝑘
+
++ ( 𝑑 − 𝐾𝑟 )𝜈 2
+
+> 𝐾 +1
+
+!
+
++ 1
+
+!  𝑟 + 𝜖 𝑑 + 𝜎 2
+
+− 2 𝑟 
+
+> 𝐾
+
+Õ
+
+> 𝑘 =1
+
+𝛼 2 
+
+> 𝑘
+
+𝜈 𝑘 + 𝑟 
+
+> 𝐾
+
+Õ
+
+> 𝑘 =1
+
+𝜈 𝑘 + ( 𝑑 − 𝐾𝑟 )𝜈 𝐾 +1
+
+!
+
+𝜖 
+
+!
+
++ 𝑚 + 1
+
+𝑚 𝑟 
+
+> 𝐾
+
+Õ
+
+> 𝑘 =1
+
+𝛼 2 
+
+> 𝑘
+
+𝜈 2 
+
+> 𝑘
+
++ 𝑟 
+
+> 𝐾
+
+Õ
+
+> 𝑘 =1
+
+𝜈 2 
+
+> 𝑘
+
++ ( 𝑑 − 𝐾𝑟 )𝜈 2
+
+> 𝐾 +1
+
+!
+
+𝜖 
+
+!
+
+.
+
+Taking 𝜖 → 0 results in the following expression for the test risk: 
+
+lim  
+
+> 𝜖 →0
+
+E
+
+e𝑦 − 𝑔 ★ 
+
+> 𝒲
+
+(eZ)
+
+2
+
+= 𝑟 + 𝜎 2 + (𝑟 + 𝜎 2)𝑟 𝑚 
+
+> 𝐾
+
+Õ
+
+> 𝑘 =1
+
+ 𝛾 𝑘 𝑛 
+
+𝛾 𝑘 (𝑛 + 1) + 𝑟 + 𝜎 2
+
+2
+
+− 2𝑟 
+
+> 𝐾
+
+Õ
+
+> 𝑘 =1
+
+𝛼 2 
+
+> 𝑘
+
+𝛾 𝑘 𝑛 
+
+𝛾 𝑘 (𝑛 + 1) + 𝑟 + 𝜎 2 + (𝑚 + 1)𝑟 𝑚 
+
+> 𝐾
+
+Õ
+
+> 𝑘 =1
+
+ 𝛼 𝑘 𝛾 𝑘 𝑛 
+
+𝛾 𝑘 (𝑛 + 1) + 𝑟 + 𝜎 2
+
+2
+
+40 Substituting 𝛾 𝑘 = 1 
+
+> 𝐾
+
+for all 𝑘 ∈ [ 𝐾 ] and combining like terms yields 
+
+lim  
+
+> 𝜖 →0
+
+E
+
+e𝑦 − 𝑔 ★ 
+
+> 𝒲
+
+(eZ)
+
+2
+
+= 𝑟 + 𝜎 2 + 𝑚 + 1 + 𝐾 (𝑟 + 𝜎 2)
+
+𝑚 · 𝑟𝑛 2
+
+(𝑛 + 1 + 𝐾 (𝑟 + 𝜎 2)) 2 − 2𝑟𝑛 𝑛 + 1 + 𝐾 (𝑟 + 𝜎 2) .
+
+Taking limits, we have 
+
+lim  
+
+> 𝑚 →∞
+
+lim  
+
+> 𝑛 →∞
+
+lim  
+
+> 𝜖 →0
+
+E
+
+e𝑦 − 𝑔 ★ 
+
+> 𝒲
+
+(eZ)
+
+2
+
+= (𝑟 + 𝜎 2) + 𝑟 − 2𝑟 = 𝜎 2 ,
+
+which completes the proof. □
+
+B.2 Proof of Theorem 3 
+
+Proof. For simplicity, let us denote e𝑦 B e𝑦 𝑚 +1, and let U := U𝑠 U𝑠, ⊥ U2𝑞, ⊥
+
+ ∈ R𝑑 ×𝑑 , where 
+
+U𝑠 , U𝑠, ⊥ ∈ R𝑑 ×𝑞 and U2𝑞, ⊥ ∈ R𝑑 ×( 𝑑 −2𝑞 ) all have orthonormal columns, while U⊤ 
+
+> 𝑠
+
+U𝑠, ⊥ = 0𝑞 ×𝑞 and 
+
+U⊤ 
+
+> 𝑠
+
+U2𝑞, ⊥ = U⊤
+
+> 𝑠, ⊥
+
+U2𝑞, ⊥ = 0𝑞 ×( 𝑑 −2𝑞 ). We re-write Σ𝑠 as such: 
+
+Σ𝑠 = U𝑠 U⊤ 
+
+> 𝑠
+
++ 𝜖 · I𝑑 = U
+
+I𝑞 
+
+0(𝑑 −𝑞 )×( 𝑑 −𝑞 )
+
+
+
+U⊤ + 𝜖 · I = U
+
+(1 + 𝜖 )I𝑞 
+
+𝜖 I𝑑 −𝑞 
+
+
+
+U⊤.
+
+Note this is a valid eigendecomposition of Σ𝑠 . Thus, by Lemma 2, we have 
+
+A =
+
+ 𝑛 + 1
+
+𝑛 I𝑑 + 𝑀 𝑠 
+
+𝑛 Σ−1
+
+> 𝑠
+
+−1
+
+= UΛU ⊤ , (34) where 
+
+Λ =
+
+" 𝑛 (1+𝜖 )(𝑛 +1)( 1+𝜖 )+ 𝑀 𝑠 · I𝑞 𝑛 𝜖  
+
+> (𝑛 +1)𝜖 +𝑀 𝑠
+
+· I𝑑 −𝑞 
+
+#
+
+:=
+
+𝜈 1I𝑞 
+
+𝜈 2I𝑑 −𝑞 
+
+
+
+.
+
+and 𝑀 𝑠 = Tr (Σ𝑠 ) + 𝜎 2.By [Kwo+26, Lemma 1] (and omitting the subscripts in the expectation), 
+
+E
+
+e𝑦 − 𝑔 ★ 
+
+> 𝒲
+
+(eZ)
+
+2
+
+=
+
+ 1
+
+𝑚 Tr  A⊤A + 1
+
+ 
+
+Tr (Σ𝑡 ) + 𝜎 2
+
+
+
+− 2 Tr (Σ𝑡 A) + 𝑚 + 1
+
+𝑚 Tr  AΣ 𝑡 A⊤ . (35) We simplify the remaining Tr (·) terms using Equation (34). 
+
+Simplifying Tr (A) and Tr (A⊤A). Directly from Equation (34): 
+
+Tr (A) = 𝑞 · 𝜈 1 + ( 𝑑 − 𝑞 ) · 𝜈 2 and Tr (A⊤A) = Tr (A2) = 𝑞 · 𝜈 21 + ( 𝑑 − 𝑞 ) · 𝜈 22 ,
+
+where A2 = UΛ 2U⊤.41 Simplifying Tr (Σ𝑡 A) and Tr (AΣ 𝑡 A⊤). First note Tr (AΣ 𝑡 A⊤) = Tr (Σ𝑡 A2). We first focus on Tr (Σ𝑡 A):
+
+Σ𝑡 A =  U𝑡 U⊤ 
+
+> 𝑡
+
++ 𝜖 I𝑑 
+
+ UΛU ⊤ = U𝑡 U⊤ 
+
+> 𝑡
+
+UΛU ⊤ + 𝜖 UΛU ⊤
+
+=⇒ Tr (Σ𝑡 A) = Tr  U⊤ 
+
+> 𝑡
+
+UΛU ⊤U𝑡 
+
+ + 𝜖 Tr (A).
+
+Recall that U𝑡 is defined as follows: 
+
+U𝑡 = U𝑠 cos (Θ) + U𝑠, ⊥ sin (Θ).
+
+Therefore: 
+
+U⊤ 
+
+> 𝑡
+
+U = (U𝑠 cos (Θ) + U𝑠, ⊥ sin (Θ)) ⊤ U𝑠 U𝑠, ⊥ U2𝑞, ⊥
+
+ = cos (Θ) sin (Θ) 0𝑞 ×( 𝑑 −2𝑞 )
+
+ ,
+
+and thus, 
+
+Tr  U⊤ 
+
+> 𝑡
+
+UΛU ⊤U𝑡 
+
+ = Tr ©«cos (Θ) sin (Θ) 0𝑞 ×( 𝑑 −2𝑞 )
+
+ 
+
+𝜈 1I𝑞 
+
+𝜈 2I𝑞 
+
+𝜈 2I𝑑 −2𝑞 
+
+
+
+cos (Θ)
+
+sin (Θ)
+
+0(𝑑 −2𝑞 )× 𝑞 
+
+ª®¬
+
+= Tr ©«
+
+𝜈 1 cos 2(Θ)
+
+𝜈 2 sin 2(Θ)
+
+0(𝑑 −2𝑞 )×( 𝑑 −2𝑞 )
+
+ª®¬
+
+= 𝑞 · 𝜈 1 · cos 2(𝜃 ) + 𝑞 · 𝜈 2 · sin 2(𝜃 ),
+
+where we used the fact that the principal angles are all equal to 𝜃 . Using a similar argument, 
+
+Tr  Σ⊤ 
+
+> 𝑡
+
+A2 = 𝑞 · 𝜈 21 · cos 2(𝜃 ) + 𝑞 · 𝜈 22 · sin 2(𝜃 ) + 𝜖 Tr (A2)
+
+Simplifying the Test Risk. Substituting the expressions for the Tr (·) terms into Equation (35) yields 
+
+E
+
+e𝑦 − 𝑔 ★ 
+
+> 𝒲
+
+(eZ)
+
+2
+
+=
+
+ 1
+
+𝑚 
+
+ 𝑞 𝜈 21 + ( 𝑑 − 𝑞 )𝜈 22
+
+ + 1
+
+  𝑞 + 𝜖 𝑑 + 𝜎 2
+
+− 2  𝑞 𝜈 1 cos 2(𝜃 ) + 𝑞 𝜈 2 sin 2(𝜃 ) +  𝑞 𝜈 1 + ( 𝑑 − 𝑞 )𝜈 2
+
+ 𝜖 
+
++ 𝑚 + 1
+
+𝑚 
+
+ 𝑞 𝜈 21 cos 2(𝜃 ) + 𝑞 𝜈 22 sin 2(𝜃 ) +  𝑞 𝜈 21 + ( 𝑑 − 𝑞 )𝜈 22
+
+ 𝜖 
+
+Substituting the expressions for 𝜈 1 and 𝜈 2 and taking 𝜖 → 0 results in the following: 
+
+lim  
+
+> 𝜖 →0
+
+E
+
+e𝑦 − 𝑔 ★ 
+
+> 𝒲
+
+(eZ)
+
+2
+
+=
+
+ 𝑞𝑛 2
+
+𝑚 (𝑛 + 1 + 𝑞 + 𝜎 2)2 + 1
+
+
+
+(𝑞 + 𝜎 2)− 2𝑞𝑛 cos 2(𝜃 )
+
+𝑛 + 1 + 𝑞 + 𝜎 2 + (𝑚 + 1)𝑞𝑛 2 cos 2(𝜃 )
+
+𝑚 (𝑛 + 1 + 𝑞 + 𝜎 2)2
+
+Subsequently taking 𝑚, 𝑛 → ∞ yields 
+
+lim  
+
+> 𝑚 →∞
+
+lim  
+
+> 𝑛 →∞
+
+lim  
+
+> 𝜖 →0
+
+E
+
+e𝑦 − 𝑔 ★ 
+
+> 𝒲
+
+(eZ)
+
+2
+
+= 𝑞 + 𝜎 2 − 𝑞 cos 2(𝜃 ) = 𝑞 sin 2(𝜃 ) + 𝜎 2 ,
+
+which completes the proof. 
+
+□
+
+42 B.3 Miscellaneous Results 
+
+Lemma 2. Let 0 ≺ Σ ∈ R𝑑 ×𝑑 and 𝑐, 𝑘 > 0 be constants. Then, 
+
+ 𝑐 · I𝑑 + 𝑘 · Σ−1−1 = V
+
+ 
+
+> 𝜆 1
+> 𝑐 ·𝜆 1+𝑘
+
+0 . . . 00 𝜆 2 
+
+> 𝑐 ·𝜆 2+𝑘
+
+. . . 0
+
+... ... . . . ...
+
+0 0 . . . 𝜆 𝑑  
+
+> 𝑐 ·𝜆 𝑑 +𝑘
+
+
+
+V⊤ , (36) 
+
+where V ∈ R𝑑 ×𝑑 is an orthonormal matrix whose columns are eigenvectors of Σ, and 𝜆 𝑖 is the 𝑖 𝑡 ℎ largest eigenvalue of Σ.Proof. Since Σ ≻ 0, there exists an eigendecomposition Σ = VΛV ⊤ such that V is an orthonormal matrix and Λ is a diagonal matrix consisting of the real, positive eigenvalues of Σ, denoted as 
+
+𝜆 1 , 𝜆 2 , . . . , 𝜆 𝑑 . Thus, 
+
+Σ−1 = VΛ −1V⊤ =⇒ 𝑐 · I𝑑 + 𝑘 · Σ−1 = V
+
+
+
+𝑐 + 𝑘  
+
+> 𝜆 1
+
+0 . . . 00 𝑐 + 𝑘  
+
+> 𝜆 2
+
+. . . 0
+
+... ... . . . ...
+
+0 0 . . . 𝑐 + 𝑘 
+
+> 𝜆 𝑑
+
+| {z }
+
+> eΛ
+
+V⊤
+
+=⇒  𝑐 · I𝑑 + 𝑘 · Σ−1−1 = VeΛ−1V⊤ ,
+
+which completes the proof. □
+
+43

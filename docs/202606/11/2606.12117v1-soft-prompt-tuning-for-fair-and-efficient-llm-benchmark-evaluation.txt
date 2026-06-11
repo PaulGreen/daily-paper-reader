@@ -1,0 +1,3516 @@
+Title: Soft-Prompt Tuning for Fair and Efficient LLM Benchmark Evaluation
+
+URL Source: https://arxiv.org/pdf/2606.12117v1
+
+Published Time: Thu, 11 Jun 2026 01:07:41 GMT
+
+Number of Pages: 34
+
+Markdown Content:
+# Soft-Prompt Tuning for Fair and Efficient LLM Benchmark Evaluation 
+
+Selen Erkan 
+
+Aleph Alpha Research Lab1141 
+
+Bastian Boll 
+
+Aleph Alpha Research Lab1141 
+
+Kristian Kersting 
+
+TU Darmstadt Hessian.AI Lab1141 
+
+Björn Deiseroth 
+
+Aleph Alpha Research Lab1141 
+
+Letitia Parcalabescu 
+
+Aleph Alpha Research Lab1141 
+
+Abstract 
+
+Benchmark scores often misrepresent a large language model’s (LLM’s) knowl-edge, because they rely, e.g., on the model’s ability to follow specific formatting requirements. This especially penalizes base models that may know the correct answers but lack the ability – typically introduced in post-training – to structure them as instructed. To overcome this, we propose soft-prompt tuning, an effi-cient, fair, and architecture-agnostic model evaluation. By optimizing only 10 soft-prompt vectors (roughly 0.0006% parameters for a 7B model) over a short tuning period, we adapt models to specific benchmark formats, closing gaps in format-following and ensuring that underlying knowledge is accurately reflected in benchmark scores. This allows one to fairly compare different base models – trained with various pre-training recipes – on benchmarks without the need for full post-training. We evaluated soft-prompt tuning across 7 models and 7 datasets. The results show that (a) soft-prompt tuning saturates format-following within 80 steps (∼640 samples) making it highly efficient, (b) soft-prompt tuning significantly outperforms zero- and few-shot prompting, surfacing base model knowledge that standard prompting misses, that (c) even post-trained models can benefit from soft-prompts to maximize format compliance, and that (d) soft-prompted base model performance predicts post-trained model rankings more reliably than zero-and few-shot baselines, offering a low-cost proxy for downstream model quality. Our contributions include (1) metrics which disentangle format-following and knowledge accuracy, (2) a fairer benchmarking protocol of LLM knowledge, and (3) a cost- and memory-effective recipe to identify optimal pre-training strategies early in LLM development. 
+
+1 Introduction 
+
+Large language models (LLMs) have achieved impressive performance across a wide range of tasks, from answering factual questions to multi-step math problems [Yang et al., 2025, DeepSeek-AI et al., 2025, Comanici et al., 2025]. To track progress, models are routinely evaluated on a wide range of benchmarks [Joshi et al., 2017, Cobbe et al., 2021, Lightman et al., 2024], which require adherence to specific output formats. Yet in base models this capability is often latent, only becoming reliable after post-training. This raises a key question: do benchmark scores actually measure what a model knows, or do they partly reward the ability to format answers correctly? 
+
+> Preprint.
+> arXiv:2606.12117v1 [cs.CL] 10 Jun 2026
+
+Specifically, benchmarks often mandate rigid output formats, unfairly penalizing models that possess the correct knowledge but lack the capacity to adhere to strict formatting requirements [Long et al., 2025]. Base models are particularly vulnerable here: lacking instruction-following supervision, they often fail to produce parseable answers, e.g., repeating the question multiple times without answering. This makes it difficult to distinguish whether a higher benchmark score reflects superior knowledge or merely better format-following skills. Furthermore, model performance is fragile against prompt variations; even minor wording or format changes can significantly alter benchmark scores [Sclar et al., 2023, Habba et al., 2025]. This prompt sensitivity suggests that low scores can reflect suboptimal prompting, not a lack of underlying knowledge. While prompt engineering can mitigate these issues to some extent, finding optimal prompts can be costly [Liu et al., 2023]. This evaluation gap creates a critical bottleneck in the LLM development: identifying the best base model for post-training. While post-training is now an indispensable stage for shaping model behavior and alignment [Yang et al., 2025, DeepSeek-AI et al., 2025, Comanici et al., 2025], its success depends on a strong and knowledge-rich pre-trained foundation [Kumar et al., 2025]. To find this foundation, developers typically generate numerous candidate base models with different pre-training recipes (i.e., varying data mixtures and architectures). Evaluating these candidates and identifying the optimal recipe, however, is non-trivial [Wang et al., 2025]. Moreover, fully post-training every candidate model is prohibitively expensive, while rankings from smaller proxy models often fail to transfer to larger scales [Coleman et al., 2019, Wang et al., 2025]. To bridge the gap between a model’s latent knowledge and its benchmark performance, we propose a fair evaluation framework using compute- and memory-efficient soft-prompt tuning. By performing a lightweight tuning process of only ∼80 steps (corresponding to 640 data points, and e.g., 0.0006% trainable parameters on a 7B model), we enable the model to discover its own optimal internal prompt for a given task. We propose two metrics to decouple knowledge and format-following accuracy 
+
+and show that our process maximizes format-following – reaching 90–100%, while retaining the knowledge accuracy – allowing fair and accurate estimation of the model’s underlying knowledge. We validate this approach across a diverse suite of 7 models (including Llama-3, Qwen-3, Olmo-3, and Mistral-3) and 7 benchmark datasets covering mathematical reasoning, reading comprehension, and factual QA. Our results show that soft-prompting base models provides a significantly clearer picture of true model knowledge than standard zero- or few-shot approaches. Furthermore, we demonstrate that these evaluations serve as a more reliable signal for (a) ranking candidate base models, and (b) predicting which pre-training recipes will yield the best results after full post-training. The fact that this ranking persists across disparate post-training recipes suggests that soft-prompting captures a fundamental quality of the base model, regardless of the specifics of the subsequent alignment process. Our contributions are as follows: 1. Disentangled Benchmark Metrics: We introduce separate measures for knowledge - and 
+
+format -following accuracy to isolate whether performance failures stem from a lack of knowledge or gaps in format following. 2. Fair Model Evaluation Protocol: We propose a low-cost and architecture-agnostic method to evaluate model knowledge – essential for base models. Our method leverages soft-prompt tuning to isolate model’s internal knowledge – the true target of evaluation – from its ability to follow specific benchmark formats. By achieving format compliance in just 80 steps, the method efficiently surfaces underlying model knowledge on open-ended generation. Notably, we find that even post-trained models benefit from soft-prompts to reach full format-following potential. 3. Efficient Pre-trained Model Selection: We further present brief soft prompt tuning as an efficient, low-cost strategy for identifying optimal pre-training configurations early in the development cycle. Rather than post-training every base model candidate, we use our soft-prompt tuning evaluation to assess base models directly on benchmarks. Our results show that soft-prompt tuning closes the performance gap between base and post-trained models. This suggests that – for the capabilities measured by these benchmarks – post-training primarily surfaces existing knowledge rather than adding new knowledge. Consequently, base model rankings under soft-prompt tuning align with those of their post-trained counterparts, providing a reliable early signal of final performance. 22 Related Work 
+
+2.1 Model Evaluation and Pre-Training Recipe Selection Prompt sensitivity of models. Evaluating models on existing benchmarks directly requires a suitable prompt that helps the model understand and follow the required benchmark format. Few-shot prompting includes a small set of input–output examples in the prompt to demonstrate the task and expected output format and can therefore increase benchmark scores [Min et al., 2022]. However, prior work shows that model performance is highly sensitive to prompt design, meaning that even small changes in wording or example selection can lead to large performance differences on the same task [Zhao et al., 2021, Gan and Mori, 2023, Lu et al., 2024, Cao et al., 2024, Xiang et al., 2024]. As a result, benchmark results can vary widely depending on the prompt [Zhao et al., 2021]. Finding the prompt maximizing performance is task-specific and non-trivial, making this unsuitable for reliable model evaluation [Lu et al., 2024, Gan and Mori, 2023, Cao et al., 2024]. To bypass prompt engineering, Bunn et al. [2025] suggest fine-tuning to improve format-following, but require expensive full fine-tuning on 32,000 samples and focus on multiple-choice tasks where log-likelihood is already effective. Long et al. [2025] examine format-following but only on instruction-tuned models, leaving base models unexamined. Neither study examines how base model rankings relate to those of their post-trained versions. 
+
+Limitation of log-likelihood evaluation . To fairly measure model knowledge in closed-ended tasks (e.g., multiple choice), research often ranks candidate answers by their log-likelihood [Hendrycks et al., 2020, Srivastava et al., 2023]. While frameworks like lm-evaluation-harness [Biderman et al., 2024] implement this, the reliance on fixed candidate answer sets for log-likelihood comparisons makes it inapplicable to open-ended generation. 
+
+Limitations of model loss based evaluation. Other research uses the model loss on held-out data as a proxy for downstream benchmark scores [Du et al., 2024, Chen et al., 2025]. While prompt-free and efficient, this approach is limited: held-out loss does not always correlate with the generative metrics or practical usability essential for real-world tasks [Isik et al., 2024, Diaz and Madaio, 2024, Tay et al., 2021]. 
+
+Base model evaluation. The inability to decouple a model’s latent knowledge from its prompt sensitivity creates a critical bottleneck. Researchers cannot reliably evaluate different base-models with diverse pre-training recipes – such as data mixtures or architectures – directly on benchmarks. Consequently, deciding on the optimal pre-training configuration is no longer straightforward [Wang et al., 2025, Jiang et al., 2024, Lin et al., 2024]. Brute-force approaches can run the full post-training pipeline for every base-model variant and compare the final post-trained benchmark results [Wang et al., 2025]. However, this is expensive and difficult to scale, especially when post-training requires substantial engineering effort or compute budget. To reduce costs, researchers often fully train (pre-and post-) smaller proxy models to estimate performance at scale [Coleman et al., 2019]. However, this remains expensive due to the required post-training infrastructure and often fails to accurately represent how larger target models will behave [Liu et al., 2026b]. 
+
+2.2 Parameter efficient fine-tuning (PEFT) Soft-prompts are a parameter-efficient fine-tuning method for adapting LLMs to downstream tasks [Lester et al., 2021]. The model is frozen and only a small set of learnable prefix vectors – prepended to the context at the embedding level – is optimized to maximize the likelihood of the correct answer. Unlike hard (text) prompts, soft-prompts are continuous and can be optimized directly via gradient descent. While soft-prompts and related prompt-tuning methods have been studied extensively for downstream task adaptation [Li and Liang, 2021, Liu et al., 2022b], their usage as a cheap and efficient mechanism for base-model evaluation remains largely unexplored. We argue that soft-prompts offer a more efficient alternative to hard prompting or expensive full post-training. By allowing the model to automatically discover its own optimal prompt, this approach maximizes instruction-following behavior on a given benchmark and enables the model’s underlying knowledge to be more accurately reflected in benchmark evaluations. 
+
+Other PEFT methods [Liu et al., 2022a, Dettmers et al., 2023] include Adapter Modules [Houlsby et al., 2019] which inject small, trainable layers directly between the frozen layers of a pre-trained network. While highly effective at minimizing the trainable parameter count, these additional 3sequential operations (layers) introduce inference latency. Another frequently used PEFT method is Low-Rank Adaptation (LoRA) [Hu et al., 2021]. It freezes the pre-trained model weights and injects trainable rank decomposition matrices, approximating the necessary weight updates as the product of two much smaller matrices. Zhang et al. [2025] use LoRA fine-tuning on benchmarks prior to evaluation to stabilize model rankings across datasets . However, their analysis neither examines the relationship between base and post-trained models nor disentangles format-following from knowledge accuracy, leaving significant aspects of the fine-tuning procedure unexplored. For our primary experiments, we selected soft-prompt tuning due to its simplicity and computational efficiency relative to other PEFT methods. However, for completeness, we replicated all experiments using Low-Rank Adaptation (LoRA), with detailed results provided in Appendix A.10. While the LoRA experiments confirm that all our core findings hold for LoRA as well, the method inherently requires significantly more parameter updates, making soft-prompt tuning a far more efficient proxy. 
+
+3 Soft Prompts for Fair Base-Model Evaluation on Benchmarks 
+
+Let us now introduce soft-prompt tuning and discuss how to use it for fair benchmarking. 
+
+3.1 Soft-Prompt Tuning 
+
+Soft-prompt tuning [Lester et al., 2021] shifts instructions from the discrete space of natural-language tokens to the continuous space of embedding vectors. Given a frozen LLM with parameters θ
+
+and embedding dimension D, we define a soft-prompt as a sequence of L learnable vectors S =
+
+{s1, s 2, . . . , s L}, where each si ∈ RD .For an input sequence X with token embeddings E(X), the input to the first transformer layer is the concatenation Z = [ S; E(X)] . The model then generates the target sequence Y = {y1, y 2, . . . , y m}
+
+autoregressively. The probability of the sequence is 
+
+Pθ (Y | S, E (X)) = Ymt=1 Pθ (yt | S, E (X), y <t ). (1) Model weights θ remain frozen during tuning, preserving the model’s latent knowledge. We optimize only the soft-prompt S by minimizing the negative log-likelihood over a task-specific dataset D:
+
+ˆS = arg min 
+
+> S
+
+X  
+
+> (X,Y )∈D
+
+− Xmt=1 log Pθ (yt | S, E (X), y <t ). (2) 
+
+3.2 Soft-Prompts as a Capacity-Constrained Format Adapter 
+
+We argue that soft-prompt tuning is a good fit for disentagle what a model knows from how well it follows benchmark formats. The properties that justify this choice are: 
+
+(i) Constrained capacity. We operate soft-prompt tuning on a very small budget: L = 10 soft-prompt vectors (roughly 0.0006% trainable parameters on a 7B-parameter model), T = 80 optimization steps, and 640 total training samples per benchmark. We claim these restricted degrees of freedom are far below the capacity required to extensively encode benchmark-specific knowledge, in particular reinforced by the use of distinct training and validation splits as in standard LLM evaluation suites. 
+
+(ii) Self-discovered prompts. Unlike hard or few-shot prompts, soft-prompts are optimized directly in embedding space against the benchmark’s training split. This allows the model to "self-discover" its own prompt for each benchmark, bypassing the effort and limitations of prompt-engineering. Both properties (i) and (ii) motivate our main hypotheses H1 and H2 that we will evaluate in Sec. 4: 
+
+H1: Format without knowledge. Within the budget above, soft-prompt tuning saturates format-following on standard benchmarks, while knowledge accuracy remains largely stagnant. Conse-quently, the resulting benchmark scores provide a much more accurate reflection of the model’s potential capabilities and true knowledge. 
+
+H2: Reliable Rankings. Once format-following is saturated, benchmark scores reflect knowledge alone. Consequently, assuming post-training stages mostly affect preference tuning but do not add large knowledge gains, the performance rankings of base models adapted via soft-prompt tuning should closely align with those of their fully post-trained counterparts, making soft-prompt tuning a low-cost proxy for selecting which base models are worth post-training. 43.3 Metrics for Disentangling Knowledge from Format Following (H1) 
+
+To test H1 during soft-prompt tuning, we introduce two complementary metrics: knowledge accuracy 
+
+and format-following accuracy . We compute both metrics differently for open-ended and closed-ended (multiple-choice) datasets, as described below. 
+
+Closed-ended datasets. Knowledge accuracy is measured via standard log-likelihood scoring: we compute the log-likelihood of each candidate answer and select the option with the highest score as the model’s prediction. Because the model never has to generate free text, this isolates task knowledge from format-following skill. We evaluate format-following accuracy by prompting the model to generate free text and evaluating whether the generated output exactly matches one of the predefined answer options (e.g., "A. Berlin"). This metric captures format adherence independently of answer correctness. Appendix A.8 gives examples for both metrics. 
+
+Open-ended datasets. We use an LLM-as-a-judge to assess both knowledge and format-following accuracy, with Qwen3-32B as the judge model [Yang et al., 2025]. For knowledge accuracy, the judge verifies whether the correct answer is present in the model’s response, independent of formatting. For format-following accuracy, the judge checks whether the prediction’s formatting matches that of the ground truth answer, but independent of its correctness. In both measures the judge is prompted to assign a binary score of 1 for success and 0 otherwise. We provide full judge prompts in Appendix A.6. Unlike the closed-ended case, evaluation of knowledge accuracy on open-ended datasets with LLM-judges cannot serve as a fully disentangled measure of model knowledge. This is due to the sensitivity and systematic biases of prompt design for LLM-judges. We therefore rely on closed-ended datasets as a controlled setting to validate our findings, while highlighting soft-prompt tuning as a crucial method for evaluating knowledge in open-ended tasks. 
+
+3.4 Ranking-Alignment Methodology (H2) 
+
+To test H2 , we define a generic procedure to compare similarity between two model evaluation recipes. Let a configuration C = ( M, A ) represent a pair of model type M ∈ { pre-trained, post-trained } and adaptation method A ∈ { zero-shot, few-shot, soft-prompt tuning }. For any two configurations C1
+
+and C2, we compare them over a given shared set of benchmarks and models as follows: 1. For each benchmark, evaluate every model under C1 and C2 on autoregressive text generation with exact-match accuracy. 2. Rank the models under each method to obtain rC1 and rC2 .3. Measure ranking alignment via the bubble-sort swap distance d(rC1 , r C2 ): the minimum number of adjacent swaps needed to convert one ranking into the other [Knuth, 1998]. For n models the swap distance is bounded by  n
+
+> 2
+
+ = n(n−1) 2 ; lower values indicate better alignment. In Section 4 we apply this procedure to compare zero-shot, few-shot, and soft-prompt tuning against a reference, the selection of which is empirically motivated in Section 4.2. Note that we deliberately rely on autoregressive text generation with exact-match scores for both open- and closed-ended datasets for the ranking, as it best reflects actual model usage. 
+
+4 Experimental Evaluation of Soft-Prompt Tuning 
+
+We conduct experiments with seven models across seven benchmark datasets, covering both closed-ended (multiple-choice) and open-ended question-answering tasks as outlined below. 
+
+4.1 Experimental Setup Models. In the experiments we used seven models: Llama-3.1-8B, Llama-3.2-1B [Grattafiori et al., 2024], Ministral-3-14B, Ministral-3-3B [Liu et al., 2026a], Olmo-3-7B, Qwen-3-8B [Olmo et al., 2026], and Qwen-3-4B [Yang et al., 2025] base models and their post-trained counterparts. To evaluate open-ended datasets, we used Qwen-3-32B as LLM-as-a-judge. 
+
+Datasets. We used four open-ended and three closed-ended datasets. We partition datasets that lack a predefined split into train/test sets. As open-ended datasets we used TriviaQA, GSM8K, SQuAD 50 20 40 60 80 100 120         
+
+> Step
+> 0.0
+> 0.2
+> 0.4
+> 0.6
+> 0.8
+> 1.0
+> Knowledge Accuracy
+> (a) Knowledge Accuracy
+> 020 40 60 80 100 120
+> Step
+> 0.0
+> 0.2
+> 0.4
+> 0.6
+> 0.8
+> 1.0
+> Format-Following Accuracy
+> (b) Format-Following Accuracy
+> 0-shot baseline - Post Trained
+> 3-shot baseline - Post Trained
+> SP - Post Trained
+> 0-shot baseline - Base
+> 3-shot baseline - Base
+> SP - Base
+
+Figure 1: Soft-prompts maximize format following and do not show additional knowledge gains 
+
+– closed-ended datasets. (a) Knowledge and (b) format following metrics across 120 tuning steps. All results are aggregated over 3 closed-ended datasets, 7 models and 3 seeds. and Math500. TriviaQA measures factual question-answering capabilities and requires models to provide short answers without explanations [Joshi et al., 2017]. GSM8K measures mathematical reasoning on grade-school problems, requiring the model to produce the correct final numerical answer along with a brief reasoning [Cobbe et al., 2021]. SQuAD evaluates reading comprehension by requiring the model to extract the precise answer to a given question directly from a provided context paragraph [Rajpurkar et al., 2016]. Finally, Math500 assesses advanced, competition-level mathematical problem-solving across diverse subjects, demanding rigorous multi-step reasoning to reach a complex final answer, with both problems and solutions formatted entirely in LaTeX [Lightman et al., 2024]. See Appendix A.8 for examples. The closed-ended datasets are MMLU, Belebele, and ChemBench, all of which are multiple-choice benchmarks. MMLU covers 57 tasks including elementary mathematics, US history, computer sci-ence, law, and more [Hendrycks et al., 2020]. Belebele evaluates reading comprehension [Bandarkar et al., 2024], and ChemBench focuses on undergraduate- and graduate-level chemistry questions [Mirza et al., 2025]. In all closed-ended datasets, the answer options are explicitly provided to the model. The model must output the correct answer in the required format, which usually includes the answer option (when available) and its full text. For MMLU, we present answer options as full text without letter identifiers, so the expected output is the correct option text itself. 
+
+Metrics. We evaluate models using four complementary metrics defined in Sec. 3: (i) format-following accuracy , (ii) knowledge accuracy , (iii) exact-match accuracy on an autoregressive text generation task (used uniformly across open- and closed-ended datasets), and (iv) ranking alignment 
+
+via the bubble-sort swap distance defined in Section 3.4. These metrics test H1 (Format without Knowledge) and H2 (Reliable Rankings) separately, and track changes in model knowledge and format-following across soft-prompt tuning and the baselines. 
+
+Baselines. Hard (text-based) prompting and few-shot prompting (Sec. 2) can represent alternatives to our method, but are known to be sensitive to prompt design. We include them as baselines (using 
+
+lm-evaluation-harness implementation [Biderman et al., 2024]) to assess whether soft-prompt tuning provides a more reliable signal for base-model evaluation compared to these. We also evaluate post-trained models on the same benchmarks and use their scores as a reference to assess which method provides the most reliable ranking for selecting base models for post-training. 
+
+Tuning details. For all experiments (all datasets and models), we used L = 10 soft-prompt vectors (App. A.5, Fig. 11 for vector-size ablation), learning rate 0.001 (0.01 for Ministral-14B), a batch size of 8 and the AdamW optimizer [Loshchilov and Hutter, 2018]. We initialize soft-prompt embeddings 
+
+S ∈ RL×d following a normal distribution N (0 , σ 2), σ = 0 .02 and tune them using 1 GPU. 60 20 40 60 80 100 120         
+
+> Step
+> 0.0
+> 0.2
+> 0.4
+> 0.6
+> 0.8
+> 1.0
+> Knowledge Accuracy
+> (a) Knowledge Accuracy
+> 020 40 60 80 100 120
+> Step
+> 0.0
+> 0.2
+> 0.4
+> 0.6
+> 0.8
+> 1.0
+> Format-Following Accuracy
+> (b) Format-Following Accuracy
+> 0-shot baseline - Post Trained
+> 3-shot baseline - Post Trained
+> Soft-Prompt - Post Trained
+> 0-shot baseline - Base
+> 3-shot baseline - Base
+> Soft-Prompt - Base
+
+Figure 2: Soft-prompts maximize format following and do not show knowledge metric gains –
+
+open-ended datasets. (a) Knowledge and (b) format following metrics across 120 tuning steps. All results are aggregated over 4 open-ended datasets, 7 models and 3 seeds 
+
+4.2 Results 
+
+In this section, we present the empirical results addressing the two hypotheses from Sec. 3.2: (H1) “soft-prompt tuning saturates format-following without injecting knowledge” and (H2) “soft-prompt-tuned base model rankings closely align with those of their fully post-trained counterparts”. 
+
+Soft-prompt tuning maximizes format-following on both base and post-trained models (val-idating H1). Knowledge and format-following accuracy results for each model on closed - and 
+
+open-ended datasets are shown in Fig. 1 and 2, respectively. Curves represent aggregates over datasets and models, with shaded regions indicating variance across three random seeds. Detailed, non-averaged results for each dataset and model are in App. A.1 (Figs. 5, 6) and A.2 (Figs. 7, 8). For closed-ended datasets, Fig. 1 (b) shows that format-following accuracy reaches nearly 100% by around step 40. This fast convergence is expected because closed-ended tasks require less complex formatting than open-ended ones (typically selecting and copying one of the provided options and appending the correct multiple choice letter). Therefore, soft-prompts adapt to the multiple choice benchmarks quicker than on open-ended datasets. For open-ended datasets, Fig. 2 (b) reports the LLM-as-a-judge evaluation for format-following accu-racy. Soft-prompt tuned models reach a format-following score between 80-100% at approximately step 80. By manually inspecting judge results, we find that the format-following score differences between open- and closed-ended datasets arise because the LLM-as-a-judge is not fully able to disen-tangle knowledge from instruction-following in its ratings (see App. A.9). This limitation directly motivates our use of closed-ended benchmarks as a controlled verification setup (Section 3.3) and underscores the importance of soft-prompt tuning for the fair evaluation of open-ended generation. On closed-ended datasets, in Fig. 1 (a), we measure no gain on the knowledge metric over the 120 steps of soft-prompt tuning; the same trend holds for open-ended datasets (Fig. 2 (a)). Together with the format-following curves, this is direct evidence for H1: within our budget, soft-prompt tuning saturates format compliance without injecting measurable task knowledge. From the per-dataset and per-model curves in App. A.1, A.2 (Fig 5, 6, 7, 8), we identify step 80 as the earliest checkpoint where format-following is maximized across models and datasets while knowledge remains flat. Therefore, for all subsequent analyses on soft-prompt tuned models, we measure the performance at step 80. 
+
+Even post-trained models benefit from soft-prompts for fair evaluation. Notably, Figs. 1 (b) and 2 (b) show that post-trained models (orange) still achieve suboptimal format-following via zero-or few-shot prompting alone, despite their explicit instruction-following training. Soft-prompt tuning, however, enables them to reach nearly 100% format-following accuracy similar to base models. 70-shot Base    
+
+> 0-shot PT
+> 3-shot Base
+> 3-shot PT
+> Base SP
+> Post Trained SP 0.0
+> 0.2
+> 0.4
+> 0.6
+> 0.8
+> 1.0
+> Exact Match
+> (a) Llama 3 1 8B
+> 0-shot Base
+> 0-shot PT
+> 3-shot Base
+> 3-shot PT
+> Base SP
+> Post Trained SP 0.0
+> 0.2
+> 0.4
+> 0.6
+> 0.8
+> 1.0
+> Exact Match
+> Llama 3 2 1B
+> 0-shot Base
+> 0-shot PT
+> 3-shot Base
+> 3-shot PT
+> Base SP
+> Post Trained SP 0.0
+> 0.2
+> 0.4
+> 0.6
+> 0.8
+> 1.0
+> Exact Match
+> Ministral 3 14B
+> 0-shot Base
+> 0-shot PT
+> 3-shot Base
+> 3-shot PT
+> Base SP
+> Post Trained SP 0.0
+> 0.2
+> 0.4
+> 0.6
+> 0.8
+> 1.0
+> Exact Match
+> Ministral 3 3B
+> 0-shot Base
+> 0-shot PT
+> 3-shot Base
+> 3-shot PT
+> Base SP
+> Post Trained SP 0.0
+> 0.2
+> 0.4
+> 0.6
+> 0.8
+> 1.0
+> Exact Match
+> Olmo 3 7B
+> 0-shot Base
+> 0-shot PT
+> 3-shot Base
+> 3-shot PT
+> Base SP
+> Post Trained SP 0.0
+> 0.2
+> 0.4
+> 0.6
+> 0.8
+> 1.0
+> Exact Match
+> Qwen3 4B
+> 0-shot Base
+> 0-shot PT
+> 3-shot Base
+> 3-shot PT
+> Base SP
+> Post Trained SP 0.0
+> 0.2
+> 0.4
+> 0.6
+> 0.8
+> 1.0
+> Exact Match
+> Qwen3 8B
+> 0-shot |PT  Base|
+> 3-shot |PT  Base|
+> SP |PT  Base| 0.00
+> 0.05
+> 0.10
+> 0.15
+> 0.20
+> 0.25
+> 0.30
+> 0.35
+> Avg |  | Score (lower better)
+> (b) OVERALL (|PT Base|)
+> Benchmark Task Accuracy Plots
+
+Figure 3: Soft prompt tuning (1) closes the performance gap between base and post-trained models and (2) consistently maximizes the task accuracy. (a) Exact-match accuracy on the autoregressive text generation task for soft prompt-tuned base and post-trained models (step 80), with their zero- and few-shot baselines, aggregated over 7 datasets and 3 seeds. (b) Average accuracy gap between base and post-trained models under zero-shot, few-shot, and soft prompting. This finding directly informs our ranking methodology (Section 3.4). To ensure rankings reflect knowledge rather than formatting noise, the reference model must be format-saturated. Among post-trained model setups (zero-shot, few-shot and soft-prompt tuning), soft-prompt-tuning is the only one that satisfies this requirement in our study. Therefore, we define “ground truth” (GT) as the soft-prompt-tuned variant of each post-trained model , rather than its zero- or few-shot version. 
+
+Post-trained and base models achieve similar strong task accuracy once soft-prompt tuned. 
+
+Fig. 3(a) shows that in all instances, the soft-prompt tuned base model aligns the best with the reference scores (soft-prompt tuned post-trained model) than any other base model configuration (zero- or few-shot). The Qwen base models show relatively strong few-shot performance, but still underperform compared to soft-prompt tuning. This trend is consistent with our format-following results (Figs. 1 and 2), where Qwen models demonstrate higher format-following capabilities with few-shot prompting compared to other model families. For Qwen and OLMo-7B, few-shot post-trained scores come reasonably close to the GT; for other model families, the gap is substantially larger. Comprehensive per-dataset and per-model results are in Appendix A.4 Fig. 10. In some settings, soft-prompt-tuned base models slightly exceed their post-trained counterparts, consistent with recent findings that, given proper prompting, base models can outperform instruction-tuned variants [Munjal et al., 2026]. Within the scope of the capabilities measured by these bench-marks, this strongly supports the view that post-training primarily surfaces existing knowledge rather than injecting new knowledge. This highlights the critical need for proper evaluation that can accurately assess a base model’s latent potential before post-training. In Fig. 3 (b), we pair each base model with its post-trained counterpart and ask which adaptation method (zero-shot, few-shot or soft-prompt) best closes the gap within each pair. We plot aggregated task accuracy gaps per adaptation method, telling us whether any method elicits enough format-following from the base model to enable a fair evaluation. Results show that soft-prompt tuning yields the smallest gap and is the only method that brings base and post-trained models into close alignment. 
+
+Soft-prompt-tuned base models can strongly predict ground truth post-trained rankings (vali-dating H2). Fig. 4 (b) shows soft-prompt tuned base models require the fewest number of swaps to 8GSM8K SQUAD TRIVIAQA BELEBELE MMLU CHEMBENCH MATH500     
+
+> 0
+> 5
+> 10
+> 15
+> 20
+> Avg. Number of Swaps  ( lower is better)
+> (a)
+> 0-Shot Base 0-Shot Post Trained 3-Shot Base 3-Shot Post Trained SP Base
+> Overall
+> 0
+> 5
+> 10
+> 15
+> 20
+> (b)
+> Bubble-sort Swap Distance Plots
+
+Figure 4: Soft prompt-tuned base models best predict ground-truth post-trained model rankings. 
+
+Bubble-sort swap distance from each candidate adaptation method (zero-shot, few-shot, soft prompt tuning on base models) to the ground truth (soft prompt-tuned post-trained models). (a) Average number of swaps per dataset; (b) aggregated overall. Results are averaged over 7 models and 3 seeds. match ground truth rankings. Per-dataset results in Fig. 4 (a) show this trend holding across nearly all datasets, with the only exception of MATH500, where few-shots show marginal advantage. This demonstrates that soft-prompt tuning can be used as an efficient signal in early stages of model development for identifying which base model will yield the most promising downstream model. Furthermore, Fig. 4 (bubble-sort distance) and Fig. 3 (base vs. post-trained task accuracy) plots together show that the ranking alignment we obtain with soft-prompt tuning is a genuine reflection of model capability. In contrast, the alignment observed on zero-shot and few-shot base models is largely an artifact of score compression : most models receive similarly low scores ( ∼0) due to poor format adherence, and the ranking algorithm then falls back to sorting models alphabetically. The resulting rankings are tightly clustered, highly sensitive to noise, and do not reliably reflect true task performance. For detailed model ranking plots see Appendix A.3 Fig. 9. In summary, our experiments confirm both of our hypotheses. H1 holds: soft-prompt tuning under our budget saturates format-following without measurable knowledge gain (Figs. 1, 2) – unlike zero-shot or few-shot approaches. H2 follows: with format-following saturated, soft-prompt-tuned base models recover the rankings of their soft-prompt-tuned post-trained counterparts (Fig. 4) and strongly match them in absolute score (Fig. 3). The aligned benchmark performance of base and post-trained models after soft-prompt tuning further supports the view that post-training adds – not none [Zhou et al., 2023] – but comparably little new knowledge [Raghavendra et al., 2024], and primarily surfaces existing capability, improves behavioral alignment while suppressing undesirable behaviors [Yue et al., 2025]. 
+
+5 Conclusions 
+
+We tackled the challenge of fairly evaluating base models, currently hindered by the entanglement of internal knowledge and instruction-following ability, and showed that soft-prompt tuning provides an efficient and principled solution for both base and post-trained models as it allows one to disentangling both. Across 7 datasets and 7 models, we show that optimizing just 10 soft-prompt vectors (0.0006% trainable parameters on OLMo-7B) for 80 steps maximizes format compliance (reaching 90–100%) without measurable knowledge metric increases. Thus, one can evaluate base models directly on existing benchmarks, removing the need for costly full-scale post-training for deciding the best pre-training recipe. Furthermore, our ranking analysis reveals that evaluations of soft-prompted base models align most consistently with the ground-truth rankings (soft-prompt tuned post-trained models), whereas standard zero-shot and few-shot prompting fail to capture these relationships. Notably, this alignment holds even though the studied models were post-trained with non-uniform pipelines, highlighting the effectiveness of soft-prompt tuning as a ranking signal. Overall, our contributions and results recommend evaluating both base and post-trained models using soft-prompts on benchmarks, given that even post-trained models cannot fully reveal their internal 9knowledge with zero- or few-shot prompting. Soft-prompt tuning thus proves to be a promising, cheap, and effective method for model evaluation and pre-training recipe selection. There are several interesting avenues for future work. First, one should test soft-prompt tuning across an even broader set of datasets and models. One could also study a larger range of pre-training recipes, covering both small and large recipe changes across base models and a wider range of model sizes. Finally, one should repeat the ranking comparisons under a controlled post-training pipeline shared across all models to remove variation from post-training as a confounding factor. 
+
+References 
+
+Lucas Bandarkar, Davis Liang, Benjamin Muller, Mikel Artetxe, Satya Narayan Shukla, Donald Husa, Naman Goyal, Abhinandan Krishnan, Luke Zettlemoyer, and Madian Khabsa. The Belebele Benchmark: a Parallel Reading Comprehension Dataset in 122 Language Variants. In Lun-Wei Ku, Andre Martins, and Vivek Srikumar, editors, Proceedings of the 62nd Annual Meeting of the Association for Computational Linguistics (Volume 1: Long Papers) , pages 749–775, Bangkok, Thailand, August 2024. Association for Computational Linguistics. doi: 10.18653/v1/2024. acl-long.44. URL https://aclanthology.org/2024.acl-long.44/ .Stella Biderman, Hailey Schoelkopf, Lintang Sutawika, Leo Gao, Jonathan Tow, Baber Abbasi, Alham Fikri Aji, Pawan Sasanka Ammanamanchi, Sidney Black, Jordan Clive, Anthony DiPofi, Julen Etxaniz, Benjamin Fattori, Jessica Zosa Forde, Charles Foster, Jeffrey Hsu, Mimansa Jaiswal, Wilson Y. Lee, Haonan Li, Charles Lovering, Niklas Muennighoff, Ellie Pavlick, Jason Phang, Aviya Skowron, Samson Tan, Xiangru Tang, Kevin A. Wang, Genta Indra Winata, François Yvon, and Andy Zou. Lessons from the Trenches on Reproducible Evaluation of Language Models, May 2024. URL http://arxiv.org/abs/2405.14782 . arXiv:2405.14782 [cs]. Alec Bunn, Sarah Wiegreffe, and Ben Bogin. Fine-Tune on the Format: First Improving Multiple-Choice Evaluation for Intermediate LLM Checkpoints. In Ofir Arviv, Miruna Clinciu, Kaustubh Dhole, Rotem Dror, Sebastian Gehrmann, Eliya Habba, Itay Itzhak, Simon Mille, Yotam Perlitz, Enrico Santus, João Sedoc, Michal Shmueli Scheuer, Gabriel Stanovsky, and Oyvind Tafjord, editors, Proceedings of the Fourth Workshop on Generation, Evaluation and Metrics (GEM²) ,pages 511–521, Vienna, Austria and virtual meeting, July 2025. Association for Computational Linguistics. ISBN 979-8-89176-261-9. URL https://aclanthology.org/2025.gem-1.46/ .Bowen Cao, Deng Cai, Zhisong Zhang, Yuexian Zou, and Wai Lam. On the Worst Prompt Perfor-mance of Large Language Models. November 2024. URL https://openreview.net/forum? id=Mi853QaJx6 .Yangyi Chen, Binxuan Huang, Yifan Gao, Zhengyang Wang, Jingfeng Yang, and Heng Ji. Scal-ing Laws for Predicting Downstream Performance in LLMs. Transactions on Machine Learn-ing Research , January 2025. ISSN 2835-8856. URL https://openreview.net/forum?id= PJUbMDkQVY .Karl Cobbe, Vineet Kosaraju, Mohammad Bavarian, Mark Chen, Heewoo Jun, Lukasz Kaiser, Matthias Plappert, Jerry Tworek, Jacob Hilton, Reiichiro Nakano, Christopher Hesse, and John Schulman. Training Verifiers to Solve Math Word Problems, November 2021. URL http: //arxiv.org/abs/2110.14168 . arXiv:2110.14168 [cs]. Cody Coleman, Christopher Yeh, Stephen Mussmann, Baharan Mirzasoleiman, Peter Bailis, Percy Liang, Jure Leskovec, and Matei Zaharia. Selection via Proxy: Efficient Data Selection for Deep Learning. September 2019. URL https://openreview.net/forum?id=HJg2b0VYDr .Gheorghe Comanici, Eric Bieber, Mike Schaekermann, Ice Pasupat, et al. Gemini 2.5: Pushing the Frontier with Advanced Reasoning, Multimodality, Long Context, and Next Generation Agentic Capabilities, December 2025. URL http://arxiv.org/abs/2507.06261 . arXiv:2507.06261 [cs]. DeepSeek-AI, Aixin Liu, Aoxue Mei, Bangcai Lin, Bing Xue, Bingxuan Wang, Bingzheng Xu, Bochao Wu, Bowei Zhang, Chaofan Lin, Chen Dong, Chengda Lu, Chenggang Zhao, Chengqi Deng, Chenhao Xu, Chong Ruan, Damai Dai, Daya Guo, Dejian Yang, Deli Chen, Erhang Li, Fangqi Zhou, Fangyun Lin, Fucong Dai, Guangbo Hao, Guanting Chen, Guowei Li, H. Zhang, 10 Hanwei Xu, Hao Li, Haofen Liang, Haoran Wei, Haowei Zhang, Haowen Luo, Haozhe Ji, Honghui Ding, Hongxuan Tang, Huanqi Cao, Huazuo Gao, Hui Qu, Hui Zeng, Jialiang Huang, Jiashi Li, Jiaxin Xu, Jiewen Hu, Jingchang Chen, Jingting Xiang, Jingyang Yuan, Jingyuan Cheng, Jinhua Zhu, Jun Ran, Junguang Jiang, Junjie Qiu, Junlong Li, Junxiao Song, Kai Dong, Kaige Gao, Kang Guan, Kexin Huang, Kexing Zhou, Kezhao Huang, Kuai Yu, Lean Wang, Lecong Zhang, Lei Wang, Liang Zhao, Liangsheng Yin, Lihua Guo, Lingxiao Luo, Linwang Ma, Litong Wang, Liyue Zhang, M. S. Di, M. Y. Xu, Mingchuan Zhang, Minghua Zhang, Minghui Tang, Mingxu Zhou, Panpan Huang, Peixin Cong, Peiyi Wang, Qiancheng Wang, Qihao Zhu, Qingyang Li, Qinyu Chen, Qiushi Du, Ruiling Xu, Ruiqi Ge, Ruisong Zhang, Ruizhe Pan, Runji Wang, Runqiu Yin, Runxin Xu, Ruomeng Shen, Ruoyu Zhang, S. H. Liu, Shanghao Lu, Shangyan Zhou, Shanhuang Chen, Shaofei Cai, Shaoyuan Chen, Shengding Hu, Shengyu Liu, Shiqiang Hu, Shirong Ma, Shiyu Wang, Shuiping Yu, Shunfeng Zhou, Shuting Pan, Songyang Zhou, Tao Ni, Tao Yun, Tian Pei, Tian Ye, Tianyuan Yue, Wangding Zeng, Wen Liu, Wenfeng Liang, Wenjie Pang, Wenjing Luo, Wenjun Gao, Wentao Zhang, Xi Gao, Xiangwen Wang, Xiao Bi, Xiaodong Liu, Xiaohan Wang, Xiaokang Chen, Xiaokang Zhang, Xiaotao Nie, Xin Cheng, Xin Liu, Xin Xie, Xingchao Liu, Xingkai Yu, Xingyou Li, Xinyu Yang, Xinyuan Li, Xu Chen, Xuecheng Su, Xuehai Pan, Xuheng Lin, Xuwei Fu, Y. Q. Wang, Yang Zhang, Yanhong Xu, Yanru Ma, Yao Li, Yao Li, Yao Zhao, Yaofeng Sun, Yaohui Wang, Yi Qian, Yi Yu, Yichao Zhang, Yifan Ding, Yifan Shi, Yiliang Xiong, Ying He, Ying Zhou, Yinmin Zhong, Yishi Piao, Yisong Wang, Yixiao Chen, Yixuan Tan, Yixuan Wei, Yiyang Ma, Yiyuan Liu, Yonglun Yang, Yongqiang Guo, Yongtong Wu, Yu Wu, Yuan Cheng, Yuan Ou, Yuanfan Xu, Yuduan Wang, Yue Gong, Yuhan Wu, Yuheng Zou, Yukun Li, Yunfan Xiong, Yuxiang Luo, Yuxiang You, Yuxuan Liu, Yuyang Zhou, Z. F. Wu, Z. Z. Ren, Zehua Zhao, Zehui Ren, Zhangli Sha, Zhe Fu, Zhean Xu, Zhenda Xie, Zhengyan Zhang, Zhewen Hao, Zhibin Gou, Zhicheng Ma, Zhigang Yan, Zhihong Shao, Zhixian Huang, Zhiyu Wu, Zhuoshu Li, Zhuping Zhang, Zian Xu, Zihao Wang, Zihui Gu, Zijia Zhu, Zilin Li, Zipeng Zhang, Ziwei Xie, Ziyi Gao, Zizheng Pan, Zongqing Yao, Bei Feng, Hui Li, J. L. Cai, Jiaqi Ni, Lei Xu, Meng Li, Ning Tian, R. J. Chen, R. L. Jin, S. S. Li, Shuang Zhou, Tianyu Sun, X. Q. Li, Xiangyue Jin, Xiaojin Shen, Xiaosha Chen, Xinnan Song, Xinyi Zhou, Y. X. Zhu, Yanping Huang, Yaohui Li, Yi Zheng, Yuchen Zhu, Yunxian Ma, Zhen Huang, Zhipeng Xu, Zhongyu Zhang, Dongjie Ji, Jian Liang, Jianzhong Guo, Jin Chen, Leyi Xia, Miaojun Wang, Mingming Li, Peng Zhang, Ruyi Chen, Shangmian Sun, Shaoqing Wu, Shengfeng Ye, T. Wang, W. L. Xiao, Wei An, Xianzu Wang, Xiaowen Sun, Xiaoxiang Wang, Ying Tang, Yukun Zha, Zekai Zhang, Zhe Ju, Zhen Zhang, and Zihua Qu. DeepSeek-V3.2: Pushing the Frontier of Open Large Language Models, December 2025. URL http://arxiv.org/abs/2512.02556 . arXiv:2512.02556 [cs]. Tim Dettmers, Artidoro Pagnoni, Ari Holtzman, and Luke Zettlemoyer. QLoRA: Efficient Fine-tuning of Quantized LLMs. November 2023. URL https://openreview.net/forum?id= OUIFPHEgJU .Fernando Diaz and Michael Madaio. Scaling Laws Do Not Scale. Proceedings of the AAAI/ACM Conference on AI, Ethics, and Society , 7(1):341–357, October 2024. ISSN 3065-8365. doi: 10.1609/aies.v7i1.31641. URL https://ojs.aaai.org/index.php/AIES/article/view/ 31641 .Zhengxiao Du, Aohan Zeng, Yuxiao Dong, and Jie Tang. Understanding Emergent Abilities of Language Models from the Loss Perspective. November 2024. URL https://openreview. net/forum?id=35DAviqMFo .Chengguang Gan and Tatsunori Mori. Sensitivity and Robustness of Large Language Models to Prompt Template in Japanese Text Classification Tasks. In Chu-Ren Huang, Yasunari Harada, Jong-Bok Kim, Si Chen, Yu-Yin Hsu, Emmanuele Chersoni, Pranav A, Winnie Huiheng Zeng, Bo Peng, Yuxi Li, and Junlin Li, editors, Proceedings of the 37th Pacific Asia Conference on Language, Information and Computation , pages 1–11, Hong Kong, China, December 2023. Association for Computational Linguistics. URL https://aclanthology.org/2023.paclic-1.1/ .Aaron Grattafiori, Abhimanyu Dubey, Abhinav Jauhri, et al. The Llama 3 Herd of Models, November 2024. URL http://arxiv.org/abs/2407.21783 . arXiv:2407.21783 [cs]. Eliya Habba, Ofir Arviv, Itay Itzhak, Yotam Perlitz, Elron Bandel, Leshem Choshen, Michal Shmueli-Scheuer, and Gabriel Stanovsky. DOVE: A Large-Scale Multi-Dimensional Predictions Dataset Towards Meaningful LLM Evaluation. In Wanxiang Che, Joyce Nabende, Ekaterina Shutova, and 11 Mohammad Taher Pilehvar, editors, Findings of the Association for Computational Linguistics: ACL 2025 , pages 11744–11763, Vienna, Austria, July 2025. Association for Computational Linguistics. ISBN 979-8-89176-256-5. doi: 10.18653/v1/2025.findings-acl.611. URL https: //aclanthology.org/2025.findings-acl.611/ .Dan Hendrycks, Collin Burns, Steven Basart, Andy Zou, Mantas Mazeika, Dawn Song, and Jacob Steinhardt. Measuring Massive Multitask Language Understanding. October 2020. URL https: //openreview.net/forum?id=d7KBjmI3GmQ .Neil Houlsby, Andrei Giurgiu, Stanislaw Jastrzebski, Bruna Morrone, Quentin De Laroussilhe, Andrea Gesmundo, Mona Attariyan, and Sylvain Gelly. Parameter-Efficient Transfer Learning for NLP. In Proceedings of the 36th International Conference on Machine Learning , pages 2790–2799. PMLR, May 2019. URL https://proceedings.mlr.press/v97/houlsby19a.html .Edward J. Hu, Yelong Shen, Phillip Wallis, Zeyuan Allen-Zhu, Yuanzhi Li, Shean Wang, Lu Wang, and Weizhu Chen. LoRA: Low-Rank Adaptation of Large Language Models. October 2021. URL 
+
+https://openreview.net/forum?id=nZeVKeeFYf9 .Berivan Isik, Natalia Ponomareva, Hussein Hazimeh, Dimitris Paparas, Sergei Vassilvitskii, and Sanmi Koyejo. Scaling Laws for Downstream Task Performance of Large Language Models. April 2024. URL https://openreview.net/forum?id=QASo5yumt4 .Yiding Jiang, Allan Zhou, Zhili Feng, Sadhika Malladi, and J. Zico Kolter. Adaptive Data Optimization: Dynamic Sample Selection with Scaling Laws. October 2024. URL https: //openreview.net/forum?id=aqok1UX7Z1 .Mandar Joshi, Eunsol Choi, Daniel Weld, and Luke Zettlemoyer. TriviaQA: A Large Scale Distantly Supervised Challenge Dataset for Reading Comprehension. In Regina Barzilay and Min-Yen Kan, editors, Proceedings of the 55th Annual Meeting of the Association for Computational Linguistics (Volume 1: Long Papers) , pages 1601–1611, Vancouver, Canada, July 2017. Association for Computational Linguistics. doi: 10.18653/v1/P17-1147. URL https://aclanthology.org/ P17-1147/ .Donald E. Knuth. The Art of Computer Programming: Sorting and Searching, Volume 3 .Addison-Wesley Professional, April 1998. ISBN 978-0-321-63578-5. Google-Books-ID: cYUL-BAAAQBAJ. Komal Kumar, Tajamul Ashraf, Omkar Thawakar, Rao Muhammad Anwer, Hisham Cholakkal, Mubarak Shah, Ming-Hsuan Yang, Phillip H. S. Torr, Fahad Shahbaz Khan, and Salman Khan. LLM Post-Training: A Deep Dive into Reasoning Large Language Models, March 2025. URL 
+
+http://arxiv.org/abs/2502.21321 . arXiv:2502.21321 [cs]. Brian Lester, Rami Al-Rfou, and Noah Constant. The Power of Scale for Parameter-Efficient Prompt Tuning. In Marie-Francine Moens, Xuanjing Huang, Lucia Specia, and Scott Wen-tau Yih, editors, Proceedings of the 2021 Conference on Empirical Methods in Natural Language Processing , pages 3045–3059, Online and Punta Cana, Dominican Republic, November 2021. Association for Computational Linguistics. doi: 10.18653/v1/2021.emnlp-main.243. URL https: //aclanthology.org/2021.emnlp-main.243/ .Xiang Lisa Li and Percy Liang. Prefix-Tuning: Optimizing Continuous Prompts for Generation. In Chengqing Zong, Fei Xia, Wenjie Li, and Roberto Navigli, editors, Proceedings of the 59th Annual Meeting of the Association for Computational Linguistics and the 11th International Joint Conference on Natural Language Processing (Volume 1: Long Papers) , pages 4582–4597, Online, August 2021. Association for Computational Linguistics. doi: 10.18653/v1/2021.acl-long.353. URL https://aclanthology.org/2021.acl-long.353/ .Hunter Lightman, Vineet Kosaraju, Yuri Burda, Harrison Edwards, Bowen Baker, Teddy Lee, Jan Leike, John Schulman, Ilya Sutskever, and Karl Cobbe. Let’ s Verify Step by Step. In B. Kim, Y. Yue, S. Chaudhuri, K. Fragkiadaki, M. Khan, and Y. Sun, ed-itors, International Conference on Learning Representations , volume 2024, pages 39578– 39601, 2024. URL https://proceedings.iclr.cc/paper_files/paper/2024/file/ aca97732e30bcf1303bc22ac3924fd16-Paper-Conference.pdf .12 Haowei Lin, Baizhou Huang, Haotian Ye, Qinyu Chen, Zihao Wang, Sujian Li, Jianzhu Ma, Xiaojun Wan, James Zou, and Yitao Liang. Selecting Large Language Model to Fine-tune via Rectified Scaling Law. In Proceedings of the 41st International Conference on Machine Learning , pages 30080–30107. PMLR, July 2024. URL https://proceedings.mlr.press/v235/lin24j. html .Alexander H. Liu, Kartik Khandelwal, Sandeep Subramanian, Victor Jouault, Abhinav Rastogi, Adrien Sadé, Alan Jeffares, Albert Jiang, Alexandre Cahill, Alexandre Gavaudan, Alexandre Sablayrolles, Amélie Héliou, Amos You, Andy Ehrenberg, Andy Lo, Anton Eliseev, Antonia Calvi, Avinash Sooriyarachchi, Baptiste Bout, Baptiste Rozière, Baudouin De Monicault, Clémence Lanfranchi, Corentin Barreau, Cyprien Courtot, Daniele Grattarola, Darius Dabert, Diego de las Casas, Elliot Chane-Sane, Faruk Ahmed, Gabrielle Berrada, Gaëtan Ecrepont, Gauthier Guinet, Georgii Novikov, Guillaume Kunsch, Guillaume Lample, Guillaume Martin, Gunshi Gupta, Jan Ludziejewski, Jason Rute, Joachim Studnia, Jonas Amar, Joséphine Delas, Josselin Somerville Roberts, Karmesh Yadav, Khyathi Chandu, Kush Jain, Laurence Aitchison, Laurent Fainsin, Léonard Blier, Lingxiao Zhao, Louis Martin, Lucile Saulnier, Luyu Gao, Maarten Buyl, Mar-garet Jennings, Marie Pellat, Mark Prins, Mathieu Poirée, Mathilde Guillaumin, Matthieu Dinot, Matthieu Futeral, Maxime Darrin, Maximilian Augustin, Mia Chiquier, Michel Schimpf, Nathan Grinsztajn, Neha Gupta, Nikhil Raghuraman, Olivier Bousquet, Olivier Duchenne, Patricia Wang, Patrick von Platen, Paul Jacob, Paul Wambergue, Paula Kurylowicz, Pavankumar Reddy Mud-direddy, Philomène Chagniot, Pierre Stock, Pravesh Agrawal, Quentin Torroba, Romain Sauvestre, Roman Soletskyi, Rupert Menneer, Sagar Vaze, Samuel Barry, Sanchit Gandhi, Siddhant Waghjale, Siddharth Gandhi, Soham Ghosh, Srijan Mishra, Sumukh Aithal, Szymon Antoniak, Teven Le Scao, Théo Cachet, Theo Simon Sorg, Thibaut Lavril, Thiziri Nait Saada, Thomas Chabal, Thomas Foubert, Thomas Robert, Thomas Wang, Tim Lawson, Tom Bewley, Tom Bewley, Tom Edwards, Umar Jamil, Umberto Tomasini, Valeriia Nemychnikova, Van Phung, Vincent Maladière, Virgile Richard, Wassim Bouaziz, Wen-Ding Li, William Marshall, Xinghui Li, Xinyu Yang, Yassine El Ouahidi, Yihan Wang, Yunhao Tang, and Zaccharie Ramzi. Ministral 3, January 2026a. URL 
+
+http://arxiv.org/abs/2601.08584 . arXiv:2601.08584 [cs]. Haokun Liu, Derek Tam, Mohammed Muqeeth, Jay Mohta, Tenghao Huang, Mohit Bansal, and Colin Raffel. Few-Shot Parameter-Efficient Fine-Tuning is Better and Cheaper than In-Context Learning. Advances in Neural Information Processing Systems , 35:1950– 1965, December 2022a. URL https://papers.nips.cc/paper_files/paper/2022/hash/ 0cde695b83bd186c1fd456302888454c-Abstract-Conference.html .Pengfei Liu, Weizhe Yuan, Jinlan Fu, Zhengbao Jiang, Hiroaki Hayashi, and Graham Neubig. Pre-train, Prompt, and Predict: A Systematic Survey of Prompting Methods in Natural Language Processing. ACM Comput. Surv. , 55(9):195:1–195:35, January 2023. ISSN 0360-0300. doi: 10.1145/3560815. URL https://dl.acm.org/doi/10.1145/3560815 .Xiao Liu, Kaixuan Ji, Yicheng Fu, Weng Tam, Zhengxiao Du, Zhilin Yang, and Jie Tang. P-Tuning: Prompt Tuning Can Be Comparable to Fine-tuning Across Scales and Tasks. In Smaranda Muresan, Preslav Nakov, and Aline Villavicencio, editors, Proceedings of the 60th Annual Meeting of the Association for Computational Linguistics (Volume 2: Short Papers) , pages 61–68, Dublin, Ireland, May 2022b. Association for Computational Linguistics. doi: 10.18653/v1/2022.acl-short.8. URL 
+
+https://aclanthology.org/2022.acl-short.8/ .Yajiao Liu, Congliang Chen, Junchi Yang, and Ruoyu Sun. Rethinking Data Mixture for Large Language Models: A Comprehensive Survey and New Perspectives. In Vera Demberg, Kentaro Inui, and Lluís Marquez, editors, Findings of the Association for Computational Linguistics: EACL 2026 , pages 275–289, Rabat, Morocco, March 2026b. Association for Computational Linguistics. ISBN 979-8-89176-386-9. doi: 10.18653/v1/2026.findings-eacl.15. URL https: //aclanthology.org/2026.findings-eacl.15/ .Do Xuan Long, Ngoc-Hai Nguyen, Tiviatis Sim, Hieu Dao, Shafiq Joty, Kenji Kawaguchi, Nancy F. Chen, and Min-Yen Kan. LLMs Are Biased Towards Output Formats! Systematically Evaluating and Mitigating Output Format Bias of LLMs. In Luis Chiruzzo, Alan Ritter, and Lu Wang, editors, Proceedings of the 2025 Conference of the Nations of the Americas Chapter of the Association for Computational Linguistics: Human Language Technologies (Volume 1: Long Papers) , pages 299–330, Albuquerque, New Mexico, April 2025. Association for Computational 13 Linguistics. ISBN 979-8-89176-189-6. doi: 10.18653/v1/2025.naacl-long.15. URL https: //aclanthology.org/2025.naacl-long.15/ .Ilya Loshchilov and Frank Hutter. Decoupled Weight Decay Regularization. September 2018. URL 
+
+https://openreview.net/forum?id=Bkg6RiCqY7 .Sheng Lu, Hendrik Schuff, and Iryna Gurevych. How are Prompts Different in Terms of Sensitivity? In Kevin Duh, Helena Gomez, and Steven Bethard, editors, Proceedings of the 2024 Conference of the North American Chapter of the Association for Computational Linguistics: Human Language Technologies (Volume 1: Long Papers) , pages 5833–5856, Mexico City, Mexico, June 2024. Association for Computational Linguistics. doi: 10.18653/v1/2024.naacl-long.325. URL https: //aclanthology.org/2024.naacl-long.325/ .Sewon Min, Xinxi Lyu, Ari Holtzman, Mikel Artetxe, Mike Lewis, Hannaneh Hajishirzi, and Luke Zettlemoyer. Rethinking the Role of Demonstrations: What Makes In-Context Learning Work? In Yoav Goldberg, Zornitsa Kozareva, and Yue Zhang, editors, Proceedings of the 2022 Conference on Empirical Methods in Natural Language Processing , pages 11048–11064, Abu Dhabi, United Arab Emirates, December 2022. Association for Computational Linguistics. doi: 10.18653/v1/ 2022.emnlp-main.759. URL https://aclanthology.org/2022.emnlp-main.759/ .Adrian Mirza, Nawaf Alampara, Sreekanth Kunchapu, Martiño Ríos-García, Benedict Emoekabu, Aswanth Krishnan, Tanya Gupta, Mara Schilling-Wilhelmi, Macjonathan Okereke, Anagha Aneesh, Mehrdad Asgari, Juliane Eberhardt, Amir Mohammad Elahi, Hani M. Elbeheiry, María Victoria Gil, Christina Glaubitz, Maximilian Greiner, Caroline T. Holick, Tim Hoffmann, Abdelrahman Ibrahim, Lea C. Klepsch, Yannik Köster, Fabian Alexander Kreth, Jakob Meyer, Santiago Miret, Jan Matthias Peschel, Michael Ringleb, Nicole C. Roesner, Johanna Schreiber, Ulrich S. Schubert, Leanne M. Stafast, A. D. Dinga Wonanke, Michael Pieler, Philippe Schwaller, and Kevin Maik Jablonka. A framework for evaluating the chemical knowledge and reasoning abilities of large language models against the expertise of chemists. Nature Chemistry , 17(7):1027–1034, July 2025. ISSN 1755-4349. doi: 10.1038/s41557-025-01815-x. URL https://www.nature.com/ articles/s41557-025-01815-x .Prateek Munjal, Clement Christophe, Ronnie Rajan, and Praveenkumar Kanithi. Do Instruction-Tuned Models Always Perform Better Than Base Models? Evidence from Math and Domain-Shifted Benchmarks, January 2026. URL http://arxiv.org/abs/2601.13244 . arXiv:2601.13244 [cs]. Team Olmo, Allyson Ettinger, Amanda Bertsch, Bailey Kuehl, David Graham, David Heineman, Dirk Groeneveld, Faeze Brahman, Finbarr Timbers, Hamish Ivison, Jacob Morrison, Jake Poznanski, Kyle Lo, Luca Soldaini, Matt Jordan, Mayee Chen, Michael Noukhovitch, Nathan Lambert, Pete Walsh, Pradeep Dasigi, Robert Berry, Saumya Malik, Saurabh Shah, Scott Geng, Shane Arora, Shashank Gupta, Taira Anderson, Teng Xiao, Tyler Murray, Tyler Romero, Victoria Graf, Akari Asai, Akshita Bhagia, Alexander Wettig, Alisa Liu, Aman Rangapur, Chloe Anastasiades, Costa Huang, Dustin Schwenk, Harsh Trivedi, Ian Magnusson, Jaron Lochner, Jiacheng Liu, Lester James V. Miranda, Maarten Sap, Malia Morgan, Michael Schmitz, Michal Guerquin, Michael Wilson, Regan Huff, Ronan Le Bras, Rui Xin, Rulin Shao, Sam Skjonsberg, Shannon Zejiang Shen, Shuyue Stella Li, Tucker Wilde, Valentina Pyatkin, Will Merrill, Yapei Chang, Yuling Gu, Zhiyuan Zeng, Ashish Sabharwal, Luke Zettlemoyer, Pang Wei Koh, Ali Farhadi, Noah A. Smith, and Hannaneh Hajishirzi. Olmo 3, April 2026. URL http://arxiv.org/abs/2512.13961 .arXiv:2512.13961 [cs]. Mohit Raghavendra, Vaskar Nath, and Sean Hendryx. Revisiting the Superficial Alignment Hy-pothesis, September 2024. URL http://arxiv.org/abs/2410.03717 . arXiv:2410.03717 [cs]. Pranav Rajpurkar, Jian Zhang, Konstantin Lopyrev, and Percy Liang. SQuAD: 100,000+ Questions for Machine Comprehension of Text. In Jian Su, Kevin Duh, and Xavier Carreras, editors, 
+
+Proceedings of the 2016 Conference on Empirical Methods in Natural Language Processing ,pages 2383–2392, Austin, Texas, November 2016. Association for Computational Linguistics. doi: 10.18653/v1/D16-1264. URL https://aclanthology.org/D16-1264/ .14 Melanie Sclar, Yejin Choi, Yulia Tsvetkov, and Alane Suhr. Quantifying Language Models’ Sensitivity to Spurious Features in Prompt Design or: How I learned to start worrying about prompt formatting. October 2023. URL https://openreview.net/forum?id=RIu5lyNXjT .Aarohi Srivastava, Abhinav Rastogi, Abhishek Rao, Abu Awal Md Shoeb, Abubakar Abid, et al. Beyond the Imitation Game: Quantifying and extrapolating the capabilities of language models. 
+
+Transactions on Machine Learning Research , January 2023. ISSN 2835-8856. URL https: //openreview.net/forum?id=uyTL5Bvosj .Yi Tay, Mostafa Dehghani, Jinfeng Rao, William Fedus, Samira Abnar, Hyung Won Chung, Sharan Narang, Dani Yogatama, Ashish Vaswani, and Donald Metzler. Scale Efficiently: Insights from Pretraining and Finetuning Transformers. October 2021. URL https://openreview.net/ forum?id=f2OYVDyfIB .Jiachen T. Wang, Tong Wu, Kaifeng Lyu, James Zou, Dawn Song, Ruoxi Jia, and Prateek Mittal. Can Small Training Runs Reliably Guide Data Curation? Rethinking Proxy-Model Practice. October 2025. URL https://openreview.net/forum?id=2FZC0c06jP .Yanzheng Xiang, Hanqi Yan, Lin Gui, and Yulan He. Addressing Order Sensitivity of In-Context Demonstration Examples in Causal Language Models. In Lun-Wei Ku, Andre Martins, and Vivek Srikumar, editors, Findings of the Association for Computational Linguistics: ACL 2024 , pages 6467–6481, Bangkok, Thailand, August 2024. Association for Computational Linguistics. doi: 10.18653/v1/2024.findings-acl.386. URL https://aclanthology.org/2024.findings-acl. 386/ .An Yang, Anfeng Li, Baosong Yang, Beichen Zhang, Binyuan Hui, Bo Zheng, Bowen Yu, Chang Gao, Chengen Huang, Chenxu Lv, Chujie Zheng, Dayiheng Liu, Fan Zhou, Fei Huang, Feng Hu, Hao Ge, Haoran Wei, Huan Lin, Jialong Tang, Jian Yang, Jianhong Tu, Jianwei Zhang, Jianxin Yang, Jiaxi Yang, Jing Zhou, Jingren Zhou, Junyang Lin, Kai Dang, Keqin Bao, Kexin Yang, Le Yu, Lianghao Deng, Mei Li, Mingfeng Xue, Mingze Li, Pei Zhang, Peng Wang, Qin Zhu, Rui Men, Ruize Gao, Shixuan Liu, Shuang Luo, Tianhao Li, Tianyi Tang, Wenbiao Yin, Xingzhang Ren, Xinyu Wang, Xinyu Zhang, Xuancheng Ren, Yang Fan, Yang Su, Yichang Zhang, Yinger Zhang, Yu Wan, Yuqiong Liu, Zekun Wang, Zeyu Cui, Zhenru Zhang, Zhipeng Zhou, and Zihan Qiu. Qwen3 Technical Report, May 2025. URL http://arxiv.org/abs/2505.09388 .arXiv:2505.09388 [cs]. Yang Yue, Zhiqi Chen, Rui Lu, Andrew Zhao, Zhaokai Wang, Yang Yue, Shiji Song, and Gao Huang. Does Reinforcement Learning Really Incentivize Reasoning Capacity in LLMs Beyond the Base Model? October 2025. URL https://openreview.net/forum?id=4OsgYD7em5 .Guanhua Zhang, Ricardo Dominguez-Olmedo, and Moritz Hardt. Train-before-Test Harmonizes Language Model Rankings. October 2025. URL https://openreview.net/forum?id= ORv3SAzus1 .Zihao Zhao, Eric Wallace, Shi Feng, Dan Klein, and Sameer Singh. Calibrate Before Use: Improving Few-shot Performance of Language Models. In Proceedings of the 38th International Conference on Machine Learning , pages 12697–12706. PMLR, July 2021. URL https://proceedings. mlr.press/v139/zhao21c.html .Chunting Zhou, Pengfei Liu, Puxin Xu, Srini Iyer, Jiao Sun, Yuning Mao, Xuezhe Ma, Avia Efrat, Ping Yu, Lili Yu, Susan Zhang, Gargi Ghosh, Mike Lewis, Luke Zettlemoyer, and Omer Levy. LIMA: Less Is More for Alignment. November 2023. URL https://openreview.net/forum? id=KBMOKmX2he .15 A Appendix 
+
+Contents of Appendix 
+
+A.1 Closed-ended datasets knowledge and format-following accuracy plots . . . . . . . 16 A.2 Open-ended datasets knowledge and format-following accuracy plots . . . . . . . 16 A.3 Ranking Plots . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 16 A.4 Benchmark Accuracy Plots . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 16 A.5 Soft-Prompt Vector Size Ablation . . . . . . . . . . . . . . . . . . . . . . . . . . 16 A.6 LLM-as-a-judge prompts . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 17 A.6.1 Knowledge Accuracy Prompts . . . . . . . . . . . . . . . . . . . . . . . . 17 A.6.2 Format-Following Accuracy Prompt . . . . . . . . . . . . . . . . . . . . . 17 A.7 Prompts for Benchmarks . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 19 A.8 Format following and knowledge accuracy examples . . . . . . . . . . . . . . . . 21 A.9 LLM-as-a-judge Failure Examples . . . . . . . . . . . . . . . . . . . . . . . . . . 22 A.10 LoRA Experiment Results . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 22 A.10.1 LoRA format-following and knowledge accuracy results . . . . . . . . . . 23 A.10.2 LoRA model ranking results . . . . . . . . . . . . . . . . . . . . . . . . . 23 A.10.3 LoRA benchmark scores results . . . . . . . . . . . . . . . . . . . . . . . 23 A.11 Comparison between LoRA and Soft-Prompts . . . . . . . . . . . . . . . . . . . . 23 A.12 Licenses of the Models and Datasets . . . . . . . . . . . . . . . . . . . . . . . . . 23 
+
+A.1 Closed-ended datasets knowledge and format-following accuracy plots 
+
+In this section, we provide per dataset and model plots of knowledge and format-following accuracy on closed-ended datasets. Figure 5 represents the format-following plots and Figure 6 represents the knowledge accuracy ones. 
+
+A.2 Open-ended datasets knowledge and format-following accuracy plots 
+
+In this section, we provide per dataset and model plots of knowledge and format-following accuracy on open-ended datasets. Figure 7 represents the format-following plots and Figure 8 represents the knowledge accuracy ones. 
+
+A.3 Ranking Plots 
+
+In this section, we provide the detailed results of our ranking analysis. Figure 9 shows the model rankings at each setup for base and post-trained models separately: zero-shot, few-shot and soft-prompt tuned. Last row of the figure represents the ground truth rankings (soft-prompt tuned post-trained model). At each subplot, we report average number of swaps needed to align with the ground truth rankings. The plot further illustrates that model rankings on zero- and few-shot baselines are often misleading for certain datasets. Because scores in these settings frequently hover near zero, meaningful performance comparisons become impossible. 
+
+A.4 Benchmark Accuracy Plots 
+
+In this section, Figure 10 show the per dataset and model task accuracy plots on all settings of base and post-trained models: zero-shot, few-shot and soft-prompt tuned. For soft-prompt tuned models it shows scores aggregated over 3 seeds. The results show that zero-shot and few-shot baselines fail to align with the ground truth task accuracy (soft-prompt tuned post-trained model), whereas soft-prompt tuned base model yields results that more accurately reflect the capabilities of the post-trained version. 
+
+A.5 Soft-Prompt Vector Size Ablation 
+
+In this section, we show the format-following accuracy curves different soft-prompt vector sizes (1, 2,and 10). We conduct this ablation to see the effect of changing soft-prompt vector size on format-following behavior. Each plot, in the Fig. 11 show results that are aggregated over 2 models (Qwen3-4B, Olmo3-7B) and 2 datasets (Belebele, Chembench). We see that, as expected, lowering 16 number of soft-prompt vectors penalizes the format-following curves and leads to a much slower learning. Therefore, we chose to use 10 soft-prompt vectors in our experiments. 
+
+A.6 LLM-as-a-judge prompts 
+
+In this section, we provide the specific prompt templates used for our LLM-as-a-judge evaluation of the model’s knowledge. 
+
+A.6.1 Knowledge Accuracy Prompts 
+
+These prompts are designed to assess knowledge accuracy by instructing a judge model to determine if a candidate completion is semantically equivalent to the ground-truth answers, regardless of formatting or additional irrelevant text. 
+
+Knowledge Judge Prompt 
+
+You are a judge that checks the correctness of answers. You will be given: 
+
+• A ground-truth answer (GT) 
+
+• A prediction produced by a model Your task: 
+
+• Determine whether the prediction contains a correct answer to the original question. 
+
+• First, identify the final correct answer from the GT. 
+
+• Then, read the entire prediction and check whether it contains that answer. 
+
+• The prediction does not need to provide reasoning or explanations; correctness is the only criterion. 
+
+• The prediction can be in any form and may include additional or random generations (e.g., repeated questions, new questions, extra answers, irrelevant text). Do not penalize this and ignore it for correctness. 
+
+• The prediction does NOT need to match the GT in formatting or phrasing; only the underlying answer correctness matters. 
+
+• Ignore formatting, structure, language choice, explanation quality, and reasoning steps. 
+
+• You MUST choose exactly one: "1" (correct) or "0" (incorrect). Output format (STRICT): 
+
+• Output MUST be a single-line JSON object, and nothing else. 
+
+• Do NOT add any text before or after the JSON. 
+
+• The JSON MUST have exactly these keys: 
+
+• "accuracy": "1" or "0" 
+
+• "reason_short": a short string (one or two sentences) Example of a valid output: {{"accuracy": "1", "reason_short": "<Brief explanation of why the answer is correct.>"}} 
+
+A.6.2 Format-Following Accuracy Prompt 
+
+To measure format-following accuracy, we use a specialized judge prompt that ignores the factual correctness of the content and focuses exclusively on whether the model adhered to the specified output constraints. This allows us to quantify the "formatting bottleneck" independently of the model’s underlying knowledge. 17 Format Following Judge Prompt (1/2) 
+
+You are a judge that evaluates FORMATTING STYLE ONLY. CRITICAL RULE — READ THIS CAREFULLY: You must COMPLETELY IGNORE the CONTENT of the final answer. Do NOT look at what number, expression, name, or value the prediction produces. The final answer could be completely WRONG — that is 100% irrelevant. You are NOT a correctness checker. You are ONLY a format checker. If the prediction uses the right formatting conventions (e.g., LaTeX + boxed{{}}, or «» + ####, or a short phrase) but gets the WRONG answer, you MUST output "1". If you catch yourself thinking "the answer is incorrect" or "the answer differs from the GT" — STOP. That thought is irrelevant. Only formatting matters. You will be given: 
+
+• A ground-truth answer (GT) — use this ONLY as a reference for the expected formatting style 
+
+• A model prediction — evaluate whether its formatting matches the GT’s style Formatting criteria to check (in order of importance): 1. STOPPING BEHAVIOR (most important): 
+
+• The prediction must produce exactly ONE answer and then STOP. 
+
+• If the prediction repeats the answer, re-generates the question, loops, or keeps writing after the final answer, that is a formatting failure → "0". 
+
+• Outputs that contain "Here is the answer to the question:" or echo the prompt after answering are badly formatted → "0". 
+
+• Outputs that get stuck in a generation loop (e.g., repeating the same calculation or text pattern over and over) are badly formatted → "0". 2. STRUCTURAL PATTERN — match the GT’s style: The GT defines what "correct format" looks like. Different GTs have different styles. You must adapt to whatever style the GT uses: a) Step-by-step math with special notation (e.g., GSM8K style): 
+
+• GT uses inline calculations like «expression=result»result 
+
+• GT ends with "#### <number>" as the final answer marker 
+
+• Prediction must also use «» notation and #### ending 
+
+• Different number of reasoning steps is fine b) LaTeX/mathematical prose (e.g., MATH style): 
+
+• GT uses LaTeX notation ( ... ,boxed, beginalign*, frac, etc.) 
+
+• GT wraps the final answer in boxed 
+
+• Prediction must also use LaTeX and boxed for the final answer 
+
+• Shorter or longer derivations are fine 
+
+• Using completely DIFFERENT mathematical methods, theorems, or reasoning approaches is fine (e.g., using partial derivatives instead of substitution, or a geometric argument instead of algebraic — these are NOT format issues) 
+
+• The specific proof technique, solution strategy, or level of detail does NOT matter — only the surface-level formatting (LaTeX + boxed) matters c) Short factual answers (e.g., trivia style): 
+
+• GT is a brief answer (a name, a word, a number, a short phrase) 
+
+• Prediction should also be a brief answer 
+
+• Minor text differences are COMPLETELY FINE: abbreviations ("W.B." vs "William Butler"), punctuation ("A.A. Milne" vs "A A Milne"), capitalization ("The Firm" vs "THE FIRM"), quoting differences — all fine 
+
+• These are format-irrelevant surface variations → "1" 
+
+18 Format Following Judge Prompt (2/2) 
+
+3. WHAT TO IGNORE — COMPLETELY IRRELEVANT (do NOT mention any of these in your reason): 
+
+• THE FINAL ANSWER VALUE: whether it is right, wrong, different, or matches the GT — NEVER consider this 
+
+• Whether the math/logic is correct or incorrect 
+
+• Whether intermediate calculations are right or wrong 
+
+• The reasoning method, proof technique, or solution strategy used (e.g., Law of Sines vs Law of Cosines, substitution vs partial derivatives, factorization vs completing the square — all irrelevant) 
+
+• Whether the derivation follows the same steps or uses the same theorems as the GT 
+
+• The level of detail or length of the derivation (shorter or longer is fine) 
+
+• Minor wording differences, paraphrasing, or different variable names 
+
+• Slightly more or fewer reasoning steps 
+
+• Abbreviations, punctuation, or capitalization differences in short answers 
+
+• Different but equivalent notations (e.g., 0.5 vs 1/2) SELF-CHECK BEFORE ANSWERING: 
+
+• Did I base my score ONLY on formatting (notation style, stopping behavior, structural markers)? 
+
+• Did I accidentally penalize the prediction for having a wrong or different answer? If yes → fix it. 
+
+• A prediction with wrong math but correct format (LaTeX + boxed{{}}, or «» + ####, or short answer) = "1". Output format (STRICT): 
+
+• Output MUST be a single-line JSON object, and nothing else. 
+
+• Do NOT add any text before or after the JSON. 
+
+• The JSON MUST have exactly these keys: 
+
+– "accuracy": "1" or "0" 
+
+– "reason_short": a short string (one or two sentences) Example input will look like this: GROUND_TRUTH: «<GT_START»> ground truth inserted here. «<GT_END»> Prediction: «<C1_START»> prediction inserted here. «<C1_END»> Example of a valid output: {{"accuracy": "1", "reason_short": "<Brief explanation of why formatting is correct.>"}} 
+
+A.7 Prompts for Benchmarks 
+
+Below we list the zero-shot prompt variants for each open-ended dataset. For the few-shot prompts, we append randomly selected three few-shot examples at the end of each prompt. Before the few-shot examples we add this line: "Here are some few-shot examples to help you answer the question correctly." . After the few-shot examples we add this line: Here is the final question. 
+
+GSM8K 
+
+Here is a question for you about math. Question: Mimi picked up 2 dozen seashells on the beach. Kyle found twice as many shells as Mimi and put them in his pocket. Leigh grabbed one-third of the shells that Kyle found. How many seashells did Leigh have? Answer: 
+
+TriviaQA 
+
+Here is a trivia question for you. Question: Which Lloyd Webber musical premiered in the US on 10th December 1993? Answer: 
+
+19 Squad 
+
+Answer the question based on the given context. Context: The Pew Forum on Religion & Public Life ranks Egypt as the fifth worst country in the world for religious freedom. The United States Commission on International Religious Freedom, a bipartisan independent agency of the US government, has placed Egypt on its watch list of countries that require close monitoring due to the nature and extent of violations of religious freedom engaged in or tolerated by the government. According to a 2010 Pew Global Attitudes survey, 84% of Egyptians polled supported the death penalty for those who leave Islam; 77% supported whippings and cutting off of hands for theft and robbery; and 82% support stoning a person who commits adultery. Question: What percentage of Egyptians polled support death penalty for those leaving Islam? Answer: 
+
+MMLU 
+
+The following are multiple choice questions (with answers) about abstract_algebra. Answer with the full text of the correct answer. Question: The cyclic subgroup of Z_24 generated by 18 has order - 4 - 8 - 12 - 6 Answer: 
+
+Math500 
+
+Here is a question for you about math. Question: Find all the integer roots of [x 4 + 5x3 + 9x2 - x - 14 = 0.]Enter all the integer roots, separated by commas. Answer: 
+
+ChemBench 
+
+The following is a question about chemistry. Answer with the full text of the correct answer. Question: Imagine an early virtual screening campaign setting (accounting for simple aspects such as oral availability and small molecular profile, but no other modalities such as covalency or bifunctionality). Which of the following two candidates would you prefer for further development? A. [START_SMILES]CCOc1ccc2nc(NC(=O)CSc3nnc(Cn4cnc5ccccc54)o3)sc2c1[END_SMILES] B. [START_SMILES]O=C(Cc1ccc(SCc2ccccc2C(=O)O)cc1)OCc1ccc(C(F)(F)F)cc1[END_SMILES] Answer: 
+
+Belebele 
+
+You are solving Belebele multiple-choice reading comprehension. Answer with the full text of the correct answer. Chemical reactions in the real world don‘t always go exactly as planned on paper. In the course of an experiment, many things will contribute to the formation of less product than would be predicted. Besides spills and other experimental errors, there are usually losses due to an incomplete reaction, undesirable side reactions, etc. Chemists need a measurement that indicates how successful a reaction has been. This measurement is called the percent yield. Question: What is the term for proportion of amount of product actually produced in a chemical reaction versus predicted amount ? A. decrease yield B. calculus yield C. percent yield D. percent impact Answer: 
+
+20 A.8 Format following and knowledge accuracy examples Open-ended - Knowledge and Format Following Accuracy (GSM8K) 
+
+Question: Mary wants to ride the world’s tallest roller coaster, Kingda Ka. The minimum height to ride the roller coaster is 140 cm. Mary’s brother is 180 cm, Mary is 2/3 the height of her brother. How many more centimeters does Mary need to grow to ride Kingda Ka? Answer: 20 cm. Explanation: Mary’s brother is 180 cm tall. Mary is 2/3 the height of her brother. Mary’s height is 2/3(180) = 120 cm. Mary needs to grow 140 - 120 = 20 cm to ride Kingda Ka. GT: Being 2/3 of her brother’s height, Mary is 180 * 2/3 = «180*2/3=120»120 cm. To reach the minimum height and ride Kingda Ka, Mery needs to grow 140 - 120 = «140-120=20»20 cm.#### 20" Knowledge Accuracy: 1Format Following Accuracy: 0
+
+Closed-Ended - Knowledge and Format Following Accuracy (MMLU) 
+
+Question: A swimmer is able to propel himself forward through the water by moving his arms. Which of the following correctly states the applicant and recipient of the force responsible for the swimmer’s forward acceleration? Possible answers: 
+
+• The force of the surrounding water on the swimmer’s arms 
+
+• The force of the swimmer’s arms on the swimmer’s torso 
+
+• The force of the swimmer’s arms on the surrounding water 
+
+• The force of the swimmer’s torso on the swimmer’s arms Answer: The force of the swimmer’s arms on the surrounding water GT: The force of the surrounding water on the swimmer’s arms Knowledge Accuracy: 0Format Following Accuracy: 1
+
+21 A.9 LLM-as-a-judge Failure Examples LLM-as-a-judge Format-Following Accuracy Failure Examples 
+
+GT First find how many hours Carla has to work: 12:00 - 8:00 = 4 hours Then divide the total amount of laundry by the number of hours to find how many pieces Carla has to clean per hour: 80 pieces / 4 hours = «80/4=20»20 pieces/hour #### 20 PREDICTION Carla has 4 hours to clean 80 pieces of laundry. 4 hours * 80 pieces of laundry = «4*80=320»320 pieces of laundry per hour. #### 320 LLM-Judge-Score: 0Human-Score: 1–––––––––––––––––––––––––––––-GT There are 4 slots in the row. He can choose two of them for his IMO medals in  42
+
+ = 6
+
+ways. PREDICTION We can think of the IMO medals as indistinguishable red balls and the IPhO medals as indistinguishable blue balls. We can arrange the 4 balls in a row in  42
+
+ = 6 ways. However, since the red balls are indistinguishable, we can swap any two red balls without changing the arrangement. Similarly, we can swap any two blue balls without changing the arrangement. Therefore, the number of distinct arrangements is 62·2 = 3 .LLM-Judge-Score: 0Human-Score: 1
+
+LLM-as-a-judge Knowledge Accuracy Failure Examples 
+
+GT XPREDICTION X. Question: How is the number twenty written in Roman numerals?...Question: How is the number sixty written in Roman numerals? LLM-Judge-Score: 0Human-Score: 1–––––––––––––––––––––––––––––-GT church and state PREDICTION separation of church and state LLM-Judge-Score: 0Human-Score: 1
+
+A.10 LoRA Experiment Results 
+
+In this section, we show our results on LoRA experiments. We conducted our LoRA experiments on the same dataset and models as soft-prompt tuning. We used rank 8 for these experiments and trained 22 all models for 3 different seeds. We observe our hypotheses are confirmed by LoRA as well, showing that our results extend to other PEFT methods as well. It is important to note that, LoRA inherently requires significantly more parameters compared to soft-prompts. With LoRA we train 0.27% of a 7B model’s parameters whereas with soft-prompts we only train 0.0006%. 
+
+A.10.1 LoRA format-following and knowledge accuracy results 
+
+In this section, we show the knowledge accuracy and format-following accuracy plots for LoRA on closed-ended and open-ended datasets. Figure 12 shows the format-following and knowledge accuracy plots on closed-ended datasets and Figure 13 show the same plots on open-ended datasets. 
+
+A.10.2 LoRA model ranking results 
+
+This section shows the ranking plots on LoRA. Figure 14 shows the average number of swaps needed for each setup to align with the ground truth model rankings (LoRA tuned post-trained model). We see that base model with LoRA tuning needs the least number of swaps outperforming the zero-shot and few-shot baselines. 
+
+A.10.3 LoRA benchmark scores results 
+
+This section shows the task accuracy plots for LoRA experiments aggregated over all datasets and seeds. Figure 15 shows that LoRA tuned base model aligns the best with the ground truth scores (Lora tuned post-trained model) outperforming zero- and few-shot baselines. 
+
+A.11 Comparison between LoRA and Soft-Prompts 
+
+In this section, we present plots comparing the task accuracy scores achieved with soft-prompt tuning and LoRA on both base and post-trained models. Fig. 15 shows a scatter plot of all base and post-trained models evaluated under LoRA and soft-prompt tuning. The plot reveals a clear linear trend between soft-prompt and LoRA performance, indicating close alignment between the two methods. Fig. 17 compares the rankings of LoRA and soft-prompt tuned post-trained models. We observe that the rankings align remarkably well on 5 out of 7 datasets. On Math500, all models perform relatively poorly in both format adherence and task accuracy; we attribute this to the dataset’s distinctive nature, which involves complex LaTeX-formatted content. Furthermore, we find that Ministral-14B ranks as one of the best-performing models across datasets overall, as expected, followed by Qwen3-8B. 
+
+A.12 Licenses of the Models and Datasets 
+
+Table 1: Licenses of models used in this paper. 
+
+Model License 
+
+Llama-3.1-8B (base & instruct) Llama 3.1 Community License Llama-3.2-1B (base & instruct) Llama 3.2 Community License Ministral-3-3B (base & instruct) Apache 2.0 Ministral-3-14B (base & instruct) Apache 2.0 Olmo-3-7B (base & instruct) Apache 2.0 Qwen3-4B (base & instruct) Apache 2.0 Qwen3-8B (base & instruct) Apache 2.0 Qwen3-32B (LLM-as-a-judge) Apache 2.0 23 Table 2: Licenses of datasets used in this paper. 
+
+Dataset Type License 
+
+TriviaQA [Joshi et al., 2017] Open-ended Apache 2.0 GSM8K [Cobbe et al., 2021] Open-ended MIT SQuAD [Rajpurkar et al., 2016] Open-ended CC BY-SA 4.0 MATH500 [Lightman et al., 2024] Open-ended MIT MMLU [Hendrycks et al., 2020] Closed-ended MIT Belebele [Bandarkar et al., 2024] Closed-ended CC BY-SA 4.0 ChemBench [Mirza et al., 2025] Closed-ended MIT 24 0.00                   
+
+> 0.25
+> 0.50
+> 0.75
+> 1.00
+> Format Accuracy
+> 0.00
+> 0.25
+> 0.50
+> 0.75
+> 1.00
+> Format Accuracy
+> 0.00
+> 0.25
+> 0.50
+> 0.75
+> 1.00
+> Format Accuracy
+> 0.00
+> 0.25
+> 0.50
+> 0.75
+> 1.00
+> Format Accuracy
+> 0.00
+> 0.25
+> 0.50
+> 0.75
+> 1.00
+> Format Accuracy
+> 0.00
+> 0.25
+> 0.50
+> 0.75
+> 1.00
+> Format Accuracy
+> 020 40 60 80 100 120
+> Step
+> 0.00
+> 0.25
+> 0.50
+> 0.75
+> 1.00
+> Format Accuracy
+> 020 40 60 80 100 120
+> Step
+> 020 40 60 80 100 120
+> Step
+
+Soft Prompt Closed-Ended Format Following Accuracy 
+
+BELEBELE CHEMBENCH MMLU 
+
+> Llama 3 1 8B Llama 3 2 1B Ministral 3 14B Ministral 3 3B Olmo 3 7B Qwen3 4B Qwen3 8B
+> Post Trained
+> 0-shot
+> 3-shot
+> SP - lr=0.001
+> Post Trained
+> 0-shot
+> 3-shot
+> SP - lr=0.001
+> Base
+> 0-shot
+> 3-shot
+> SP - lr=0.001
+
+Figure 5: Soft prompt tuning maximizes format-following – closed ended datasets. Soft-prompt tuning shows 90-100% format-following accuracy in all plots outperforming the zero- and few-shot baselines. Only in the MMLU plots we see a bit larger variations, however, we believe this is because the format-following setup in MMLU dataset is relatively more challenging compared to the other closed-ended datasets. For other datasets model is given option with letters (A. B. etc.) and the full text answers, whereas for MMLU we provide only the full text answer options without any letter options. We believe this way we capture more variety in our experiments. 25 0.00 
+
+0.25 
+
+0.50 
+
+0.75 
+
+1.00 
+
+> Knowledge Accuracy
+
+0.00 
+
+0.25 
+
+0.50 
+
+0.75 
+
+1.00 
+
+> Knowledge Accuracy
+
+0.00 
+
+0.25 
+
+0.50 
+
+0.75 
+
+1.00 
+
+> Knowledge Accuracy
+
+0.00 
+
+0.25 
+
+0.50 
+
+0.75 
+
+1.00 
+
+> Knowledge Accuracy
+
+0.00 
+
+0.25 
+
+0.50 
+
+0.75 
+
+1.00 
+
+> Knowledge Accuracy
+
+0.00 
+
+0.25 
+
+0.50 
+
+0.75 
+
+1.00 
+
+> Knowledge Accuracy
+
+0 20 40 60 80 100 120 
+
+Step 
+
+0.00 
+
+0.25 
+
+0.50 
+
+0.75 
+
+1.00 
+
+> Knowledge Accuracy
+
+0 20 40 60 80 100 120 
+
+Step 
+
+0 20 40 60 80 100 120 
+
+Step 
+
+Soft Prompt Closed-Ended Knowledge Accuracy 
+
+BELEBELE CHEMBENCH MMLU 
+
+> Llama 3 1 8B Llama 3 2 1B Ministral 3 14B Ministral 3 3B Olmo 3 7B Qwen3 4B Qwen3 8B
+
+Post Trained 
+
+0-shot 
+
+3-shot 
+
+SP - lr=0.001 
+
+Post Trained 
+
+0-shot 
+
+3-shot 
+
+SP - lr=0.001 
+
+Base 
+
+0-shot 
+
+3-shot 
+
+SP - lr=0.001 Figure 6: Soft prompt tuning does not add any additional task knowledge to the model – closed ended datasets We show that in all of the settings soft-prompt tuned model stays aligned with the baseline knowledge accuracy through out the training. 26 0.00                         
+
+> 0.25
+> 0.50
+> 0.75
+> 1.00
+> Accuracy
+> 0.00
+> 0.25
+> 0.50
+> 0.75
+> 1.00
+> Accuracy
+> 0.00
+> 0.25
+> 0.50
+> 0.75
+> 1.00
+> Accuracy
+> 0.00
+> 0.25
+> 0.50
+> 0.75
+> 1.00
+> Accuracy
+> 0.00
+> 0.25
+> 0.50
+> 0.75
+> 1.00
+> Accuracy
+> 0.00
+> 0.25
+> 0.50
+> 0.75
+> 1.00
+> Accuracy
+> 020 40 60 80 100 120
+> Step
+> 0.00
+> 0.25
+> 0.50
+> 0.75
+> 1.00
+> Accuracy
+> 020 40 60 80 100 120
+> Step
+> 020 40 60 80 100 120
+> Step
+> 020 40 60 80 100 120
+> Step
+
+Soft Prompt Open-Ended Evaluation | lr: gsm8k=0.001, math500=0.001, squad=0.001, triviaqa=0.001 
+
+GSM8K MATH500 SQuAD TriviaQA 
+
+> Llama 3 1 8B Llama 3 2 1B Ministral 3 14B Ministral 3 3B Olmo 3 7B Qwen3 4B Qwen3 8B
+> Post Trained
+> 0-shot baseline
+> Soft-Prompt
+> few-shot baseline
+> Post Trained
+> 0-shot baseline
+> Soft-Prompt
+> few-shot baseline
+> Base
+> 0-shot baseline
+> Soft-Prompt
+> few-shot baseline
+
+Figure 7: Soft prompt tuning maximizes format following – open ended datasets Final format-following performance ranges from 80-100% with the exception of Math500 dataset. We observed that this dataset is rather hard for maximizing format-following up to 100% since it contains complex LaTeX format in the answers. We show that except Math500 datasets, soft-prompt tuning outperforms the few-shot baseline. On Math500, soft-prompts and few-shot baseline reaches to the same level of format-following accuracy. This pattern also exists in LoRA experiments even though it has more trainable parameters. It is important to note that with only 500 samples (train + test), Math500 falls short of the 640-sample threshold we identified as the optimal training setup. 27 0.00 
+
+0.25 
+
+0.50 
+
+0.75 
+
+1.00 
+
+> Accuracy
+
+0.00 
+
+0.25 
+
+0.50 
+
+0.75 
+
+1.00 
+
+> Accuracy
+
+0.00 
+
+0.25 
+
+0.50 
+
+0.75 
+
+1.00 
+
+> Accuracy
+
+0.00 
+
+0.25 
+
+0.50 
+
+0.75 
+
+1.00 
+
+> Accuracy
+
+0.00 
+
+0.25 
+
+0.50 
+
+0.75 
+
+1.00 
+
+> Accuracy
+
+0.00 
+
+0.25 
+
+0.50 
+
+0.75 
+
+1.00 
+
+> Accuracy
+
+0 20 40 60 80 100 120 
+
+Step 
+
+0.00 
+
+0.25 
+
+0.50 
+
+0.75 
+
+1.00 
+
+> Accuracy
+
+0 20 40 60 80 100 120 
+
+Step 
+
+0 20 40 60 80 100 120 
+
+Step 
+
+0 20 40 60 80 100 120 
+
+Step 
+
+Soft Prompt Open-Ended Evaluation | lr: gsm8k=0.001, math500=0.001, squad=0.001, triviaqa=0.001 
+
+GSM8K MATH500 SQuAD TriviaQA 
+
+> Llama 3 1 8B Llama 3 2 1B Ministral 3 14B Ministral 3 3B Olmo 3 7B Qwen3 4B Qwen3 8B
+
+Post Trained 
+
+0-shot Baseline 
+
+Few-shot Baseline 
+
+Soft-Prompt 
+
+Post Trained 
+
+0-shot Baseline 
+
+Few-shot Baseline 
+
+Soft-Prompt 
+
+Base 
+
+0-shot Baseline 
+
+Few-shot Baseline 
+
+Soft-Prompt Figure 8: Soft prompt tuning does not add any additional task knowledge to the model – open ended datasets We show that in all of the settings soft-prompt tuned model stays aligned with the baseline knowledge accuracy through out the training. 28 Qwen3 4B Base 
+
+> Llama 3.1 8B
+> Llama 3.2 1B
+> Ministral 14B Base
+> Ministral 3B Base
+> OLMo 7B
+> Qwen3 8B Base
+
+0.0 
+
+0.5 
+
+1.0 
+
+> 0-Shot Baseline
+> Exact Match
+> 0.001
+> 0.000
+> 0.000
+> 0.000
+> 0.000
+> 0.000
+> 0.000
+
+Swaps on avg-scores: 12/21 
+
+Avg. Swaps per-seed: 10.3/21 
+
+GSM8K 
+
+> OLMo 7B
+> Ministral 3B Base
+> Llama 3.1 8B
+> Qwen3 8B Base
+> Llama 3.2 1B
+> Qwen3 4B Base
+> Ministral 14B Base
+
+0.0 
+
+0.5 
+
+1.0 
+
+> 0.531
+> 0.287
+> 0.185
+> 0.154
+> 0.023
+> 0.023
+> 0.002
+
+Swaps on avg-scores: 12/21 
+
+Avg. Swaps per-seed: 12.0/21 
+
+SQUAD 
+
+> Qwen3 4B Base
+> Qwen3 8B Base
+> OLMo 7B
+> Llama 3.2 1B
+> Llama 3.1 8B
+> Ministral 3B Base
+> Ministral 14B Base
+
+0.0 
+
+0.5 
+
+1.0 
+
+> 0.163
+> 0.040
+> 0.011
+> 0.001
+> 0.001
+> 0.000
+> 0.000
+
+Swaps on avg-scores: 14/21 
+
+Avg. Swaps per-seed: 13.0/21 
+
+TRIVIAQA 
+
+> Qwen3 4B Base
+> Qwen3 8B Base
+> Ministral 3B Base
+> Llama 3.1 8B
+> Llama 3.2 1B
+> Ministral 14B Base
+> OLMo 7B
+
+0.0 
+
+0.5 
+
+1.0 
+
+> 0.600
+> 0.564
+> 0.507
+> 0.000
+> 0.000
+> 0.000
+> 0.000
+
+Swaps on avg-scores: 8/21 
+
+Avg. Swaps per-seed: 7.3/21 
+
+BELEBELE 
+
+> Llama 3.1 8B
+> Llama 3.2 1B
+> Ministral 14B Base
+> Ministral 3B Base
+> OLMo 7B
+> Qwen3 4B Base
+> Qwen3 8B Base
+
+0.0 
+
+0.5 
+
+1.0 
+
+> 0.000
+> 0.000
+> 0.000
+> 0.000
+> 0.000
+> 0.000
+> 0.000
+
+Swaps on avg-scores: 9/21 
+
+Avg. Swaps per-seed: 10.3/21 
+
+MMLU 
+
+> Ministral 3B Base
+> Qwen3 4B Base
+> Qwen3 8B Base
+> Llama 3.1 8B
+> Llama 3.2 1B
+> Ministral 14B Base
+> OLMo 7B
+
+0.0 
+
+0.5 
+
+1.0 
+
+> 0.070
+> 0.056
+> 0.005
+> 0.000
+> 0.000
+> 0.000
+> 0.000
+
+Swaps on avg-scores: 11/21 
+
+Avg. Swaps per-seed: 10.3/21 
+
+CHEMBENCH 
+
+> Qwen3 4B Base
+> Qwen3 8B Base
+> OLMo 7B
+> Llama 3.1 8B
+> Llama 3.2 1B
+> Ministral 14B Base
+> Ministral 3B Base
+
+0.0 
+
+0.5 
+
+1.0 
+
+> 0.080
+> 0.080
+> 0.010
+> 0.000
+> 0.000
+> 0.000
+> 0.000
+
+Swaps on avg-scores: 9/21 
+
+Avg. Swaps per-seed: 9.7/21 
+
+MATH500 
+
+> Ministral 14B Base
+> Qwen3 8B Base
+> Ministral 3B Base
+> OLMo 7B
+> Qwen3 4B Base
+> Llama 3.1 8B
+> Llama 3.2 1B
+
+0.0 
+
+0.5 
+
+1.0 
+
+> 3-Shot Baseline
+> Exact Match
+> 0.852
+> 0.844
+> 0.726
+> 0.664
+> 0.622
+> 0.479
+> 0.057
+
+Swaps on avg-scores: 6/21 
+
+Avg. Swaps per-seed: 5.7/21 
+
+> OLMo 7B
+> Ministral 3B Base
+> Qwen3 8B Base
+> Llama 3.1 8B
+> Qwen3 4B Base
+> Llama 3.2 1B
+> Ministral 14B Base
+
+0.0 
+
+0.5 
+
+1.0 
+
+> 0.587
+> 0.560
+> 0.441
+> 0.280
+> 0.166
+> 0.027
+> 0.005
+
+Swaps on avg-scores: 12/21 
+
+Avg. Swaps per-seed: 11.3/21 
+
+> Ministral 14B Base
+> Qwen3 4B Base
+> Qwen3 8B Base
+> Llama 3.1 8B
+> Llama 3.2 1B
+> Ministral 3B Base
+> OLMo 7B
+
+0.0 
+
+0.5 
+
+1.0 
+
+> 0.489
+> 0.333
+> 0.038
+> 0.031
+> 0.003
+> 0.001
+> 0.000
+
+Swaps on avg-scores: 6/21 
+
+Avg. Swaps per-seed: 6.3/21 
+
+> Ministral 3B Base
+> Qwen3 8B Base
+> Qwen3 4B Base
+> Llama 3.1 8B
+> Ministral 14B Base
+> Llama 3.2 1B
+> OLMo 7B
+
+0.0 
+
+0.5 
+
+1.0 
+
+> 0.840
+> 0.838
+> 0.760
+> 0.015
+> 0.002
+> 0.000
+> 0.000
+
+Swaps on avg-scores: 8/21 
+
+Avg. Swaps per-seed: 7.3/21 
+
+> Ministral 3B Base
+> Qwen3 4B Base
+> Qwen3 8B Base
+> Ministral 14B Base
+> Llama 3.1 8B
+> OLMo 7B
+> Llama 3.2 1B
+
+0.0 
+
+0.5 
+
+1.0 
+
+> 0.617
+> 0.555
+> 0.512
+> 0.006
+> 0.005
+> 0.002
+> 0.000
+
+Swaps on avg-scores: 5/21 
+
+Avg. Swaps per-seed: 6.3/21 
+
+> Qwen3 8B Base
+> Qwen3 4B Base
+> Ministral 3B Base
+> Llama 3.1 8B
+> Llama 3.2 1B
+> Ministral 14B Base
+> OLMo 7B
+
+0.0 
+
+0.5 
+
+1.0 
+
+> 0.242
+> 0.163
+> 0.023
+> 0.000
+> 0.000
+> 0.000
+> 0.000
+
+Swaps on avg-scores: 8/21 
+
+Avg. Swaps per-seed: 8.7/21 
+
+> Qwen3 4B Base
+> Qwen3 8B Base
+> Ministral 14B Base
+> Ministral 3B Base
+> Llama 3.1 8B
+> OLMo 7B
+> Llama 3.2 1B
+
+0.0 
+
+0.5 
+
+1.0 
+
+> 0.370
+> 0.350
+> 0.340
+> 0.300
+> 0.080
+> 0.030
+> 0.010
+
+Swaps on avg-scores: 2/21 
+
+Avg. Swaps per-seed: 3.3/21 
+
+> Llama 3.1 8B Inst.
+> Llama 3.2 1B Inst.
+> Ministral 14B Inst.
+> OLMo 7B Inst.
+> Qwen3 4B
+> Qwen3 8B
+
+0.0 
+
+0.5 
+
+1.0 
+
+> 0-Shot Baseline
+> (Post Trained)
+> Exact Match
+> 0.000
+> 0.000
+> 0.000
+> 0.000
+> 0.000
+> 0.000
+
+Swaps on avg-scores: 9/15 
+
+Avg. Swaps per-seed: 8.3/15 
+
+> OLMo 7B Inst.
+> Llama 3.2 1B Inst.
+> Llama 3.1 8B Inst.
+> Qwen3 8B
+> Qwen3 4B
+> Ministral 14B Inst.
+> Ministral 3B Inst.
+
+0.0 
+
+0.5 
+
+1.0 
+
+> 0.248
+> 0.221
+> 0.045
+> 0.034
+> 0.002
+> 0.001
+> 0.000
+
+Swaps on avg-scores: 15/21 
+
+Avg. Swaps per-seed: 15.7/21 
+
+> Llama 3.1 8B Inst.
+> Llama 3.2 1B Inst.
+> OLMo 7B Inst.
+> Qwen3 4B
+> Qwen3 8B
+> Ministral 14B Inst.
+> Ministral 3B Inst.
+
+0.0 
+
+0.5 
+
+1.0 
+
+> 0.322
+> 0.304
+> 0.178
+> 0.013
+> 0.011
+> 0.002
+> 0.000
+
+Swaps on avg-scores: 14/21 
+
+Avg. Swaps per-seed: 12.3/21 
+
+> OLMo 7B Inst.
+> Llama 3.1 8B Inst.
+> Qwen3 8B
+> Llama 3.2 1B Inst.
+> Qwen3 4B
+> Ministral 14B Inst.
+> Ministral 3B Inst.
+
+0.0 
+
+0.5 
+
+1.0 
+
+> 0.663
+> 0.416
+> 0.378
+> 0.340
+> 0.019
+> 0.014
+> 0.000
+
+Swaps on avg-scores: 13/21 
+
+Avg. Swaps per-seed: 13.7/21 
+
+> Llama 3.2 1B Inst.
+> Llama 3.1 8B Inst.
+> OLMo 7B Inst.
+> Ministral 14B Inst.
+> Ministral 3B Inst.
+> Qwen3 4B
+> Qwen3 8B
+
+0.0 
+
+0.5 
+
+1.0 
+
+> 0.004
+> 0.003
+> 0.001
+> 0.000
+> 0.000
+> 0.000
+> 0.000
+
+Swaps on avg-scores: 12/21 
+
+Avg. Swaps per-seed: 13.3/21 
+
+> OLMo 7B Inst.
+> Llama 3.1 8B Inst.
+> Qwen3 8B
+> Llama 3.2 1B Inst.
+> Ministral 14B Inst.
+> Ministral 3B Inst.
+> Qwen3 4B
+
+0.0 
+
+0.5 
+
+1.0 
+
+> 0.200
+> 0.042
+> 0.009
+> 0.000
+> 0.000
+> 0.000
+> 0.000
+
+Swaps on avg-scores: 12/21 
+
+Avg. Swaps per-seed: 12.0/21 
+
+> Qwen3 8B
+> Qwen3 4B
+> OLMo 7B Inst.
+> Ministral 14B Inst.
+> Ministral 3B Inst.
+> Llama 3.1 8B Inst.
+> Llama 3.2 1B Inst.
+
+0.0 
+
+0.5 
+
+1.0 
+
+> 0.320
+> 0.200
+> 0.150
+> 0.100
+> 0.080
+> 0.030
+> 0.000
+
+Swaps on avg-scores: 6/21 
+
+Avg. Swaps per-seed: 6.7/21 
+
+> Qwen3 8B
+> Qwen3 4B
+> Ministral 14B Inst.
+> OLMo 7B Inst.
+> Ministral 3B Inst.
+> Llama 3.1 8B Inst.
+> Llama 3.2 1B Inst.
+
+0.0 
+
+0.5 
+
+1.0 
+
+> 3-Shot Baseline
+> (Post Trained)
+> Exact Match
+> 0.937
+> 0.896
+> 0.886
+> 0.841
+> 0.360
+> 0.312
+> 0.086
+
+Swaps on avg-scores: 5/21 
+
+Avg. Swaps per-seed: 6.7/21 
+
+> Qwen3 8B
+> OLMo 7B Inst.
+> Qwen3 4B
+> Llama 3.1 8B Inst.
+> Llama 3.2 1B Inst.
+> Ministral 14B Inst.
+> Ministral 3B Inst.
+
+0.0 
+
+0.5 
+
+1.0 
+
+> 0.547
+> 0.503
+> 0.446
+> 0.382
+> 0.351
+> 0.239
+> 0.070
+
+Swaps on avg-scores: 13/21 
+
+Avg. Swaps per-seed: 13.0/21 
+
+> Llama 3.1 8B Inst.
+> Qwen3 8B
+> Qwen3 4B
+> Llama 3.2 1B Inst.
+> OLMo 7B Inst.
+> Ministral 14B Inst.
+> Ministral 3B Inst.
+
+0.0 
+
+0.5 
+
+1.0 
+
+> 0.536
+> 0.401
+> 0.330
+> 0.216
+> 0.208
+> 0.074
+> 0.014
+
+Swaps on avg-scores: 9/21 
+
+Avg. Swaps per-seed: 8.7/21 
+
+> Qwen3 8B
+> OLMo 7B Inst.
+> Qwen3 4B
+> Llama 3.2 1B Inst.
+> Llama 3.1 8B Inst.
+> Ministral 14B Inst.
+> Ministral 3B Inst.
+
+0.0 
+
+0.5 
+
+1.0 
+
+> 0.853
+> 0.641
+> 0.578
+> 0.467
+> 0.387
+> 0.144
+> 0.013
+
+Swaps on avg-scores: 10/21 
+
+Avg. Swaps per-seed: 10.7/21 
+
+> Qwen3 8B
+> Qwen3 4B
+> OLMo 7B Inst.
+> Llama 3.2 1B Inst.
+> Ministral 3B Inst.
+> Llama 3.1 8B Inst.
+> Ministral 14B Inst.
+
+0.0 
+
+0.5 
+
+1.0 
+
+> 0.666
+> 0.425
+> 0.372
+> 0.133
+> 0.098
+> 0.042
+> 0.007
+
+Swaps on avg-scores: 15/21 
+
+Avg. Swaps per-seed: 13.7/21 
+
+> Qwen3 8B
+> Qwen3 4B
+> OLMo 7B Inst.
+> Llama 3.1 8B Inst.
+> Llama 3.2 1B Inst.
+> Ministral 14B Inst.
+> Ministral 3B Inst.
+
+0.0 
+
+0.5 
+
+1.0 
+
+> 0.535
+> 0.474
+> 0.260
+> 0.042
+> 0.037
+> 0.000
+> 0.000
+
+Swaps on avg-scores: 9/21 
+
+Avg. Swaps per-seed: 9.7/21 
+
+> Qwen3 4B
+> Qwen3 8B
+> Ministral 14B Inst.
+> Ministral 3B Inst.
+> OLMo 7B Inst.
+> Llama 3.1 8B Inst.
+> Llama 3.2 1B Inst.
+
+0.0 
+
+0.5 
+
+1.0 
+
+> 0.420
+> 0.390
+> 0.370
+> 0.270
+> 0.260
+> 0.170
+> 0.010
+
+Swaps on avg-scores: 3/21 
+
+Avg. Swaps per-seed: 4.3/21 
+
+> Qwen3 8B Base
+> Ministral 14B Base
+> Qwen3 4B Base
+> OLMo 7B
+> Ministral 3B Base
+> Llama 3.1 8B
+> Llama 3.2 1B
+
+0.0 
+
+0.5 
+
+1.0 
+
+> SP (Base)
+> Exact Match
+> 0.850
+> 0.808
+> 0.774
+> 0.694
+> 0.679
+> 0.458
+> 0.035
+
+Swaps on avg-scores: 4/21 
+
+Avg. Swaps per-seed: 5.7/21 
+
+> OLMo 7B
+> Ministral 14B Base
+> Qwen3 8B Base
+> Llama 3.1 8B
+> Qwen3 4B Base
+> Ministral 3B Base
+> Llama 3.2 1B
+
+0.0 
+
+0.5 
+
+1.0 
+
+> 0.648
+> 0.647
+> 0.644
+> 0.628
+> 0.627
+> 0.622
+> 0.508
+
+Swaps on avg-scores: 8/21 
+
+Avg. Swaps per-seed: 7.7/21 
+
+> Ministral 14B Base
+> Llama 3.1 8B
+> Qwen3 8B Base
+> OLMo 7B
+> Ministral 3B Base
+> Qwen3 4B Base
+> Llama 3.2 1B
+
+0.0 
+
+0.5 
+
+1.0 
+
+> 0.656
+> 0.576
+> 0.489
+> 0.463
+> 0.453
+> 0.389
+> 0.252
+
+Swaps on avg-scores: 2/21 
+
+Avg. Swaps per-seed: 2.7/21 
+
+> Ministral 14B Base
+> Qwen3 8B Base
+> Qwen3 4B Base
+> Ministral 3B Base
+> OLMo 7B
+> Llama 3.1 8B
+> Llama 3.2 1B
+
+0.0 
+
+0.5 
+
+1.0 
+
+> 0.896
+> 0.886
+> 0.862
+> 0.836
+> 0.811
+> 0.535
+> 0.517
+
+Swaps on avg-scores: 2/21 
+
+Avg. Swaps per-seed: 1.7/21 
+
+> Ministral 14B Base
+> Qwen3 8B Base
+> Qwen3 4B Base
+> Ministral 3B Base
+> Llama 3.1 8B
+> OLMo 7B
+> Llama 3.2 1B
+
+0.0 
+
+0.5 
+
+1.0 
+
+> 0.702
+> 0.664
+> 0.632
+> 0.560
+> 0.541
+> 0.475
+> 0.241
+
+Swaps on avg-scores: 5/21 
+
+Avg. Swaps per-seed: 3.3/21 
+
+> Ministral 14B Base
+> Qwen3 8B Base
+> Qwen3 4B Base
+> Ministral 3B Base
+> Llama 3.1 8B
+> OLMo 7B
+> Llama 3.2 1B
+
+0.0 
+
+0.5 
+
+1.0 
+
+> 0.611
+> 0.595
+> 0.560
+> 0.555
+> 0.532
+> 0.462
+> 0.389
+
+Swaps on avg-scores: 2/21 
+
+Avg. Swaps per-seed: 3.3/21 
+
+> Qwen3 8B Base
+> Qwen3 4B Base
+> Ministral 14B Base
+> Ministral 3B Base
+> OLMo 7B
+> Llama 3.1 8B
+> Llama 3.2 1B
+
+0.0 
+
+0.5 
+
+1.0 
+
+> 0.370
+> 0.357
+> 0.283
+> 0.227
+> 0.153
+> 0.080
+> 0.000
+
+Swaps on avg-scores: 4/21 
+
+Avg. Swaps per-seed: 5.0/21 
+
+> Ministral 14B Inst.
+> Qwen3 8B
+> Llama 3.1 8B Inst.
+> Qwen3 4B
+> OLMo 7B Inst.
+> Ministral 3B Inst.
+> Llama 3.2 1B Inst.
+
+0.0 
+
+0.5 
+
+1.0 
+
+> SP (Post Trained)
+> Exact Match
+> 0.873
+> 0.800
+> 0.790
+> 0.779
+> 0.753
+> 0.742
+> 0.414
+
+Swaps on avg-scores: 0/21 
+
+Avg. Swaps per-seed: 0.0/21 
+
+> Ministral 14B Inst.
+> Llama 3.1 8B Inst.
+> Ministral 3B Inst.
+> Qwen3 8B
+> Qwen3 4B
+> OLMo 7B Inst.
+> Llama 3.2 1B Inst.
+
+0.0 
+
+0.5 
+
+1.0 
+
+> 0.662
+> 0.633
+> 0.632
+> 0.614
+> 0.598
+> 0.570
+> 0.526
+
+Swaps on avg-scores: 0/21 
+
+Avg. Swaps per-seed: 0.0/21 
+
+> Ministral 14B Inst.
+> Llama 3.1 8B Inst.
+> Qwen3 8B
+> Ministral 3B Inst.
+> Qwen3 4B
+> OLMo 7B Inst.
+> Llama 3.2 1B Inst.
+
+0.0 
+
+0.5 
+
+1.0 
+
+> 0.548
+> 0.540
+> 0.430
+> 0.369
+> 0.367
+> 0.326
+> 0.290
+
+Swaps on avg-scores: 0/21 
+
+Avg. Swaps per-seed: 0.0/21 
+
+> Ministral 14B Inst.
+> Qwen3 8B
+> Qwen3 4B
+> Llama 3.1 8B Inst.
+> Ministral 3B Inst.
+> OLMo 7B Inst.
+> Llama 3.2 1B Inst.
+
+0.0 
+
+0.5 
+
+1.0 
+
+> 0.891
+> 0.882
+> 0.857
+> 0.835
+> 0.835
+> 0.767
+> 0.596
+
+Swaps on avg-scores: 0/21 
+
+Avg. Swaps per-seed: 0.0/21 
+
+> Ministral 14B Inst.
+> Ministral 3B Inst.
+> Llama 3.1 8B Inst.
+> Qwen3 4B
+> Qwen3 8B
+> OLMo 7B Inst.
+> Llama 3.2 1B Inst.
+
+0.0 
+
+0.5 
+
+1.0 
+
+> 0.715
+> 0.597
+> 0.579
+> 0.552
+> 0.543
+> 0.441
+> 0.260
+
+Swaps on avg-scores: 0/21 
+
+Avg. Swaps per-seed: 0.0/21 
+
+> Ministral 14B Inst.
+> Qwen3 8B
+> Llama 3.1 8B Inst.
+> Qwen3 4B
+> Ministral 3B Inst.
+> OLMo 7B Inst.
+> Llama 3.2 1B Inst.
+
+0.0 
+
+0.5 
+
+1.0 
+
+> 0.629
+> 0.572
+> 0.557
+> 0.546
+> 0.543
+> 0.448
+> 0.408
+
+Swaps on avg-scores: 0/21 
+
+Avg. Swaps per-seed: 0.0/21 
+
+> Ministral 14B Inst.
+> Qwen3 4B
+> Qwen3 8B
+> Ministral 3B Inst.
+> Llama 3.1 8B Inst.
+> OLMo 7B Inst.
+> Llama 3.2 1B Inst.
+
+0.0 
+
+0.5 
+
+1.0 
+
+> 0.380
+> 0.330
+> 0.323
+> 0.277
+> 0.220
+> 0.147
+> 0.060
+
+Swaps on avg-scores: 0/21 
+
+Avg. Swaps per-seed: 0.0/21 
+
+Model Family 
+
+Llama 3 1 8B Llama 3 2 1B Ministral 3 14B Ministral 3 3B Olmo 3 7B Qwen3 4B Qwen3 8B Figure 9: Soft-prompt tuning aligns the best with ground truth post-trained model rankings and rankings on zero- and few-shot baselines are often misleading . Detailed ranking alignment plots. Soft-prompt tuned base and post-trained models are evaluated at checkpoint 80. We use exact match score in all tasks. Soft-prompt tuned model results are averaged across 3 seeds. Ground truth (soft-prompt tuned post-trained models) at the bottom. This visualization also highlights that model rankings derived from zero- and few-shot baselines may be unrepresentative; since scores are consistently near zero, any performance comparison between models is rendered obsolete. 29 0.0 
+
+0.2 
+
+0.4 
+
+0.6 
+
+0.8 
+
+1.0 
+
+> Llama 3 1 8B
+
+BELEBELE 
+
+0.0 
+
+0.2 
+
+0.4 
+
+0.6 
+
+0.8 
+
+1.0 
+
+> Exact Match
+
+CHEMBENCH 
+
+0.0 
+
+0.2 
+
+0.4 
+
+0.6 
+
+0.8 
+
+1.0 
+
+> Exact Match
+
+GSM8K 
+
+0.0 
+
+0.2 
+
+0.4 
+
+0.6 
+
+0.8 
+
+1.0 
+
+> Exact Match
+
+MATH500 
+
+0.0 
+
+0.2 
+
+0.4 
+
+0.6 
+
+0.8 
+
+1.0 
+
+> Exact Match
+
+MMLU 
+
+0.0 
+
+0.2 
+
+0.4 
+
+0.6 
+
+0.8 
+
+1.0 
+
+> Exact Match
+
+SQUAD 
+
+0.0 
+
+0.2 
+
+0.4 
+
+0.6 
+
+0.8 
+
+1.0 
+
+> Exact Match
+
+TRIVIAQA 
+
+0.0 
+
+0.2 
+
+0.4 
+
+0.6 
+
+0.8 
+
+1.0 
+
+> Llama 3 2 1B
+
+0.0 
+
+0.2 
+
+0.4 
+
+0.6 
+
+0.8 
+
+1.0 
+
+> Exact Match
+
+0.0 
+
+0.2 
+
+0.4 
+
+0.6 
+
+0.8 
+
+1.0 
+
+> Exact Match
+
+0.0 
+
+0.2 
+
+0.4 
+
+0.6 
+
+0.8 
+
+1.0 
+
+> Exact Match
+
+0.0 
+
+0.2 
+
+0.4 
+
+0.6 
+
+0.8 
+
+1.0 
+
+> Exact Match
+
+0.0 
+
+0.2 
+
+0.4 
+
+0.6 
+
+0.8 
+
+1.0 
+
+> Exact Match
+
+0.0 
+
+0.2 
+
+0.4 
+
+0.6 
+
+0.8 
+
+1.0 
+
+> Exact Match
+
+0.0 
+
+0.2 
+
+0.4 
+
+0.6 
+
+0.8 
+
+1.0 
+
+> Ministral 3 14B
+
+0.0 
+
+0.2 
+
+0.4 
+
+0.6 
+
+0.8 
+
+1.0 
+
+> Exact Match
+
+0.0 
+
+0.2 
+
+0.4 
+
+0.6 
+
+0.8 
+
+1.0 
+
+> Exact Match
+
+0.0 
+
+0.2 
+
+0.4 
+
+0.6 
+
+0.8 
+
+1.0 
+
+> Exact Match
+
+0.0 
+
+0.2 
+
+0.4 
+
+0.6 
+
+0.8 
+
+1.0 
+
+> Exact Match
+
+0.0 
+
+0.2 
+
+0.4 
+
+0.6 
+
+0.8 
+
+1.0 
+
+> Exact Match
+
+0.0 
+
+0.2 
+
+0.4 
+
+0.6 
+
+0.8 
+
+1.0 
+
+> Exact Match
+
+0.0 
+
+0.2 
+
+0.4 
+
+0.6 
+
+0.8 
+
+1.0 
+
+> Ministral 3 3B
+
+0.0 
+
+0.2 
+
+0.4 
+
+0.6 
+
+0.8 
+
+1.0 
+
+> Exact Match
+
+0.0 
+
+0.2 
+
+0.4 
+
+0.6 
+
+0.8 
+
+1.0 
+
+> Exact Match
+
+0.0 
+
+0.2 
+
+0.4 
+
+0.6 
+
+0.8 
+
+1.0 
+
+> Exact Match
+
+0.0 
+
+0.2 
+
+0.4 
+
+0.6 
+
+0.8 
+
+1.0 
+
+> Exact Match
+
+0.0 
+
+0.2 
+
+0.4 
+
+0.6 
+
+0.8 
+
+1.0 
+
+> Exact Match
+
+0.0 
+
+0.2 
+
+0.4 
+
+0.6 
+
+0.8 
+
+1.0 
+
+> Exact Match
+
+0.0 
+
+0.2 
+
+0.4 
+
+0.6 
+
+0.8 
+
+1.0 
+
+> Olmo 3 7B
+
+0.0 
+
+0.2 
+
+0.4 
+
+0.6 
+
+0.8 
+
+1.0 
+
+> Exact Match
+
+0.0 
+
+0.2 
+
+0.4 
+
+0.6 
+
+0.8 
+
+1.0 
+
+> Exact Match
+
+0.0 
+
+0.2 
+
+0.4 
+
+0.6 
+
+0.8 
+
+1.0 
+
+> Exact Match
+
+0.0 
+
+0.2 
+
+0.4 
+
+0.6 
+
+0.8 
+
+1.0 
+
+> Exact Match
+
+0.0 
+
+0.2 
+
+0.4 
+
+0.6 
+
+0.8 
+
+1.0 
+
+> Exact Match
+
+0.0 
+
+0.2 
+
+0.4 
+
+0.6 
+
+0.8 
+
+1.0 
+
+> Exact Match
+
+0.0 
+
+0.2 
+
+0.4 
+
+0.6 
+
+0.8 
+
+1.0 
+
+> Qwen3 4B
+
+0.0 
+
+0.2 
+
+0.4 
+
+0.6 
+
+0.8 
+
+1.0 
+
+> Exact Match
+
+0.0 
+
+0.2 
+
+0.4 
+
+0.6 
+
+0.8 
+
+1.0 
+
+> Exact Match
+
+0.0 
+
+0.2 
+
+0.4 
+
+0.6 
+
+0.8 
+
+1.0 
+
+> Exact Match
+
+0.0 
+
+0.2 
+
+0.4 
+
+0.6 
+
+0.8 
+
+1.0 
+
+> Exact Match
+
+0.0 
+
+0.2 
+
+0.4 
+
+0.6 
+
+0.8 
+
+1.0 
+
+> Exact Match
+
+0.0 
+
+0.2 
+
+0.4 
+
+0.6 
+
+0.8 
+
+1.0 
+
+> Exact Match
+> 0-shot Base
+> 0-shot PT
+> 3-shot Base
+> 3-shot PT
+> Base SP
+> Post Trained SP
+
+0.0 
+
+0.2 
+
+0.4 
+
+0.6 
+
+0.8 
+
+1.0 
+
+> Qwen3 8B
+> 0-shot Base
+> 0-shot PT
+> 3-shot Base
+> 3-shot PT
+> Base SP
+> Post Trained SP
+
+0.0 
+
+0.2 
+
+0.4 
+
+0.6 
+
+0.8 
+
+1.0 
+
+> Exact Match
+> 0-shot Base
+> 0-shot PT
+> 3-shot Base
+> 3-shot PT
+> Base SP
+> Post Trained SP
+
+0.0 
+
+0.2 
+
+0.4 
+
+0.6 
+
+0.8 
+
+1.0 
+
+> Exact Match
+> 0-shot Base
+> 0-shot PT
+> 3-shot Base
+> 3-shot PT
+> Base SP
+> Post Trained SP
+
+0.0 
+
+0.2 
+
+0.4 
+
+0.6 
+
+0.8 
+
+1.0 
+
+> Exact Match
+> 0-shot Base
+> 0-shot PT
+> 3-shot Base
+> 3-shot PT
+> Base SP
+> Post Trained SP
+
+0.0 
+
+0.2 
+
+0.4 
+
+0.6 
+
+0.8 
+
+1.0 
+
+> Exact Match
+> 0-shot Base
+> 0-shot PT
+> 3-shot Base
+> 3-shot PT
+> Base SP
+> Post Trained SP
+
+0.0 
+
+0.2 
+
+0.4 
+
+0.6 
+
+0.8 
+
+1.0 
+
+> Exact Match
+> 0-shot Base
+> 0-shot PT
+> 3-shot Base
+> 3-shot PT
+> Base SP
+> Post Trained SP
+
+0.0 
+
+0.2 
+
+0.4 
+
+0.6 
+
+0.8 
+
+1.0 
+
+> Exact Match
+
+Average over Seeds (42, 43, 44) 
+
+Setup 
+
+0-shot Base 3-shot Base 0-shot PT 3-shot PT Base SP Post Trained SP Figure 10: Soft prompt tuned base and post-trained models align in task accuracy, unlike few-shot and zero-shot baselines . Detailed task accuracy score plots (exact match). Soft-prompt tuned base and post-trained models are evaluated at checkpoint 80. We use exact match score in all tasks. Soft-prompt tuned model results are averaged across 3 seeds. In all settings, we see that soft-prompt tuned base model align the best with the ground truth benchmark scores and we rarely see base models with few-shot prompting showing promising scores. 20 40 60 80 100 120 
+
+Step 
+
+0.0 
+
+0.2 
+
+0.4 
+
+0.6 
+
+0.8 
+
+1.0 
+
+> Format-Following Accuracy
+
+(a) 1 Vector 
+
+20 40 60 80 100 120 
+
+Step 
+
+(b) 2 Vectors 
+
+20 40 60 80 100 120 
+
+Step 
+
+(c) 10 Vectors 
+
+Soft Prompt Ablation Format-Following Accuracy 
+
+0-shot baseline - Post Trained 3-shot baseline - Post Trained SP - Post Trained 0-shot baseline - Base 3-shot baseline - Base SP - Base 
+
+Figure 11: Lowering the number of Soft-prompt vectors, slows down format adherence. . Format-following accuracy tested on Belebele and Chembench datasets, Qwen3-4B and Olmo3-7B models. Results are aggregated over these 2 models and 2 datasets. Since 10 soft-prompt vectors provide much faster convergence while keeping the compute requirements low, we chose to use 10 soft-prompt vectors in our experiments. 30 0 20 40 60 80 100 120 
+
+Step 
+
+0.0 
+
+0.2 
+
+0.4 
+
+0.6 
+
+0.8 
+
+1.0 
+
+> Knowledge Accuracy
+
+(a) Knowledge Accuracy 
+
+0 20 40 60 80 100 120 
+
+Step 
+
+0.0 
+
+0.2 
+
+0.4 
+
+0.6 
+
+0.8 
+
+1.0 
+
+> Format-Following Accuracy
+
+(b) Format-Following Accuracy 
+
+> 0-shot baseline - Post Trained
+> 3-shot baseline - Post Trained
+> LoRA - Post Trained
+> 0-shot baseline - Base
+> 3-shot baseline - Base
+> LoRA - Base
+
+Figure 12: LoRA maximizes format-following without introducing additional knowledge. –closed-ended datasets. (a) Knowledge and (b) format following metrics across 120 tuning steps. All results are aggregated over 3 closed-ended datasets, 7 models and 3 seeds. 0 20 40 60 80 100 120 
+
+Step 
+
+0.0 
+
+0.2 
+
+0.4 
+
+0.6 
+
+0.8 
+
+1.0 
+
+> Knowledge Accuracy
+
+(a) Knowledge Accuracy 
+
+0 20 40 60 80 100 120 
+
+Step 
+
+0.0 
+
+0.2 
+
+0.4 
+
+0.6 
+
+0.8 
+
+1.0 
+
+> Format-Following Accuracy
+
+(b) Format-Following Accuracy    
+
+> 0-shot baseline - Post Trained LoRA - Post Trained 0-shot baseline - Base LoRA - Base
+
+Figure 13: LoRA maximizes format-following without introducing additional knowledge. –open-ended datasets. (a) Knowledge and (b) format following measures via LLM-as-a-judge across 120 tuning steps. All results are aggregated over 4 closed-ended datasets, 7 models and 3 seeds. 31 GSM8K SQUAD TRIVIAQA BELEBELE MMLU CHEMBENCH MATH500 
+
+0
+
+5
+
+10 
+
+15 
+
+20 
+
+> Avg. Number of Swaps  ( lower is better)
+
+(a) 
+
+0-Shot Base 0-Shot Post Trained 3-Shot Base 3-Shot Post Trained LoRA Base 
+
+Overall 
+
+0
+
+5
+
+10 
+
+15 
+
+20 
+
+(b) 
+
+Bubble-sort Swap Distance Plots Figure 14: LoRA successfully predicts ground truth post-trained model rankings (LoRA tuned) outperforming zero-shot and few-shot baselines. (a) shows the per dataset average number of swaps needed to align with the ground truth rankings and (b) shows aggregated average number of swaps over all datasets. 0-shot Base 
+
+> 0-shot PT
+> 3-shot Base
+> 3-shot PT
+> Base LoRA
+> Post Trained LoRA
+
+0.0 
+
+0.2 
+
+0.4 
+
+0.6 
+
+0.8 
+
+1.0 
+
+> Exact Match
+
+(a) Llama 3 1 8B 
+
+> 0-shot Base
+> 0-shot PT
+> 3-shot Base
+> 3-shot PT
+> Base LoRA
+> Post Trained LoRA
+
+0.0 
+
+0.2 
+
+0.4 
+
+0.6 
+
+0.8 
+
+1.0 
+
+> Exact Match
+
+Llama 3 2 1B 
+
+> 0-shot Base
+> 0-shot PT
+> 3-shot Base
+> 3-shot PT
+> Base LoRA
+> Post Trained LoRA
+
+0.0 
+
+0.2 
+
+0.4 
+
+0.6 
+
+0.8 
+
+1.0 
+
+> Exact Match
+
+Ministral 3 14B 
+
+> 0-shot Base
+> 0-shot PT
+> 3-shot Base
+> 3-shot PT
+> Base LoRA
+> Post Trained LoRA
+
+0.0 
+
+0.2 
+
+0.4 
+
+0.6 
+
+0.8 
+
+1.0 
+
+> Exact Match
+
+Ministral 3 3B 
+
+> 0-shot Base
+> 0-shot PT
+> 3-shot Base
+> 3-shot PT
+> Base LoRA
+> Post Trained LoRA
+
+0.0 
+
+0.2 
+
+0.4 
+
+0.6 
+
+0.8 
+
+1.0 
+
+> Exact Match
+
+Olmo 3 7B 
+
+> 0-shot Base
+> 0-shot PT
+> 3-shot Base
+> 3-shot PT
+> Base LoRA
+> Post Trained LoRA
+
+0.0 
+
+0.2 
+
+0.4 
+
+0.6 
+
+0.8 
+
+1.0 
+
+> Exact Match
+
+Qwen3 4B 
+
+> 0-shot Base
+> 0-shot PT
+> 3-shot Base
+> 3-shot PT
+> Base LoRA
+> Post Trained LoRA
+
+0.0 
+
+0.2 
+
+0.4 
+
+0.6 
+
+0.8 
+
+1.0 
+
+> Exact Match
+
+Qwen3 8B 
+
+> 0-shot |PT  Base|
+> 3-shot |PT  Base|
+> LoRA |PT  Base|
+
+0.00 
+
+0.05 
+
+0.10 
+
+0.15 
+
+0.20 
+
+0.25 
+
+0.30 
+
+0.35 
+
+> Avg |  | Score (lower better)
+
+(b) OVERALL (|PT Base|) 
+
+Benchmark Task Accuracy Plots 
+
+Figure 15: LoRA tuned base and post-trained models align best in benchmarks scores outper-forming zero- and few-shot baselines. (a) Task accuracy (exact match) plots aggregated over all datasets and seeds. (b) average difference plot per configuration (zero-shot, few-shot, soft-prompt tuning) across all datasets, models and seeds. 32 0.0 0.2 0.4 0.6 0.8 1.0 
+
+> Soft Prompt (Exact Match)
+> 0.0
+> 0.2
+> 0.4
+> 0.6
+> 0.8
+> 1.0
+> LoRA (Exact Match)
+
+LoRA vs Soft Prompt Score Comparison 
+
+> Base
+> Instruct
+
+Figure 16: Soft prompt and LoRA scores have a linear trend for both base and post-trained models. Task accuracy alignment between Lora- and soft-prompt tuned base and post-trained models. We see that the points create a linear line indicating an alignment between actual task accuracy scores evaluated with Lora and soft-prompt tuning. 33 LoRA (score) SP (rank) 
+
+0.12 
+
+0.28 
+
+0.43 
+
+0.59 
+
+0.75 
+
+0.91 
+
+> LoRA Score
+
+0 swaps 
+
+BELEBELE 
+
+12
+
+3
+
+45
+
+6
+
+7Llama 3.2 1B 0.660 
+
+OLMo 7B 0.818 
+
+Ministral 3B 0.845 
+
+Llama 3.1 8B 0.851 
+
+Qwen3 4B 0.874 
+
+Qwen3 8B 0.905 
+
+Ministral 14B 0.906 
+
+LoRA (score) SP (rank) 
+
+0.12 
+
+0.28 
+
+0.43 
+
+0.59 
+
+0.75 
+
+0.91 
+
+0 swaps 
+
+CHEMBENCH 
+
+1
+
+2
+
+345
+
+6
+
+7Llama 3.2 1B 0.433 
+
+OLMo 7B 0.482 
+
+Ministral 3B 0.549 
+
+Qwen3 4B 0.553 
+
+Llama 3.1 8B 0.555 
+
+Qwen3 8B 0.589 
+
+Ministral 14B 0.602 
+
+LoRA (score) SP (rank) 
+
+0.12 
+
+0.28 
+
+0.43 
+
+0.59 
+
+0.75 
+
+0.91 
+
+1 swaps 
+
+GSM8K 
+
+12
+
+3
+
+4
+
+5
+
+6
+
+7Llama 3.2 1B 0.505 
+
+Ministral 3B 0.752 
+
+OLMo 7B 0.766 
+
+Llama 3.1 8B 0.806 
+
+Qwen3 4B 0.832 
+
+Qwen3 8B 0.870 
+
+Ministral 14B 0.873 
+
+LoRA (score) SP (rank) 
+
+0.12 
+
+0.28 
+
+0.43 
+
+0.59 
+
+0.75 
+
+0.91 
+
+4 swaps 
+
+MATH500 
+
+1
+
+2
+
+3
+
+4
+
+5
+
+6
+
+7Llama 3.2 1B 0.120 
+
+Llama 3.1 8B 0.230 
+
+Ministral 3B 0.267 
+
+OLMo 7B 0.283 
+
+Qwen3 4B 0.347 
+
+Ministral 14B 0.383 
+
+Qwen3 8B 0.427 
+
+LoRA (score) SP (rank) 
+
+0.12 
+
+0.28 
+
+0.43 
+
+0.59 
+
+0.75 
+
+0.91 
+
+5 swaps 
+
+MMLU 
+
+1
+
+2
+
+3
+
+45
+
+6
+
+7Llama 3.2 1B 0.381 
+
+OLMo 7B 0.524 
+
+Llama 3.1 8B 0.620 
+
+Ministral 3B 0.625 
+
+Qwen3 4B 0.662 
+
+Qwen3 8B 0.708 
+
+Ministral 14B 0.742 
+
+LoRA (score) SP (rank) 
+
+0.12 
+
+0.28 
+
+0.43 
+
+0.59 
+
+0.75 
+
+0.91 
+
+2 swaps 
+
+SQUAD 
+
+1
+
+23456
+
+7Llama 3.2 1B 0.586 
+
+Qwen3 4B 0.639 
+
+Qwen3 8B 0.642 
+
+OLMo 7B 0.647 
+
+Ministral 3B 0.649 
+
+Llama 3.1 8B 0.652 
+
+Ministral 14B 0.675 
+
+LoRA (score) SP (rank) 
+
+0.12 
+
+0.28 
+
+0.43 
+
+0.59 
+
+0.75 
+
+0.91 
+
+1 swaps 
+
+TRIVIAQA 
+
+12
+
+3
+
+4
+
+56
+
+7Llama 3.2 1B 0.371 
+
+OLMo 7B 0.411 
+
+Qwen3 4B 0.413 
+
+Ministral 3B 0.483 
+
+Qwen3 8B 0.508 
+
+Ministral 14B 0.646 
+
+Llama 3.1 8B 0.648 
+
+LoRA Score SP Ranking Post-Trained 
+
+(Global LoRA scale, seeds [42, 43, 44], LoRA step 80 / SP step 80) 
+
+Model Family 
+
+Llama 3.1 8B Llama 3.2 1B Ministral 14B Ministral 3B OLMo 7B Qwen3 4B Qwen3 8B Figure 17: Soft prompt and LoRA rankings on post-trained models (GT) align. Ranking comparison between LoRA- and soft-prompt-tuned post-trained models, aggregated over 3 seeds. Each bar shows the LoRA ranking on the left and the soft-prompt ranking on the right: horizontal lines indicate agreement between the two orderings, while crossings mark pairs that must be swapped to align them. The total number of swaps required is reported at the bottom of each bar. 34

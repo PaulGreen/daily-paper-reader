@@ -1,0 +1,397 @@
+{
+  "mode": "standard",
+  "generated_at": "2026-06-11T22:08:51.359773+00:00",
+  "stats": {
+    "mode": "standard",
+    "tag_count": 1,
+    "deep_divecandidates": 7,
+    "deep_cap": 6,
+    "deep_selected": 6,
+    "quick_candidates": 4,
+    "quick_skim_target": 11,
+    "quick_selected": 4
+  },
+  "deep_dive": [
+    {
+      "id": "2606.11459v1",
+      "source": "arxiv",
+      "title": "APEX: Automated Prompt Engineering eXpert with Dynamic Data Selection",
+      "abstract": "Large Language Models are highly sensitive to prompt formulation, necessitating automatic prompt optimization to unlock their full potential. While evolutionary algorithms have emerged as the dominant paradigm, they suffer from a critical bottleneck: data efficiency. Current methods treat the development dataset as a static benchmark, wasting significant compute budget on uninformative data. In this work, we introduce APEX (Automatic Prompt Engineering eXpert), a novel framework that optimizes the data usage alongside the prompt search. APEX dynamically stratifies the dataset into Easy, Hard, and Mixed tiers based on the optimization lineage. By prioritizing the Mixed tier, which identifies the data where the LLM has mixed performance, we identify two high-leverage subsets: the addressable frontier for generating informative mutations and the rank-sensitive frontier for distinguishing candidate quality. We evaluate APEX across three diverse benchmarks: IFBench, SimpleQA Verified, and FACTS Grounding. Under a fixed budget of 5,000 evaluation calls, due to its data efficiency, APEX outperforms the initial prompt by an average of 11.2% on Gemini 2.5 Flash and 6.8% on Gemma 3 27B, demonstrating that a data-centric approach is key to efficient and effective prompt optimization.",
+      "authors": [
+        "Fei Wang",
+        "Si Si",
+        "Cho-Jui Hsieh",
+        "Inderjit S. Dhillon"
+      ],
+      "primary_category": "cs.CL",
+      "categories": [
+        "cs.CL",
+        "cs.AI",
+        "cs.LG"
+      ],
+      "published": "2026-06-09T21:22:06+00:00",
+      "link": "https://arxiv.org/pdf/2606.11459v1",
+      "tags": [
+        "keyword:prompt-learn",
+        "query:prompt-learn"
+      ],
+      "llm_score": 10.0,
+      "llm_evidence_en": "Proposes automatic prompt engineering with dynamic data selection to optimize prompts efficiently",
+      "llm_evidence_cn": "提出自动提示工程方法，通过动态数据选择高效优化提示",
+      "llm_evidence": "提出自动提示工程方法，通过动态数据选择高效优化提示",
+      "canonical_evidence": "提出自动提示工程方法，通过动态数据选择高效优化提示",
+      "llm_tldr_en": "APEX dynamically stratifies the dataset and prioritizes mixed-difficulty examples to improve data efficiency in evolutionary prompt optimization, advancing automatic prompt generation techniques.",
+      "llm_tldr_cn": "针对提示优化的数据效率瓶颈，提出APEX框架，通过动态分层数据集并优先使用混合难度样本，显著提升进化式提示搜索的效率，推进了自动提示生成技术。",
+      "llm_tldr": "针对提示优化的数据效率瓶颈，提出APEX框架，通过动态分层数据集并优先使用混合难度样本，显著提升进化式提示搜索的效率，推进了自动提示生成技术。",
+      "llm_tags": [
+        "query:prompt-learn"
+      ],
+      "matched_query_tag": "query:prompt-learn",
+      "matched_query_text": "Techniques for automatic prompt generation in natural language processing",
+      "matched_requirement_id": "req-10",
+      "selection_source": "fresh_fetch"
+    },
+    {
+      "id": "2606.12117v1",
+      "source": "arxiv",
+      "title": "Soft-Prompt Tuning for Fair and Efficient LLM Benchmark Evaluation",
+      "abstract": "Benchmark scores often misrepresent a large language model's (LLM's) knowledge, because they rely, e.g., on the model's ability to follow specific formatting requirements. This especially penalizes base models that may know the correct answers but lack the ability -- typically introduced in post-training -- to structure them as instructed. To overcome this, we propose soft-prompt tuning, an efficient, fair, and architecture-agnostic model evaluation. By optimizing only 10 soft-prompt vectors (roughly 0.0006% parameters for a 7B model) over a short tuning period, we adapt models to specific benchmark formats, closing gaps in format-following and ensuring that underlying knowledge is accurately reflected in benchmark scores. This allows one to fairly compare different base models -- trained with various pre-training recipes -- on benchmarks without the need for full post-training. We evaluated soft-prompt tuning across 7 models and 7 datasets. The results show that (a) soft-prompt tuning saturates format-following within 80 steps (~640 samples) making it highly efficient, (b) soft-prompt tuning significantly outperforms zero- and few-shot prompting, surfacing base model knowledge that standard prompting misses, that (c) even post-trained models can benefit from soft-prompts to maximize format compliance, and that (d) soft-prompted base model performance predicts post-trained model rankings more reliably than zero- and few-shot baselines, offering a low-cost proxy for downstream model quality. Our contributions include (1) metrics which disentangle format-following and knowledge accuracy, (2) a fairer benchmarking protocol of LLM knowledge, and (3) a cost- and memory-effective recipe to identify optimal pre-training strategies early in LLM development.",
+      "authors": [
+        "Selen Erkan",
+        "Bastian Boll",
+        "Kristian Kersting",
+        "Björn Deiseroth",
+        "Letitia Parcalabescu"
+      ],
+      "primary_category": "cs.CL",
+      "categories": [
+        "cs.CL",
+        "cs.AI"
+      ],
+      "published": "2026-06-10T14:12:19+00:00",
+      "link": "https://arxiv.org/pdf/2606.12117v1",
+      "tags": [
+        "keyword:prompt-learn",
+        "query:prompt-learn"
+      ],
+      "llm_score": 10.0,
+      "llm_evidence_en": "optimizes soft-prompt vectors to adapt LLMs to benchmark formats via gradient-based tuning",
+      "llm_evidence_cn": "通过梯度调优软提示向量使大语言模型适应基准格式",
+      "llm_evidence": "通过梯度调优软提示向量使大语言模型适应基准格式",
+      "canonical_evidence": "通过梯度调优软提示向量使大语言模型适应基准格式",
+      "llm_tldr_en": "Soft-prompt tuning is used for fair LLM evaluation by optimizing a few soft-prompt vectors to adapt models to benchmark formats, revealing true knowledge without full fine-tuning.",
+      "llm_tldr_cn": "基准测试分数常因格式要求偏差，错误反映大语言模型的知识。本文提出使用软提示调优，仅优化10个软提示向量，通过梯度下降快速使模型适应基准格式，缩小格式遵循差距。实验表明该方法能公平比较基础模型和指令微调模型，且参数效率极高。",
+      "llm_tldr": "基准测试分数常因格式要求偏差，错误反映大语言模型的知识。本文提出使用软提示调优，仅优化10个软提示向量，通过梯度下降快速使模型适应基准格式，缩小格式遵循差距。实验表明该方法能公平比较基础模型和指令微调模型，且参数效率极高。",
+      "llm_tags": [
+        "query:prompt-learn"
+      ],
+      "matched_query_tag": "query:prompt-learn",
+      "matched_query_text": "gradient-based tuning of continuous prompt embeddings",
+      "matched_requirement_id": "req-6",
+      "selection_source": "fresh_fetch"
+    },
+    {
+      "id": "2606.09334v1",
+      "source": "arxiv",
+      "title": "How Far Can Prompting Go for Minimal-Edit Ukrainian Grammatical Error Correction?",
+      "abstract": "Fine-tuned Large Language Models (LLMs) dominate in Ukrainian grammatical error correction (GEC), while API-accessed LLMs remain nearly untested on minimal-edit benchmarks. We evaluate 11 commercial LLMs from four providers and one open-source Ukrainian model on the UNLP 2023 GEC-only benchmark, comparing zero-shot, few-shot, minimal-edits, and LLM-assisted prompt optimization strategies. Our best configuration (Gemini 3.1-Pro) reaches F0.5=69.22, closing over 90% of the gap to fine-tuned SOTA (F0.5=73.14). For zero-shot prompts, only Claude models benefit from Ukrainian instructions. However, the best overall results for all models use Ukrainian minimal-edits prompts, whose language-specific rules require Ukrainian to express precisely. LLM-assisted prompt optimization on top of minimal-edits + few-shot achieves the highest score. Detailed minimal-edits instructions yield the largest gains for punctuation and case errors but cause the model to abandon several low-frequency categories. Delving into error analysis, we identify five recurring overcorrection patterns tied to Ukrainian-specific linguistic phenomena. Code, prompts, and outputs are publicly available.",
+      "authors": [
+        "Kateryna Karpo",
+        "Artem Chernodub"
+      ],
+      "primary_category": "cs.CL",
+      "categories": [
+        "cs.CL"
+      ],
+      "published": "2026-06-08T11:00:56+00:00",
+      "link": "https://arxiv.org/pdf/2606.09334v1",
+      "tags": [
+        "keyword:prompt-learn",
+        "query:prompt-learn"
+      ],
+      "llm_score": 9.0,
+      "llm_evidence_en": "evaluates zero-shot, few-shot, and LLM-optimized prompts for Ukrainian GEC",
+      "llm_evidence_cn": "评估零样本、少样本和LLM优化的提示用于乌克兰语语法纠错",
+      "llm_evidence": "评估零样本、少样本和LLM优化的提示用于乌克兰语语法纠错",
+      "canonical_evidence": "评估零样本、少样本和LLM优化的提示用于乌克兰语语法纠错",
+      "llm_tldr_en": "This paper explores the limits of prompting for Ukrainian grammatical error correction, evaluating 11 LLMs across zero-shot, few-shot, and LLM-optimized prompts. The best prompt configuration (Gemini 3.1-Pro) achieves F0.5=69.22, closing over 90% of the gap to fine-tuned SOTA, highlighting that well-crafted discrete prompts can effectively guide LLMs for nuanced low-resource language tasks.",
+      "llm_tldr_cn": "本文针对乌克兰语语法纠错任务，探讨了提示工程在LLM上的应用边界，特别是在最小编辑基准上。先前工作主要依赖微调模型，而API访问LLM的提示策略研究不足。作者评估了多种提示设置，包括零样本、少样本和由LLM自身优化的提示，发现使用乌克兰语的最小编辑规则提示效果最佳。最佳模型Gemini 3.1-Pro的F0.5达到69.22，大幅缩小了与微调模型的差距，表明精心设计的离散提示可有效引导LLM处理低资源语言的细微语言学任务。",
+      "llm_tldr": "本文针对乌克兰语语法纠错任务，探讨了提示工程在LLM上的应用边界，特别是在最小编辑基准上。先前工作主要依赖微调模型，而API访问LLM的提示策略研究不足。作者评估了多种提示设置，包括零样本、少样本和由LLM自身优化的提示，发现使用乌克兰语的最小编辑规则提示效果最佳。最佳模型Gemini 3.1-Pro的F0.5达到69.22，大幅缩小了与微调模型的差距，表明精心设计的离散提示可有效引导LLM处理低资源语言的细微语言学任务。",
+      "llm_tags": [
+        "query:prompt-learn"
+      ],
+      "matched_query_tag": "query:prompt-learn",
+      "matched_query_text": "discrete natural language prompts for guiding models",
+      "matched_requirement_id": "req-2",
+      "selection_source": "fresh_fetch"
+    },
+    {
+      "id": "2606.11853v1",
+      "source": "arxiv",
+      "title": "Task-Aware Structured Memory for Dynamic Multi-modal In-Context Learning",
+      "abstract": "Multi-modal large language models (MLLMs) depend on in-context learning (ICL) for rapid task adaptation, but their scalability is severely limited by finite context windows and the growing cost of key-value (KV) caches in long multi-modal sequences. Existing memory compression approaches typically rely on rigid token removal or sample-dependent importance estimation, which introduces bias, disrupts semantic structure, particularly for visual representations, and yields static memories that cannot adapt to new queries. We introduce TASM (Task-Aware Structured Memory), a training-free framework that addresses these limitations through task-aware, structure-preserving, and dynamically accessible memory construction. TASM employs task-vector guided compression to replace sample-specific signals with a task-level direction that captures shared relevance across demonstrations. To preserve the underlying manifold, it applies semantics-aware token merging via bipartite graph matching, aggregating tokens without destructive pruning. Finally, TASM structures memory into a hierarchy comprising a compact Core Memory and a Latent Bank, facilitating query-adaptive dynamic retrieval. Evaluations confirm TASM maintains high performance under heavy compression, effectively balancing efficiency with adaptability.",
+      "authors": [
+        "Zhirui Chen",
+        "Ziwei Chen",
+        "Ling Shao"
+      ],
+      "primary_category": "cs.CV",
+      "categories": [
+        "cs.CV",
+        "cs.AI"
+      ],
+      "published": "2026-06-10T09:30:25+00:00",
+      "link": "https://arxiv.org/pdf/2606.11853v1",
+      "tags": [
+        "keyword:prompt-learn",
+        "query:prompt-learn"
+      ],
+      "llm_score": 9.0,
+      "llm_evidence_en": "Proposes TASM for compressing demonstrations into a task-aware structured memory to enable efficient in-context learning in multi-modal LLMs.",
+      "llm_evidence_cn": "提出TASM将演示压缩为任务感知的结构化记忆，实现多模态LLM中的高效上下文学习。",
+      "llm_evidence": "提出TASM将演示压缩为任务感知的结构化记忆，实现多模态LLM中的高效上下文学习。",
+      "canonical_evidence": "提出TASM将演示压缩为任务感知的结构化记忆，实现多模态LLM中的高效上下文学习。",
+      "llm_tldr_en": "The paper addresses the scalability limit of multi-modal in-context learning due to finite context windows and KV cache cost, and proposes TASM, a training-free framework that constructs task-aware, structure-preserving dynamic memory to compress demonstrations, improving efficiency without losing semantic structure.",
+      "llm_tldr_cn": "多模态大模型依赖上下文学习进行快速任务适应，但受限于上下文窗口大小和键值缓存成本。为此，该论文提出TASM，一种无需训练的任务感知结构化记忆框架，通过将演示压缩为保留语义结构的动态记忆来提高效率。实验表明TASM在多种多模态任务上有效降低了缓存占用并加速推理，同时保持或提升了性能。这项工作为扩展多模态上下文学习提供了实用的内存管理方案。",
+      "llm_tldr": "多模态大模型依赖上下文学习进行快速任务适应，但受限于上下文窗口大小和键值缓存成本。为此，该论文提出TASM，一种无需训练的任务感知结构化记忆框架，通过将演示压缩为保留语义结构的动态记忆来提高效率。实验表明TASM在多种多模态任务上有效降低了缓存占用并加速推理，同时保持或提升了性能。这项工作为扩展多模态上下文学习提供了实用的内存管理方案。",
+      "llm_tags": [
+        "query:prompt-learn"
+      ],
+      "matched_query_tag": "query:prompt-learn",
+      "matched_query_text": "learning from demonstrations provided in the prompt context",
+      "matched_requirement_id": "req-3",
+      "selection_source": "fresh_fetch"
+    },
+    {
+      "id": "2606.11854v1",
+      "source": "arxiv",
+      "title": "Fine-tuning Multi-modal LLMs with ART: Art-based Reinforcement Training",
+      "abstract": "There are two main Parameter-Efficient Fine-Tuning (PEFT) techniques for Large Language Models (LLMs). While Low-Rank Adaptation (LoRA) introduces additional weights between the LLM layers, Soft Prompting introduces additional fine-tuning-specific raw tokens to an LLM input. However, both require modification to the computational graphs of precompiled, preoptimized LLMs. As a result, neither is fully supported in high-throughput engines like vLLM. We propose fine-tuning with ART (Art-based Reinforcement Training). The method injects information into a frozen Multimodal Large Language Model (MLLM) by optimizing only its raw visual input, thus enabling the soft-token approach on pre-compiled computational graphs. It relies on backpropagation of gradients back into a plain pixel array and thus supports any fine-tuning objective. Moreover, the optimized visual input can be stylized as task-relevant computational artworks. The approach's effectiveness is confirmed for different sizes of a popular open Qwen architecture and for several textual benchmarks. Specifically, ART reaches accuracy competitive with LoRA across mathematics and structured-tool-use benchmarks.",
+      "authors": [
+        "Michal Chudoba",
+        "Sergey Alyaev",
+        "Petra Galuscakova",
+        "Tomasz Wiktorski"
+      ],
+      "primary_category": "cs.LG",
+      "categories": [
+        "cs.LG",
+        "cs.AI",
+        "cs.CL"
+      ],
+      "published": "2026-06-10T09:30:37+00:00",
+      "link": "https://arxiv.org/pdf/2606.11854v1",
+      "tags": [
+        "keyword:prompt-learn",
+        "query:prompt-learn"
+      ],
+      "llm_score": 9.0,
+      "llm_evidence_en": "proposes visual input optimization as an alternative to soft prompting, with gradient-based tuning",
+      "llm_evidence_cn": "提出视觉输入优化作为软提示的替代方案，采用梯度调优",
+      "llm_evidence": "提出视觉输入优化作为软提示的替代方案，采用梯度调优",
+      "canonical_evidence": "提出视觉输入优化作为软提示的替代方案，采用梯度调优",
+      "llm_tldr_en": "The paper proposes ART, a fine-tuning method for frozen multimodal LLMs by optimizing raw visual input via gradient backpropagation, enabling soft-token approach on pre-compiled graphs.",
+      "llm_tldr_cn": "现有参数高效微调方法如LoRA和软提示需要修改预编译LLM的计算图，在高吞吐引擎中支持不佳。本文提出ART，通过仅优化多模态LLM的原始视觉输入，利用梯度反向传播注入信息，从而在预编译计算图上实现软令牌方法。实验表明ART在高吞吐引擎中有效微调，且无需修改模型结构。",
+      "llm_tldr": "现有参数高效微调方法如LoRA和软提示需要修改预编译LLM的计算图，在高吞吐引擎中支持不佳。本文提出ART，通过仅优化多模态LLM的原始视觉输入，利用梯度反向传播注入信息，从而在预编译计算图上实现软令牌方法。实验表明ART在高吞吐引擎中有效微调，且无需修改模型结构。",
+      "llm_tags": [
+        "query:prompt-learn"
+      ],
+      "matched_query_tag": "query:prompt-learn",
+      "matched_query_text": "gradient-based tuning of continuous prompt embeddings",
+      "matched_requirement_id": "req-6",
+      "selection_source": "fresh_fetch"
+    },
+    {
+      "id": "2606.07894v1",
+      "source": "arxiv",
+      "title": "DD-GEPA: Prompt Optimization for Dialogue Disentanglement Focusing on Task Instruction and Utterance Representation",
+      "abstract": "Multi-party chat often contains interleaved dialogues because multiple participants can discuss different topics at the same time. Dialogue disentanglement addresses this problem by separating an entangled utterance sequence into coherent dialogues. While large language models (LLMs) are promising for this task, they still struggle with dialogue disentanglement and achieve low accuracy. This paper proposes an automatic prompt optimization for LLM based dialogue disentanglement. We decompose the prompt into three components: task instruction, utterance representation, and output instruction, and optimize them using GEPA, an optimization method for compound AI systems. Experiments on benchmark datasets show that the optimized prompts improve dialogue disentanglement accuracy over the original prompts and can surpass hand crafted prompts.",
+      "authors": [
+        "Naoki Takada",
+        "Tatsunori Mori"
+      ],
+      "primary_category": "cs.SE",
+      "categories": [
+        "cs.SE"
+      ],
+      "published": "2026-06-05T23:08:02+00:00",
+      "link": "https://arxiv.org/pdf/2606.07894v1",
+      "tags": [
+        "keyword:prompt-learn",
+        "query:prompt-learn"
+      ],
+      "llm_score": 8.0,
+      "llm_evidence_en": "automatic prompt optimization for LLM-based dialogue disentanglement",
+      "llm_evidence_cn": "基于LLM的对话解耦自动提示优化",
+      "llm_evidence": "基于LLM的对话解耦自动提示优化",
+      "canonical_evidence": "基于LLM的对话解耦自动提示优化",
+      "llm_tldr_en": "Proposes an automatic prompt optimization framework for dialogue disentanglement, decomposing the prompt into components and using GEPA to optimize them, achieving improved accuracy.",
+      "llm_tldr_cn": "针对大语言模型在对话解耦任务中准确性较低的问题，提出了一种自动提示优化方法，将提示分解为任务指令、话语表示和输出指令三个部分，并利用GEPA复合AI系统优化方法进行优化，在基准数据集上显著提高了对话解耦的准确性，展示了自动提示优化在复杂语言任务中的潜力。",
+      "llm_tldr": "针对大语言模型在对话解耦任务中准确性较低的问题，提出了一种自动提示优化方法，将提示分解为任务指令、话语表示和输出指令三个部分，并利用GEPA复合AI系统优化方法进行优化，在基准数据集上显著提高了对话解耦的准确性，展示了自动提示优化在复杂语言任务中的潜力。",
+      "llm_tags": [
+        "query:prompt-learn"
+      ],
+      "matched_query_tag": "query:prompt-learn",
+      "matched_query_text": "Techniques for automatic prompt generation in natural language processing",
+      "matched_requirement_id": "req-10",
+      "selection_source": "fresh_fetch"
+    }
+  ],
+  "quick_skim": [
+    {
+      "id": "2606.09525v1",
+      "source": "arxiv",
+      "title": "Emergence of Context Characteristics Sensitivity in Large Language Models",
+      "abstract": "During instruction fine-tuning (IFT), large language models (LLMs) learn to follow instructions by using the provided context to answer a query. While prior work has studied how context characteristics correlate with context usage by the LLM, this analysis has been limited to inference time, leaving open how these relationships are acquired in the first place. Here, we measure how models' sensitivity to such characteristics shifts across successive IFT stages: supervised fine-tuning (SFT), direct preference optimization (DPO), and reinforcement learning with verifiable rewards (RLVR). Experiments across four models and three datasets show that SFT makes models more likely to use contexts that are easy to understand, such as containing high length, context-query similarity, and fluency. Post-SFT dynamics may either reinforce or resolve these preferences depending on the training dataset. Our findings reveal that context usage is actively reshaped at each IFT stage, and designing a balanced IFT dataset is important in ensuring robust context utilization of instruction-tuned models.",
+      "authors": [
+        "Nadya Yuki Wangsajaya",
+        "Haeun Yu",
+        "Isabelle Augenstein"
+      ],
+      "primary_category": "cs.CL",
+      "categories": [
+        "cs.CL",
+        "cs.AI"
+      ],
+      "published": "2026-06-08T14:11:07+00:00",
+      "link": "https://arxiv.org/pdf/2606.09525v1",
+      "tags": [
+        "keyword:prompt-learn",
+        "query:prompt-learn"
+      ],
+      "llm_score": 8.0,
+      "llm_evidence_en": "Studies how LLMs acquire sensitivity to in-context demonstrations during instruction fine-tuning",
+      "llm_evidence_cn": "研究LLM在指令微调中如何获得对上下文中示例的敏感性",
+      "llm_evidence": "研究LLM在指令微调中如何获得对上下文中示例的敏感性",
+      "canonical_evidence": "研究LLM在指令微调中如何获得对上下文中示例的敏感性",
+      "llm_tldr_en": "Investigates the emergence of context sensitivity in LLMs during instruction fine-tuning, finding that SFT makes models rely on easy-to-understand contexts, directly relevant to learning from demonstrations in prompts.",
+      "llm_tldr_cn": "研究大型语言模型在指令微调过程中如何逐步获得对上下文特征的敏感性，发现监督微调使模型更倾向于使用易于理解的上下文，这对于理解从提示中的示范学习具有重要意义。",
+      "llm_tldr": "研究大型语言模型在指令微调过程中如何逐步获得对上下文特征的敏感性，发现监督微调使模型更倾向于使用易于理解的上下文，这对于理解从提示中的示范学习具有重要意义。",
+      "llm_tags": [
+        "query:prompt-learn"
+      ],
+      "matched_query_tag": "query:prompt-learn",
+      "matched_query_text": "learning from demonstrations provided in the prompt context",
+      "matched_requirement_id": "req-3",
+      "selection_source": "fresh_fetch",
+      "quick_tier": "8plus"
+    },
+    {
+      "id": "2606.04302v1",
+      "source": "arxiv",
+      "title": "LazyAttention: Efficient Retrieval-Augmented Generation with Deferred Positional Encoding",
+      "abstract": "Key-value (KV) caching accelerates inference of large language models (LLMs) by reusing past computations for generated tokens. Its importance becomes even greater in long-context applications such as retrieval-augmented generation (RAG) and in-context learning (ICL). However, conventional KV caching embeds positional information directly into the cache, limiting its reusability. Existing solutions either restrict reuse to prefixes or require expensive memory materialization for positional re-encoding. We introduce LazyAttention, a novel attention mechanism that kernelizes deferred positional encoding to enable zero-copy, position-agnostic KV reuse. By adjusting positional encoding within attention kernels on-the-fly, LazyAttention resolves the materialization bottleneck, allowing a single physical KV copy to serve multiple logical requests at arbitrary positions. Leveraging attention kernels tailored for prefilling and decoding, our system achieves significant efficiency improvements: under skewed document distributions, it reduces time-to-first-token (TTFT) by 1.37$\\times$ and increases inference throughput by 1.40$\\times$ compared to the state-of-the-art Block-Attention, while maintaining comparable output quality.",
+      "authors": [
+        "Haocheng Xia",
+        "Mihir Pamnani",
+        "Hanxi Fang",
+        "Supawit Chockchowwat",
+        "Yongjoo Park"
+      ],
+      "primary_category": "cs.CL",
+      "categories": [
+        "cs.CL",
+        "cs.LG"
+      ],
+      "published": "2026-06-03T00:12:22+00:00",
+      "link": "https://arxiv.org/pdf/2606.04302v1",
+      "tags": [
+        "keyword:prompt-learn",
+        "query:prompt-learn"
+      ],
+      "llm_score": 7.0,
+      "llm_evidence_en": "improves in-context learning efficiency with deferred positional encoding",
+      "llm_evidence_cn": "通过延迟位置编码提升上下文学习效率",
+      "llm_evidence": "通过延迟位置编码提升上下文学习效率",
+      "canonical_evidence": "通过延迟位置编码提升上下文学习效率",
+      "llm_tldr_en": "LazyAttention introduces deferred positional encoding to enable zero-copy KV cache reuse, greatly improving efficiency of long-context tasks like RAG and in-context learning, reducing memory overhead while maintaining performance.",
+      "llm_tldr_cn": "针对大语言模型在长上下文场景（如检索增强生成和上下文学习）中键值缓存重用受限的问题，本文提出LazyAttention，通过将延迟的位置编码核化，实现零拷贝、位置无关的KV缓存重用，在保持性能的同时显著降低内存开销，为提升上下文学习效率提供了新方案。",
+      "llm_tldr": "针对大语言模型在长上下文场景（如检索增强生成和上下文学习）中键值缓存重用受限的问题，本文提出LazyAttention，通过将延迟的位置编码核化，实现零拷贝、位置无关的KV缓存重用，在保持性能的同时显著降低内存开销，为提升上下文学习效率提供了新方案。",
+      "llm_tags": [
+        "query:prompt-learn"
+      ],
+      "matched_query_tag": "query:prompt-learn",
+      "matched_query_text": "learning from demonstrations provided in the prompt context",
+      "matched_requirement_id": "req-3",
+      "selection_source": "fresh_fetch",
+      "quick_tier": "7"
+    },
+    {
+      "id": "2606.06698v3",
+      "source": "arxiv",
+      "title": "RECAP: Regression Evaluation for Continual Adaptation of Prompts",
+      "abstract": "Production agentic systems routinely face evolving constraints and must comply from the very next interaction. Scenarios like a tool-call notification changing a compliance threshold or a policy update adding disclosure requirements fit this criteria, having close to no room for errors in production. This proactive adaptation setting is common in deployment, but absent from current benchmarks, which assume either static constraint sets or reactive protocols with evaluation feedback. We introduce RECAP, a benchmark that measures continual-learning phenomena (forgetting, regression, forward transfer) at the constraint level under a strictly proactive adapt-then-test protocol: prompt optimization methods receive only the constraint specification and must generalize before seeing any test data. Evaluating six methods across four LLMs and three schedules with evolving constraints, we find that these methods show no significant improvement in performance, even after incurring a higher latency. These methods, designed for offline or reactive settings, are inadequate for the proactive paradigm. Our work emphasizes the growing need for designing proactive prompt adaptation methods, where the models must remain robust to evolving needs in deployment.",
+      "authors": [
+        "Harsh Deshpande",
+        "Kushal Chawla",
+        "Sangwoo Cho",
+        "William Campbell",
+        "Sambit Sahu"
+      ],
+      "primary_category": "cs.LG",
+      "categories": [
+        "cs.LG",
+        "cs.CL"
+      ],
+      "published": "2026-06-04T20:35:15+00:00",
+      "link": "https://arxiv.org/pdf/2606.06698v3",
+      "tags": [
+        "keyword:prompt-learn",
+        "query:prompt-learn"
+      ],
+      "llm_score": 6.0,
+      "llm_evidence_en": "benchmark for continual prompt optimization under changing constraints",
+      "llm_evidence_cn": "面向变化约束下持续提示优化的基准测试",
+      "llm_evidence": "面向变化约束下持续提示优化的基准测试",
+      "canonical_evidence": "面向变化约束下持续提示优化的基准测试",
+      "llm_tldr_en": "The paper introduces RECAP, a benchmark for evaluating continual prompt adaptation in production agentic systems, measuring forgetting, regression, and forward transfer under proactive adapt-then-test protocols.",
+      "llm_tldr_cn": "针对生产环境中智能体系统面临不断变化的约束，现有基准假设静态约束或反应式评估。本文提出RECAP基准，在严格先行适应后测试的协议下，从约束层面衡量提示优化方法的持续学习现象（遗忘、回归、前向迁移）。该基准填补了动态约束下提示适应评估的空白，有助于开发鲁棒的提示优化技术。",
+      "llm_tldr": "针对生产环境中智能体系统面临不断变化的约束，现有基准假设静态约束或反应式评估。本文提出RECAP基准，在严格先行适应后测试的协议下，从约束层面衡量提示优化方法的持续学习现象（遗忘、回归、前向迁移）。该基准填补了动态约束下提示适应评估的空白，有助于开发鲁棒的提示优化技术。",
+      "llm_tags": [
+        "query:prompt-learn"
+      ],
+      "matched_query_tag": "query:prompt-learn",
+      "matched_query_text": "What are the latest advances in prompt learning for large language models?",
+      "matched_requirement_id": "req-7",
+      "selection_source": "fresh_fetch",
+      "quick_tier": "6"
+    },
+    {
+      "id": "2606.10125v1",
+      "source": "arxiv",
+      "title": "Robust Active Learning for Few-Shot Example Selection in Text-to-SQL",
+      "abstract": "Few-shot example retrieval is the dominant paradigm for grounding large language models (LLMs) in domain-specific text-to-SQL systems. However, the quality of the annotated example bank directly governs system accuracy, and expert annotation is prohibitively expensive. We formalize the active selection of these examples as a constrained experimental design problem over the intrinsic, low-dimensional manifold of semantic query embeddings. Unlike standard active learning frameworks, our setting introduces three critical challenges: varying, query-dependent annotation reliability (heteroscedasticity), strict requirements for spatial diversity across semantic topics (partition matroid constraints), and the inherent reality that the true covariance structure of the embedding space is unknown (misspecification). To address these, we propose a stratified greedy algorithm that maximizes a heteroscedastic mutual information objective. We prove that this objective remains submodular and approximately monotonic on the intrinsic manifold, yielding a theoretical constant-factor approximation guarantee. We establish a spectral bound demonstrating that this approximation guarantee degrades gracefully, rather than catastrophically, when the assumed surrogate kernel diverges from the true underlying data-generating process. Empirical results demonstrate that the proposed strategy significantly reduces labeling effort while maintaining high text-to-SQL retrieval accuracy.",
+      "authors": [
+        "Arash Pourhabib"
+      ],
+      "primary_category": "stat.ML",
+      "categories": [
+        "stat.ML",
+        "cs.DB",
+        "cs.LG"
+      ],
+      "published": "2026-06-08T19:56:24+00:00",
+      "link": "https://arxiv.org/pdf/2606.10125v1",
+      "tags": [
+        "keyword:prompt-learn",
+        "query:prompt-learn"
+      ],
+      "llm_score": 7.0,
+      "llm_evidence_en": "active selection of few-shot examples for prompt optimization in text-to-SQL",
+      "llm_evidence_cn": "主动选择文本到SQL的少样本示例以优化提示",
+      "llm_evidence": "主动选择文本到SQL的少样本示例以优化提示",
+      "canonical_evidence": "主动选择文本到SQL的少样本示例以优化提示",
+      "llm_tldr_en": "The paper formalizes active selection of few-shot examples for text-to-SQL as a constrained experimental design problem over query embeddings, addressing heteroscedasticity, diversity, and covariance challenges.",
+      "llm_tldr_cn": "文本到SQL系统中，少样本示例检索是使LLM落地的主流范式，但示例标注成本高。本文提出鲁棒主动学习框架，将示例选择形式化为语义查询嵌入流形上的约束实验设计问题，处理异方差、空间多样性和协方差估计挑战。实验表明主动选择的示例能提升提示效果，降低标注成本。",
+      "llm_tldr": "文本到SQL系统中，少样本示例检索是使LLM落地的主流范式，但示例标注成本高。本文提出鲁棒主动学习框架，将示例选择形式化为语义查询嵌入流形上的约束实验设计问题，处理异方差、空间多样性和协方差估计挑战。实验表明主动选择的示例能提升提示效果，降低标注成本。",
+      "llm_tags": [
+        "query:prompt-learn"
+      ],
+      "matched_query_tag": "query:prompt-learn",
+      "matched_query_text": "How to optimize discrete prompts for few shot classification?",
+      "matched_requirement_id": "req-8",
+      "selection_source": "fresh_fetch",
+      "quick_tier": "7"
+    }
+  ]
+}

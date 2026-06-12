@@ -1,0 +1,54 @@
+{
+  "label": "2026-06-12",
+  "date": "2026-06-12",
+  "generated_at": "2026-06-12T21:59:57",
+  "count": 3,
+  "papers": [
+    {
+      "paper_id": "202606/12/2606.08154v1-synthicl-scalable-in-context-imitation-learning-with-synthetic-data",
+      "section": "deep",
+      "title_en": "SynthICL: Scalable In-context Imitation Learning with Synthetic Data",
+      "authors": "Cheng Qian, Ruomeng Fan, Yifei Ren, Yilong Wang, Edward Johns",
+      "date": "2026-06-06",
+      "pdf": "https://arxiv.org/pdf/2606.08154v1",
+      "score": "10.0",
+      "evidence": "从少量演示中进行的上下文模仿学习将策略条件化于任务特定示例，完全匹配从提示上下文中学习的要求。",
+      "tldr": "上下文模仿学习使机器人从少量演示快速学习新任务，但训练通用可扩展策略仍面临挑战，现有方法依赖深度传感器和真实数据，限制规模化。SynthICL提出完全用RGB合成数据训练上下文模仿策略，通过高保真数据管线、流匹配Transformer和子目标预测，无需深度传感或精确标定。在16个真实操控任务上，仅一次演示即达79%平均成功率，超越先前方法，为上下文模仿学习提供了更简单、可扩展的方案。",
+      "tags": "query:prompt-learn",
+      "abstract_en": "In-context imitation learning (ICIL) enables robots to learn new tasks from a small number of demonstrations by conditioning a pre-trained policy on task-specific examples, without retraining at test time. Despite this promise, training generalizable and scalable in-context imitation policies remains an open challenge. We present SynthICL, a scalable framework that trains ICIL policies entirely from RGB-only synthetic data. Specifically, we build a data generation pipeline to produce high-fidelity ICIL data and train a flow-matching transformer policy on the resulting dataset. SynthICL avoids the need for depth sensing, precise camera calibration, and real-world training data in prior approaches, offering a simpler and more scalable alternative. We further incorporate subgoal prediction by training the model to predict the next subgoal images, enabling more precise and visually grounded control. Evaluated on 16 unseen real-world manipulation tasks, SynthICL achieves an average success rate of 79% with only one demonstration provided at test time and outperforms prior methods. Project page: https://synth-icl.github.io",
+      "source": "arxiv",
+      "selection_source": "fresh_fetch"
+    },
+    {
+      "paper_id": "202606/12/2606.08649v1-sample-efficient-llm-based-detection-of-malicious-web-server-logs-with-forensically-explainable-reasoning",
+      "section": "deep",
+      "title_en": "Sample-Efficient LLM-Based Detection of Malicious Web Server Logs with Forensically Explainable Reasoning",
+      "authors": "Bernhard Kneip, Nhien-An Le-Khac, Hong-Hanh Nguyen-Le",
+      "date": "2026-06-07",
+      "pdf": "https://arxiv.org/pdf/2606.08649v1",
+      "score": "9.0",
+      "evidence": "少样本链式思考提示与结构化推理模板",
+      "tldr": "针对网络服务器日志取证分析需兼顾高精度检测与法律可解释性，本文提出上下文增强的小样本链式思维提示策略CEF-Log。该方法通过结构化五步推理模板嵌入专家调查方法论，使大语言模型学习分析日志的逻辑而非记忆模式。在CSIC 2010数据集上仅用4个样本即达到F1值0.99，样本效率较其他提示方法提升10倍。同时贡献了包含真实攻击多步序列的新数据集ForenWebLog，定性分析证实其解释可追踪且准确，解决了传统机器学习的黑箱问题。",
+      "tags": "query:prompt-learn",
+      "abstract_en": "Forensic analysis of web server logs demands both accurate detection and human-readable explanations that can satisfy legal requirements. We present CEF-Log, a context-enhanced few-shot chain-of-thought prompting strategy for Large Language Models that addresses this dual requirement. CEF-Log embeds expert investigative methodology through a structured five-step reasoning template, enabling the model to learn \\textit{how} to analyze logs rather than \\textit{what} patterns to memorize. Experimental evaluation demonstrates that CEF-Log achieves an F1-score of 0.99 on the CSIC 2010 dataset using only four examples while providing a $10\\times$ improvement in sample efficiency compared to other prompting-based methods. We also introduce ForenWebLog, a new dataset that incorporates real-world attacks and multi-step attack sequences for comprehensive evaluation. Qualitative analysis confirms that CEF-Log generates traceable, accurate explanations suitable for forensic documentation, addressing the critical \"black-box\" limitation of traditional machine learning approaches.",
+      "source": "arxiv",
+      "selection_source": "fresh_fetch"
+    },
+    {
+      "paper_id": "202606/12/2606.07965v1-zero-shot-learning-in-industrial-scenarios-new-large-scale-benchmark-challenges-and-baseline",
+      "section": "quick",
+      "title_en": "Zero-Shot Learning in Industrial Scenarios: New Large-Scale Benchmark, Challenges and Baseline",
+      "authors": "Zekai Zhang, Qinghui Chen, Maomao Xiong, Shijiao Ding, Zhanzhi Su, Xinjie Yao, Yiming Sun, Cong Bai, Jinglin Zhang",
+      "date": "2026-06-06",
+      "pdf": "https://arxiv.org/pdf/2606.07965v1",
+      "score": "6.0",
+      "evidence": "用于零样本工业缺陷检测的精炼文本-视觉提示",
+      "tldr": "工业缺陷检测面临数据稀缺与视觉语言模型不适应工业场景的挑战。本文提出首个大规模多模态工业开放数据集MMIO（8万+样本，6超类18子类）和精炼文本-视觉提示RTVP方法。RTVP融合专家领域适应与轻量分割模型Mobile-SAM，自动生成视觉提示并与文本交互，首次解决无关像素和文本视觉交互欠缺问题，增强零样本检测性能。在MMIO上，零样本和闭集AP分别达42.2%和24.7%，均达SOTA，为工业零样本学习树立了基准和基线。",
+      "tags": "query:prompt-learn",
+      "abstract_en": "Large Visual Language Models (LVLMs) have achieved remarkable success in vision tasks. However, the significant differences between industrial and natural scenes make applying LVLMs challenging. Existing LVLMs rely on user-provided prompts to segment objects. This often leads to suboptimal performance due to the inclusion of irrelevant pixels. In addition, the scarcity of data also makes the application of LVLMs in industrial scenarios remain unexplored. To fill this gap, this paper proposes an open industrial dataset and a Refined Text-Visual Prompt (RTVP) for zero-shot industrial defect detection. First, this paper constructs the Multi-Modal Industrial Open Dataset (MMIO) containing 80K+ samples. MMIO contains diverse industrial categories, including 6 super categories and 18 subcategories. MMIO is the first large-scale multi-scenes pre-training dataset for industrial zero-shot learning, and provides valuable training data for open models in future industrial scenarios. Based on MMIO, this paper provides a RTVP specifically for industrial zero-shot tasks. RTVP has two significant advantages: First, this paper designs an expert-guided large model domain adaptation mechanism and designs an industrial zero-shot method based on Mobile-SAM, which enhances the generalization ability of large models in industrial scenarios. Second, RTVP automatically generates visual prompts directly from images and considers text-visual prompt interactions ignored by previous LVLM, improving visual and textual content understanding. RTVP achieves SOTA with 42.2% and 24.7% AP in zero-shot and closed scenes of MMIO.",
+      "source": "arxiv",
+      "selection_source": "fresh_fetch"
+    }
+  ],
+  "errors": []
+}

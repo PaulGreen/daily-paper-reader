@@ -1,0 +1,884 @@
+Title: Learning What to Say to Your VLA: Mostly Harmless Vision Language Action Model Steering
+
+URL Source: https://arxiv.org/pdf/2606.12299v1
+
+Published Time: Thu, 11 Jun 2026 01:19:10 GMT
+
+Number of Pages: 22
+
+Markdown Content:
+# Learning What to Say to Your VLA: Mostly Harmless Vision Language Action Model Steering 
+
+Hyun Joe Jeong, Gokul Swamy, Andrea Bajcsy 
+
+Robotics Institute Carnegie Mellon University 
+
+{hyunjoej, gswamy, abajcsy }@andrew.cmu.edu 
+
+Abstract: Vision-Language-Action (VLA) models provide a natural language in-terface to robot control, but the mapping from language to behavior is often brittle and unintuitive: semantically similar instructions can induce drastically differ-ent behaviors, while some capabilities may not be elicitable through prompting alone. As a result, both human instructions and zero-shot language models can fail to reliably steer VLAs toward successful task execution. In this work, we pro-pose a framework that interactively searches for language sequences that improve closed-loop VLA task performance, distills these sequences into a test-time lan-guage feedback policy (LFP), and learns an improvement head that predicts when language steering will improve performance. We conformalize this improvement head to prevent harmful steering interventions, where the LFP decreases task per-formance relative to the original instruction on out-of-distribution scenarios. Cru-cially, our approach operates on arbitrary frozen pre-trained VLAs, requiring nei-ther access to the original training distribution nor fine-tuning of the underlying model. On seen environments, our conformalized LFP improves base VLA per-formance by 24.7% in simulation and 65.0% in hardware. On visual and semantic perturbations, our conformalized LFP has strong harmlessness guarantees, and produces recovery behaviors not observed with open-loop prompting. Videos of our results can be found on the project website. 
+
+Keywords: Vision-Language-Action, Language Steering, Conformal Prediction 
+
+## 1 Introduction 
+
+Vision-Language-Action (VLA) models, learned from large observation-language-action datasets, enable natural language to serve as a flexible test-time interface for eliciting diverse behaviors from a single pre-trained model. Natural language is appealing because it operates at a higher level of abstraction than low-level actions: rather than specifying motor commands directly, a user can control the robot by describing goals, object relations, subgoals, and recovery strategies. Thus, if the frozen VLA already contains useful low-level behaviors, then changing the language input can elicit and compose those behaviors without updating the underlying policy. Although promising, a VLA model’s language-to-action mapping is often brittle and unintuitive, making it unpredictable whether a given instruction will reliably elicit the desired sequence of behav-iors from the pretrained model. For example, consider a VLA that fails to place all objects into their respective bins when asked to “put the bowls away.” Rephrasing the instruction can help the model succeed, but it is difficult to know a priori how to modify the language: some reformulations may succeed, while others may fail despite being semantically similar. This challenge is compounded by the open-vocabulary nature of language: the space of possible utterances is combinatorially large, making exhaustive search over prompts or feedback sequences intractable. Moreover, the desired behavior may not be language steerable at all: the VLA may ignore language conditioning [1, 2], or the required low-level skill may lie outside its behavioral support, such as asking a pick-and-
+
+> arXiv:2606.12299v1 [cs.RO] 10 Jun 2026
+
+“Do No Harm” Calibration Narrated Fine -Tuning          
+
+> (o!:#,ℓ$%&' )(o!:#,ℓ$%&' ,&ℓ!:#)
+> ℙlang .steer +,-improvement ≤45!"#
+
+Learning Language Steering via VLA Interaction         
+
+> 'q(
+> ℓ!"#$
+> "ℓ%
+> “Grab the cube”
+> “Grab the cube”
+> “Grab the green
+> cube”
+> 1. Narration
+> 2. Narrated Fine -Tuning
+> 4. Rejection Fine -Tuning
+> π)*+
+> ℓ!"#$
+> 5$"%
+> !
+> “Pick the green
+> block in the
+> blue bin
+> “Put the green
+> block in the blue
+> bin
+> “Place the
+> green block in
+> the blue bin”
+> + -
+> Fine -tune Language Policy
+> and Estimate Language
+> Steering Improvement
+> 5. Class -Conditional Conformal Prediction
+> 6. Deployment
+> ℓ!"#$ ℓ%
+> π,-.
+> Success!
+> “Narrate the
+> videos”
+> ℓ!:#
+> )
+> ℓ!:#
+> *
+> “Put the green cube
+> in the blue basket”
+> “Place the green
+> block in the blue bin”
+> o+
+> /
+> o+
+> 0
+> o1
+> &ℓ!:#Observation Space
+> Lang. Space
+> π!"#
+> ✅
+> ❌
+> “Put the red block
+> in the orange bin”
+> π&'( Improvement Head
+> 5)'(
+> 3. Rejection Sampling
+> π)*+
+> ℓ!"#$
+> 2≥'q(?!
+> ✅
+> ❌
+> π4*+
+
+Figure 1: Overview. Left : robot videos are narrated into per-frame language descriptions, yielding a task-relevant prior without action labels. Center : we generate trajectory-level perturbations around this prior, evaluate them through closed-loop VLA rollouts, and use high-improvement sequences for rejection fine-tuning and improvement-head supervision. Right : at deployment, LFP steers the frozen VLA only when the calibrated improvement head predicts benefit; otherwise, the system refuses steering and falls back to the base instruction. place robot to pour from a cup. As a result, naive prompting with human instructions or zero-shot language models often fails to consistently elicit correct behaviors. In this work, our key idea is to learn a language feedback policy to steer a frozen VLA by in-teractively searching for language sequences that improve closed-loop performance. To address the challenges of unpredictability and size of the language search space, we interact with the base VLA and search in a structured local language space rather than over arbitrary open-vocabulary utterances. We first use narrated videos of robot behavior to obtain a proposal distribution over language sequences, then interactively evaluate trajectory-level perturbations through closed-loop VLA rollouts to discover language edits that actually elicit successful behavior. We then distill these high-improvement edits into a language feedback policy. However, even when interactive search improves in-distribution performance, the learned policy can still produce harmful steering inter-ventions under distribution shift. To make language steering robust out of distribution, we train an improvement head that predicts whether steering will improve performance over the base VLA. We can do this in a sample-efficient manner because predicting whether improvement is possible is often easier than knowing the precise language sequence that will elicit the improvement . In particular, we calibrate the improvement head with conformal prediction so that, at deployment, the system language-steers only when predicted improvement is reliable; otherwise, it abstains and falls back to the original instruction. 
+
+Statement of Contributions. We propose an interactive learning algorithm for training a closed-loop language feedback policy (LFP) that learns both how to steer a frozen VLA and when not to steer , falling back to the original instruction. Through simulation and hardware experiments with a Franka Emika manipulator, we show: (i) interactive language steering induces better sample com-plexity than directly fine-tuning the VLA by operating in a higher level of abstraction, leading to better generalization across visual perturbations, semantic perturbations, and novel behavior compo-sition tasks, (ii) conformalizing the improvement head prevents performance degradation in out of distribution scenarios without degrading in-distribution performance, and (iii) closed-loop language feedback elicits recovery behaviors not observed with open-loop prompt-rephrasing strategies. 
+
+## 2 Related Work 
+
+Vision-Language-Action Models. Vision-Language-Action (VLA) models combine language, vi-sion, and robot control by mapping observations and task instructions to actions. Early VLAs pre-dicted discrete action tokens [3], while recent models use continuous or diffusion-style action heads conditioned on images and language [4, 5]. Reasoning-based VLAs further introduce textual, visual, or latent intermediate representations to refine action generation [6, 7, 8, 9]. Test-time steering meth-ods guide VLA behavior through residual policies, external reward models, or verification signals [9, 10, 11]. Our contribution is complementary: we study how the frozen VLA can be steered via the language inputs alone, and learn a closed-loop language feedback policy with calibrated refusal. 2Steering Robots via Natural Language. Natural-language robot control has long studied how robots ground instructions into symbols, plans, and executable behavior [12, 13]. Recent work often adopts a hierarchical “system 1/2” structure, where a high-level language or reasoning module inter-faces with a low-level robot policy [14, 15, 16, 5]. These methods typically rely on human feedback, demonstrations, or interventions to specify desired behavior. Prompt-optimization methods adapt language at test time [17, 18], but do not distill the optimized language into a reusable closed-loop policy. Other recent work studies how to refine, preserve, or quantify language-following and task-switching in VLAs [19, 20]. We instead interactively search for language edits that elicit desired behavior from a frozen VLA, then distill them into a closed-loop language policy. 
+
+VLA Robustness. Reliable VLA deployment requires robustness to failures, distribution shift, and unsafe behavior. Prior work improves reliability through low-level action guardrails [21, 22], latent activation steering [23, 24, 25, 26], or failure prediction probes [27]. Our work is complementary: we steer behavior through the language input, and use conformal prediction [28] to control the error rate of harmful steering under the calibration distribution. 
+
+## 3 Steering Pre-trained VLA Policies via Natural Language 
+
+Notation. Let t index real-world steps, T denote the task horizon, H denote the action-chunk horizon, and let h ≤ H denote the number of low-level actions executed before replanning. We consider a frozen, pre-trained VLA model πVLA (at:t+H | ot, s t, ℓ task ) that maps RGB observations 
+
+ot ∈ O , proprioceptive state st ∈ S , and a task description ℓtask ∈ L to a distribution over low-level action chunks at:t+H ∈ A H . At execution time, we sample an action chunk from the VLA and execute it in a receding-horizon manner: the robot applies the first h actions from the chunk open-loop, observes the resulting state, and queries the VLA for another length H action chunk. 
+
+Language Steering as a Markov Decision Process (MDP). We formulate steering a VLA via lan-guage as an MDP: MπVLA = ( X , L, P πVLA , r ). States xt ∈ X consist of xt = ( ot, s t, ℓ task ). Actions 
+
+ℓt ∈ L are natural language strings. At each replanning step, we sample a language “action” from an LFP π: ℓt ∼ π(· | ot; ℓtask ). We pass this string to the frozen VLA, which then samples an action chunk at:t+H ∼ πVLA (· | ot, s t, ℓ t). The dynamics PπVLA (xt+1 | xt, ℓ t) are induced by the frozen VLA composed with the real world. For convenience, we use πVLA ◦π to denote the closed-loop com-posite policy that first samples ℓt ∼ π(· | ot; ℓtask ) and then samples at:t+H ∼ πVLA (· | ot, s t, ℓ t).Denote ξ = ( o0, o 1, . . . , o T ) as the real-world observation trajectory induced by such a composite policy. Lastly, let r(ξ; ℓtask ) ∈ { 0, 1} denote the task reward and Π the class of language policies. Our goal in language steering is to solve the above MDP, i.e., compute 
+
+π⋆ ∈ argmax 
+
+> π∈Π
+
+Eξ∼πVLA ◦π
+
+h
+
+r(ξ; ℓtask )
+
+i
+
+. (1) 
+
+Challenges in Language Steering, Solving Eq. 1 is difficult for at least three reasons. First, the combinatorially large open-vocabulary language space L makes exhaustive search intractable. Sec-ond, and perhaps more concerningly, the mapping from any sequence of language inputs ℓ0: T to VLA actions is often counter-intuitive, so we do not know a priori which utterances will elicit the desired behavior. Third, the desired behavior may not be language steerable at all: the VLA may ignore language conditioning [1, 2], or the required low-level skill may lie outside its behavioral support, such as asking a pick-and-place robot to pour from a cup. Thus, while interacting with the VLA is fundamentally necessary to effectively solve Eq. 1 (reasons 2, 3), we must carefully structure our language search space to avoid an infeasible amount of real-world interaction (reason 1). 
+
+## 4 Learning Mostly Harmless Language Feedback Policies via Interaction 
+
+To balance the necessity of real-world interaction with the practical infeasibility of exhaustive search, we propose to search in a local language space centered around narrations of robot be-havior generated by a VLM (vision language model). We then distill the outputs of this local search 3procedure into our LFP (akin to expert iteration [29, 30, 10, 31]), before conformalizing our LFP to ensure we do not unnecessarily steer in out-of-distribution contexts. See Appendix 7.1 for more. 
+
+Language Improvement. Let e ∈ E denote the environment context (e.g., geometry of the scene, object appearance and configuration, lighting, and robot viewpoint). For a task instruction ℓtask 
+
+and context e, let p(o0 | ℓtask , e ) denote the robot’s initial observation distribution (e.g., wrist and third-person RGB camera data). For any candidate language sequence ℓ0: T , we define the language improvement , ∆, of this sequence over passing in the original instruction ℓtask T times as: 
+
+∆( ℓtask , e, ℓ 0: T ) = Eo0∼p(o0|ℓtask ,e )Eξ∼(πVLA ◦ℓ0: T )( o0)
+
+h
+
+r(ξ; ℓtask )
+
+i
+
+− Eo0∼p(o0|ℓtask ,e )Eξ∼πVLA (o0,ℓ task )
+
+h
+
+r(ξ; ℓtask )
+
+i
+
+.
+
+(2) Here, πVLA ◦ ℓ0: T denotes the closed-loop rollout distribution obtained by conditioning the frozen VLA on the language sequence ℓ0: T , while the second term evaluates the base VLA conditioned only on the original task instruction ℓtask . Our goal is to find language sequences with large ∆s. 
+
+4.1 A Three-Phase Approach to Mostly Harmless Language Steering 
+
+We instantiate our approach in three phases, shown in Fig. 1. First, since exhaustive search over 
+
+L is computationally intractable, we perform narrated fine-tuning , which gives the LFP a struc-tured proposal distribution over task-relevant language sequences rather than searching over arbi-trary open-vocabulary utterances. Second, since it can be difficult to tell a priori what language sequences elicit the right behavior from the frozen VLA, we perform interactive language search ,which identifies good language sequences for policy improvement and produces estimates of their language improvement. Third, since steering can be harmful in unseen situations, we conformalize 
+
+the improvement head to control the rate of harmful steering under deployment-time perturbations. 
+
+Phase 1: Narrated Fine-Tuning. Since the open-vocabulary language space L is too large to search exhaustively, we use narration to convert observation-only demonstrations into a structured proposal distribution for tractable local search. Given videos of robot behavior (e.g., as provided by expert demonstration or policy rollouts) for different tasks, Dexp = {(ξ, ℓ task )}, where each visual trajectory ξ = ( o0, . . . , o T ) is paired with a task description ℓtask , we ask a VLM to caption what the robot is doing in the frame in the context of the task description, giving us ℓ0: T = ( ℓ0, . . . , ℓ T ).This yields a narrated dataset Dnar of tuples (o, ℓ task , ℓ ), where ℓ describes the current subtask at observation o. We then supervised fine-tune the base VLM to obtain πSFT :
+
+πSFT = argmax 
+
+> π∈Π
+
+E(o,ℓ task ,ℓ )∼D nar 
+
+h
+
+log π(ℓ | o, ℓ task )
+
+i
+
+. (3) In summary, narrated fine tuning gives us a strong prior over language actions, making the search over L more computationally tractable, akin to the role of pretraining in foundation model training. 
+
+Phase 2: Interactive Language Search. After narrated fine-tuning, we feed language sequences from πSFT to the frozen base VLA to find language sequences that improve performance over the task description. Given (ℓtask , e ), πSFT generates a seed sequence ¯ℓ0: T by interacting with the VLA and the real world. We then use an LLM to generate N trajectory-level semantic perturbations of this seed sequence, prompting it to rewrite the entire seed sequences while preserving the task semantics. Practically, these perturbations vary object references, verbs, and compositional phrasing. This process yields a local language set Llocal (¯ℓ0: T ) = {ℓ(1) 0: T , . . . , ℓ (N )0: T }, which we scope our search to. We then use rollouts to compute a Monte Carlo estimate of improvement, yielding a b∆ for each language sequence. Finally, we select the language sequence with the highest b∆, i.e. 
+
+ℓ⋆ 
+
+> 0: T
+
+(ℓtask , e ) = argmax   
+
+> ℓ(n)0: T∈L local (¯ℓ0: T)
+
+b∆( ℓtask , e, ℓ (n)0: T ). (4) Next, we collect the selected sequences into a rejection fine-tuning (RFT) dataset 
+
+(o, ℓ task , ℓ ⋆) ∈ D RFT , before distilling them into our LFP (i.e., expert iteration [29, 30, 10, 31]): 
+
+πRFT = argmax 
+
+> π∈Π
+
+E(o,ℓ task ,ℓ ⋆)∼D RFT 
+
+h
+
+log π(ℓ⋆ | o, ℓ task )
+
+i
+
+. (5) 4As we only train on language sequences with positive expected improvement, RFT should only improve performance in training scenarios under standard assumptions. However, we empirically observe that (i) the VLA may not be language steerable for some tasks, so language steering can be ignored or mapped to unintended action distributions that harm performance relative to the base VLA; and (ii) this risk is exacerbated when RFT is performed on a relatively small dataset, which can lead to out-of-distribution performance degradation. In response, we use the same data to train an 
+
+improvement head to predict at which initial states steering is beneficial. We define an improvement dataset (o0, ℓ task , e, b∆) ∈ D ∆, where b∆ is the estimated language improvement. We then train our improvement head on D∆ via square loss regression to predict how beneficial steering is: 
+
+ψ = argmin 
+
+> ψ∈Ψ
+
+E(o0,ℓ task ,e, b∆) ∼D ∆
+
+
+
+ψ(o0, ℓ task ) − b∆
+
+2
+
+. (6) We pass o0 as input to ψ so that the improvement head can implicitly condition on context e via o0.
+
+Phase 3: Conformalizing the Improvement Head. Perhaps the most natural “wrapper algorithm” would be to deploy the learned LFP πRFT iff ψ(o0, ℓ task ) ≥ 0, falling back to the static task descrip-tion ℓtask otherwise. However, when queried in an out-of-distribution scenario, ψ may incorrectly predict the LFP improves performance when it actually reduces task success rates. Ideally, we’d do no harm , only switching to our LFP at initial states where it improves performance over the raw task description. While we could achieve this goal via iteratively collecting data to re-train both our LFP and improvement head, this approach ignores a key asymmetry: it is easier to predict whether improvement is possible than knowing the precise language sequence to elicit this improved behavior. Thus, we propose taking a lighter-weight approach: conformalizing the improvement head to control its false positive rate (FPR), rather than retraining both components. In particular, we propose using class-conditional conformal prediction [28]. Mechanically, this boils down to choosing a higher steering threshold ˆqα > 0 on improvement head predictions to limit the chances of us deploying the LFP when repeating the raw task description would have worked better. More formally, let Dcal = {(Xi, e i, b∆i)}Ncal  
+
+> i=1
+
+denote our calibration set, where Xi = ( oi
+
+> 0
+
+, ℓ task ,i ),
+
+ei is the environment, and b∆i is the empirical language improvement. We construct Dcal from held-out visual and semantic OOD perturbations that neither πRFT nor ψ is trained on. Define 
+
+Y i = I{ b∆i ≥ 0}. Then, the label Y i = 0 implies steering harms performance. Let si = ψ(Xi)
+
+be the predicted improvement. We set ˆqα to the empirical (1 − α) quantile of the harmful subset of the calibration dataset, i.e., ˆqα = Quantile 1−α
+
+
+
+{si : {(si, Y i)}Ncal 
+
+> i=1
+
+, Y i = 0 }
+
+
+
+. Under standard exchangeability assumptions (i.e., that the calibration and test examples are drawn from the same distribution), we prove in Appendix 7.2 that we control the false positive rate of ψ at α:
+
+P (ψ(X) ≥ ˆqα | Y = 0) ≤ α. (7) Then, by steering when ψ(X) ≥ ˆqα, we also control the performance degradation probability at α.
+
+## 5 Experiments 
+
+In simulation and hardware environments, our experiments ask: (Q1) How does language steering compare to the base VLA and direct VLA fine-tuning in terms of in-distribution performance, out-of-distribution performance, and sample complexity? (Q2) Can conformalization prevent harmful steering? (Q3) Is closed-loop language feedback necessary, or is open-loop prompt search suffi-cient? Throughout, we evaluate on a suite of visual scene and semantic task perturbations. 
+
+5.1 Experimental Setup VLA. We use πVLA := π0.5 [4] fine-tuned on LIBERO ( π0.5-LIBERO) [32] in simulation, DROID (π0.5-DROID) in hardware [33], and run on a Franka robot with wrist and third person cameras. 
+
+Language Policy Training. Our LFP is initialized as the Qwen3-VL-4B-Instruct [34] model and fine-tuned via LoRA [35]. At train and test-time, we greedily decode ℓt from πRFT . In simulation 5Language Policy Training Success Rate ( →)                            
+
+> Deployment Success Rate ( →)
+> Deployment Environments
+> Scene: ID Bg ,
+> OOD Distractor
+> Scene: OOD Bg ,
+> ID Distractor
+> Scene: OOD Bg ,
+> OOD Distractor
+> π,-. 45*+
+> π,-.
+> πVLA ∘πSFT
+> π,-. ∘π)* +
+> π,-. ∘π<=
+> π,-. ∘π>?@A
+> Training Environments
+> “Put both pots
+> on the stove”
+> “Put the bowl in the
+> bottom close it”
+> “Put the soup and
+> sauce in the basket”
+> Task: Semantic
+> Perturbations
+> “Put the cans
+> in the basket”
+> “Stash away
+> the bowl”
+> “Put coffee makers
+> on the stove”
+> Train vs. Deploy Success Rate
+> Task Instruction Scene
+> …
+> …
+> …
+> …
+> …
+> …
+
+Figure 2: Simulation. Left : Baseline comparisons are shown in the language-policy training envi-ronment vs. held-out deployment environments; error bars are standard error over pooled episodes across perturbation combinations. πSFT improves ID performance but degrades OOD performance relative to πBase , showing that narration is not enough for robustness. Interactive search and con-formalization recover OOD robustness, with πRFT and πCP outperforming all baselines. Note that absolute success is higher in deployment environments because LIBERO-10 is near-saturated for the base VLA. Right : training and deployment environments are visualized for selected tasks. and hardware, Dexp consists of K = 50 videos per task rolled out from the respective base VLA policies, which are then narrated by Molmo2-8B [36] to produce Dnar and train πSFT . For interac-tive search, we generate N = 16 language sequence perturbations around the narration proposed by 
+
+πSFT via GPT-5.4 [37]; the resulting dataset Dsearch is used for further training the LFP as well as the improvement head. We calibrate the intervention threshold on held-out visual and semantic pertur-bation episodes where the empirical task-level improvement is negative. More details on datasets, prompts, hyperparameters, and conformalization are available in Appendix 7.1. 
+
+Simulation: Scenarios. We use LIBERO-OOD [9], which augments the LIBERO-10 long-horizon manipulation suite with visual and semantic perturbations. LIBERO-OOD includes two visual perturbations: Visual-Scene , which adds novel distractor objects, and Visual-Viewpoint , which changes the background and camera viewpoint. We further add Visual-Scene-Viewpoint , which adds novel distractors to Visual-Viewpoint, and two more semantic perturbations per task. We define ID/OOD with respect to the LFP πRFT training environment. We train πRFT on Visual-Viewpoint ;this environment is ID for πRFT , but visually OOD for the original π0.5-LIBERO VLA. During eval-uation, we run all models on both the LFP training environments and held-out visual environments: 
+
+Visual-Scene-Viewpoint (ID scene, OOD distractor objects), LIBERO-10 (OOD scene, ID distrac-tor objects), and Visual-Scene (OOD scene, OOD distractor objects). For each visual environment, we additionally evaluate on 5 semantic perturbations, yielding 200 visual-semantic evaluation com-binations in total. Example environments are shown in Fig. 2 (right). Finally, we evaluate novel task composition in Compose , which contains 13 unseen combinations of learned behaviors. See App. 7.3 for details. 
+
+Hardware: Scenarios. We run πVLA zero-shot without fine-tuning. For training our LFP, we design four tabletop tasks that include both steerable and un-steerable scenarios, each with visual and semantic perturbations (shown in Fig. 3). CubeSort : robot must place a green cube in the blue basket and a red cube in the orange basket; CubeMug : robot must place a green cube in the blue mug and then place the mug in the orange basket; MarkerBlock : robot must place a marker and a green block on a plate; Microwave : robot must place an orange bowl on top of a microwave and then close the microwave door. Details on prompts and setup in App. 7.3. Visual perturbations introduce additional distractor objects into the scene. For evaluation, semantic perturbations consist of one paraphrased instruction per task that preserve the task goal while varying wording, object references, and compositional structure. For example, in CubeSort , the training-time ℓtask is “put the green cube in the blue basket and the red cube in the orange basket and put away the green cube and the red cube in similar color baskets” and a perturbation asks “put away the green cube and the red cube in similar color baskets.” The full set of semantic perturbations are in Table 9. We 6CubeSort CubeMug            
+
+> MarkerBlock Microwave
+> ChipsCup
+> Train Env. Novel Env.
+> MarkerBowl
+> CubeSort CubeMug Microwave MarkerBlock
+> Marker
+> Bowl
+> Chips
+> Cup
+> Nom. VOOD SOOD
+> Success Rate ( →)
+> Nom. VOOD SOOD Nom. VOOD SOOD Nom. VOOD SOOD
+
+Figure 3: Hardware. We have four training tasks (Nom.) and their test-time visual (VOOD) and semantic (SOOD) perturbations, and two novel tasks (right). πRFT usually improves task perfor-mance, and conformalization reduces harmful interventions on tasks such as Microwave .additionally test two unseen tasks, ChipsCup , where the robot must put the chip bag and green cup in the basket, and MarkerBowl , where it should put the marker in the blue bowl and then place the bowl on a plate. For these unseen tasks, we evaluate zero-shot generalization of our LFP. 
+
+5.2 Q1: Why Should We Do Language Steering of VLAs? 
+
+We first evaluate whether language steering outperforms the base VLA and VLA fine-tuning across two axes: (i) in- and out-of-distribution robustness under visual and semantic perturbations, and (ii) 
+
+sample complexity, measured by varying the amount of successful on-policy fine-tuning data. Success Rate ( →)   
+
+> π!"# $%&'
+> π!"# π!"# ∘π(&'
+
+Figure 4: πRFT steers 
+
+πVLA in unseen behavior 
+
+Compose tasks. Error bars denote standard er-ror over episodes across all perturbation combi-nations. 
+
+Methods. We compare πRFT and πCP (α = 0 .10 ) against the base VLA 
+
+πVLA , direct VLA fine-tuning πVLA-SFT , the off-the-shelf VLM πBase ,and the narrated SFT language policy πSFT . For a fair comparison, 
+
+πVLA-SFT uses the same successful rollouts from the base VLA as our method, but also uses action labels: we fine-tune the VLA with LoRA [35] using the conditional flow matching loss on action chunks [4]. 
+
+Evaluation and Metrics. We measure mean success rate (binary per rollout) with standard error across visual and semantic perturbations. We do 50 rollouts per task and perturbation combination (200 total combi-nations) in simulation episodes and 30 in hardware. 
+
+Result: πRFT Has Strong ID and OOD Performance. Figure 2 shows how different iterations of the LFP perform in training and test environ-ments. πSFT improves training success but degrades deployment suc-cess, indicating that narration alone is not enough to elicit the right behavior from the frozen VLA. Interactive search improves both training and deployment success, and conformalization further im-proves deployment success by refusing harmful steering, which reflects our guarantee in Eq 7. Success Rate ( →) 
+
+> On -policy Rollouts per Task ( →)
+
+Figure 5: πRFT learns more from same on-policy rollout data compared to πVLA-SFT .Error bars are standard error over episodes across all per-turbation combinations. A comprehensive evaluation is reported in Table 10 in the Appendix. 
+
+πRFT and πCP achieve the best success rate in all four simulation con-ditions, while πVLA-SFT improves on the training-like conditions but degrades on OOD scene conditions, supporting our hypothesis that language steering generalizes better than directly adapting the action policy. Figure 4 shows that πRFT also solves unseen behavior compo-sitions, while direct VLA fine-tuning slightly degrades performance over πVLA . Hardware results in Fig. 3 show the same trend: πRFT 
+
+improves over πVLA on CubeSort , CubeMug , and MarkerBlock ,while conformalization mitigates harmful steering on Microwave .On novel hardware tasks, πRFT improves over both πVLA and πSFT ,suggesting that language steering transfers to novel tasks when the underlying VLA skills are present. 
+
+Result: πRFT Outperforms πVLA-SFT With Less On-Policy Rollout Data. Figure 5 compares 
+
+πRFT and πVLA-SFT when trained with 10, 30, and 50 successful on-policy rollouts per task. This data scaling study shows a favorable exchange rate for language steering: πRFT with only 10 rollouts 7Accuracy ( ↑) TPR ( ↑) FPR ( ↓) TNR ( ↑) FNR ( ↓) Refusal Rate Simulation πRFT 66 .22% 70 .18 % 38 .92% 61 .08% 29 .82 % 43 .42% 
+
+πCP 77 .74 % 67 .77% 9.31 % 90 .69 % 32 .23% 57 .66% 
+
+Hardware πRFT 84 .72% 100 .00 % 61 .11% 38 .89% 0.00 % 9.72% 
+
+πCP 99 .17 % 99 .63% 2.22 % 97 .78 % 0.37% 24 .72% 
+
+Table 1: Confusion Matrix of πRFT ’s Language Interventions. After conformalization done at 
+
+α = 0 .1, FPR decreases from 38 .92% to 9.31% in simulation and from 61 .11% to 2.22% on hard-ware. This shows that conformalization controls FPR at or below the target level, mitigating harmful steering while only slightly decreasing TPR. already matches or exceeds πVLA-SFT trained with 50 rollouts, using one-fifth as much fine-tuning data. Across all data scales, πRFT consistently outperforms πVLA-SFT in nominal, visually perturbed, and semantically perturbed settings. Moreover, while πVLA-SFT plateaus by 50 successful on-policy rollouts, πRFT continues to improve with additional data, suggesting that adapting the language interface uses limited fine-tuning data more efficiently than directly fine-tuning the VLA. 
+
+5.3 Q2: When Should We (Not) Do Language Steering? 
+
+We next investigate when language steering should be applied, and whether refusal and conformal-ization can preserve its benefits by selectively intervening only when language edits are likely to help. 
+
+Methods. We evaluate refusal and conformalization in both simulation and hardware. We compare three variants: no refusal πNR , which runs the same LFP as πRFT but disables the refusal mech-anism and always allows language steering; πRFT , which refuses using the uncalibrated threshold 
+
+ψ(o0, ℓ task ) ≥ 0; and the calibrated variant πCP , which uses conformal prediction with α = 0 .10 .
+
+Metrics. In simulation, we sweep α ∈ { 0.05 , 0.10 , . . . , 0.40 } and compare the target FPR to the empirical FPR on held-out test data of 10 episodes per condition, averaged over 5 randomized calibration/test splits. In both simulation and hardware, we report the confusion matrix of πRFT 
+
+and πCP (α = 0 .10 ): True Positive Rate (TPR; helpful task, steers), False Positive Rate (FPR; harmful task, steers), True Negative Rate (TNR; harmful task, refuses), and False Negative Rate (FNR; helpful task, refuses). We also report accuracy, refusal rate (the total percentage of episodes refused), and mean success rate across visual and semantic perturbations. π!"# ∘ π$%&           
+
+> π!"# ∘π'(
+> (α=0.10 )
+> π!"# ∘π)$
+> (No Refusal)
+> Empirical FPR ( ←)
+> Success Rate ( →)
+> Target FPR ( α)
+> Empirical FPR
+> π!"# ∘π'(
+> (Conformalized )
+> π!"# ∘π$%&
+> (Unc onformalized )
+> Ideal
+> (Empirical = Target)
+
+Figure 6: Simulation Refusal Results . Left : success rate vs. FPR for no refusal πNR , πRFT , and πCP . Both refusal and conformalization help performance. Right : reliability diagram shows that empirical FPR tracks the target α across 5 randomized splits. 
+
+Result: Refusal and Conformaliza-tion Improve Performance. Fig-ure 6 (left) shows that refusing lan-guage steering when it is harm-ful improves success rates, com-puted over 10,000 simulation roll-outs pooled across the 200 visual and semantic perturbation combina-tions. Without refusal, πNR achieves 
+
+70 .93% success (red dot in Figure 6); adding refusal improves success to 
+
+74 .96% , and conformalization fur-ther improves success to 75 .96% by reducing harmful steering. 
+
+Result: Conformalization Controls Harmful Steering. Conformalization substantially reduces harmful steering. In simulation, FPR drops from 38 .92% to 9.31% at α = 0 .1, matching the target error rate; equivalently, TNR rises from 61 .08% to 90 .69% . Hardware shows the same trend: FPR drops from 61 .11% to 2.22% , increasing accuracy from 84 .72% to 99 .17% with only a small TPR 8Put the green block in        
+
+> the blue bin
+> Put the green cube in the blue basket and the red cube in the orange basket.
+> Put the green block in
+> the blue bin
+> Put the red block in
+> the orange bin
+> Put the green block in
+> the blue bin
+> Put the green block in
+> the blue bin
+> Puts green cube in wrong bin Human perturbs scene! Puts green cube in right bin
+> π34/ (ℓB∣)B,ℓC?@D )
+> π789 ∘π34/
+> πVLA (⋅∣)B,ℓtask )
+
+Language 
+
+Steered VLA 
+
+Base VLA  
+
+> ℓC?@D
+> Picks up the green cube
+> Human perturbs scene! Puts green cube in right bin Picks up the green cube Recovers from disturbance
+
+Instruction 
+
+Language Policy Figure 7: Closed-loop Language Steering vs. Base VLA. After the robot initially places the green cube correctly, a human moves the cube back into the scene. πVLA continues executing from the original task instruction and misplaces the cube, whereas πRFT observes the changed state, outputs an updated language action ℓt, and steers the frozen VLA to recover from the perturbation. decrease ( 100% to 99 .63% ). Figure 6 (right) further shows that empirical FPR tracks the target α
+
+across conformalization levels. The full confusion matrix is shown in Table 1. 
+
+5.4 Q3: How Does Open- vs. Closed-Loop Language Feedback Influence VLA Performance? 
+
+We finally ablate two design choices that determine how language feedback is applied. First, we test whether closed-loop feedback is necessary by comparing the LFP against an open-loop static rewriter that edits the task instruction once and holds it fixed throughout the episode. Second, we study the structure of the local search space, comparing trajectory-level perturbations of complete language sequences against phrase-level perturbations of individual language actions. 
+
+Methods. In simulation, we compare our trajectory-level closed-loop search against two variants: open-loop search, which learns a single static task description edit which is held constant throughout the episode, and a closed-loop phrase-level search, which perturbs each ℓt independently. 
+
+Method SR (%) Refusal (%) OL 71 .3 ± 0.5 43 .5
+
+Phrase (CL) 70 .4 ± 0.5 45 .9
+
+Traj. (CL) 75 .0 ± 0.4 43 .4
+
+Table 2: Simulation Search Ablations. 
+
+OL: open-loop; CL: closed-loop. Mean success rate with standard error over episodes across all perturbation combi-nations are shown. 
+
+Result. We now demonstrate that closed loop steering provides a desirable form of robustness: the ability to recover from adversarial perturbations midway through the task. This behavior relies on both components of the LFP: closed-loop observation feedback and language-based steering for OOD generalization. Figure 7 depicts this behavior. Midway through the task, a person removes the green block that the robot had previously placed in the blue bin. The base VLA picks up the green block, but places it in the wrong orange bin. Our closed-loop LFP updates its utterance based on the changed scene, generating the corrective instruction “Put the green block in the blue bin” and recovering from the perturbation by the action taken. Table 2 shows that trajectory-level closed-loop language feedback outperforms open-loop prompt search, indicating that language should adapt as the scene evolves. Trajectory-level search also outperforms phrase-level search, suggesting that sequence-level perturbations make the search space more tractable without sacrificing high quality candidates. 
+
+## 6 Limitations 
+
+Although our conformalized language feedback policy improves base VLA performance and has strong harmlessness guarantees, limitations still remain. 9Complementary Steering Methods. Steering via language is one of many ways to steer a pre-trained model. However, as we saw in this work, language is not always the best way to exert control authority over the VLA, which motivated our refusal mechanism. Future work should study the complementary role of editing language, editing the observation [38], steering the latents of the model [24, 39], or post-hoc editing the action generation directly [40]. 
+
+Language Search Strategy. The language search space is still fundamentally a very large space to search over, and in this work we proposed a framework that searches locally around a fixed language sequence via paraphrasing. Future work should study how the language search space can be efficiently searched while still covering large, diverse, and realistic linguistic perturbations [41]. 
+
+Acknowledgments 
+
+We are grateful to Junwon Seo for his insights and discussions on conformal prediction and calibra-tion. This research was supported in part by funding from the Defense Advanced Research Projects Agency (DARPA) SAFRON program Agreement No. HR0011-25-3-0204. The views, opinions and/or findings expressed are those of the author and should not be interpreted as representing the official views or policies of DARPA or the U.S. Government. 
+
+## References 
+
+[1] S. Wanna, A. Luhtaru, J. Salfity, R. Barron, J. Moore, C. Matuszek, and M. Pryor. Limited linguistic diversity in embodied ai datasets, 2026. URL https://arxiv.org/abs/2601. 03136 .[2] Q. Li. Vlas are confined yet capable of generalizing to novel instructions, 2026. URL https: //arxiv.org/abs/2505.03500 .[3] M. J. Kim, K. Pertsch, S. Karamcheti, T. Xiao, A. Balakrishna, S. Nair, R. Rafailov, E. Foster, G. Lam, P. Sanketi, Q. Vuong, T. Kollar, B. Burchfiel, R. Tedrake, D. Sadigh, S. Levine, P. Liang, and C. Finn. Openvla: An open-source vision-language-action model, 2024. URL 
+
+https://arxiv.org/abs/2406.09246 .[4] P. Intelligence, K. Black, N. Brown, J. Darpinian, K. Dhabalia, D. Driess, A. Esmail, M. Equi, C. Finn, N. Fusai, M. Y. Galliker, D. Ghosh, L. Groom, K. Hausman, B. Ichter, S. Jakubczak, T. Jones, L. Ke, D. LeBlanc, S. Levine, A. Li-Bell, M. Mothukuri, S. Nair, K. Pertsch, A. Z. Ren, L. X. Shi, L. Smith, J. T. Springenberg, K. Stachowicz, J. Tanner, Q. Vuong, H. Walke, A. Walling, H. Wang, L. Yu, and U. Zhilinsky. π0.5: a vision-language-action model with open-world generalization, 2025. URL https://arxiv.org/abs/2504.16054 .[5] P. Intelligence, B. Ai, A. Amin, R. Aniceto, A. Balakrishna, G. Balke, K. Black, G. Bokin-sky, S. Cao, T. Charbonnier, V. Choudhary, F. Collins, K. Conley, G. Connors, J. Darpinian, K. Dhabalia, M. Dhaka, J. DiCarlo, D. Driess, M. Equi, A. Esmail, Y. Fang, C. Finn, C. Glos-sop, T. Godden, I. Goryachev, L. Groom, H. Habeeb, H. Hancock, K. Hausman, G. Hussein, V. Hwang, B. Ichter, C. Jacobsen, S. Jakubczak, R. Jen, T. Jones, G. Kammerer, B. Katz, L. Ke, M. Khadikov, C. Kuchi, M. Lamb, D. LeBlanc, B. LeCount, S. Levine, X. Li, A. Li-Bell, V. Lialin, Z. Liang, W. Lim, Y. Lu, E. Luo, V. Mano, N. Marwaha, A. Mongush, L. Mur-phy, S. Nair, T. Patterson, K. Pertsch, A. Z. Ren, G. Schelske, C. Sharma, B. Shi, L. X. Shi, L. Smith, J. T. Springenberg, K. Stachowicz, W. Stoeckle, J. Tang, J. Tanner, S. Tekeste, M. Torne, K. Vedder, Q. Vuong, A. Walling, H. Wang, J. Wang, X. Wang, C. Whalen, S. Whitmore, B. Williams, C. Xu, S. Yoo, L. Yu, W. Zhang, Z. Zhang, and U. Zhilinsky. 
+
+π0.7: a steerable generalist robotic foundation model with emergent capabilities, 2026. URL 
+
+https://arxiv.org/abs/2604.15483 .[6] Q. Zhao, Y. Lu, M. J. Kim, Z. Fu, Z. Zhang, Y. Wu, Z. Li, Q. Ma, S. Han, C. Finn, A. Handa, M.-Y. Liu, D. Xiang, G. Wetzstein, and T.-Y. Lin. Cot-vla: Visual chain-of-thought reasoning for vision-language-action models, 2025. URL https://arxiv.org/abs/2503.22020 .10 [7] J. Lee, J. Duan, H. Fang, Y. Deng, S. Liu, B. Li, B. Fang, J. Zhang, Y. R. Wang, S. Lee, W. Han, W. Pumacay, A. Wu, R. Hendrix, K. Farley, E. VanderBilt, A. Farhadi, D. Fox, and R. Krishna. Molmoact: Action reasoning models that can reason in space, 2025. URL https: //arxiv.org/abs/2508.07917 .[8] H. Fang, J. Duan, D. Clay, S. Wang, S. Liu, W. Huang, X. Fan, W.-C. Tsai, S. Chen, Y. R. Wang, S. Xing, J. Cho, J. S. Park, A. Eftekhar, P. Sushko, K. Farley, A. Wadhwa, C. Harrison, W. Han, Y.-C. Lee, E. VanderBilt, R. Hendrix, S. Ellawela, L. Ngoo, J. Chai, Z. Ren, A. Farhadi, D. Fox, and R. Krishna. Molmoact2: Action reasoning models for real-world deployment, 2026. URL 
+
+https://arxiv.org/abs/2605.02881 .[9] Y. Wu, A. Li, T. Hermans, F. Ramos, A. Bajcsy, and C. P´ erez-D’Arpino. Do what you say: Steering vision-language-action models via runtime reasoning-action alignment verification, 2026. URL https://arxiv.org/abs/2510.16281 .[10] A. K. Jain, V. Mohta, S. Kim, A. Bhardwaj, J. Ren, Y. Feng, S. Choudhury, and G. Swamy. A smooth sea never made a skilled sailor: Robust imitation via learning to search, 2025. URL 
+
+https://arxiv.org/abs/2506.05294 .[11] W. Xiao, H. Lin, A. Peng, H. Xue, T. He, Y. Xie, F. Hu, J. Wu, Z. Luo, L. J. Fan, G. Shi, and Y. Zhu. Self-improving vision-language-action models with data generation via residual rl, 2025. URL https://arxiv.org/abs/2511.00091 .[12] T. Kollar, S. Tellex, D. Roy, and N. Roy. Toward understanding natural language directions. In 2010 5th ACM/IEEE International Conference on Human-Robot Interaction (HRI) , pages 259–266, 2010. doi:10.1109/HRI.2010.5453186. [13] S. Tellex, T. Kollar, S. Dickerson, M. Walter, A. Banerjee, S. Teller, and N. Roy. Understanding natural language commands for robotic navigation and mobile manipulation. Proceedings of the AAAI Conference on Artificial Intelligence , 25(1):1507–1514, Aug. 2011. doi:10.1609/ aaai.v25i1.7979. URL https://ojs.aaai.org/index.php/AAAI/article/view/7979 .[14] A. Z. Ren, A. Dixit, A. Bodrova, S. Singh, S. Tu, N. Brown, P. Xu, L. Takayama, F. Xia, J. Varley, Z. Xu, D. Sadigh, A. Zeng, and A. Majumdar. Robots that ask for help: Uncertainty alignment for large language model planners, 2023. URL https://arxiv.org/abs/2307. 01928 .[15] L. X. Shi, Z. Hu, T. Z. Zhao, A. Sharma, K. Pertsch, J. Luo, S. Levine, and C. Finn. Yell at your robot: Improving on-the-fly from language corrections, 2024. URL https://arxiv. org/abs/2403.12910 .[16] W. Chen, J. S. Bhatia, C. Glossop, N. Mathihalli, R. Doshi, A. Tang, D. Driess, K. Pertsch, and S. Levine. Steerable vision-language-action policies for embodied reasoning and hierarchical control, 2026. URL https://arxiv.org/abs/2602.13193 .[17] V. Myers, B. C. Zheng, O. Mees, S. Levine, and K. Fang. Policy adaptation via language optimization: Decomposing tasks for few-shot imitation, 2024. URL https://arxiv.org/ abs/2408.16228 .[18] J. Kwok, X. Zhang, M. Xu, Y. Liu, A. Mirhoseini, C. Finn, and M. Pavone. Scaling verification can be more effective than scaling policy learning for vision-language-action alignment, 2026. URL https://arxiv.org/abs/2602.12281 .[19] S. Huang, J. Shao, K. Wang, Q. Chen, J. Sun, Y. Guo, M. Schwager, and J. Bohg. Break-ing lock-in: Preserving steerability under low-data vla post-training, 2026. URL https: //arxiv.org/abs/2604.23121 .11 [20] Z. Chen, A. Tian, L. Wang, B. Joffe, Y. C. Lin, Y. Chen, S. Karamcheti, and D. Xu. Resteer: Quantifying and refining the steerability of multitask robot policies, 2026. URL https:// arxiv.org/abs/2603.17300 .[21] Z. Lin, J. Duan, H. Fang, D. Fox, R. Krishna, C. Tan, and B. Wen. Failsafe: Reasoning and recovery from failures in vision-language-action models, 2025. URL https://arxiv.org/ abs/2510.01642 .[22] B. Zhang, Y. Zhang, J. Ji, Y. Lei, Y. Cai, J. Dai, Y. Chen, and Y. Yang. Safevla: Towards safety alignment of vision-language-action model via constrained learning, 2026. URL https:// arxiv.org/abs/2503.03480 .[23] C. Mitra, Y. Luo, R. Saravanan, D. Niu, A. Pai, J. Thomason, T. Darrell, A. Anwar, D. Ra-manan, and R. Herzig. Mechanistic finetuning of vision-language-action models via few-shot demonstrations, 2025. URL https://arxiv.org/abs/2511.22697 .[24] B. H¨ aon, K. Stocking, I. Chuang, and C. Tomlin. Mechanistic interpretability for steering vision-language-action models, 2025. URL https://arxiv.org/abs/2509.00328 .[25] H. Buurmeijer, C. A. Alonso, A. Swann, and M. Pavone. Observing and controlling features in vision-language-action models, 2026. URL https://arxiv.org/abs/2603.05487 .[26] A. Swann, L. McGranahan, H. Buurmeijer, M. K. III, and M. Schwager. Sparse autoencoders reveal interpretable and steerable features in vla models, 2026. URL https://arxiv.org/ abs/2603.19183 .[27] Q. Gu, Y. Ju, S. Sun, I. Gilitschenski, H. Nishimura, M. Itkina, and F. Shkurti. Safe: Multitask failure detection for vision-language-action models, 2025. URL https://arxiv.org/abs/ 2506.09937 .[28] V. Vovk, A. Gammerman, and G. Shafer. Algorithmic learning in a random world . Springer, 2005. [29] T. Anthony, Z. Tian, and D. Barber. Thinking fast and slow with deep learning and tree search. 
+
+Advances in neural information processing systems , 30, 2017. [30] W. Sun, G. J. Gordon, B. Boots, and J. Bagnell. Dual policy iteration. Advances in Neural Information Processing Systems , 31, 2018. [31] S. Levine and V. Koltun. Guided policy search. In International conference on machine learning , pages 1–9. PMLR, 2013. [32] B. Liu, Y. Zhu, C. Gao, Y. Feng, Q. Liu, Y. Zhu, and P. Stone. Libero: Benchmarking knowledge transfer for lifelong robot learning, 2023. URL https://arxiv.org/abs/2306. 03310 .[33] A. Khazatsky, K. Pertsch, S. Nair, A. Balakrishna, S. Dasari, S. Karamcheti, S. Nasiriany, M. K. Srirama, L. Y. Chen, K. Ellis, P. D. Fagan, J. Hejna, M. Itkina, M. Lepert, Y. J. Ma, P. T. Miller, J. Wu, S. Belkhale, S. Dass, H. Ha, A. Jain, A. Lee, Y. Lee, M. Memmel, S. Park, I. Radosavovic, K. Wang, A. Zhan, K. Black, C. Chi, K. B. Hatch, S. Lin, J. Lu, J. Mercat, A. Rehman, P. R. Sanketi, A. Sharma, C. Simpson, Q. Vuong, H. R. Walke, B. Wulfe, T. Xiao, J. H. Yang, A. Yavary, T. Z. Zhao, C. Agia, R. Baijal, M. G. Castro, D. Chen, Q. Chen, T. Chung, J. Drake, E. P. Foster, J. Gao, V. Guizilini, D. A. Herrera, M. Heo, K. Hsu, J. Hu, M. Z. Irshad, D. Jackson, C. Le, Y. Li, K. Lin, R. Lin, Z. Ma, A. Maddukuri, S. Mirchandani, D. Morton, T. Nguyen, A. O’Neill, R. Scalise, D. Seale, V. Son, S. Tian, E. Tran, A. E. Wang, Y. Wu, A. Xie, J. Yang, P. Yin, Y. Zhang, O. Bastani, G. Berseth, J. Bohg, K. Goldberg, A. Gupta, A. Gupta, D. Jayaraman, J. J. Lim, J. Malik, R. Mart´ ın-Mart´ ın, S. Ramamoorthy, D. Sadigh, S. Song, J. Wu, M. C. Yip, Y. Zhu, T. Kollar, S. Levine, and C. Finn. Droid: A large-scale in-the-wild robot manipulation dataset, 2025. URL https://arxiv.org/abs/ 2403.12945 .12 [34] S. Bai, Y. Cai, R. Chen, K. Chen, X. Chen, Z. Cheng, L. Deng, W. Ding, C. Gao, C. Ge, W. Ge, Z. Guo, Q. Huang, J. Huang, F. Huang, B. Hui, S. Jiang, Z. Li, M. Li, M. Li, K. Li, Z. Lin, J. Lin, X. Liu, J. Liu, C. Liu, Y. Liu, D. Liu, S. Liu, D. Lu, R. Luo, C. Lv, R. Men, L. Meng, X. Ren, X. Ren, S. Song, Y. Sun, J. Tang, J. Tu, J. Wan, P. Wang, P. Wang, Q. Wang, Y. Wang, T. Xie, Y. Xu, H. Xu, J. Xu, Z. Yang, M. Yang, J. Yang, A. Yang, B. Yu, F. Zhang, H. Zhang, X. Zhang, B. Zheng, H. Zhong, J. Zhou, F. Zhou, J. Zhou, Y. Zhu, and K. Zhu. Qwen3-vl technical report, 2025. URL https://arxiv.org/abs/2511.21631 .[35] E. J. Hu, Y. Shen, P. Wallis, Z. Allen-Zhu, Y. Li, S. Wang, L. Wang, and W. Chen. Lora: Low-rank adaptation of large language models, 2021. URL https://arxiv.org/abs/2106. 09685 .[36] C. Clark, J. Zhang, Z. Ma, J. S. Park, M. Salehi, R. Tripathi, S. Lee, Z. Ren, C. D. Kim, Y. Yang, V. Shao, Y. Yang, W. Huang, Z. Gao, T. Anderson, J. Zhang, J. Jain, G. Stoica, W. Han, A. Farhadi, and R. Krishna. Molmo2: Open weights and data for vision-language models with video understanding and grounding, 2026. URL https://arxiv.org/abs/2601.10611 .[37] OpenAI. Gpt-5.4 thinking system card. Technical report, OpenAI, Mar. 2026. URL https: //deploymentsafety.openai.com/gpt-5-4-thinking/gpt-5-4-thinking.pdf . Ac-cessed: 2026-05-12. [38] A. J. Hancock, A. Z. Ren, and A. Majumdar. Run-time observation interventions make vision-language-action models more visually robust, 2024. URL https://arxiv.org/abs/2410. 01971 .[39] A. Wagenmaker, M. Nakamoto, Y. Zhang, S. Park, W. Yagoub, A. Nagabandi, A. Gupta, and S. Levine. Steering your diffusion policy with latent space reinforcement learning, 2025. URL 
+
+https://arxiv.org/abs/2506.15799 .[40] K. Nakamura, A. L. Bishop, S. Man, A. M. Johnson, Z. Manchester, and A. Bajcsy. How to train your latent control barrier function: Smooth safety filtering under hard-to-model con-straints. 8th Annual Learning for Dynamics & Control Conference , 2026. [41] X. L. Li, N. Chowdhury, D. D. Johnson, T. Hashimoto, P. Liang, S. Schwettmann, and J. Steinhardt. Eliciting language model behaviors with investigator agents, 2025. URL 
+
+https://arxiv.org/abs/2502.01236 .13 7 Appendix 
+
+7.1 Method and Implementation Details Narrated Fine-tuning. To generate the narration prior for πSFT , we leverage the video understand-ing capabilities of Molmo2-8B [36]. Given Dexp = {(ξ, ℓ task )}, where each ξ = ( o0, . . . , o T ) is a visual trajectory paired with a task description, Molmo2-8B generates task decompositions of each video, as shown in figure 8. Given the most frequent decomposition, Molmo2-8B is then queried again to narrate the video. This ensures that each video gets a consistent temporal label for super-vised fine-tuning. The prompt template for narration is shown in figure 9. Through decomposition and narration, Dnar of tuples (o, ℓ task , ℓ ) is obtained. πSFT is fine-tuned via standard cross-entropy objective. Hyperparameters are detailed in table 3. You are a robot task decomposition assistant. 
+
+You will be presented with a video of a third -person camera view of a robot 
+
+performing a manipulation task on a tabletop. 
+
+Your goal is to generate plans for the robot based on the task goal. 
+
+Task goal: {task_description} 
+
+The plans should be a list of action steps to complete the task goal. 
+
+Each step must be a brief atomic action description using imperative verbs. 
+
+RULES: 
+
+Always use 'the' when referring to objects or locations 
+
+Each plan MUST be unique. Do not repeat the same plan twice 
+
+Do NOT add descriptive modifiers unless required by the task goal 
+
+Be granular as possible 
+
+STRUCTURE: 
+
+Output a numbered list in the format 1. ..., 2. ..., 3. ... 
+
+plans: 
+
+Figure 8: Prompt template for task decomposition. You are an expert video annotator for robotic manipulation. 
+
+You will be presented with a video of a robot completing a task. The video has 
+
+FRAME NUMBERS wriWen visibly on the screen. 
+
+Your goal is to segment the video by identifying the Start and End frame numbers for 
+
+each step in the plan based on what the robot SHOULD BE DOING. 
+
+Task goal: {task_description} 
+
+Ordered Plan: 
+
+{decomposed_steps} 
+
+Trajectory length: {trajectory_length} frames 
+
+Instructions: 
+
+Watch the video and locate the exact moment each step begins and ends. 
+
+Use the visual frame numbers burnt into the video as your reference. 
+
+The steps must be contiguous (the End Frame of step 1 is the Start Frame of step 2). 
+
+All frames must be included. 
+
+Output Format: 
+
+Provide a list of the step and the start and end frame. Each line must have 'step', 
+
+'start_frame', and 'end_frame'. 
+
+Example Output: 
+
+step: pick up the object, start_frame: 0, end_frame: 45 
+
+step: place it on the location, start_frame: 46, end_frame: 120 
+
+Output: 
+
+Figure 9: Prompt template for narration. 14 Interactive Language Search. Interactive language search generates local perturbations around 
+
+πSFT and estimates the improvement of each perturbation. To generate local perturbations, we leverage the language capabilities of gpt-5.4 [37] with high reasoning mode. Given the decom-position used to train πSFT , we query gpt-5.4 with it along with the task description ℓtask to obtain 
+
+N = 16 trajectory-level semantic perturbations, where each perturbation rewrites the entire nar-rated sequence while preserving the intended task semantics. These perturbations paraphrase the verb, noun, and a mix of both. This forms an offline teacher-student pipeline: high-capacity models generate narrations and perturbations for search, which are then distilled into the lightweight closed-loop policy πRFT . The prompt template used for perturbation is depicted in figure 10. Interactive search selects the candidate sequence that maximizes expected improvement over the base VLA under the task distribution. In practice, we estimate ∆( ℓtask , c, ℓ (n)0: T ) with Monte Carlo rollouts: steered rollouts are initialized from p(o0 | ℓtask , e ) and executed using the frozen VLA with the SFT-produced language sequence perturbed to ℓ(n)0: T , while base rollouts are initialized independently from the same distribution and executed using the original task instruction ℓtask . In simulation, we first run M = 25 rollouts per language sequence, keep the top G = 8 candidates, and evaluate them with M = 75 additional rollouts. In hardware, we run initially for M = 10 rollouts, then M = 20 additional rollouts for top 
+
+G = 8 candidates. For rejection fine-tuning, we use K′ = 50 successful on-policy demonstrations from the selected language sequence per task. Hyperparameters for expert iteration and improve-ment predictor training are denoted in table 4 and table 5, respectively. For all training runs, an Nvidia A6000 Ada was used. You are a robot task narration paraphrase assistant. 
+
+> You will be given a list of action steps for a robot manipulation task that has been
+> decomposed from a task description.
+> Your goal is to produce exactly { num_edits } different edited versions of these steps.
+> Each version must keep the same semantic meaning and structure.
+> Task description: {task_description}
+> Original steps:
+> {decomposed_steps}
+> PARAPHRASING STRATEGIES:
+> You MUST use a MIX of the following strategies across your { num_edits } edits. You
+> MUST use these strategies evenly across the batch:
+> A. Verb -only: Change ONLY the action verbs. Keep objects exactly as -is.
+> B. Object -only: Change ONLY the nouns. Do not abstract away the semantics.
+> C. Both: Change both the action verbs AND the nouns.
+> FORMATTING RULES:
+> Output exactly { num_edits } edited versions.
+> For each version, write the header "Edit K:" on its own line (K = 1, 2, ..., { num_edits }),
+> then a numbered list of steps (1. ..., 2. ...).
+> Use lowercase only.
+> Do not use periods at the end of steps.
+> Each version must have the same number of steps as the original.
+> Keep each step concise (similar length to original).
+> Do not include the strategy names in the output, just the phrases.
+> Generate exactly { num_edits } edited versions:
+
+Figure 10: Prompt template for candidate sequence generation. 
+
+Conformalization. Finally, we calibrate the intervention threshold on held-out visual and semantic perturbation episodes where the empirical task-level improvement is negative. In both simulation and hardware, we collect Ncal = 20 calibration samples for each perturbation combination. 
+
+Deployment-time Steering. At deployment time, we query πRFT at every replan step of the VLA. In LIBERO, this is every 5 environment steps, and in DROID, this is every 8 environment steps. The prompt template for closed-loop steering is shown in Fig. 11. 15 7.2 Conformal Guarantee for Calibrated Refusal 
+
+We prove the class-conditional guarantee in Eq. 7. Recall that the calibration set is 
+
+Dcal = {(Xi, c i, b∆i)}Ncal  
+
+> i=1
+
+, where Xi = ( oi
+
+> 0
+
+, ℓ task ,i ) and b∆i is the empirical language improve-ment of steering over the base VLA. We define Y i = I{ b∆i ≥ 0}, so Y i = 0 denotes a harmful steering example, and let si = ψ(Xi) be the learned improvement score. Let I0 = {i : Y i = 0} denote the harmful calibration examples, and let m = |I 0|. Let 
+
+s0(1) ≤ s0(2) ≤ · · · ≤ s0(m) denote the sorted scores {si : i ∈ I 0}. We set the calibrated steer-ing threshold to the finite-sample conformal quantile 
+
+ˆqα = s0(k), k = ⌈(m + 1)(1 − α)⌉ , (8) with the convention that ˆqα = + ∞ if k > m .Consider a deployment example (X, Y ) drawn exchangeably with the calibration examples, and condition on the event Y = 0 . Let s = ψ(X) denote its improvement score. Under the standard conformal exchangeability assumption, the scores 
+
+{si : i ∈ I 0} ∪ { s}
+
+are exchangeable conditional on Y = 0 . Therefore, the rank of s among these m + 1 harmful-class scores is uniformly distributed up to ties. The calibrated rule incorrectly allows steering on a harmful example only when 
+
+s = ψ(X) ≥ ˆqα.
+
+By the definition of the conformal quantile in Eq. 8, this event occurs only when the test score lies above the (1 − α) quantile of the harmful-class score distribution. Hence, 
+
+P (ψ(X) ≥ ˆqα | Y = 0) ≤ α. (9) Thus, among examples where steering is empirically harmful, the probability that the calibrated rule incorrectly permits steering is at most α.You are a robot planning assistant.   
+
+> You will be presented with a concatenated image of wrist and third -person camera
+> view of a robot performing a manipulation task on a tabletop.
+> Your goal is to generate a prompt for the robot based on the task goal and the robot's
+> current visual state.
+> Task goal: {task_description}
+> Output the next prompt that moves the task forward toward completion.
+> Rules:
+> -Your output should be a single sentence
+> -Do not include reasoning or multiple steps in your output
+
+Figure 11: Prompt template for closed-loop steering. 16 Category Value 
+
+Model 
+
+Base model Qwen3-VL-4B-Instruct Adapter LoRA (r=64, α = 128 , dropout=0) Target modules q, k, v, o, gate, up, down proj 
+
+Data 
+
+Inputs Wrist + agent view images Supervision Per-step (ot, ℓ t) demonstrations Loss Cross-entropy 
+
+Optimization 
+
+Optimizer AdamW Learning rate 1 × 10 −5
+
+Weight decay 0.01 
+
+Batch size 1 (no accumulation) Epochs 1Precision bfloat16 
+
+Table 3: Narrated fine-tuning hyperparameters. 
+
+Category Value 
+
+Model 
+
+Base model Qwen3-VL-4B-Instruct Initialization SFT LoRA checkpoint (frozen base) 
+
+Data 
+
+Inputs Wrist + agent view images Supervision Per-step (ot, ℓ t) demonstrations Loss Cross-entropy 
+
+Optimization 
+
+Optimizer AdamW Learning rate 1 × 10 −5
+
+Weight decay 0Batch size 1Epochs 1Precision bfloat16 
+
+Table 4: Expert Iteration hyperparameters. 
+
+Category Value 
+
+Model 
+
+Backbone Frozen πRFT 
+
+Feature Final hidden state Head MLP ( d → 64 → 1, ReLU, dropout=0.1) Feature norm Per-dimension z-score 
+
+Data 
+
+Inputs Hidden state features Supervision Task improvement Target ˆ∆i
+
+Optimization 
+
+Optimizer Adam Learning rate 1 × 10 −3
+
+Weight decay 1 × 10 −3
+
+Loss MSE Epochs up to 200 (early stopping) Validation split 20% 
+
+Table 5: improvement predictor hyperparame-ters. 
+
+Task Nominal Task Instruction 
+
+0 put both the alphabet soup and the tomato sauce in the basket 1 put both the cream cheese box and the butter in the basket 2 turn on the stove and put the moka pot on it 3 put the black bowl in the bottom drawer of the cabinet and close it 4 put the white mug on the left plate and put the yellow and white mug on the right plate 5 pick up the book and place it in the back compartment of the caddy 6 put the white mug on the plate and put the chocolate pudding to the right of the plate 7 put both the alphabet soup and the cream cheese box in the basket 8 put both moka pots on the stove 9 put the yellow and white mug in the microwave and close it 
+
+Table 6: LIBERO-10 task instructions. 17 Train Env 
+
+> ID Scene OOD Distractor
+> OOD Scene ID Distractor
+> OOD Scene OOD Distractor
+
+Figure 12: 10 LIBERO-OOD tasks (left to right), as well as their perturbations (top to bottom). Novel Composition Env 
+
+Figure 13: LIBERO-OOD Novel Behavior Composition tasks. Tasks 10-16 correspond to the 1st environment, tasks 17-18 to the 2nd, task 19 to the 3rd, task 20-21 to the 4th, and task 22 to the 5th. 
+
+7.3 Benchmark Details LIBERO-OOD. LIBERO-OOD [9] contains 2 visually perturbed environments, Visual-Scene 
+
+(OOD Scene, OOD Distractor), which adds novel distractor objects, and Visual-Viewpoint (Train Env), which changes the background and camera viewpoints. It also contains 2 semantic perturba-tions over the original task description ℓtask . We further add Visual-Scene-Viewpoint (ID Scene, OOD Distractor), which combines novel distractors with Visual-Viewpoint, as well as 2 additional semantic perturbations per task. The full suite of tasks are visualized in figure 12 (tasks 0-9 are shown left to right), and their respective nominal task instructions are shown in table 6. LIBERO-10 is denoted as OOD Scene ID Distractor. The perturbed instructions are shown in table 7. Novel be-havior composition tasks are shown in figure 4, and their corresponding task instructions are shown in table 8. 
+
+Hardware. We evaluate our framework on 4 distinctive training environments, along with a visual and semantic perturbation per environment. The visual perturbation adds new distractor objects to the scene. We additionally evaluate on 2 novel tasks that are unseen during training. CubeSort 
+
+requires the robot to place a green cube in the blue basket and a red cube in the orange basket, 
+
+CubeMug requires the robot to place a green cube in the blue mug, then the blue mug in an orange basket, Microwave requires the robot to place the orange bowl on top of the microwave and close 18 Task Perturbed Instructions 
+
+0 SOOD 1: place the alphabet soup in the basket and the tomato sauce as well 
+
+SOOD 2: put both the can of soup and can of sauce in the basket 
+
+SOOD 3: put away the alphabet soup and tomato sauce in the basket 
+
+SOOD 4: place the can of soup in the basket and the can of sauce in the basket 1 SOOD 1: pick up both the cream cheese box and the butter and place them in the basket 
+
+SOOD 2: put both the box of cheese and the box of butter in the basket 
+
+SOOD 3: put away the cheese box and butter box in the basket 
+
+SOOD 4: stash the cream cheese and butter 2 SOOD 1: switch the stove on and set the moka pot on the stove 
+
+SOOD 2: turn on the cooktop and place the moka machine on it 
+
+SOOD 3: put the moka pot over the heat 
+
+SOOD 4: heat up the stove and put the moka pot on it 3 SOOD 1: move the black bowl to the bottom drawer and close the drawer of the cabinet 
+
+SOOD 2: put the middle bowl to the lowest drawer and close it 
+
+SOOD 3: put away the black bowl in the bottom drawer 
+
+SOOD 4: stash away the middle bowl in the lower cabinet 4 SOOD 1: place two mugs on the plates, left one is the white mug and the right one is the yellow and white mug 
+
+SOOD 2: put the pure white cup on the left plate and put the other one with the yellow handle on the right plate 
+
+SOOD 3: serve the cups 
+
+SOOD 4: serve the mugs 5 SOOD 1: grab the standing book and transfer it to the back compartment of the caddy 
+
+SOOD 2: pick up the right book and put it in the rear part of the caddy 
+
+SOOD 3: place the book in the back of the caddy 
+
+SOOD 4: put away the book in the back part 6 SOOD 1: set the white mug on the plate with chocolate pudding to be placed to the right 
+
+SOOD 2: put the pure white cup on the middle plate and put the brown chocolate to the right of the plate 
+
+SOOD 3: place the white cup on the plate and the chocolate to the right 
+
+SOOD 4: set the white mug on the plate and the chocolate pudding set on the right 7 SOOD 1: put both the can of soup and the box of cheese in the basket 
+
+SOOD 2: move the two objects, alphabet soup and cream cheese box, to the basket 
+
+SOOD 3: add the cream cheese box and the alphabet soup to the collection 
+
+SOOD 4: grab the alphabet soup and the cream cheese box and throw them in the basket 8 SOOD 1: transfer both moka pots from the table to the stove 
+
+SOOD 2: put both the moka coffee makers on the cooktop 
+
+SOOD 3: put the coffee makers where they can heat up 
+
+SOOD 4: heat up both moka pots 9 SOOD 1: place the yellow and white mug inside the microwave, then shut the door 
+
+SOOD 2: put the middle mug inside the microwave and close the door 
+
+SOOD 3: heat up the yellow and white mug by placing it and shutting the door 
+
+SOOD 4: heat up the yellow and white mug in the microwave 
+
+Table 7: LIBERO-OOD semantic perturbations (SOOD1-2) and newly added semantic perturbations (SOOD 3-4). the microwave door, MarkerBlock requires the robot to place a marker and a green block on a plate, MarkerBowl requires the robot to put the marker in the blue bowl and the bowl on a plate, and ChipsCup requires the robot to put the chips and green cup in the basket. Hardware tasks are 19 Task Instruction 
+
+10 put both the cream cheese box and the tomato sauce in the basket 11 put both the milk and the tomato sauce in the basket 12 put both the orange juice and the tomato sauce in the basket 13 put both the alphabet soup and the butter in the basket 14 put both the orange juice and the butter in the basket 15 put both the tomato sauce and the butter in the basket 16 put both the milk and the butter in the basket 17 put both the ketchup and the cream cheese box in the basket 18 put both the tomato sauce and the cream cheese box in the basket 19 put the wine bottle in the bottom drawer of the cabinet and close it 20 put the red mug on the plate and put the chocolate pudding to the right of the plate 21 put the red mug on the plate and put the chocolate pudding to the left of the plate 22 put the red mug on the left plate and put the yellow and white mug on the right plate 
+
+Table 8: BOOD (behavior composition) task instructions for LIBERO-10 tasks. Train Env 
+
+## OOD Distractor 
+
+## Novel Env 
+
+Figure 14: Hardware Environments. Left: training environments and their visual perturbations. 
+
+CubeSort, CubeMug, Microwave, and MarkerBlock shown left to right. Right: novel environ-ments MarkerBowl (top) and ChipsCup (bottom). 
+
+Task Nominal Semantic Perturbation 
+
+CubeSort put the green cube in the blue basket and the red cube in the orange basket put away the green cube and the red cube in similar color baskets 
+
+CubeMug place the green cube in the blue mug then the blue mug in the orange basket put away the cube in the mug and the mug in the bin 
+
+Microwave place the orange bowl on top of the mi-crowave and close the microwave door put the bowl on top of the oven and close the door 
+
+MarkerBlock place the marker and green block on the plate put away the pen and green block in the bowl 
+
+MarkerBowl put the marker in the blue bowl and put the blue bowl on the plate —
+
+ChipsCup put the chips and green cup in the basket —
+
+Table 9: Hardware task descriptions (nominal and semantic perturbation). shown in figure 14, and their respective task descriptions (along with semantic perturbations) are shown in table 9. 20 Result Breakdown. A detailed breakdown per visual perturbation of the results from figure 2 are shown in table 10. In Visual-Viewpoint (train env.) and Visual-Scene-Viewpoint (ID Scene, OOD Distractor), πRFT is able to improve performance the most over πVLA by 12 .7 pp and 8.3 pp respec-tively. In LIBERO-10, scenarios where πVLA is already performs well (since it was fine-tuned on LIBERO-10 data), πRFT and πCP are able to maintain and slightly increase performance, whereas 
+
+πVLA-SFT hurts overall performance. In Visual-Scene, although πRFT hurts performance relative to 
+
+πVLA by 1.3 pp, conformalization is able to mitigate harmful interventions and helps overall perfor-mance by 1.1 pp. Although πVLA-SFT is able to slightly increase performance in Visual-Viewpoint and Visual-Scene-Viewpoint, it overfits, hurting performance in scenarios it was previously perfor-mant in (LIBERO-10 and Visual-Scene). A breakdown of the novel behavior composition results (per task) are shown in table 11. πRFT is able to successfully steer in most tasks, particularly on task 13. However, it is not able to steer on task 15, while πVLA and πVLA-SFT are able to perform better. Note that figure 13 includes the first 6 tasks from the novel task composition suite, as tasks 16-22 are zero for all baselines. Hardware results are broken down by task and perturbation condition in Table 12. πRFT sub-stantially improves over the base VLA on the steerable training tasks CubeSort , CubeMug , and 
+
+MarkerBlock , and also transfers to the novel tasks MarkerBowl and ChipsCup . In contrast, Mi-crowave is a less steerable task: uncalibrated steering hurts performance under semantic perturba-tion, while πCP refuses harmful interventions and recovers performance above the base VLA. 
+
+Condition πVLA πVLA-SFT πBase πSFT πRFT πCP 
+
+Train Env 51.2 60.6 53.1 55.0 63.9 63.8 
+
+ID Scene, OOD Distractor 46.7 50.7 45.7 47.3 55.0 54.2 
+
+OOD Scene, ID Distractor 92.4 88.2 92.4 89.1 92.5 95.0 OOD Scene, OOD Distractor 89.8 82.6 89.5 81.2 88.5 90.9 
+
+Table 10: Baseline success rates (%) by visual perturbation condition, pooled over tasks and seman-tic perturbations.                                                     
+
+> Method 10 11 12 13 14 15 16 17 18 19 20 21 22
+> πVLA 88.0 0.0 2.0 36.0 4.0 40.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0
+> πVLA-SFT 94.0 2.0 10.0 10.0 0.0 46.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0
+> πRFT 98.0 4.0 10.0 88.0 0.0 30.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0
+
+Table 11: novel task composition per-task success rates (%). Tasks 16–22 have 0% SR (no method succeeds). 
+
+7.4 Additional Results Inference Time Comparison. We measure the inference latency of the frozen VLA and the steered closed-loop system over 50 replanning steps in simulation on a single NVIDIA A6000 Ada GPU. Table 13 reports the component-wise latency and the resulting effective replanning frequency. The frozen VLA replans at 14.7 Hz. Adding πRFT reduces the replanning frequency to 3.6 Hz, with most of the added latency coming from autoregressive language generation rather than VLA inference. Since each replan step corresponds to 5 environment steps at 20 Hz, the steered system still operates at a closed-loop update rate suitable for our experiments, but language generation is the primary computational bottleneck. This suggests that future implementations could improve latency through distilling πRFT , caching repeated language outputs, or updating language asynchronously rather than at every VLA query. 21 Task Condition πVLA πSFT πRFT πCP 
+
+CubeSort Nominal 56.7 80.0 93.3 90.0 VOOD 13.3 43.3 70.0 70.0 
+
+SOOD 6.7 26.7 60.0 63.3 
+
+CubeMug Nominal 36.7 63.3 83.3 76.7 VOOD 30.0 40.0 66.7 73.3 
+
+SOOD 16.7 36.7 70.0 70.0 
+
+Microwave Nominal 73.3 66.7 76.7 73.3 VOOD 46.7 16.7 50.0 50.0 
+
+SOOD 66.7 40.0 46.7 70.0 
+
+MarkerBlock Nominal 33.3 80.0 90.0 90.0 
+
+VOOD 36.7 60.0 76.7 76.7 
+
+SOOD 30.0 43.3 63.3 70.0 
+
+MarkerBowl Nominal 30.0 46.7 80.0 —ChipsCup Nominal 33.3 46.7 73.3 —
+
+Table 12: Hardware success rates (%) by task and perturbation condition. 
+
+Config πVLA (ms) πRFT (ms) Total (ms) Replan Hz 
+
+πVLA only 68 — 68 14 .7
+
+πVLA ◦ πRFT 70 204 274 3.6
+
+Table 13: Inference latency per replanning step, measured over 50 replanning steps on a single NVIDIA A6000 Ada GPU. Each replanning step corresponds to 5 environment steps at 20 Hz. 
+
+Successful Trajectory Length. We also compare the length of successful hardware rollouts in the nominal setting. Table 14 reports the mean number of environment steps among successful trajectories only. Across most tasks, πRFT completes the task in fewer steps than the base VLA, suggesting that language steering not only improves success but can also elicit more direct execution strategies. The largest reductions appear on MarkerBlock , Microwave , and ChipsCup , where 
+
+πRFT shortens successful trajectories by 23.1%, 14.8%, and 35.4% relative to πVLA , respectively. However, shorter trajectories are not universal: πSFT is fastest on CubeSort and MarkerBowl .Together with the success-rate results, these trajectories indicate that interactive language search can discover language that both improves reliability and, in many cases, induces more efficient execution. 
+
+Task πVLA πSFT πRFT 
+
+CubeSort 709.5 587.5 627.4 
+
+CubeMug 680.9 578.3 542.1 Microwave 499.0 469.2 425.2 MarkerBlock 775.6 696.1 596.7 MarkerBowl 631.5 578.1 657.0 
+
+ChipsCup 870.8 728.4 562.2 
+
+Table 14: Mean successful trajectory length (steps) on nominal hardware tasks. 22

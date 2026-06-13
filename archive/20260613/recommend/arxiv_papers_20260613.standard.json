@@ -1,0 +1,256 @@
+{
+  "mode": "standard",
+  "generated_at": "2026-06-13T21:10:47.721423+00:00",
+  "stats": {
+    "mode": "standard",
+    "tag_count": 1,
+    "deep_divecandidates": 3,
+    "deep_cap": 6,
+    "deep_selected": 3,
+    "quick_candidates": 3,
+    "quick_skim_target": 11,
+    "quick_selected": 3
+  },
+  "deep_dive": [
+    {
+      "id": "biorxiv-10-64898-2026-06-04-730041-v1",
+      "source": "biorxiv",
+      "title": "ProtGPT3: an Open-source family of Promptable and Aligned Protein Language Models",
+      "abstract": "Generative protein language models (pLMs) enable exploration of vast sequence spaces for protein design, but reliably controlling generation toward desired functional families remains challenging. While protein generation has broadly followed trends in NLP, two directions remain underexplored: alignment methods that optimize model behavior toward design objectives, and prompting-based control at inference time without fine-tuning. We introduce ProtGPT3, an open-source family of protein language models spanning 112M to 10B parameters and integrated with the Hugging Face ecosystem. The suite includes both single-sequence and multiple sequence alignment (MSA)-promptable models, enabling flexible conditioning for generation. Across model scales and protein families, we systematically compare supervised fine-tuning and few-shot prompting using homologous sequences. Analogous to how large language models (LLMs) are routinely aligned with user intent, we study post-training alignment in single-sequence models using sequence-complexity and structure-confidence metrics across the proteome. We find that alignment reduces low-complexity generations while preserving sequence diversity. Furthermore, we show that few-shot prompting is a competitive and more scalable alternative to supervised fine-tuning for controlled generation. In a low-data defluorinase case study, ProtGPT3-MSA achieved higher computational success rates than fine-tuned baselines and produced designs that were soluble and expressed following experimental validation. Finally, we explore the potential of inference-time compute in MSA models by introducing a homolog-based Feynman-Kac inference procedure for steering protein generation toward desired targets. All models are publicly available at https://huggingface.co/collections/AI4PD/protgpt3-family.",
+      "authors": [
+        "Garibbo, M.",
+        "Boxo Corominas, G.",
+        "Stocco, F.",
+        "Illanes Vicioso, R.",
+        "Middendorf, L.",
+        "Ferruz, N."
+      ],
+      "primary_category": "bioengineering",
+      "categories": [
+        "bioengineering"
+      ],
+      "published": "2026-06-08T00:00:00+00:00",
+      "link": "https://www.biorxiv.org/content/10.64898/2026.06.04.730041v1.full.pdf",
+      "tags": [
+        "keyword:prompt-learn",
+        "query:prompt-learn"
+      ],
+      "llm_score": 9.0,
+      "llm_evidence_en": "prompting-based control at inference time without fine-tuning",
+      "llm_evidence_cn": "通过提示实现无需微调的推理时控制",
+      "llm_evidence": "通过提示实现无需微调的推理时控制",
+      "canonical_evidence": "通过提示实现无需微调的推理时控制",
+      "llm_tldr_en": "ProtGPT3 introduces promptable protein language models, enabling conditioning generation via single-sequence or MSA prompts, offering flexible control without fine-tuning for protein design.",
+      "llm_tldr_cn": "本文针对蛋白质生成中难以按期望功能家族进行可靠控制的问题，推出ProtGPT3系列模型。该系列支持基于单序列或多序列比对提示进行条件生成，无需微调即可在推理时实现灵活控制。这一工作将提示学习范式引入蛋白质语言模型，为蛋白质设计提供了高效的生成控制新途径。",
+      "llm_tldr": "本文针对蛋白质生成中难以按期望功能家族进行可靠控制的问题，推出ProtGPT3系列模型。该系列支持基于单序列或多序列比对提示进行条件生成，无需微调即可在推理时实现灵活控制。这一工作将提示学习范式引入蛋白质语言模型，为蛋白质设计提供了高效的生成控制新途径。",
+      "llm_tags": [
+        "query:prompt-learn"
+      ],
+      "matched_query_tag": "query:prompt-learn",
+      "matched_query_text": "discrete natural language prompts for guiding models",
+      "matched_requirement_id": "req-2",
+      "selection_source": "fresh_fetch"
+    },
+    {
+      "id": "2606.10621v1",
+      "source": "arxiv",
+      "title": "STORM: Stepwise Token Optimization with Reward-Guided Beam Search",
+      "abstract": "Modern retrieval increasingly relies on dense and learned-sparse neural models that are effective but require encoding the entire corpus into a specialized index, rebuilt whenever the model changes. Lexical retrievers like BM25 stay efficient and transparent on a standard inverted index that need not change as models evolve, but suffer from vocabulary mismatch. LLM query rewriting can help, yet prompted rewriters emit well-formed but retrieval-ineffective or harmful-terms, and training against a retrieval reward gives only delayed, sequence-level supervision that obscures which terms helped. We introduce STORM (Stepwise Token Optimization with Reward-guided beaM search), a self-supervised framework for lexical query expansion. STORM trains the rewriter through generation guided by retrieval metrics: at each step, candidate expansions are scored against the BM25 index and low-reward continuations pruned, turning the retrieval reward into a token-level signal that concentrates exploration on retrieval-effective vocabulary. Across TREC DL and BEIR, STORM lets 0.6B-8B backbones match or surpass competitive LLM rewriters while retrieving as fast as plain BM25; at 8B it rivals far larger proprietary rewriters. It further transfers zero-shot to 18 languages (MIRACL), beating dedicated multilingual dense retrievers on average, making STORM a competitive, infrastructure-light alternative to dense neural retrieval.",
+      "authors": [
+        "Arthur Satouf",
+        "Giulio D'Erasmo",
+        "Yuxuan Zong",
+        "Habiboulaye Amadou Boubacar",
+        "Pablo Piantanida",
+        "Benjamin Piwowarski"
+      ],
+      "primary_category": "cs.IR",
+      "categories": [
+        "cs.IR",
+        "cs.AI"
+      ],
+      "published": "2026-06-09T09:18:09+00:00",
+      "link": "https://arxiv.org/pdf/2606.10621v1",
+      "tags": [
+        "keyword:prompt-learn",
+        "query:prompt-learn"
+      ],
+      "llm_score": 8.0,
+      "llm_evidence_en": "Proposes stepwise token optimization for discrete prompt rewriting, a method for optimizing discrete prompts.",
+      "llm_evidence_cn": "提出逐步令牌优化用于离散提示重写，是一种优化离散提示的方法。",
+      "llm_evidence": "提出逐步令牌优化用于离散提示重写，是一种优化离散提示的方法。",
+      "canonical_evidence": "提出逐步令牌优化用于离散提示重写，是一种优化离散提示的方法。",
+      "llm_tldr_en": "To bridge the vocabulary gap in lexical retrieval, STORM trains a query rewriter via stepwise token optimization with retrieval reward, overcoming delayed supervision.",
+      "llm_tldr_cn": "词汇检索器面临词汇不匹配问题，LLM查询重写虽可缓解但缺乏精细监督。本文提出STORM框架，通过基于检索奖励的逐步令牌优化来训练重写器，无需端到端强化学习，实现了更精细的离散提示优化。",
+      "llm_tldr": "词汇检索器面临词汇不匹配问题，LLM查询重写虽可缓解但缺乏精细监督。本文提出STORM框架，通过基于检索奖励的逐步令牌优化来训练重写器，无需端到端强化学习，实现了更精细的离散提示优化。",
+      "llm_tags": [
+        "query:prompt-learn"
+      ],
+      "matched_query_tag": "query:prompt-learn",
+      "matched_query_text": "How to optimize discrete prompts for few shot classification?",
+      "matched_requirement_id": "req-8",
+      "selection_source": "fresh_fetch"
+    },
+    {
+      "id": "2606.12299v1",
+      "source": "arxiv",
+      "title": "Learning What to Say to Your VLA: Mostly Harmless Vision Language Action Model Steering",
+      "abstract": "Vision-Language-Action (VLA) models provide a natural language interface to robot control, but the mapping from language to behavior is often brittle and unintuitive: semantically similar instructions can induce drastically different behaviors, while some capabilities may not be elicitable through prompting alone. As a result, both human instructions and zero-shot language models can fail to reliably steer VLAs toward successful task execution. In this work, we propose a framework that interactively searches for language sequences that improve closed-loop VLA task performance, distills these sequences into a test-time language feedback policy (LFP), and learns an improvement head that predicts when language steering will improve performance. We conformalize this improvement head to prevent harmful steering interventions, where the LFP decreases task performance relative to the original instruction on out-of-distribution scenarios. Crucially, our approach operates on arbitrary frozen pre-trained VLAs, requiring neither access to the original training distribution nor fine-tuning of the underlying model. On seen environments, our conformalized LFP improves base VLA performance by 24.7% in simulation and 65.0% in hardware. On visual and semantic perturbations, our conformalized LFP has strong harmlessness guarantees, and produces recovery behaviors not observed with open-loop prompting.",
+      "authors": [
+        "Hyun Joe Jeong",
+        "Gokul Swamy",
+        "Andrea Bajcsy"
+      ],
+      "primary_category": "cs.RO",
+      "categories": [
+        "cs.RO",
+        "cs.LG"
+      ],
+      "published": "2026-06-10T16:34:49+00:00",
+      "link": "https://arxiv.org/pdf/2606.12299v1",
+      "tags": [
+        "keyword:prompt-learn",
+        "query:prompt-learn"
+      ],
+      "llm_score": 8.0,
+      "llm_evidence_en": "interactively searches for language sequences that improve VLA task performance",
+      "llm_evidence_cn": "交互式搜索改善VLA任务性能的语言序列，并蒸馏为语言反馈策略",
+      "llm_evidence": "交互式搜索改善VLA任务性能的语言序列，并蒸馏为语言反馈策略",
+      "canonical_evidence": "交互式搜索改善VLA任务性能的语言序列，并蒸馏为语言反馈策略",
+      "llm_tldr_en": "Proposes an interactive search framework that automatically discovers language prompts to improve vision-language-action model steering, distilling them into a test-time policy for better task execution.",
+      "llm_tldr_cn": "该研究针对视觉语言动作（VLA）模型的语言界面脆性问题，提出交互式搜索语言序列的框架，自动发现能提升闭环任务执行效果的提示语。方法将搜索到的有效语言序列蒸馏为测试时语言反馈策略，并学习预测语言引导何时会改善性能。实验表明，自动生成的语言提示能更可靠地引导机器人完成任务，为通用视觉语言模型的提示优化提供了新方法。",
+      "llm_tldr": "该研究针对视觉语言动作（VLA）模型的语言界面脆性问题，提出交互式搜索语言序列的框架，自动发现能提升闭环任务执行效果的提示语。方法将搜索到的有效语言序列蒸馏为测试时语言反馈策略，并学习预测语言引导何时会改善性能。实验表明，自动生成的语言提示能更可靠地引导机器人完成任务，为通用视觉语言模型的提示优化提供了新方法。",
+      "llm_tags": [
+        "query:prompt-learn"
+      ],
+      "matched_query_tag": "query:prompt-learn",
+      "matched_query_text": "Techniques for automatic prompt generation in natural language processing",
+      "matched_requirement_id": "req-10",
+      "selection_source": "fresh_fetch"
+    }
+  ],
+  "quick_skim": [
+    {
+      "id": "2606.08011v2",
+      "source": "arxiv",
+      "title": "Rewrite to Translate, Translate to Reward: Reinforcement Learning for Source Rewriting in Machine Translation",
+      "abstract": "Rewriting source text with large language models (LLMs) before translation has been shown to improve machine translation (MT) quality. However, we find that prompt-based rewriting can degrade translation quality rather than improve it, particularly when smaller LLMs, such as 4B-parameter models, are used. We argue that this limitation stems from the difficulty of controlling rewriting behavior through natural-language prompts alone: a rewrite is useful only if it improves downstream translation, yet existing prompt-based methods do not explicitly optimize for this signal. To address this issue, we propose RLSR (Reinforcement Learning for Source Rewriting), a reinforcement learning framework that trains the rewriting model with a reward based on the downstream translation-quality improvement produced by each rewrite. Experiments across six MT systems and 16 language pairs show that our 4B RLSR-trained rewriting models significantly outperform both the no-rewriting baseline and prompt-based rewriting baselines at the same model scale, while remaining competitive with baselines that use a 235B LLM.",
+      "authors": [
+        "Boxuan Lyu",
+        "Haiyue Song",
+        "Zhi Qu",
+        "Hidetaka Kamigaito",
+        "Kotaro Funakoshi",
+        "Manabu Okumura"
+      ],
+      "primary_category": "cs.CL",
+      "categories": [
+        "cs.CL",
+        "cs.AI"
+      ],
+      "published": "2026-06-06T07:00:44+00:00",
+      "link": "https://arxiv.org/pdf/2606.08011v2",
+      "tags": [
+        "keyword:prompt-learn",
+        "query:prompt-learn"
+      ],
+      "llm_score": 7.0,
+      "llm_evidence_en": "prompt-based rewriting with natural-language prompts, optimized via RL",
+      "llm_evidence_cn": "基于自然语言提示的改写方法，通过强化学习优化",
+      "llm_evidence": "基于自然语言提示的改写方法，通过强化学习优化",
+      "canonical_evidence": "基于自然语言提示的改写方法，通过强化学习优化",
+      "llm_tldr_en": "The paper addresses that natural-language prompt-based rewriting can degrade MT quality and proposes RLSR, which uses RL to train the rewriter with downstream translation reward, improving prompt-guided rewriting.",
+      "llm_tldr_cn": "本文针对基于自然语言提示的源文改写可能降低机器翻译质量的问题，提出RLSR框架，通过强化学习优化改写器以最大化下游翻译奖励，从而改善提示引导的改写效果。该方法为解决提示难以通过自然语言本身精确控制的问题提供了新思路，有助于提升机器翻译的稳健性。",
+      "llm_tldr": "本文针对基于自然语言提示的源文改写可能降低机器翻译质量的问题，提出RLSR框架，通过强化学习优化改写器以最大化下游翻译奖励，从而改善提示引导的改写效果。该方法为解决提示难以通过自然语言本身精确控制的问题提供了新思路，有助于提升机器翻译的稳健性。",
+      "llm_tags": [
+        "query:prompt-learn"
+      ],
+      "matched_query_tag": "query:prompt-learn",
+      "matched_query_text": "discrete natural language prompts for guiding models",
+      "matched_requirement_id": "req-2",
+      "selection_source": "fresh_fetch",
+      "quick_tier": "7"
+    },
+    {
+      "id": "2606.08492v1",
+      "source": "arxiv",
+      "title": "Seeing is Believing: Aligning Prompt Rewriting with Visual Anchors for Text-to-Image Generation",
+      "abstract": "Despite the impressive capabilities of text-to-image (T2I) models, an intent-generation gap often persists due to the brevity and ambiguity of user prompts. Existing approaches primarily polish the prompt for fluency and readability. However, the enhancement process still lacks visual grounding. As a result, the rewriter may over-infer missing details, causing an intent-generation gap. To address this limitation, we propose FaithRewriter, a novel prompt-enhancement framework for T2I generation. Specifically, FaithRewriter first leverages a multimodal MLLM to generate an image from the original prompt as an intermediate visual cue. This cue is then combined with the prompt and fed into a large-scale LLM to produce visually grounded augmentations that better reflect how the intended content should appear in images. Finally, these augmentations are distilled into a small-scale LLM for efficient deployment, enhancing its ability to generate effective T2I prompts. Experiments show that FaithRewriter yields prompts that are more faithful to the user intent and more visually plausible than strong baselines, helping narrow the intent-generation gap.",
+      "authors": [
+        "Xuanyi Liu",
+        "Deyi Ji",
+        "Junyu Lu",
+        "Jing Wang",
+        "Qianxiong Xu",
+        "Xuhang Chen",
+        "Tianrun Chen",
+        "Siwei Ma"
+      ],
+      "primary_category": "cs.CV",
+      "categories": [
+        "cs.CV",
+        "cs.AI"
+      ],
+      "published": "2026-06-07T07:34:23+00:00",
+      "link": "https://arxiv.org/pdf/2606.08492v1",
+      "tags": [
+        "keyword:prompt-learn",
+        "query:prompt-learn"
+      ],
+      "llm_score": 7.0,
+      "llm_evidence_en": "automatic prompt enhancement via LLM with visual anchor",
+      "llm_evidence_cn": "通过引入视觉锚点的大语言模型自动提示增强",
+      "llm_evidence": "通过引入视觉锚点的大语言模型自动提示增强",
+      "canonical_evidence": "通过引入视觉锚点的大语言模型自动提示增强",
+      "llm_tldr_en": "To close the intent-generation gap in T2I, FaithRewriter generates an image from the original prompt as visual cue, then uses an LLM to produce a visually grounded enhanced prompt, aligning rewriting with visual anchors.",
+      "llm_tldr_cn": "本文针对文本到图像生成中用户提示简短模糊导致的意图-生成差距问题，提出FaithRewriter框架。它先利用多模态模型从原始提示生成图像作为视觉线索，再结合该线索与大语言模型生成视觉接地的增强提示，实现自动提示优化。该方法为自动提示生成提供了视觉对齐的新范式，有助于提升图像生成的准确性和符合性。",
+      "llm_tldr": "本文针对文本到图像生成中用户提示简短模糊导致的意图-生成差距问题，提出FaithRewriter框架。它先利用多模态模型从原始提示生成图像作为视觉线索，再结合该线索与大语言模型生成视觉接地的增强提示，实现自动提示优化。该方法为自动提示生成提供了视觉对齐的新范式，有助于提升图像生成的准确性和符合性。",
+      "llm_tags": [
+        "query:prompt-learn"
+      ],
+      "matched_query_tag": "query:prompt-learn",
+      "matched_query_text": "Techniques for automatic prompt generation in natural language processing",
+      "matched_requirement_id": "req-10",
+      "selection_source": "fresh_fetch",
+      "quick_tier": "7"
+    },
+    {
+      "id": "2606.11400v1",
+      "source": "arxiv",
+      "title": "Steering Where to Listen: Instruction-Based Activation Steering Redirects Temporal Attention in Large Audio-Language Models",
+      "abstract": "Large Audio-Language Models (LALMs) excel at audio understanding but expose little about where in an audio signal they attend. We introduce instruction-based vector steering, which constructs a steering vector by contrasting activations from differently instructed prompts while keeping the audio fixed. Through a systematic probe of LALM attention, we find that - unlike standard prompting or audio-based steering - this intervention significantly redistributes the temporal attention allocated to audio tokens, concentrating it on acoustically relevant regions. We then show that this attention shift is behaviorally meaningful: in a controlled three-event setting, reading out the temporal position of maximal steering-induced attention change recovers the location of a queried sound event without any training, attaining 60.87% and 68.72% overlap with ground-truth intervals on Qwen2-Audio and Audio Flamingo 3, far above direct prompting (31.84%, 46.75%) and random baselines (27.74%). Our results characterize a mechanistic property of instruction-based steering in LALMs and provide a training-free probe for the latent temporal structure these models encode.",
+      "authors": [
+        "Tsung-En Lin",
+        "Hung-Yi Lee"
+      ],
+      "primary_category": "cs.SD",
+      "categories": [
+        "cs.SD",
+        "cs.AI",
+        "eess.AS"
+      ],
+      "published": "2026-06-09T19:44:46+00:00",
+      "link": "https://arxiv.org/pdf/2606.11400v1",
+      "tags": [
+        "keyword:prompt-learn",
+        "query:prompt-learn"
+      ],
+      "llm_score": 7.0,
+      "llm_evidence_en": "Uses instruction-based prompts to construct steering vectors that redirect model attention",
+      "llm_evidence_cn": "使用基于指令的提示构建引导向量来重定向模型注意力",
+      "llm_evidence": "使用基于指令的提示构建引导向量来重定向模型注意力",
+      "canonical_evidence": "使用基于指令的提示构建引导向量来重定向模型注意力",
+      "llm_tldr_en": "Proposes instruction-based vector steering to redirect attention in audio-LMs, showing that contrasting activations from differently instructed prompts can significantly shift temporal attention to relevant audio regions.",
+      "llm_tldr_cn": "大型音频语言模型在音频理解上表现出色，但很少揭示其关注音频信号的何处。该研究提出基于指令的向量导向方法，通过在固定音频下对比不同指令提示的激活值来构建引导向量。系统探测表明，与传统提示或音频导向不同，该方法能显著重分布分配给音频令牌的时间注意力，将其集中于声学相关区域。在受控三事件设定下，读取最大注意力时间位置表明这种注意力转移具有行为意义，为模型可解释性和控制提供了新途径。",
+      "llm_tldr": "大型音频语言模型在音频理解上表现出色，但很少揭示其关注音频信号的何处。该研究提出基于指令的向量导向方法，通过在固定音频下对比不同指令提示的激活值来构建引导向量。系统探测表明，与传统提示或音频导向不同，该方法能显著重分布分配给音频令牌的时间注意力，将其集中于声学相关区域。在受控三事件设定下，读取最大注意力时间位置表明这种注意力转移具有行为意义，为模型可解释性和控制提供了新途径。",
+      "llm_tags": [
+        "query:prompt-learn"
+      ],
+      "matched_query_tag": "query:prompt-learn",
+      "matched_query_text": "discrete natural language prompts for guiding models",
+      "matched_requirement_id": "req-2",
+      "selection_source": "fresh_fetch",
+      "quick_tier": "7"
+    }
+  ]
+}

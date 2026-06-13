@@ -6,31 +6,40 @@
 </div>
 
 ## 每次日报
-- 最新运行日期：2026-06-12
-- 运行时间：2026-06-12 21:59:51 UTC
+- 最新运行日期：2026-06-13
+- 运行时间：2026-06-13 21:15:16 UTC
 - 运行状态：成功
-- 本次总论文数：3
-- 精读区：2
-- 速读区：1
+- 本次总论文数：6
+- 精读区：3
+- 速读区：3
 
 ### 今日简报（AI）
-今日精读两篇前沿论文，速读一篇工业零样本学习基准，聚焦合成数据与安全智能。  
-SynthICL 用合成数据实现可扩展的上下文模仿学习获满分评价，基于 LLM 的恶意日志检测则以样本高效和可解释推理见长。  
-建议关注合成数据如何突破真实示例的规模瓶颈，并尝试将 LLM 鉴别的因果解释能力迁移到你的运维或安全分析场景。
-- 详情：[/202606/12/README](/202606/12/README)
+今日深读蛋白质语言模型ProtGPT3与奖励引导文本优化STORM，速览翻译重写、视觉锚定提示、音频注意力调控等6篇前沿工作。  
+最大亮点是ProtGPT3开源可提示蛋白质模型家族，以及STORM用奖励束搜索提升生成质量。  
+想动手可试试ProtGPT3设计蛋白质，或在自建生成任务中引入奖励引导的步级优化。
+- 详情：[/202606/13/README](/202606/13/README)
 
 ### 精读区论文标签
-1. [SynthICL: Scalable In-context Imitation Learning with Synthetic Data](/202606/12/2606.08154v1-synthicl-scalable-in-context-imitation-learning-with-synthetic-data)  
-   标签：评分：10.0/10、query:prompt-learn
-   evidence：从少量演示中进行的上下文模仿学习将策略条件化于任务特定示例，完全匹配从提示上下文中学习的要求。
-2. [Sample-Efficient LLM-Based Detection of Malicious Web Server Logs with Forensically Explainable Reasoning](/202606/12/2606.08649v1-sample-efficient-llm-based-detection-of-malicious-web-server-logs-with-forensically-explainable-reasoning)  
+1. [ProtGPT3: an Open-source family of Promptable and Aligned Protein Language Models](/202606/13/biorxiv-10-64898-2026-06-04-730041-v1-protgpt3-an-open-source-family-of-promptable-and-aligned-protein-language-models)  
    标签：评分：9.0/10、query:prompt-learn
-   evidence：少样本链式思考提示与结构化推理模板
+   evidence：通过提示实现无需微调的推理时控制
+2. [STORM: Stepwise Token Optimization with Reward-Guided Beam Search](/202606/13/2606.10621v1-storm-stepwise-token-optimization-with-reward-guided-beam-search)  
+   标签：评分：8.0/10、query:prompt-learn
+   evidence：提出逐步令牌优化用于离散提示重写，是一种优化离散提示的方法。
+3. [Learning What to Say to Your VLA: Mostly Harmless Vision Language Action Model Steering](/202606/13/2606.12299v1-learning-what-to-say-to-your-vla-mostly-harmless-vision-language-action-model-steering)  
+   标签：评分：8.0/10、query:prompt-learn
+   evidence：交互式搜索改善VLA任务性能的语言序列，并蒸馏为语言反馈策略
 
 ### 速读区论文标签
-1. [Zero-Shot Learning in Industrial Scenarios: New Large-Scale Benchmark, Challenges and Baseline](/202606/12/2606.07965v1-zero-shot-learning-in-industrial-scenarios-new-large-scale-benchmark-challenges-and-baseline)  
-   标签：评分：6.0/10、query:prompt-learn
-   evidence：用于零样本工业缺陷检测的精炼文本-视觉提示
+1. [Rewrite to Translate, Translate to Reward: Reinforcement Learning for Source Rewriting in Machine Translation](/202606/13/2606.08011v2-rewrite-to-translate-translate-to-reward-reinforcement-learning-for-source-rewriting-in-machine-translation)  
+   标签：评分：7.0/10、query:prompt-learn
+   evidence：基于自然语言提示的改写方法，通过强化学习优化
+2. [Seeing is Believing: Aligning Prompt Rewriting with Visual Anchors for Text-to-Image Generation](/202606/13/2606.08492v1-seeing-is-believing-aligning-prompt-rewriting-with-visual-anchors-for-text-to-image-generation)  
+   标签：评分：7.0/10、query:prompt-learn
+   evidence：通过引入视觉锚点的大语言模型自动提示增强
+3. [Steering Where to Listen: Instruction-Based Activation Steering Redirects Temporal Attention in Large Audio-Language Models](/202606/13/2606.11400v1-steering-where-to-listen-instruction-based-activation-steering-redirects-temporal-attention-in-large-audio-language-models)  
+   标签：评分：7.0/10、query:prompt-learn
+   evidence：使用基于指令的提示构建引导向量来重定向模型注意力
 
 
 <div class="dpr-home-promo-card">

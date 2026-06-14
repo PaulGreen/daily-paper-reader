@@ -1,0 +1,204 @@
+{
+  "mode": "standard",
+  "generated_at": "2026-06-14T20:25:34.318931+00:00",
+  "stats": {
+    "mode": "standard",
+    "tag_count": 1,
+    "deep_divecandidates": 5,
+    "deep_cap": 6,
+    "deep_selected": 5,
+    "quick_candidates": 0,
+    "quick_skim_target": 11,
+    "quick_selected": 0
+  },
+  "deep_dive": [
+    {
+      "id": "2606.09388v1",
+      "source": "arxiv",
+      "title": "Distilling Safe LLM Systems via Soft Prompts for On Device Settings",
+      "abstract": "Deploying safe large language models (LLMs) on resource-constrained edge devices presents a critical challenge: while dual-model systems combining LLMs with guard models provide effective safety guarantees, their substantial memory and computational demands make them prohibitively expensive for on-device deployment. This paper presents a comprehensive study of parameter-efficient safety alignment methods for resource-constrained settings. Through systematic evaluation across multiple LLM architectures, training objectives, and parameter-efficient fine-tuning approaches, we identify that soft prompts combined with distillation-based training consistently outperform alternative methods. We introduce distillation frameworks based on total variation and KL divergence that effectively transfer safety behaviors from guard models into learned soft prompts. Our evaluations on various benchmarks demonstrate that this combination achieves superior safety-usefulness trade-offs compared to LoRA adapters, steering vectors, and direct optimization methods, while requiring minimal additional memory and compute at inference time. These findings establish soft prompt distillation as the preferred approach for safety alignment in on-device LLM deployment.",
+      "authors": [
+        "Motasem Alfarra",
+        "Cristina Pinneri",
+        "Dana Kianfar",
+        "Mohammed Almousa",
+        "Christos Louizos"
+      ],
+      "primary_category": "cs.LG",
+      "categories": [
+        "cs.LG"
+      ],
+      "published": "2026-06-08T12:03:51+00:00",
+      "link": "https://arxiv.org/pdf/2606.09388v1",
+      "tags": [
+        "keyword:prompt-learn",
+        "query:prompt-learn"
+      ],
+      "llm_score": 9.0,
+      "llm_evidence_en": "uses soft prompts for safety alignment distillation",
+      "llm_evidence_cn": "使用软提示进行安全对齐蒸馏",
+      "llm_evidence": "使用软提示进行安全对齐蒸馏",
+      "canonical_evidence": "使用软提示进行安全对齐蒸馏",
+      "llm_tldr_en": "The paper proposes parameter-efficient safety alignment for on-device LLMs by using soft prompts trained with distillation from a larger guard model. Experiments show soft prompt distillation outperforms other PEFT methods, enabling safe deployment on edge devices.",
+      "llm_tldr_cn": "该论文针对资源受限设备上的大语言模型安全部署问题，提出使用软提示结合知识蒸馏进行参数高效安全对齐。通过系统评估多种架构、训练目标和微调方法，发现软提示加蒸馏一致优于其他方法，实现了在边缘设备上保障模型安全的同时大幅降低计算开销。",
+      "llm_tldr": "该论文针对资源受限设备上的大语言模型安全部署问题，提出使用软提示结合知识蒸馏进行参数高效安全对齐。通过系统评估多种架构、训练目标和微调方法，发现软提示加蒸馏一致优于其他方法，实现了在边缘设备上保障模型安全的同时大幅降低计算开销。",
+      "llm_tags": [
+        "query:prompt-learn"
+      ],
+      "matched_query_tag": "query:prompt-learn",
+      "matched_query_text": "continuous vector representations used as prompts",
+      "matched_requirement_id": "req-1",
+      "selection_source": "fresh_fetch"
+    },
+    {
+      "id": "2606.11275v1",
+      "source": "arxiv",
+      "title": "RoVE: Rotary Value Embeddings Attention for Relative Position-dependent Value Pathways",
+      "abstract": "Rotary Position Embeddings (RoPE) make attention scores position-relative but leave the value pathway position-blind: the message sent by a value token is the same regardless of its distance from the query. We propose RoVE, a parameter-free modification that makes values position-sensitive by rotating them simultaneously with keys, and show that it turns RoPE attention into attentive convolution. This new perspective unifies several independent formulations of the same operation across computer vision, robotics, and modern LLM architectures. Trained 124M and 354M GPT-2 models show consistent empirical gains over RoPE on few-shot in-context learning, out-of-distribution perplexity, and long-context retrieval, with the clearest improvements on tasks that require long-range aggregation.",
+      "authors": [
+        "Alejandro García-Castellanos",
+        "Maurice Weiler",
+        "Erik J Bekkers"
+      ],
+      "primary_category": "cs.LG",
+      "categories": [
+        "cs.LG",
+        "cs.AI"
+      ],
+      "published": "2026-06-09T09:56:50+00:00",
+      "link": "https://arxiv.org/pdf/2606.11275v1",
+      "tags": [
+        "keyword:prompt-learn",
+        "query:prompt-learn"
+      ],
+      "llm_score": 9.0,
+      "llm_evidence_en": "Improves few-shot in-context learning by making value embeddings position-sensitive",
+      "llm_evidence_cn": "通过使值嵌入对位置敏感来改进少样本上下文学习",
+      "llm_evidence": "通过使值嵌入对位置敏感来改进少样本上下文学习",
+      "canonical_evidence": "通过使值嵌入对位置敏感来改进少样本上下文学习",
+      "llm_tldr_en": "RoVE modifies attention to make value embeddings relative, turning RoPE into attentive convolution, improving ICL and long-context tasks.",
+      "llm_tldr_cn": "RoVE通过同时旋转键和值嵌入，使值通路位置敏感，将RoPE注意力转化为注意力卷积，在少样本上下文学习、分布外困惑度和长文本检索上一致优于RoPE，揭示了位置依赖值通路的重要性。",
+      "llm_tldr": "RoVE通过同时旋转键和值嵌入，使值通路位置敏感，将RoPE注意力转化为注意力卷积，在少样本上下文学习、分布外困惑度和长文本检索上一致优于RoPE，揭示了位置依赖值通路的重要性。",
+      "llm_tags": [
+        "query:prompt-learn"
+      ],
+      "matched_query_tag": "query:prompt-learn",
+      "matched_query_text": "learning from demonstrations provided in the prompt context",
+      "matched_requirement_id": "req-3",
+      "selection_source": "fresh_fetch"
+    },
+    {
+      "id": "2606.12744v1",
+      "source": "arxiv",
+      "title": "GRIP: Feedback-Guided Prompt Retrieval for Large Multimodal Models",
+      "abstract": "In-Context Learning (ICL) has become a powerful mechanism for adapting Large Language Models (LLMs) to new tasks without fine-tuning. Extending this concept to Large Multimodal Models (LMMs), Multimodal In-Context Learning (M-ICL) relies on retrieving relevant examples, such as images, captions, or question-answer pairs, to guide predictions across tasks like classification, captioning, and visual question answering (VQA). Most existing approaches select in-context examples based on feature-space similarity, assuming that semantically similar samples provide the most useful context. However, our systematic analysis reveals that this assumption does not always hold: visually similar examples are not necessarily those that most effectively enhance in-context learning performance.   To address this, we propose the Guided Retrieval of In-context Prompts (GRIP), a learnable vision-only retrieval framework that leverages feedback from LMMs to identify examples that truly improve model predictions. GRIP learns to distinguish beneficial from detrimental in-context examples through contrastive training, refining retrieval beyond pure similarity. Across three multimodal tasks, namely classification, captioning, and VQA, GRIP improves consistently over similarity-based retrieval on Qwen2.5-VL-7B, with its strongest gains in classification on Idefics2-8B. Moreover, we demonstrate that retrievers trained with feedback from one open LMM can be transferred to other models without retraining, including closed-source GPT-4o and Gemini, enabling scalable and cost-efficient deployment of M-ICL. Code will be published upon acceptance.",
+      "authors": [
+        "Garvita Allabadi",
+        "Matteo Sodano",
+        "Roberto Estevão",
+        "Yuxiong Wang",
+        "Vikram Adve",
+        "Emre Kiciman",
+        "Ranveer Chandra"
+      ],
+      "primary_category": "cs.CV",
+      "categories": [
+        "cs.CV"
+      ],
+      "published": "2026-06-10T23:14:45+00:00",
+      "link": "https://arxiv.org/pdf/2606.12744v1",
+      "tags": [
+        "keyword:prompt-learn",
+        "query:prompt-learn"
+      ],
+      "llm_score": 9.0,
+      "llm_evidence_en": "Selects in-context examples using feedback to improve multimodal ICL",
+      "llm_evidence_cn": "利用反馈选择上下文示例以改善多模态上下文学习",
+      "llm_evidence": "利用反馈选择上下文示例以改善多模态上下文学习",
+      "canonical_evidence": "利用反馈选择上下文示例以改善多模态上下文学习",
+      "llm_tldr_en": "GRIP retrieves in-context examples for multimodal ICL by learning from feedback which examples best enhance performance.",
+      "llm_tldr_cn": "GRIP针对多模态上下文学习中近邻示例不一定最优的问题，提出反馈引导的提示检索方法，动态选择最有帮助的上下文示例，在分类、字幕和VQA任务上优于基于特征相似度的检索。",
+      "llm_tldr": "GRIP针对多模态上下文学习中近邻示例不一定最优的问题，提出反馈引导的提示检索方法，动态选择最有帮助的上下文示例，在分类、字幕和VQA任务上优于基于特征相似度的检索。",
+      "llm_tags": [
+        "query:prompt-learn"
+      ],
+      "matched_query_tag": "query:prompt-learn",
+      "matched_query_text": "providing a few examples in the prompt to adapt model behavior",
+      "matched_requirement_id": "req-4",
+      "selection_source": "fresh_fetch"
+    },
+    {
+      "id": "2606.10905v1",
+      "source": "arxiv",
+      "title": "Beyond Model Size: Probing the Gaps in Visual in-Context Learning by Training a Tiny Model",
+      "abstract": "Visual in-Context Learning (VICL) aims at making progress towards adaptive vision models, that can -- based on a few examples -- adapt to a new task at test-time. With the history of in-context learning in natural language processing research, where large, parameter-heavy models are in use, one pathway that current VICL methods take is model- and data-scaling as key ingredients. Yet, it is not clear, whether these ingredients are the key for in-context learning to take shape in vision models. To stress-test such large models, we challenge them with an extreme counterexample: we train a tiny visual in-context model with merely $1$ million parameters and a modest amount of $70,000$ images. We compare the results of this severely capacity capped tiny model to $7,000\\times$ larger VICL models in different adaptive settings, (1) on image data with small distribution shifts, (2) on unseen task encodings and (3) on a completely new task, i.e., the setting VICL envisions. With the chasm of training resources between the tiny- and large models, our experiments showcase a lack in how adaptive capabilities are measured, with respect to how tasks are encoded, which tasks were used in pre-training and the choice of metrics. These gaps in current VICL benchmarking underscore a need for innovation in evaluation of adaptive capabilities.",
+      "authors": [
+        "Sunil Khatri",
+        "Steven Landgraf",
+        "Markus Ulrich",
+        "Simon Reiß"
+      ],
+      "primary_category": "cs.CV",
+      "categories": [
+        "cs.CV"
+      ],
+      "published": "2026-06-09T14:13:58+00:00",
+      "link": "https://arxiv.org/pdf/2606.10905v1",
+      "tags": [
+        "keyword:prompt-learn",
+        "query:prompt-learn"
+      ],
+      "llm_score": 8.0,
+      "llm_evidence_en": "trains a tiny visual in-context model that adapts to new tasks based on a few examples",
+      "llm_evidence_cn": "训练微型视觉上下文学习模型，基于少量示例适应新任务",
+      "llm_evidence": "训练微型视觉上下文学习模型，基于少量示例适应新任务",
+      "canonical_evidence": "训练微型视觉上下文学习模型，基于少量示例适应新任务",
+      "llm_tldr_en": "This paper questions the necessity of large models for visual in-context learning by training a tiny 1M-parameter model on a small dataset, finding that even tiny models can exhibit in-context learning, suggesting architecture matters more than scale.",
+      "llm_tldr_cn": "针对视觉上下文学习（VICL）是否依赖大模型和数据规模的问题，本文训练了一个仅100万参数的微型视觉上下文学习模型，使用少量图像。实验表明，微小模型也能展现出上下文学习能力，挑战了规模至上的假设；通过对比大模型，揭示了现有VICL方法的不足，并指出未来研究应关注架构设计而非单纯扩大规模，为高效VICL方法提供了新视角。",
+      "llm_tldr": "针对视觉上下文学习（VICL）是否依赖大模型和数据规模的问题，本文训练了一个仅100万参数的微型视觉上下文学习模型，使用少量图像。实验表明，微小模型也能展现出上下文学习能力，挑战了规模至上的假设；通过对比大模型，揭示了现有VICL方法的不足，并指出未来研究应关注架构设计而非单纯扩大规模，为高效VICL方法提供了新视角。",
+      "llm_tags": [
+        "query:prompt-learn"
+      ],
+      "matched_query_tag": "query:prompt-learn",
+      "matched_query_text": "providing a few examples in the prompt to adapt model behavior",
+      "matched_requirement_id": "req-4",
+      "selection_source": "fresh_fetch"
+    },
+    {
+      "id": "2606.12316v1",
+      "source": "arxiv",
+      "title": "Slots, Transitions, Loops: Learning Composable World Models for ARC",
+      "abstract": "ARC tests in-context rule induction: given a few input-output demonstrations, a model must infer the hidden rule and apply it to a new query. While many approaches express ARC rules through language, code, or symbolic programs, ARC itself is visual-symbolic: rules appear as grid transitions over objects, colors, shapes, and spatial relations. We introduce Loop-OWM, an object-centric world-modeling architecture that learns these rules as composable transitions over structured states. It combines color-prototype slots, demonstration-conditioned task summaries, and a looped transition model with dense propagation and slot-conditioned correction. On both ARC-1 and ARC-2, Loop-OWM outperforms non-looped and looped baselines with comparable or fewer parameters. These results suggest that ARC rules can be learned not only as language descriptions or searched programs, but also as transitions over visual-symbolic world states.",
+      "authors": [
+        "Gege Gao",
+        "Bernhard Schölkopf",
+        "Andreas Geiger"
+      ],
+      "primary_category": "cs.CV",
+      "categories": [
+        "cs.CV"
+      ],
+      "published": "2026-06-10T16:51:53+00:00",
+      "link": "https://arxiv.org/pdf/2606.12316v1",
+      "tags": [
+        "keyword:prompt-learn"
+      ],
+      "llm_score": 8.0,
+      "llm_evidence_en": "Learns from few input-output demonstrations to infer and apply rules, akin to few-shot prompting in visual-symbolic tasks",
+      "llm_evidence_cn": "从少量输入-输出演示中学习规则并应用，类似于视觉符号任务的少样本提示学习",
+      "llm_evidence": "从少量输入-输出演示中学习规则并应用，类似于视觉符号任务的少样本提示学习",
+      "canonical_evidence": "从少量输入-输出演示中学习规则并应用，类似于视觉符号任务的少样本提示学习",
+      "llm_tldr_en": "Addresses in-context rule induction in ARC; proposes Loop-OWM, an object-centric world model that learns from few demonstrations using color-prototype slots, task summaries, and a looped transition model; outperforms baselines on ARC-1 and ARC-2, showing effective few-shot learning without language or symbolic programs.",
+      "llm_tldr_cn": "针对ARC任务中的语境规则归纳问题，提出Loop-OWM模型，通过对象中心的世界模型学习少量示例中的组合转换规则。该模型利用颜色原型槽、任务摘要和循环转换模型，在ARC-1和ARC-2上均优于基线方法，展示了在视觉符号领域从少数演示中学习规则的强大能力。",
+      "llm_tldr": "针对ARC任务中的语境规则归纳问题，提出Loop-OWM模型，通过对象中心的世界模型学习少量示例中的组合转换规则。该模型利用颜色原型槽、任务摘要和循环转换模型，在ARC-1和ARC-2上均优于基线方法，展示了在视觉符号领域从少数演示中学习规则的强大能力。",
+      "llm_tags": [
+        "query:prompt-learn"
+      ],
+      "matched_query_tag": "query:prompt-learn",
+      "matched_query_text": "providing a few examples in the prompt to adapt model behavior",
+      "matched_requirement_id": "req-4",
+      "selection_source": "fresh_fetch"
+    }
+  ],
+  "quick_skim": []
+}

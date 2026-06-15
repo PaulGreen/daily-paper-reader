@@ -1,0 +1,54 @@
+{
+  "label": "2026-06-15",
+  "date": "2026-06-15",
+  "generated_at": "2026-06-15T22:03:19",
+  "count": 3,
+  "papers": [
+    {
+      "paper_id": "202606/15/2606.14155v1-graph-based-target-back-propagation-for-context-adaptation-in-multi-llm-agentic-systems",
+      "section": "deep",
+      "title_en": "Graph-based Target Back-Propagation for Context Adaptation in Multi-LLM Agentic Systems",
+      "authors": "Tan Zhu, Tong Yao, Kananart Kuwaranancharoen, Amit Singh, Yushang Lai, Deepa Mohan, Shankara Bhargava",
+      "date": "2026-06-12",
+      "pdf": "https://arxiv.org/pdf/2606.14155v1",
+      "score": "10.0",
+      "evidence": "通过任务反馈迭代修正可调提示，实现自动提示工程",
+      "tldr": "多LLM代理系统的自动提示工程面临信用分配不准与收敛性缺失的挑战，现有方法难以稳定优化。本文提出基于有向无环图的目标反向传播框架GTBP，通过反向传播目标输出与阶段式提示更新，实现稳定的上下文适应。实验表明GTBP在三个基准上持续超越强基线，且计算成本相当。该框架为复杂代理工作流提供了理论保证和实用方案。",
+      "tags": "query:prompt-learn",
+      "abstract_en": "Context adaptation automates prompt engineering in LLM-based systems by iteratively revising tunable prompts from task feedback, without modifying model weights. Extending this paradigm to multi-LLM agentic systems is crucial: existing methods suffer from inaccurate credit assignment and lack convergence guarantees. We propose \\textbf{G}raph-based \\textbf{T}arget \\textbf{B}ack-\\textbf{P}ropagation (GTBP), a context adaptation framework for agentic workflows modeled as directed acyclic graphs. GTBP propagates local target outputs backward through the workflow graph and uses target--output discrepancies to guide a stage-wise prompt update mechanism. Theoretically, we show that GTBP's stage-wise prompt updates become stable over iterations, and that a sufficiently capable LLM optimizer can decrease the overall objective. Empirically, GTBP consistently outperforms strong baselines across three benchmarks while maintaining comparable computational cost.",
+      "source": "arxiv",
+      "selection_source": "fresh_fetch"
+    },
+    {
+      "paper_id": "202606/15/2606.08841v1-zippzero-shot-image-personalization-from-personas",
+      "section": "deep",
+      "title_en": "ZIPP:Zero-shot Image Personalization from Personas",
+      "authors": "Harini SI, Somesh Singh, Yaman Kumar Singla, David Doermann, Rajiv Ratn Shah",
+      "date": "2026-06-07",
+      "pdf": "https://arxiv.org/pdf/2606.08841v1",
+      "score": "8.0",
+      "evidence": "使用自然语言人设（简洁描述）作为条件指导图像生成",
+      "tldr": "文本到图像扩散模型虽被广泛使用，但生成结果千篇一律，无法反映用户独有的审美偏好；现有方案依赖大量交互或微调，冷启动困难。ZIPP利用大语言模型根据简洁的自然语言人物画像改写提示，引导扩散模型输出个性化图像；并通过图注意力网络从2200万用户Reddit交互图中归纳出人物画像。在包含1500用户和4万张图像的ZIPBench上，ZIPP带来13-20%的增益，前沿模型受益最大；在少样本设定下，ZIPP匹配或超越需100+样本微调的基线方法；其偏好分布散度（CMMD 0.16）远低于通用生成（0.55），并显著减少子群体偏差，人类评估胜率达79%。该方法首次实现无需用户数据的零样本个性化，为创意生成提供新思路。",
+      "tags": "query:prompt-learn",
+      "abstract_en": "Text-to-image diffusion models are increasingly deployed in open-ended creative contexts, yet their outputs remain impersonal, optimized for aggregate aesthetics rather than individual taste. Human preferences are pluralistic: one user favoring muted, nostalgic portraits may prefer vibrant street photography, while another gravitates toward dreamy film aesthetics. Existing methods require dense interaction histories or per-user fine-tuning, failing in cold-start settings and collapsing context-dependent preferences into a static representation. We introduce zero-shot image personalization from personas (ZIPP), which conditions image generation on natural-language personas (concise descriptors of a user's identity and aesthetic sensibilities) without any user-specific data or weight updates. ZIPP uses an LLM to rewrite prompts from the perspective of a given persona, steering diffusion models toward personalized outputs. To mine personas at scale, we train an inductive Graph Attention Network over a 22M-user Reddit interaction graph with dual contrastive objectives aligning graph structure with visual behavior, then verbalize learned representations into natural-language personas via an MLLM. We introduce ZIPBench, the first zero-shot personalization benchmark with 1.5K users, graph-mined personas, and 40K generated images. Across four benchmarks and 14 LLMs spanning five model families, persona conditioning yields consistent gains (13-20%), with frontier models benefiting most. In the few-shot setting, ZIPP matches or exceeds fine-tuned baselines trained on 100+ examples per user. ZIPP achieves the lowest preference distributional divergence (CMMD 0.16 vs. 0.55), and IPF-normalized demographic evaluation shows it substantially reduces subpopulation bias present in existing methods. Human evaluation confirms a 79% win rate over generic generation and 58-65% over all fine-tuned baselines.",
+      "source": "arxiv",
+      "selection_source": "fresh_fetch"
+    },
+    {
+      "paper_id": "202606/15/2606.14302v1-retrospective-progress-aware-self-refinement-for-llm-agent-training",
+      "section": "quick",
+      "title_en": "Retrospective Progress-Aware Self-Refinement for LLM Agent Training",
+      "authors": "Xinbei Ma, Congmin Zheng, Jiyang Qiu, Jiale Hong, Yao Yao, Xiangmou Qu, Jiaxin Yin, Xingyu Lou, Jun Wang, Weiwen Liu, Weinan Zhang, Zhuosheng Zhang, Hai Zhao",
+      "date": "2026-06-12",
+      "pdf": "https://arxiv.org/pdf/2606.14302v1",
+      "score": "7.0",
+      "evidence": "使用回顾性演示作为提示训练LLM代理",
+      "tldr": "当前基于强化学习的LLM智能体训练仅优化逐步动作预测，缺乏对任务进展的元认知，在长程任务中扩展受限。本文提出回顾式进展感知训练框架RePro，采用前向执行后向反思的范式，让智能体回顾完整轨迹自动生成进展信号。在WebShop、ALFWorld和Sokoban上，RePro使Qwen系列模型成功率提升高达12%。该框架无需持续外部监督，为智能体的自我改进与长期规划能力提供了有效训练方案。",
+      "tags": "query:prompt-learn",
+      "abstract_en": "LLM-based agents trained with reinforcement learning optimize step-wise action prediction but lack metacognitive awareness of task progress, inducing a gap that hinders long-horizon scaling. A pilot study reveals that online progress prompting hurts performance while retrospective demonstrations help, yet this capability cannot emerge from outcome-reward training alone. We present RePro, Retrospective Progress-Aware Training, a framework that trains agents to self-generate progress signals via a forward-then-reflect rollout paradigm: the agent executes actions online, then retrospectively reassesses its step-wise progress given the completed trajectory and known outcome. RePro initializes with a Retrospection Warmup that teaches reflection format from minimal external demonstrations, then further trains through RePro-PO with a composite reward that produces self-generated signals without continuous external supervision. Experiments on WebShop, ALFWorld, and Sokoban show that RePro enhances the Qwen family's performance, with up to $12\\%$ absolute success rate gains.",
+      "source": "arxiv",
+      "selection_source": "fresh_fetch"
+    }
+  ],
+  "errors": []
+}

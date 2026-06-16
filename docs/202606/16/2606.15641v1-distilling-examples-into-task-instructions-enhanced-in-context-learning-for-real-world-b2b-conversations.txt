@@ -1,0 +1,1118 @@
+Title: Distilling Examples into Task Instructions: Enhanced In-Context Learning for Real-World B2B Conversations
+
+URL Source: https://arxiv.org/pdf/2606.15641v1
+
+Published Time: Tue, 16 Jun 2026 01:03:34 GMT
+
+Number of Pages: 24
+
+Markdown Content:
+## Distilling Examples into Task Instructions: Enhanced In-Context Learning for Real-World B2B Conversations 
+
+Guy Rotman, Adi Kopilov, Danit Berger Zalmanson, Omri Allouche 
+
+Gong.io 
+
+{guy.rotman, adi.kopilov, danit.berger, omri.allouche}@gong.io 
+
+Abstract 
+
+In-context learning (ICL) is the standard method for low-resource classification, yet its efficacy in specialized domains remains largely unexplored. We address the challenge of classi-fying semantically complex, multi-party B2B conversations, where traditional ICL encoun-ters significant limitations, especially as con-text length increases due to the concatenation of multiple few-shot examples. We introduce the Call Playbook dataset, featuring five clas-sification tasks derived from real-world B2B conversations targeting core sales concepts. To bridge the gap between performance and practi-cal utility, we propose novel knowledge extrac-tion methods that distill verbose examples into compact, interpretable representations of struc-tured classification criteria and precise task de-scriptions. Our approach achieves a 99% re-duction in token usage and improves macro-averaged AUC by up to 7% over traditional ICL. Notably, it remains robust as context grows, unlike advanced token compression baselines which degrade by over 9 F1 points. Impor-tantly, our framework enables direct refinement of classification logic, addressing critical needs for transparency, efficiency, and user interac-tion in real-world NLP applications. 1 2 
+
+1 Introduction 
+
+Recent advances in large language models (LLMs) have transformed natural language processing (NLP), particularly through in-context learning (ICL), where models perform tasks by condition-ing on a few examples without parameter updates (Brown et al., 2020; Min et al., 2022). This paradigm, commonly implemented through few-shot learning approaches, has demonstrated remark-able success across diverse NLP tasks (Sanh et al.,  
+
+> 1Data and code are available at: https://github.com/ gong-io/call-playbook .
+> 2Accepted for publication in Findings of the Association for Computational Linguistics 2026.
+
+2022; Chowdhery et al., 2023). However, its ap-plication to specialized domains such as business-to-business (B2B) sales communications presents unique challenges that have yet to be thoroughly ex-amined (Gupta et al., 2022; Chamieh et al., 2024). In B2B sales environments, analyzing prospect conversations is essential to extract actionable in-telligence guiding deal strategy (Grosz et al., 1995; Dean et al., 2017). To achieve this at scale, organi-zations must automatically classify conversational segments across diverse and evolving task intents that are not known in advance. These tasks operate under severe constraints: limited labeled data, min-imal annotation overhead, and the impracticality of fine-tuning models for each emerging intent. Despite its theoretical suitability for these con-straints, ICL faces significant practical hurdles. Current LLMs can potentially support context win-dows of up to millions of tokens (Reid et al., 2024); however, our analysis reveals severe performance degradation under standard ICL with far fewer to-kens. This decline stems primarily from the con-catenation of multiple few-shot examples, challeng-ing the conventional assumption that increasing example count improves performance (Agarwal et al., 2024; Bertsch et al., 2024). These limita-tions are especially pronounced in the B2B domain, where professionals require interpretable and trans-parent outputs to audit decisions and maintain trust (Doshi-Velez and Kim, 2017; Lipton, 2018). To address these challenges, we propose a knowl-edge extraction framework in which an LLM au-tomatically derives generalizable task knowledge from a small set of labeled examples and converts it into coherent natural-language classification cri-teria and task descriptions, designed to substitute the few-shot examples in the prompt. This approach is fundamentally distinct from existing strategies for improving ICL. Retrieval-based methods (Rubin et al., 2022) focus on select-ing better examples to include in context, prompt 
+
+> arXiv:2606.15641v1 [cs.CL] 14 Jun 2026
+
+optimization techniques restructure how examples are presented (Pan et al., 2023; Ye et al., 2023), and token-level compression methods reduce re-dundancy within individual examples, often yield-ing incoherent, fragmented tokens (Jiang et al., 2023b; Li et al., 2023). In contrast, our approach eliminates the need for example concatenation by shifting to a different representational form. The resulting outputs are transparent and interpretable, supporting both automated processing and human oversight, making the approach uniquely suited for the efficiency, intent flexibility, and interpretability required in practical B2B applications. To provide a basis for evaluation, we introduce five novel B2B classification tasks derived from real-world sales conversations. These tasks target prospect understanding across fundamental sales concepts and serve to highlight the limitations of standard ICL in high-stakes business contexts. Our main contributions are as follows: (1) We introduce a new annotated B2B dataset spanning five core sales concepts. (2) We propose novel ICL methods that shift from example concatenation to automated knowledge extraction. (3) Extensive ex-periments demonstrate superior performance over standard few-shot baselines and advanced token compression methods. (4) Our approach yields significant computational savings through token re-duction and faster inference times at scale. (5) The framework offers built-in interpretability, enabling human-in-the-loop enhancement and user guidance. (6) We support cross-model knowledge transfer, al-lowing large models to generate task instructions for deployment on smaller ones.   
+
+> Figure 1: The Call Playbook Dataset. Representative examples of prospect monologues mapped to the five targeted B2B sales concepts.
+
+2 Related Work 
+
+2.1 In-Context Learning (ICL) 
+
+In-context learning (ICL) has emerged as a ma-jor development in NLP, showcasing the ability of LLMs to perform diverse tasks using a few labeled samples provided in the prompt, without requiring explicit fine-tuning (Brown et al., 2020; Dong et al., 2024). This capability, first demonstrated by mod-els such as GPT-3, has spurred extensive research into its mechanisms, performance, and limitations. Much of this research explores the role of demon-strations in ICL, focusing on prompt design and the selection and ordering of examples (Liu et al., 2022; Pan et al., 2023). Strategies include retriev-ing semantically similar instances (Rubin et al., 2022) or modeling inter-example relationships (Ye et al., 2023), as well as employing active learning to select effective subsets (Zhang et al., 2022). In contrast, this work derives task-specific knowledge directly from a small number of examples. Recent studies have shown that ICL struggles with long contexts, especially when many exam-ples are used (Li et al., 2024; Lee et al., 2025; Modarressi et al., 2025). To address this challenge, compression techniques have been explored for re-ducing example length in NLP applications. Token-level methods remove redundant content based on self-information metrics (Li et al., 2023) or perform iterative compression through instruction-tuned models (Jiang et al., 2023b; Pan et al., 2024), but are limited to selecting subsets of existing to-kens, often resulting in incoherent examples. Model-based approaches train dedicated com-pression models for specific contexts, such as ab-stractive summarization for retrieval-augmented generation (Xu et al., 2024) or active compres-sion for question answering (Yoon et al., 2024). While effective, these methods require labeled datasets and specialized model training. Unlike these approaches, our method generates concise, in-terpretable demonstrations that preserve coherence while distilling essential task knowledge without requiring additional model training. 
+
+2.2 NLP for the B2B Domain 
+
+B2B conversations pose distinct challenges for NLP due to their complexity, involving multi-ple stakeholders, long sales cycles, and domain-specific language (Grewal et al., 2022; Wu et al., 2024). Business signals are often implicit (Voria et al., 2024), positioning B2B conversations as a Train Test Dataset Pos Neg Total Calls Avg Words Prospect % Pos Neg Total Calls Avg Words Prospect %                                                             
+
+> Business Goals 100 100 200 25 288 48 100 100 200 25 279 51 Decision Criteria 86 114 200 25 277 50 94 106 200 25 274 47 Decision Makers 32 168 200 25 259 48 35 165 200 25 274 43 Decision Making Process 61 139 200 20 271 48 68 132 200 21 262 42 Pain Points 100 100 200 25 275 45 100 100 200 25 296 49
+
+Table 1: Call Playbook statistics. Pos: positive examples; Neg: negative examples; Total: sample count; Calls: number of unique calls; Avg Words: average words per sample; Prospect %: percentage of prospect-side dialogue per sample. 
+
+rigorous benchmark for evaluating how LLMs in-terpret nuanced, context-specific language. NLP is increasingly applied in the B2B domain for business goal identification (Campbell et al., 2003; Spruit et al., 2021), sales enhancement (Pa-tel et al., 2022), understanding sales conversations (Chai et al., 2001), customer segmentation (Lieder et al., 2019), and sales forecasting (Bohanec et al., 2017; Zahid et al., 2021; Rohaan et al., 2022). How-ever, existing work lacks consideration of the fluid multi-stakeholder dynamics and the evolving con-text throughout deal progression. To bridge this gap, this paper presents a novel dataset of authentic B2B sales conversations from real-world interactions with multiple stakeholders across different deal stages, annotated for diverse interconnected prospect-focused business concepts. Unlike existing B2B datasets that typically focus on customer support tickets, product reviews, or short transactional exchanges, our dataset captures extended multi-party sales dialogues that reflect the complexity of actual business negotiations. In this work, we demonstrate how LLMs can au-tomatically generate user-guiding task instructions to enhance ICL, enabling comprehensive analy-sis of prospect communication patterns throughout these extended dialogues. 
+
+3 The Call Playbook Dataset 
+
+This section describes the data collection, text pro-cessing, and annotation processes used to construct the Call Playbook dataset. 
+
+3.1 Dataset Overview 
+
+We constructed the Call Playbook dataset from 50 English B2B sales calls with durations ranging from 30 to 90 minutes. Each transcript is structured as a sequence of monologues attributed to speakers on either the seller or the prospect side. The dataset contains annotations for five key sales concepts targeting core prospect dimensions. Each concept captures a distinct aspect of the prospect’s intent and purchasing process: • Business Goals describe the outcomes or ob-jectives the prospect wishes to achieve. • Decision Criteria refer to the standards used to evaluate potential solutions. • Decision Makers identify individuals or roles involved in making the purchasing decision. • Decision Making Process refers to the se-quence of steps the prospect follows when making a decision. • Pain Points reflect the challenges and obsta-cles the prospect seeks to address. Figure 1 provides a conceptual illustration of these categories and representative examples of anno-tated prospect monologues, with relevant concept text highlighted in bold. 
+
+3.2 Data Annotation 
+
+The annotation task involved three trained in-house annotators who identified and labeled textual spans where each concept was expressed, guided by a do-main expert who supervised the process. Each call was segmented into overlapping snippets of five consecutive monologues with an overlap of one monologue between adjacent snippets. 3 This seg-mentation produces dense, contextually grounded segments that preserve the flow of conversation while enabling targeted classification. Each snip-pet was then assigned binary labels for the five concepts: a snippet was marked positive if it con-tained at least one annotated span for a concept, and negative otherwise. Any disagreements that oc-curred between annotators were resolved through discussion until consensus was reached. For each concept, we created class-balanced train and test sets containing 200 samples each.            
+
+> 3Short monologues containing fewer than five words are excluded from the count. EXAMPLES
+> Positive Examples
+> Example 1:
+> [ PROSPECT_A] " We' re losing too
+> much time tracking inventory
+> manually."
+> [SELLER_A] " No worries. We can
+> automate that for you."
+> Example 2: ...
+> Negative Examples
+> Example 1:
+> [ PROSPECT_A] " I' ll need to check
+> that with the finance team"
+> [SELLER_A] " Sure, keep me
+> updated."
+> Example 2: ...
+> CRITERIA GENERATION
+> Your task is to generate two lists:
+> A list of positive criteria: Conditions that
+> indicate the presence of the objective.
+> A list of negative criteria: Conditions that
+> indicate the absence of the objective.
+> ...
+> DESCRIPTION GENERATION
+> Your task is to generate a detailed
+> description of the classification task
+> allowing for the identification of the
+> objective in text snippets.
+> ...
+> CLASSIFICATION
+> Analyze the following text snippet and identify
+> whether the prospect discusses their pain points
+> in the context of the purchasing process.
+> ...
+> Base your classification on the objective and the
+> examples /criteria /description provided above.
+> ...
+> <format>
+> <rationale> [Your reasoning] </rationale>
+> <label> [Positive or Negative] </label>
+> </format>
+> TEXT SNIPPET
+> [ PROSPECT_A] " It? s taking us weeks
+> to onboard new clients."
+> [SELLER_A] " We can help you
+> streamline the process instantly."
+> Examples
+> Know ledge Section
+> DESCRIPTION
+> The task is to identify whether the
+> prospect discusses their pain points ...
+> Label a text snippet as positive if ...
+> Label a text snippet as negative if ...
+> Examples
+
+(b) 
+
+(c) 
+
+> CRITERIA
+> Positive Criteria
+> Criterion 1: Specific statements about ...
+> Criterion 2: ...
+> Negative Criteria
+> Criterion 1: General statements about ...
+> Criterion 2: ...
+
+(a) 
+
+(c) 
+
+(b) 
+
+> De Cr Ex
+
+(b) 
+
+(c) Figure 2: Classification framework overview. The process begins by sampling labeled examples (a), which are either used directly in the knowledge section (traditional few-shot learning) or transformed through knowledge extraction into criteria lists (b) or a task description (c). This extracted knowledge replaces raw examples in the classification prompt, producing structured predictions with explicit rationales for enhanced classification performance. 
+
+When positive examples were limited, we evenly split them between sets and filled the remainder with randomly sampled negatives. To avoid data leakage, we ensured calls did not overlap between sets. This balanced construction establishes a rig-orous benchmark that prevents evaluation metrics from being masked by majority-class prevalence. Table 1 summarizes key statistics for the Call Playbook dataset, including the number of positive and negative examples, total sample count, number of unique calls, average number of words per sam-ple, and the proportion of dialogues attributed to the prospect. The dataset maintains a balanced or nearly balanced distribution across most categories and contains detailed conversational examples of business interactions. Data curation procedures and usage guidelines are outlined in Appendix A. To protect sensitive information, the dataset was thoroughly processed and anonymized as detailed in Appendix B. Au-thentic examples illustrating the diversity and com-plexity of the dataset are provided in Appendix C. 
+
+4 Methodology 
+
+This section presents our approach to enhancing the effectiveness of ICL for classification tasks in B2B conversational analysis. We begin by formal-izing the problem setup and then describe our novel methods for improving few-shot classification per-formance within this framework. 
+
+4.1 Problem Setup 
+
+To reflect practical constraints in conversational analysis, we consider the problem of classifying conversational segments into domain-relevant cate-gories under conditions of minimal task specifica-tions and few labeled examples. We define this setup formally as follows: Given a short user-provided task intent i ∈ I and a labeled dataset E = {(xj , y j )}Mj=1 , where each xj ∈ X is a conversational segment and yj ∈ C is its corre-sponding class label, our goal is to construct from 
+
+E a classifier f : I × X → C that accurately pre-dicts the label for an unseen segment xtest given an intent i. In our experimental setup, we focus on binary classification where C = {0, 1}, with 
+
+1 indicating the presence of the target concept as specified by i, and 0 indicating its absence. This classification task presents multiple chal-lenges that make ICL particularly suitable for prac-tical B2B applications: (1) Limited data availabil-ity : specialized domains often have scarce labeled examples due to their specific nature and privacy constraints; (2) Minimal user overhead : practi-tioners need quick deployment without extensive annotation or model training; (3) Task diversity :user intents vary widely, making task-specific fine-tuning of multiple models impractical at scale. ICL addresses these constraints by leveraging a general LLM to classify diverse task intents using only a few examples. Our framework extends this capability by extracting interpretable knowledge that enables human-in-the-loop intervention. 4.2 Classification Process 
+
+Our general classification framework, illustrated in Figure 2, proceeds as follows: 
+
+Step 1: Sample Selection. We randomly sample a small subset of N labeled examples from the train-ing set E, preserving the original class distribution, to serve as the basis for ICL. This step is shared across all proposed methods. 
+
+Step 2: Knowledge Extraction. Based on these examples, we either use them directly in a standard few-shot prompt or transform them into distilled knowledge, such as criteria or detailed descriptions, using an LLM. When employed, we use the same LLM for this step and for the classification task described in Step 4 for consistency. 
+
+Step 3: Prompt Construction. We construct a classification prompt that includes the user intent i,either the sampled examples or the derived knowl-edge, and the test snippet xtest to be classified. For all methods, we use the same classification prompt template, further discussed in Appendix D. 
+
+Step 4: Classification. We query an LLM with the constructed prompt to obtain a classification prediction ˆy ∈ C for each test snippet. Rather than relying on raw examples in the prompt, our method introduces a knowledge extrac-tion phase that summarizes them into generalizable knowledge. This not only overcomes token limi-tations in few-shot setups but also supports strong performance and improved user interpretability. 
+
+4.3 Classification Methods 4.3.1 Few-shot Learning (Examples) 
+
+The standard few-shot learning approach, which we denote as “Examples”, serves as our main baseline. In this method, we directly include the N sampled examples in the classification prompt to provide guidance for the model, as shown in Figure 8. While this approach has proven effective for many tasks, it faces notable challenges in conver-sational domains. Each snippet can be hundreds of words long (see Table 1), quickly consuming token budget as N increases. Also, the model must infer classification rules implicitly from examples, which may lead to poor generalization, especially when the task is difficult or underspecified. 
+
+4.3.2 Summary-Ex Method 
+
+To harness the advantages of information compres-sion and reduced contextual noise, we introduce “Summary-Ex” (Summary from Ex amples) as an intermediate baseline. This method replaces the full examples with concise summaries that retain essential discriminative information: 
+
+Step 2: Example Summarization. We prompt an LLM to generate a brief summary for each exam-ple, condensing it to 3-5 sentences while preserv-ing the original conversation format and speaker affiliations. The summarization process focuses on removing redundant information and filler words while retaining all discussed business content and maintaining the essential structure and flow of the conversation. The detailed prompt for summariza-tion is provided in Appendix E.1. 
+
+Steps 3-4: Classification with Summarized Ex-amples. We substitute the original sampled ex-amples with their summarized variants within the standard few-shot prompt format to classify the original text snippets. This approach reduces token usage compared to full examples while maintaining the intuitive example-based learning paradigm. However, it still requires the model to implicitly infer classification patterns and may lose important contextual nuances during the summarization process. 
+
+4.3.3 Criteria-Ex Method 
+
+Our first alternative, “Criteria-Ex” (Criteria from 
+
+Ex amples), extracts explicit classification criteria from training examples rather than relying on im-plicit pattern inference: 
+
+Step 2: Knowledge Extraction. We instruct the relevant LLM to generate two lists of criteria based on the sampled examples and the user intent i: (1) a list of positive criteria indicating the presence of the concept in the text snippet, and (2) a list of negative criteria indicating its absence. The prompt (detailed in Appendix E.2) directs the model to an-alyze the distinguishing patterns between positive and negative examples. For binary B2B tasks, this entails identifying patterns that indicate whether a concept is discussed or not in the conversation. 
+
+Steps 3-4: Classification with Criteria. We pro-ceed with classification by replacing the few-shot examples in the classification prompt with the gen-erated criteria (see Figure 9). This approach significantly reduces token usage compared to few-shot examples, as the criteria typi-cally require far fewer tokens than the original con-versation snippets. It also enhances explainability by making classification logic explicit rather than implicit, and improves generalization by extracting patterns rather than relying on specific examples. 4.3.4 Description-Ex Method 
+
+Our next method, “Description-Ex”, similarly transforms Ex amples into a detailed task descrip-tion that extends beyond the short user intent: 
+
+Step 2: Knowledge Extraction. We prompt the relevant LLM to analyze the sampled examples and user intent i to generate a comprehensive task description that captures the essence of the classifi-cation task. The description explains the character-istics that indicate the presence or absence of the target concept, and provides a coherent explanation of the concept boundaries. The prompt for generat-ing descriptions is provided in Appendix E.3. 
+
+Steps 3-4: Classification with Description. We replace the few-shot examples with the generated description in our classification prompt (see Fig-ure 10) and proceed with classification. This approach offers benefits similar to Criteria-Ex but provides a cohesive narrative explanation that may better capture complex relationships and context-dependent aspects of classification. Its structured format aligns more naturally with how LLMs process instructions, which can improve gen-eralization in challenging scenarios where rigid criteria may overlook important subtleties. 
+
+4.3.5 Iterative Improvement Methods 
+
+We further investigate whether our proposed meth-ods can be enhanced through iteration, examining the potential for refining derived knowledge. 
+
+Criteria-De generates classification criteria from a previously generated task De scription, pro-duced by Description-Ex, rather than directly from examples. The associated prompt is detailed in Appendix E.2. 
+
+Description-Cr generates a task description from previously generated Cr iteria, produced by Criteria-Ex, testing whether structured criteria can be expanded into a more comprehensive narrative. The associated prompt is detailed in Appendix E.3. These iterative variants illustrate how knowledge representations can be progressively refined, e.g., from examples to descriptions to criteria and back, revealing their complementary roles. This capac-ity for stepwise enhancement renders the approach especially well-suited for dynamic, human-in-the-loop workflows, where evolving guidance or label-ing needs are met through successive refinements rather than redesigning prompts from scratch. 
+
+5 Experiments 
+
+We evaluate all methods on the five concepts of 
+
+Call Playbook . Using ICL, we systematically vary the number of examples ( 0, 10 , 25 , 50 , 75 ,and 100 ) to assess performance across different few-shot levels 4.Examples are randomly sampled while preserv-ing the original class distribution. To mitigate po-tential biases and ensure statistical reliability, we repeat each configuration five times with different random samples and report averaged metrics. Our evaluation covers five LLMs of varying ca-pabilities: GPT-4o (Hurst et al., 2024), Claude Son-net 3.7 and Claude Haiku 3 (Anthropic, 2024), as well as Mistral Large and Mistral Small (Jiang et al., 2023a). This selection includes both proprietary and open-weight models with diverse architectures and parameter scales. To ensure a fair comparison, we use the same set of examples across all models and set temperature to 0 for deterministic outputs. For implementation, we use the LangChain 
+
+framework 5 with the Azure API for GPT-4o and the AWS Bedrock API for the remaining models. 
+
+6 Results 
+
+6.1 Main Results 
+
+Our ICL analysis across the five LLMs and five concepts reveals key classification performance pat-terns. Figure 3 presents a comprehensive view of macro-average F1 scores, with the top row show-ing average performance across models and the bottom row displaying results across concepts. The complete results for all models and concepts are presented in Appendix K.1. Detailed qualitative analyses of our methods are provided in Appen-dices F, G, and H. 
+
+Method Performance Overview Across all ex-periments, our advanced prompting methods consistently outperform the basic example-based methods , with criteria and description vari-ants performing similarly. AUC analysis shows a tight cluster: Criteria (De: 76.3%, Ex: 76.2%), De-scription (Cr: 75.9%, Ex: 75.6%), while Summary-Ex (72.0%) and Examples (69.3%) trail behind. 
+
+Few-shot Scaling Patterns Our analysis reveals distinct patterns in average macro-F1 scores as few-                                                       
+
+> 4In zero-shot scenarios, our criteria- and description-based methods distill information solely from the user intent, leverag-ing general knowledge to enable operation without examples.
+> 5https://www.langchain.com/ Performance Across Models
+> 010 25 50 75 100
+> Few-Shot Examples
+> 60
+> 65
+> 70
+> 75
+> 80
+> F1-Score (%)
+> GPT-4o
+> 010 25 50 75 100
+> Few-Shot Examples
+> 60
+> 65
+> 70
+> 75
+> 80
+> Claude Sonnet 3.7
+> 010 25 50 75 100
+> Few-Shot Examples
+> 50
+> 55
+> 60
+> 65
+> 70
+> 75
+> Claude Haiku 3
+> 010 25 50 75 100
+> Few-Shot Examples
+> 50
+> 55
+> 60
+> 65
+> 70
+> 75
+> Mistral Large
+> 010 25 50 75 100
+> Few-Shot Examples
+> 50
+> 55
+> 60
+> 65
+> 70
+> 75
+> Mistral Small
+> Performance Across Concepts
+> 010 25 50 75 100
+> Few-Shot Examples
+> 60
+> 65
+> 70
+> 75
+> F1-Score (%)
+> Business Goals
+> 010 25 50 75 100
+> Few-Shot Examples
+> 60
+> 65
+> 70
+> 75
+> Decision Criteria
+> 010 25 50 75 100
+> Few-Shot Examples
+> 60
+> 65
+> 70
+> 75
+> 80
+> 85
+> Decision Makers
+> 010 25 50 75 100
+> Few-Shot Examples
+> 60
+> 65
+> 70
+> 75
+> Decision Making Process
+> 010 25 50 75 100
+> Few-Shot Examples
+> 50
+> 55
+> 60
+> 65
+> 70
+> 75
+> 80
+> Pain Points
+> Examples Summary-Ex Criteria-Ex Criteria-De Description-Ex Description-Cr
+
+Figure 3: Top: Macro-average F1 performance for each model, averaged over all concepts. Bottom: Macro-average F1 performance for each concept, averaged over all models. 
+
+shot examples increase. The most striking finding is that the standard few-shot (Examples) method exhibits severe performance degradation as the number of few-shot examples increases . This phenomenon is consistent across all experiments, highlighting the inherent difficulty of our tasks. The Examples method degrades dramatically from 71.5% at 0-shot to 60.7% at 100-shot on average. This observation is also true for the Summary-Ex method, which shows similar degradation down to 64.7%, implying that summarization alone cannot fully address this challenge. This decline aligns with recent findings that long-context model performance often plateaus or de-grades with increased context size (Li et al., 2024; Lee et al., 2025; Modarressi et al., 2025), a trend likely exacerbated by the complex relational struc-tures and specialized nuances within our dataset. Remarkably, our proposed methods show ro-bustness to context length, with Description-Ex showing steady improvement from 0-shot (71.5%) to 100-shot (72.6%) with minimal fluc-tuation. Criteria-De demonstrates the largest overall gains from 69.3% to 72.2%. In contrast, 
+
+Description-Cr and Criteria-Ex peak at inter-mediate shot counts , both at 25 shots with 72.4% and 71.9% respectively, before declining to 71.3% and 70.3%, indicating performance saturation. 
+
+Model Comparison Figure 3 (Top) indicates that 
+
+Sonnet 3.7 achieves the highest performance overall with 77% macro-average F1, showing strong scaling and peak performance at 25 shots. GPT-4o performs consistently until 50 shots before declining, while both Mistral models exhibit clear degradation as shots increase, with Mistral Small peaking early at 10 shots. Haiku 3 shows minimal variation between medium and high shots after an initial performance decline. These findings suggest that larger models often benefit from additional exemplars, while smaller models struggle with increased context length. Concept Patterns The performance across con-cepts, shown in Figure 3 (Bottom), reveals distinct patterns in classification effectiveness and method suitability. Decision Makers consistently achieves the highest F1 scores (reaching 80%) across all methods, indicating that identifying stakeholders involves more recognizable linguistic patterns than other concepts. Notably, Business Goals and De-cision Criteria show similar performance profiles with modest differences between methods, sug-gesting these concepts share comparable seman-tic structures in B2B conversations. In contrast, Pain Points exhibits the widest performance spread (55%-75% F1) with description-based methods de-cisively outperforming others, confirming that de-scriptive context significantly enhances the model’s ability to recognize problem-oriented language. Fi-nally, the procedural concept of Decision Making Process uniquely favors Criteria-Ex, showing con-Method / N Shots 0 10 25 50 75 100 Avg                             
+
+> Criteria-Ex 69.3 71.2 71.9 70.6 70.4 70.3 70.6 Description-Ex 71.5 71.9 72.0 72.5 72.3 72.6 72.1
+> SC 71.4 69.8 67.4 64.7 63.8 62.1 66.5 LLMLingua-2 46.4 49.1 48.9 49.0 46.8 47.6 48.0
+
+Table 2: Comparison with token-level compression methods across few-shot example counts. Mean macro-average F1 scores over all models and concepts. 
+
+sistent improvement as shot count increases. These results demonstrate that concept charac-teristics determine optimal prompting strate-gies: abstract concepts benefit from descrip-tive context while systematic concepts require structured criteria. This underscores the need for concept-specific approaches in B2B sales analysis. 
+
+6.2 Token-Level Compression Comparison 
+
+To determine whether our performance gains derive from knowledge quality or simple token reduction, we compare our approach against two extractive baselines at a fixed 50% compression rate. Unlike our generative methods, these baselines prune orig-inal tokens without producing new content: Selec-tive Context (SC) (Li et al., 2023), which focuses on example-level compression, and LLMLingua-2 (Pan et al., 2024), which compresses the entire prompt. Table 2 presents performance averages across all models and concepts (see Appendix K.2 for per-concept breakdowns). Consistent with our earlier observations, our methods show improving or stable performance as examples increase, while compression baselines show opposite trends. LLMLingua-2 remains be-low 50% throughout, while SC declines substan-tially from 71.4% to 62.1% (a 9.3% absolute drop), negating the benefit of additional examples. These trajectories reveal fundamental limitations of these methods. Extractive token compres-sion either prunes essential task instructions or yields fragmented examples composed of dis-connected salient tokens, failing to provide co-herent guidance as example density increases. 
+
+LLMLingua-2 fails because it cannot distinguish between compressible content and task-defining elements. SC avoids this by targeting examples specifically. However, its independent token-level pruning yields examples that lack interpretability and relational connectivity, preventing performance gains as example density increases. Moreover, like traditional ICL (Section 6.5), both methods scale linearly with example count and require training 0 10 25 50 75 100 
+
+> Few-Shot Examples
+> -6
+> -4
+> -2
+> 0
+> 2
+> 4
+> 6
+> F1-Score Difference (%)
+> Claude (Criteria-Ex)
+> Mistral (Criteria-Ex)
+> Claude (Description-Ex)
+> Mistral (Description-Ex)
+
+Figure 4: Mean macro-average F1 difference when ap-plying criteria and descriptions generated by larger ver-sus smaller models. Classification was performed by smaller models in all cases. Positive values indicate bet-ter performance with larger model-generated content. 
+
+specialized models, introducing significant prepro-cessing overhead. In contrast, our methods distill knowledge into interpretable, generalizable patterns through struc-tured distillation. This yields both superior perfor-mance and human-readable representations via a single LLM call that does not require any training. 
+
+6.3 Cross-Model Knowledge Distillation 
+
+Unlike standard few-shot learning, our knowledge extraction methods allow us to leverage the genera-tion capabilities of larger, more capable models to enhance the classification performance of smaller models. This approach requires only a single gen-eration step, with minimal time or cost overhead. We generate criteria and descriptions with the larger models (Sonnet 3.7, Mistral Large) and inject them into the in-context prompts of the smaller models (Haiku 3, Mistral Small) for classification. Figure 4 illustrates the macro-average F1 dif-ference, averaged over all five concepts, between content generated by the larger models and the original content produced by the smaller models. The results reveal a clear pattern: smaller models consistently improve when using structured criteria from larger models, but perform worse when in-corporating descriptions generated by larger mod-els. Mistral models demonstrate lower variance compared to Claude models, although both model families follow the same overall trend. This sug-gests that structured criteria transfer more effec-tively between models than verbose descriptions .The rule-based, concise nature of criteria appears more universal than verbose text, which can be highly specific to the source model’s generation Model / Annotator Criteria-Ex Description-Ex 
+
+Claude Sonnet 3.7 77.94 79.84 Annotator 1 80.59 81.84 
+
+Annotator 2 75.63 79.80 Annotator 3 79.52 80.90 Annotator 4 80.30 80.50 Annotator 5 77.92 80.81 
+
+Table 3: Mean macro-average F1 comparing model-generated knowledge against human-refined versions. 
+
+style, enabling smaller models to better leverage the distilled conceptual structure. 
+
+6.4 Human-in-the-Loop Enhancement 
+
+To assess the interpretability and degree of human contribution to our methods, we conducted an ex-periment involving human annotators. We selected the criteria and descriptions generated by Sonnet 3.7 (our strongest model) from the most effective few-shot size of 25 examples from the first iteration. Five human annotators were then asked to modify the texts generated by Criteria-Ex and Description-Ex for all five concepts. Annotators were given full freedom to revise the generated text by edit-ing, removing, or adding content, while preserving reasonable similarity to the original output. Table 3 compares the original model-generated elements and the human-modified versions in terms of mean macro-average F1 scores across the five tasks. Notably, three annotators improved Criteria-Ex performance and one achieved similar results, while four improved Description-Ex performance, with gains up to 2.65% and 2%, respectively. De-scriptions proved more conducive to human refine-ment than criteria, likely because descriptions allow for more flexible reformulation without altering the underlying logic, while criteria modifications can more easily introduce unintended logical con-flicts or overlook boundary conditions. Unlike tra-ditional few-shot approaches where classification logic remains opaque, our methods provide inter-pretable artifacts that enable effective human-in-the-loop collaboration, successfully combin-ing LLM strengths with human expertise. Adetailed analysis of human modifications and their impact on performance is provided in Appendix I. 
+
+6.5 Computational Efficiency Analysis 
+
+Figure 5 compares token consumption across meth-ods using the GPT-4o model, averaged over all test sets. Both example-based methods scale linearly 0 10 25 50 75 100      
+
+> Few-Shot Examples
+> 0
+> 5K
+> 10K
+> 15K
+> 20K
+> Token Count
+> Examples slope: 236 tokens/example
+> Summary-Ex slope: 126 tokens/example
+> All Methods
+> 010 25 50 75 100
+> Few-Shot Examples
+> 200
+> 300
+> 400
+> 500
+> 600
+> Token Count
+> Our Methods (Zoomed)
+> Examples
+> Summary-Ex
+> Criteria-Ex
+> Criteria-De
+> Description-Ex
+> Description-Cr
+
+Figure 5: Token count analysis. Left: All methods, showing linear growth for the Examples and Summary methods, while the Criteria and Description methods remain flat. Right: Zoomed view of our methods, reveal-ing minimal variation as the example count increases. 
+
+with dataset size: Examples at 236 tokens per ex-ample and Summary-Ex at 126 tokens per example, reaching 25K and 12.5K tokens, respectively, at 100 examples. In contrast, our methods show mini-mal correlation with example count: Description-based approaches remain under 200 tokens while Criteria-based methods stabilize under 600 tokens regardless of sample size, represent-ing a reduction of up to 99% in token usage. 
+
+This token efficiency translates directly to faster test-time processing (Figure 15), yielding 70% and 57% time reductions for criteria and description methods over the Examples approach. Summary-Ex shows moderate efficiency gains, maintaining reasonable performance up to 50 examples before scaling substantially. These results reveal that our proposed methods significantly improve efficiency while preserving performance. 
+
+7 Conclusions 
+
+This work enhances the efficacy of ICL by intro-ducing novel knowledge extraction methods that distill examples into precise task instructions. We contribute a new benchmark spanning five essen-tial B2B concepts, offering a valuable resource for advancing classification in professional contexts. Our dataset reveals the inherent complexity of B2B language understanding, where traditional and com-plex few-shot methods degrade sharply as context length increases, highlighting the need for more sophisticated approaches. Through extensive experiments across varied LLMs and few-shot settings, our methods demon-strate superior performance, time efficiency, and cost-effectiveness compared to the standard ICL and various token-level compression techniques. The proposed framework exhibits strong adaptabil-ity across different business concepts without re-quiring domain-specific customization. Crucially, our methods generate interpretable artifacts that enable seamless human-in-the-loop collaboration. This interpretability, combined with our flexible ar-chitecture that allows knowledge distillation from powerful to efficient models, opens new pathways for transparent and scalable NLP applications. 
+
+Limitations 
+
+The scope and implications of our research are subject to several limitations. Although our experimental evaluation is grounded in a carefully curated resource of 50 B2B sales calls, each lasting 30 to 90 minutes and anno-tated by three independent professional annotators under expert supervision, broader validation across additional B2B corpora remains necessary to fully establish the robustness of our findings. The cur-rent scope reflects the resource-intensive nature of expert human annotation, as we prioritize expert-annotated labels over automated alternatives. Furthermore, our knowledge extraction frame-work relies on the reasoning capabilities of the underlying LLM to distill accurate criteria from verbose examples. Consequently, our method is susceptible to error propagation if the extraction model hallucinates incorrect rules or misses subtle semantic nuances. While our results show perfor-mance gains, the quality of the generated distilled artifacts is upper-bounded by the capability of the model used for distillation. Finally, our work focuses on binary classifica-tion tasks. While our methods can easily be ex-tended to multi-class classification, the extracted knowledge representation would increase linearly with the number of classes, potentially creating ef-ficiency concerns. Furthermore, as the number of classes increases, some may be underrepresented in the sampled examples, limiting the quality of the generated criteria and descriptions. This may compromise generalization capabilities and overall performance in multi-class scenarios. 
+
+References 
+
+Rishabh Agarwal, Avi Singh, Lei Zhang, Bernd Bohnet, Luis Rosias, Stephanie Chan, Biao Zhang, Ankesh Anand, Zaheer Abbas, Azade Nova, and 1 others. 2024. Many-shot in-context learning. Advances in Neural Information Processing Systems , 37:76930– 76966. Anthropic. 2024. The claude 3 model family: Opus, sonnet, haiku. Model card. Amanda Bertsch, Maor Ivgi, Uri Alon, Jonathan Be-rant, Matthew R Gormley, and Graham Neubig. 2024. In-context learning with long-context models: An in-depth exploration. In First Workshop on Long-Context Foundation Models@ ICML 2024 .Marko Bohanec, Marko Robnik-Šikonja, and Mirjana Kljaji´ c Borštnar. 2017. Organizational Learning Sup-ported by Machine Learning Models Coupled with General Explanation Methods: A Case of B2B Sales Forecasting. Organizacija , 50(3):217–233. Tom Brown, Benjamin Mann, Nick Ryder, Melanie Subbiah, Jared D Kaplan, Prafulla Dhariwal, Arvind Neelakantan, Pranav Shyam, Girish Sastry, Amanda Askell, Sandhini Agarwal, Ariel Herbert-Voss, Gretchen Krueger, Tom Henighan, Rewon Child, Aditya Ramesh, Daniel Ziegler, Jeffrey Wu, Clemens Winter, and 12 others. 2020. Language models are few-shot learners. In Advances in Neural Information Processing Systems , volume 33, pages 1877–1901. Curran Associates, Inc. Marc Brysbaert, Amy Beth Warriner, and Victor Ku-perman. 2014. Concreteness ratings for 40 thousand generally known english word lemmas. Behavior research methods , 46:904–911. Christopher S. Campbell, Paul P. Maglio, Alex Cozzi, and Byron Dom. 2003. Expertise identification us-ing email communications. In Proceedings of the Twelfth International Conference on Information and Knowledge Management , CIKM ’03, page 528–531, New York, NY, USA. Association for Computing Machinery. Joyce Chai, Jimmy Lin, Wlodek Zadrozny, Yiming Ye, Margo Stys-Budzikowska, Veronika Horvath, Nanda Kambhatla, and Catherine Wolf. 2001. The role of a natural language conversational interface in online sales: a case study. International Journal of Speech Technology , 4:285–295. Imran Chamieh, Torsten Zesch, and Klaus Giebermann. 2024. LLMs in short answer scoring: Limitations and promise of zero-shot and few-shot approaches. In Proceedings of the 19th Workshop on Innovative Use of NLP for Building Educational Applications (BEA 2024) , pages 309–315, Mexico City, Mexico. Association for Computational Linguistics. Aakanksha Chowdhery, Sharan Narang, Jacob Devlin, Maarten Bosma, Gaurav Mishra, Adam Roberts, Paul Barham, Hyung Won Chung, Charles Sutton, Sebastian Gehrmann, Parker Schuh, Kensen Shi, Sasha Tsvyashchenko, Joshua Maynez, Abhishek Rao, Parker Barnes, Yi Tay, Noam Shazeer, Vinodku-mar Prabhakaran, and 48 others. 2023. Palm: Scaling language modeling with pathways. Journal of Ma-chine Learning Research , 24(240):1–113. Andrew Kristoffer Dean, Nick Ellis, and Vic-toria K. Wells and. 2017. Science ‘fact’ and science ‘fiction’? Homophilous com-munication in high-technology B2B selling. 
+
+Journal of Marketing Management , 33(9-10):764–788. Publisher: Routledge _eprint: https://doi.org/10.1080/0267257X.2017.1324895. Qingxiu Dong, Lei Li, Damai Dai, Ce Zheng, Jingyuan Ma, Rui Li, Heming Xia, Jingjing Xu, Zhiyong Wu, Baobao Chang, Xu Sun, Lei Li, and Zhifang Sui. 2024. A survey on in-context learning. In Proceed-ings of the 2024 Conference on Empirical Methods in Natural Language Processing , pages 1107–1128, Miami, Florida, USA. Association for Computational Linguistics. Finale Doshi-Velez and Been Kim. 2017. Towards a rigorous science of interpretable machine learning. 
+
+arXiv preprint arXiv:1702.08608 .Rajdeep Grewal, Gary L Lilien, J Andrew Petersen, and Stefan Wuyts. 2022. Business-to-business marketing: Looking back, looking forward. In Handbook of business-to-business marketing , pages 2–11. Edward Elgar Publishing. Barbara Grosz, D Scott, H Kamp, P Cohen, and E Gi-achin. 1995. Discourse and dialogue. Deepa Gupta, Anil Nair, Deepa Iyer, and Anil Reddy. 2022. Leveraging machine learning and natural lan-guage processing for enhanced b2b marketing intelli-gence. Innovative AI Research Journal , 11(10). Aaron Hurst, Adam Lerer, Adam P Goucher, Adam Perelman, Aditya Ramesh, Aidan Clark, AJ Ostrow, Akila Welihinda, Alan Hayes, Alec Radford, and 1 others. 2024. Gpt-4o system card. arXiv preprint arXiv:2410.21276 .Albert Q. Jiang, Alexandre Sablayrolles, Arthur Men-sch, Chris Bamford, Devendra Singh Chaplot, Diego de Las Casas, Florian Bressand, Gianna Lengyel, Guillaume Lample, Lucile Saulnier, Lélio Re-nard Lavaud, Marie-Anne Lachaux, Pierre Stock, Teven Le Scao, Thibaut Lavril, Thomas Wang, Timo-thée Lacroix, and William El Sayed. 2023a. Mistral 7b. CoRR , abs/2310.06825. Huiqiang Jiang, Qianhui Wu, Chin-Yew Lin, Yuqing Yang, and Lili Qiu. 2023b. LLMLingua: Compress-ing prompts for accelerated inference of large lan-guage models. In Proceedings of the 2023 Confer-ence on Empirical Methods in Natural Language Pro-cessing , pages 13358–13376, Singapore. Association for Computational Linguistics. Taewhoo Lee, Chanwoong Yoon, Kyochul Jang, Donghyeon Lee, Minju Song, Hyunjae Kim, and Jae-woo Kang. 2025. ETHIC: Evaluating large language models on long-context tasks with high information coverage. In Proceedings of the 2025 Conference of the Nations of the Americas Chapter of the Asso-ciation for Computational Linguistics: Human Lan-guage Technologies (Volume 1: Long Papers) , pages 5497–5512, Albuquerque, New Mexico. Association for Computational Linguistics. Tianle Li, Ge Zhang, Quy Duc Do, Xiang Yue, and Wenhu Chen. 2024. Long-context llms struggle with long in-context learning. CoRR , abs/2404.02060. Yucheng Li, Bo Dong, Frank Guerin, and Chenghua Lin. 2023. Compressing context to enhance inference ef-ficiency of large language models. In Proceedings of the 2023 Conference on Empirical Methods in Natu-ral Language Processing , pages 6342–6353, Singa-pore. Association for Computational Linguistics. Itay Lieder, Meirav Segal, Eran Avidan, Asaf Cohen, and Tom Hope. 2019. Learning a Faceted Customer Segmentation for Discovering new Business Oppor-tunities at Intel . In 2019 IEEE International Confer-ence on Big Data (Big Data) , pages 6136–6138, Los Alamitos, CA, USA. IEEE Computer Society. Zachary C Lipton. 2018. The mythos of model inter-pretability: In machine learning, the concept of in-terpretability is both important and slippery. Queue ,16(3):31–57. Jiachang Liu, Dinghan Shen, Yizhe Zhang, Bill Dolan, Lawrence Carin, and Weizhu Chen. 2022. What makes good in-context examples for GPT-3? In 
+
+Proceedings of Deep Learning Inside Out (DeeLIO 2022): The 3rd Workshop on Knowledge Extrac-tion and Integration for Deep Learning Architectures ,pages 100–114, Dublin, Ireland and Online. Associa-tion for Computational Linguistics. Sewon Min, Xinxi Lyu, Ari Holtzman, Mikel Artetxe, Mike Lewis, Hannaneh Hajishirzi, and Luke Zettle-moyer. 2022. Rethinking the role of demonstrations: What makes in-context learning work? In Proceed-ings of the 2022 Conference on Empirical Methods in Natural Language Processing , pages 11048–11064, Abu Dhabi, United Arab Emirates. Association for Computational Linguistics. Ali Modarressi, Hanieh Deilamsalehy, Franck Dernon-court, Trung Bui, Ryan A Rossi, Seunghyun Yoon, and Hinrich Schuetze. 2025. Nolima: Long-context evaluation beyond literal matching. In Forty-second International Conference on Machine Learning .Jane Pan, Tianyu Gao, Howard Chen, and Danqi Chen. 2023. What in-context learning “learns” in-context: Disentangling task recognition and task learning. In Findings of the Association for Computational Linguistics: ACL 2023 , pages 8298–8319, Toronto, Canada. Association for Computational Linguistics. Zhuoshi Pan, Qianhui Wu, Huiqiang Jiang, Menglin Xia, Xufang Luo, Jue Zhang, Qingwei Lin, Victor Rühle, Yuqing Yang, Chin-Yew Lin, H. Vicky Zhao, Lili Qiu, and Dongmei Zhang. 2024. LLMLingua-2: Data dis-tillation for efficient and faithful task-agnostic prompt compression. In Findings of the Association for Com-putational Linguistics: ACL 2024 , pages 963–981, Bangkok, Thailand. Association for Computational Linguistics. Amit Patel, Neha Patel, Rohit Reddy, and Priya Bose. 2022. Enhancing sales efficiency through ai: Lever-aging natural language processing and reinforcement learning for automated sales tools. International Journal of AI ML Innovations , 11(8). Machel Reid, Nikolay Savinov, Denis Teplyashin, Dmitry Lepikhin, Timothy P Lillicrap, Jean-Baptiste Alayrac, Radu Soricut, Angeliki Lazaridou, Orhan Firat, Julian Schrittwieser, and 1 others. 2024. Gem-ini 1.5: Unlocking multimodal understanding across millions of tokens of context. CoRR .D. Rohaan, E. Topan, and C.G.M. Groothuis-Oudshoorn. 2022. Using supervised machine learn-ing for B2B sales forecasting: A case study of spare parts sales forecasting at an after-sales ser-vice provider. Expert Systems with Applications ,188:115925. Ohad Rubin, Jonathan Herzig, and Jonathan Berant. 2022. Learning to retrieve prompts for in-context learning. In Proceedings of the 2022 Conference of the North American Chapter of the Association for Computational Linguistics: Human Language Tech-nologies , pages 2655–2671, Seattle, United States. Association for Computational Linguistics. Victor Sanh, Albert Webson, Colin Raffel, Stephen H. Bach, Lintang Sutawika, Zaid Alyafeai, Antoine Chaffin, Arnaud Stiegler, Teven Le Scao, Arun Raja, Manan Dey, M Saiful Bari, Canwen Xu, Urmish Thakker, Shanya Sharma, Eliza Szczechla, Taewoon Kim, Gunjan Chhablani, Nihal V. Nayak, and 23 others. 2022. Multitask Prompted Training Enables Zero-Shot Task Generalization. In ICLR 2022 - Tenth International Conference on Learning Representa-tions , Online, Unknown Region. Marco Spruit, Marcin Kais, and Vincent Menger. 2021. Automated Business Goal Extraction from E-mail Repositories to Bootstrap Business Understanding. 
+
+Future Internet , 13(10):243. Gianmario Voria, Francesco Casillo, Carmine Gravino, Gemma Catolino, and Fabio Palomba. 2024. Re-cover: Toward the automatic requirements genera-tion from stakeholders’ conversations. arXiv preprint arXiv:2411.19552 .Zhong Wu, Qiping She, and Chuan Zhou. 2024. Intelli-gent customer service system optimization based on artificial intelligence. J. Organ. End User Comput. ,36(1):1–27. Fangyuan Xu, Weijia Shi, and Eunsol Choi. 2024. RE-COMP: Improving retrieval-augmented LMs with context compression and selective augmentation. In 
+
+The Twelfth International Conference on Learning Representations .Jiacheng Ye, Zhiyong Wu, Jiangtao Feng, Tao Yu, and Lingpeng Kong. 2023. Compositional exemplars for in-context learning. In Proceedings of the 40th Inter-national Conference on Machine Learning , volume 202 of Proceedings of Machine Learning Research ,pages 39818–39833. PMLR. Chanwoong Yoon, Taewhoo Lee, Hyeon Hwang, Min-byul Jeong, and Jaewoo Kang. 2024. CompAct: Compressing retrieved documents actively for ques-tion answering. In Proceedings of the 2024 Confer-ence on Empirical Methods in Natural Language Pro-cessing , pages 21424–21439, Miami, Florida, USA. Association for Computational Linguistics. Eelaaf Zahid, Yuya Jeremy Ong, Aly Megahed, and Taiga Nakamura. 2021. Predicting Loss Risks for B2B Tendering Processes . In 2021 IEEE Interna-tional Conference on Big Data (Big Data) , pages 2076–2083, Los Alamitos, CA, USA. IEEE Com-puter Society. Yiming Zhang, Shi Feng, and Chenhao Tan. 2022. Ac-tive example selection for in-context learning. In Pro-ceedings of the 2022 Conference on Empirical Meth-ods in Natural Language Processing , pages 9134– 9148, Abu Dhabi, United Arab Emirates. Association for Computational Linguistics. 
+
+The supplementary material is organized as fol-lows: Appendices A, B, and C detail data cura-tion, licensing, ethical governance, anonymization procedures, and representative examples of the dataset. Appendices D and E describe the classifi-cation structure and knowledge extraction method-ology. Appendices F, G, H, and I provide the-matic analyses: comparing classification criteria versus descriptions, evaluating generated descrip-tions through the lens of abstraction versus example coverage, qualitatively assessing generated criteria, and analyzing human-in-the-loop modifications. Finally, Appendix J contains average processing times, and Appendix K presents the comprehensive experimental performance grids. 
+
+A Data Curation and Usage Guidelines 
+
+A.1 Data Licensing and Intended Use 
+
+The dataset is made available for non-commercial research purposes in NLP. The complete license agreement will be provided as part of the data distri-bution package on the project website. All existing artifacts were used in accordance with their original intended purposes and licensing terms. Derivatives of this dataset must remain within research contexts to maintain compatibility with the original access conditions. 
+
+A.2 Ethical Approval and Governance 
+
+The data collection protocol underwent internal review by the appropriate legal and scientific gov-ernance bodies. This process ensured compliance with organizational ethical guidelines and data pro-tection standards. A.3 Annotator Profile and Recruitment 
+
+The annotation task was completed by female na-tive speakers of American English. All annotators were recruited through established professional net-works and compensated at rates consistent with industry standards for linguistic annotation work in the United States. 
+
+B Data Anonymization 
+
+To enable public release, we applied a rigorous anonymization process. 6
+
+A trained annotator identified potentially sen-sitive information across all snippets, following guidelines covering personal names, organizations, products, locations, contact information, and nu-meric identifiers. We supplemented manual re-view with automated heuristics to detect capitalized terms and numeric patterns, and employed Claude Sonnet 3.7 as an additional safety check to identify any overlooked entities. All identified entities were replaced with fic-tional alternatives while preserving semantic co-herence. For numerical data, we substituted orig-inal values with randomized numbers from sim-ilar ranges, maintaining local consistency where needed. Professional roles, titles, and percentage values remained unchanged to preserve contextual meaning. 7
+
+As a final step, we simplified each snippet through controlled sentence-level rewriting using Claude Sonnet 3.7. We processed entire snippets at once to maintain conversational context, while in-structing the model to rewrite individual sentences. We designed a specific prompt directing the model to preserve the semantic content while altering the syntactic structure and word choice. This ensured the text retained its original meaning and conversa-tional flow while no longer resembling the original style or phrasing. Figure 6 presents the prompt template used for the transcript simplification process. The input for this prompt is a text snippet, divided into enumer-ated sentences, that needs to be simplified. The prompt facilitates controlled sentence-level rewrit-ing while preserving the semantic content of con-versations. When applying this prompt, the LLM rewrites each line individually, maintaining the con-
+
+> 6Experiments confirmed no performance degradation be-tween original and anonymized data.
+> 7Our repository provides mappings from entity types to the set of fictional replacements used.
+
+versation’s structure and essential meaning. 
+
+> <instructions> Please do the following based on the text in <snippet></snippet> tags: - Rewrite the text in each row separately in a simplified, short, and clear way, maintaining the original phrasing as closely as possible. - Rewrite the text in each row separately, ensuring that each rewritten row corresponds exactly to the same row in the original snippet. DO NOT skip any rows, and do not combine content from multiple rows into one. - You should retain all the important details of the transcript. </instructions> <snippet> {TEXT_SNIPPET} </snippet> <format> x | SPEAKER_AFFILIATION Rewritten text for row number x y | SPEAKER_AFFILIATION Rewritten text for row number y ... <example> **Original Transcript:** 1 | [PROSPECT_A] I have a, I think, a meeting at 10 AM. So I need to... Wait a minute. 2 | [PROSPECT_A] So. 3 | [PROSPECT_A] Let me see if, let me check with the team. I will need to confirm it with them. 4 | [SELLER_A] OK, I mean, the, the, the presentation is due by Friday. **Rewritten Transcript:** 1 | [PROSPECT_A] I have a 10 AM meeting. 2 | [PROSPECT_A] So. 3 | [PROSPECT_A] let me check and confirm with the team. 4 | [SELLER_A] The presentation is due by Friday. </example> </format>
+
+Figure 6: Prompt template used for transcript simplifi-cation. 
+
+C Representative Examples of the Dataset 
+
+Table 4 presents representative positive snippets from each of the five concepts, highlighting dis-tinct business aspects reflected in the dataset. The bolded portions highlight the most relevant spans for each category. Colors distinguish between prospect (orange) and seller (blue) utterances. These examples, processed and anonymized ac-cording to our procedures, reflect the rich diversity and complexity of B2B dialogues. 
+
+D Classification Methodology 
+
+This section details our approach to classifying B2B conversation snippets, including the classifica-tion prompt structure, user intents, and knowledge section formats used in our experiments. 
+
+D.1 Classification Prompt Structure 
+
+Our classification system implements a structured prompt template consisting of three main compo-nents: (1) a classification objective incorporating the user-provided intent, (2) a knowledge section derived from labeled examples, and (3) the desired structured output format. Figure 7 presents the base classification prompt template, which remains consistent across all varia-tions. The prompt instructs the model to analyze a text snippet and determine whether it contains evi-dence of a specific B2B concept (e.g., “the prospect discusses their business goals”). The user intents used in our experiments are detailed in Section D.2. Variation across prompts arises from the knowl-edge section, which includes either examples, sum-marized examples, criteria, or descriptions, as dis-cussed in Section D.3. The prompt concludes with the text snippet to be classified and specifies the expected response format. 
+
+D.2 User Intents 
+
+We conducted our experiments using five distinct classification objectives, each based on a user-provided intent aligned with one of the five B2B conversational concepts: • Business Goals: “the prospect discusses their business goals in the context of the purchasing process”. • Decision Criteria: “the prospect discusses their decision criteria in the context of the purchasing process”. • Decision Makers: “the prospect mentions the decision makers involved in the purchasing process”. • Decision Making Process: “the prospect dis-cusses their decision-making process regard-ing the purchase”. • Pain Points: “the prospect discusses their pain points in the context of the purchasing process”. 
+
+> <instructions> Analyze the following text snippet and identify whether {USER_INTENT}. Provide a detailed reasoning for your decision (chain of thoughts) before delivering the final classification. Label the snippet as either Positive (if {USER_INTENT}) or Negative (if the snippet does not relate or contain relevant information). {KNOWLEDGE_SECTION} Base your classification on the objective and the {KNOWLEDGE_TYPE} provided above. </instructions> <snippet> {TEXT_SNIPPET} </snippet> <format> <rationale> [Your reasoning] </rationale> <label> [Positive or Negative] </label> </format>
+
+Figure 7: Base classification prompt template. 
+
+These intents were inserted into the classifica-tion prompt template at the {USER_INTENT} place-holder shown in Figure 7. The intents are intentionally high-level, reflect-ing the typical level of specificity provided by users in real-world applications. This level of abstraction in such intents is common, as users may not always possess the domain expertise or technical vocabu-lary to formulate precise classification parameters. This limitation further motivates our approach of augmenting user-provided intents with knowledge derived from labeled examples. 
+
+D.3 Knowledge Section Formats 
+
+As described in Section D.1, we implemented three distinct formats for the {KNOWLEDGE_SECTION} 
+
+placeholder of the classification prompt: the Ex-amples format (also used by Summary-Ex) shown in Figure 8, the Criteria format shown in Figure 9, and the Description format shown in Figure 10. For all formats, positive examples or criteria pre-cede negative ones, as early experiments confirmed that this ordering produced superior performance. Dataset Snippet Example 
+
+Business Goals [PROSPECT_A] Yeah. I’m head of advertising and analytics. Most of our sales are retail. SchistHorizon Networks is our eCommerce star. We’re trying to increase sales through Omega Operations channel, using Triton Trades for attention and conversions. GoldenLeaf Enterprises seems to fit our audience: mostly female, 90-30 split, slightly older millennials. So... yeah, that’s... [SELLER_A] Okay. Your site looks nice. What inspired this company? [PROSPECT_A] Yeah. We make bottled water and coffee, exploring other options too. Our focus is sustainability. Our source is in Westvale. [SELLER_A] Okay. [PROSPECT_A] Our motto is “premium by nature”. We don’t use chemicals for alkaline water. It’s naturally alkaline due to volcanic filtration. That’s the core of everything we do. [SELLER_A] Hey, Jean. [PROSPECT_B] Hi there. Sorry I’m late. I was held up on another call but I’m excited to learn about GoldenLeaf Enterprises. Decision Cri-teria [SELLER_A] Yeah, yeah. Based on historical preferences, we want to discuss a ChalkForest Solutions option for you to position ourselves best. This allows them to do it their preferred way. If they change their mind, that’s okay. We want you to be prepared for that. I updated Max before our call about our discussions, Val, including your ongoing proof of concept. He’s now up to date on our progress. [PROSPECT_A] Your competitors provided four quotes: monthly and three-year contract options. If you can provide a second quote, that’s great because you’ll be competing on both options, and I can present choices to management. They can choose either option, and this company can offer both. Now it’s about what we want. We can discuss which company we prefer, focusing on features, support, and functionality. Do we like the phones? Or not like the phones, things like that? And get into the detailed aspects? [SELLER_B] Well, I think that from a financial perspective. Decision Mak-ers [PROSPECT_A] That’s awesome. Very cool. We’d love to see what’s involved. Are there any fees for us to use these services? Or is it just? [SELLER_A] No, it’s completely complementary to you. LimitlessLogic was created because companies saw employees using it and spending money. The idea was to provide a business experience similar to LimitlessLogic, encouraging personal use. [PROSPECT_A] Yes. [SELLER_A] Yes. That’s how this all came about. We used to charge a 10 percent fee before COVID, but we removed it. It’s now completely complementary to your organization. We can set it up on LimitlessLogic and VortexVault, customizing programs for your company. [PROSPECT_A] Sounds good. Excellent. We’d love to see how to do this, probably involving our people team. Okay? They would be the ones to roll it out to the company. If you could send that information to me, that would be fantastic. [SELLER_A] I’ll send a follow-up email with the information we discussed. Do you have your calendar available to schedule a demo? Are you available next week? What works best for you? Decision Mak-ing Process [SELLER_A] No problem. Swapping is not an issue. If someone leaves the company, we can swap them immediately and easily. I do it on our end. If an analyst leaves next month, we can add someone else in April without any problem. Kim and I can easily add them and transfer the saved content. If you move teams, we can transfer all your saved content to your replacement. We do this with all clients. We understand people change roles or leave companies. This is not limited. If someone leaves tomorrow and their replacement leaves in two weeks, No problem. We can swap them. We can’t allow sharing because it’s hard for us to approve. [SPEAKER_A] Yes. I understand. I need to give this feedback to my partners because the three-process was ineffective .We like the platform and want to continue as explained. But for a user with a laptop, we need to make a console. We can do it, but we’re reducing to four laptops. Now, the four-process is still more ineffective. We need to decide if that works for us. Pain Points [SELLER_A] What specifically? OIN is failing and it’s an issue now. Is there a reason for the urgency? Is it within the next month? [PROSPECT_A] A workshop over the next quarter. I want to solve the password management problem soon. Yeah, I... [SELLER_A] What happens if you don’t? Is it just a personal goal? But nothing else? [PROSPECT_A] If solved, clients get a better user experience. I have an inefficient account management team. Half my engineers are fixing password problems constantly. For the business case, It’s about efficiency, and user experience. So people can log in and take their training. Currently, people struggle to log in for training. [SELLER_A] How many people use this monthly? How many should log in versus how many actually do? 
+
+Table 4: Representative positive examples from the Call Playbook Dataset. Relevant spans are bolded. Below is a list of positive examples that would indicate that the objective is present in the text snippet: <positive_examples> {POSITIVE_EXAMPLES} </positive_examples> Below is a list of negative examples that would not indicate that the objective is present in the text snippet: <negative_examples> {NEGATIVE_EXAMPLES} </negative_examples> 
+
+Figure 8: Example-based knowledge guidance format that uses a direct few-shot approach with labeled exam-ples from the dataset. 
+
+> Below is a list of positive criteria that would indicate that the objective is present in the text snippet: <positive_criteria> {POSITIVE_CRITERIA} </positive_criteria> Below is a list of negative criteria that would not indicate that the objective is present in the text snippet: <negative_criteria> {NEGATIVE_CRITERIA} </negative_criteria>
+
+Figure 9: Criteria-based knowledge guidance format where an LLM distills labeled examples into explicit classification criteria. 
+
+> Below is a detailed description of the classification task: <description> {DESCRIPTION} </description>
+
+Figure 10: Description-based knowledge guidance for-mat where an LLM generates a comprehensive explana-tion of the classification task based on labeled examples. 
+
+E Knowledge Extraction Process 
+
+Our approach transforms raw labeled examples into condensed, structured knowledge representations using LLMs. This section introduces the three types of knowledge representations used in our prompts: summaries, criteria, and descriptions. For each type, we describe the corresponding prompt design and the process used to generate it from labeled examples. Each representation was then inserted into one of the knowledge section formats described in Appendix D.3. 
+
+E.1 Summary Generation 
+
+To generate summarized examples for the Summary-Ex method, we applied a text summa-rization process using Claude Sonnet 3.7 that com-presses the original labeled snippets while preserv-ing their essential meaning, speaker structure, and conversational flow. Figure 11 shows the prompt template used to generate the summaries. This method aims to reduce overall prompt length while preserving essential business informa-tion and discourse patterns, potentially improving the model’s focus on relevant content. The resulting summaries replace the full-length examples in the Examples format (Figure 8). 
+
+> <instructions> Analyze the following B2B call text snippet and create a simplified, concise version of the original text. Preserve the original format and maintain all speaker affiliations exactly as they appear in the source. Focus on removing redundant information and filler words while keeping all discussed content, focusing on main business topics. Keep the essential structure and flow of the conversation intact. Create a condensed version that captures what was discussed without changing the text format or speaker affiliations. The summary should include 3-5 sentences at most. </instructions> <snippet> {TEXT_SNIPPET} </snippet> <format> Your answer must be in the following format: <summary> [Simplified version of the original text] </summary> </format>
+
+Figure 11: Summary generation prompt template. 
+
+E.2 Criteria Generation 
+
+To generate classification criteria, we employed two variants. The first variant, Criteria-Ex, derives criteria directly from examples, while the second variant, Criteria-De, derives criteria from an exist-ing task description (generated by Description-Ex). For this purpose, we employed a prompt template that guides the relevant model to generate two lists: positive criteria that indicate the presence of the target concept and negative criteria that indicate its absence. Figure 12 shows the prompt template used for this purpose. In both variants, the prompt emphasizes the need for general, clear, and concise criteria that can be applied to any text snippet. In the Criteria-Ex vari-ant, the model is further instructed to base each criterion on patterns observed in at least two of the provided examples. For zero-shot prompting, we omit the {KNOWLEDGE_SECTION} and generate the criteria based solely on the user intent. Both variants follow the same knowledge section formats outlined in Appendix D.3, as illustrated in the prompt template shown in Figure 12, adapt-ing them to the specific requirements of criteria generation by incorporating the appropriate con-tent into the {KNOWLEDGE_SECTION} placeholder, where the {KNOWLEDGE_TYPE} can be either “ex-amples” or “description” depending on the specific variant being employed. The resulting criteria are then inserted into the knowledge section embedded within the classifica-tion prompt, using the criteria variant (Figure 9). 
+
+E.3 Description Generation 
+
+To generate task descriptions, we similarly em-ployed two variants. The first variant, Description-Ex, derives a description directly from examples, while the second variant, Description-Cr, derives a description from existing criteria (generated by Criteria-Ex). To this end, we employed a prompt template that guides the relevant model to produce a detailed description of the classification task. Fig-ure 13 shows the prompt template used for descrip-tion generation. In both variants, the prompt instructs the model to generate a description of the classification task that facilitates effective recognition of the target concept in conversational text. The instructions em-phasize the importance of generating descriptions that strike a balance between comprehensiveness and brevity, ensuring they can be applied consis-tently across diverse text samples. For zero-shot prompting, we omit the {KNOWLEDGE_SECTION} 
+
+and generate the description based solely on the user intent. Both variants utilize the knowledge section for-mats outlined in Section D.3, as illustrated in the prompt template shown in Figure 13, adapting them 
+
+> <instructions> You are tasked with annotating text snippets. The end-goal task is to analyze text snippets and determine whether {USER_INTENT}. Your task is to generate two lists: A list of positive criteria: Conditions that indicate the presence of the objective. A list of negative criteria: Conditions that indicate the absence of the objective. {KNOWLEDGE_SECTION} Base your criteria on the objective and the {KNOWLEDGE_TYPE} provided above. The criteria should be as general as possible and should be applicable to any text snippet. The criteria should be clear and concise. Each list of criteria should include at least five criteria and no more than ten criteria. Each criterion should be self-explanatory and not require an example. [For Criteria-Ex: Each criterion should be based on at least two of the examples provided above.] </instructions> <format> Your answer must be in the following format: <criteria> <positive> Criterion 1: [Criterion 1] Criterion 2: [Criterion 2] ... </positive> <negative> Criterion 1: [Criterion 1] Criterion 2: [Criterion 2] ... </negative> </criteria> [Example format omitted for brevity] </format>
+
+Figure 12: Criteria generation prompt template. 
+
+to the specific requirements of description genera-tion by incorporating the appropriate content into the {KNOWLEDGE_SECTION} placeholder, where the 
+
+{KNOWLEDGE_TYPE} can be either “examples” or “criteria” depending on the specific variant being employed. The resulting description is then embedded within the classification prompt, using the descrip-tion variant (Figure 10). <instructions> You are tasked with annotating text snippets. The end-goal task is to analyze text snippets and determine whether {USER_INTENT}. Your task is to generate a detailed description of the classification task allowing for the identification of the objective in text snippets. {KNOWLEDGE_SECTION} Base your description on the objective and the {KNOWLEDGE_TYPE} provided above. The description should be as general as possible and should be applicable to any text snippet. The description should be clear and concise. </instructions> <format> Your answer must be in the following format: <description> [Your description] </description> [Example format omitted for brevity] </format> 
+
+Figure 13: Description generation prompt template. 
+
+F Comparative Analysis of the Criteria and Description Methods 
+
+This appendix presents a comparative analysis of the four criteria and description methods. Tables 5 and 6 show the texts generated by Claude Sonnet 3.7 using 25 few-shot examples from the first itera-tion, applied to the Business Goals concept. To illustrate how these task instructions function in practice, we analyze their application to two positive and two negative representative examples: • Positive 1: A conversation in which the prospect articulates how they view their cus-tomer service channel as a revenue oppor-tunity, referencing specific metrics such as call handling times and outlining their busi-ness goals for transforming it into a more marketing-oriented function. • Positive 2: A conversation in which the prospect describes content management chal-lenges, specifically their need to maintain con-sistency across product documentation and how centralized updates would improve oper-ational efficiency. • Negative 1: A conversation in which the par-ticipants focus entirely on small talk about an earthquake and personal topics, with no articulation of business objectives. • Negative 2: A conversation in which the par-ticipants focus solely on contract terms and technical settings between sellers, without any expression of the prospect’s business goals or strategic needs. The side-by-side format in both tables separates the instructional content (criteria definitions or de-scriptive guidance) from the illustrative examples, making it easier to see how these examples influ-enced the generation of the criteria and descrip-tions, and showing the different approaches to iden-tifying business objectives in sales conversations. Our analysis reveals several key distinctions and similarities between the four instructional ap-proaches: 
+
+Structural Differences : The criteria-based ap-proaches (Criteria-Ex and Criteria-De) provide dis-crete, categorical guidelines that annotators can apply systematically. In contrast, the narrative de-scriptions (Description-Ex and Description-Cr) of-fer more contextual guidance and flow more natu-rally, potentially making them more accessible to non-expert annotators. 
+
+Emphasis Variations : Criteria-Ex emphasizes how the prospect relates a product or service to their business context, while Criteria-De focuses more on the nature of the business objectives them-selves. Description-Ex highlights conversational in-dicators of business goals, whereas Description-Cr emphasizes measurable outcomes and operational insights. 
+
+Complementary Coverage : All four ap-proaches effectively identify the positive exam-ples as containing business objectives, but through different analytical lenses. For instance, Positive 1 is recognized through explicit goal statements in Criteria-Ex but through measurable metrics in Criteria-De. 
+
+Negative Case Identification : Each approach successfully flags the negative examples as lack-ing business objective articulation, but with differ-ent emphasis: Negative 1 is identified primarily through its small-talk nature, while Negative 2 is flagged for its focus on administrative details with-out business context. 
+
+Granularity vs. Holistic Assessment : The criteria-based approaches offer more granular ana-Criteria-Ex: Positive ID Criteria Illustrative Quotes 
+
+Crit. 1The prospect explicitly states their business ob-jectives or goals that they hope to achieve through the purchase or implementation of the produc-t/service 
+
+“We want that channel to be more marketing-minded and product-focused rather than service-focused.” 
+
+Crit. 2The prospect discusses how the product/service would integrate with or improve their existing business processes, workflows, or operations 
+
+“We wonder if it’s possible to maintain all this data in a single place... so updating one place automatically updates all documents.” 
+
+Crit. 3The prospect explains specific business chal-lenges or pain points they are trying to solve through the purchasing decision 
+
+“When we change one document, it must be changed in all documents. That’s our current challenge.” 
+
+Crit. 6The prospect shares information about their busi-ness model, operational structure, or customer relationships in the context of how the purchase would impact these areas 
+
+“Most calls are about order tracking, which we can address with self-service... When a rep is on a product inquiry call, about six other customers are waiting for service.” Criteria-Ex: Negative 
+
+Crit. 2The prospect discusses pricing, contracts, or pay-ment terms without relating them to broader busi-ness goals or outcomes 
+
+“They’re also in a two-year contract. If they add seats, they’d pay for six years, right?” 
+
+Crit. 5The conversation consists primarily of small talk, introductions, or unrelated topics that don’t touch on business objectives 
+
+“Everyone’s talking about the Ironwood earthquake over the last 25 minutes here on the Corswick. It was in Ivorycliff.” 
+
+Crit. 7The conversation is dominated by the seller ex-plaining their offering without the prospect articu-lating how it connects to their business objectives 
+
+“I’ll ask if they want 20 seats or remind them account sharing isn’t allowed. We can let them out of the contract. If they stay, they need more users.” Criteria-De: Positive 
+
+Crit. 2The prospect describes specific problems or pain points in their current business operations that they are looking to solve through the purchasing decision 
+
+“Between reports, about 24 percent of the data is common... When we change one document, it must be changed in all documents.” 
+
+Crit. 3The prospect articulates measurable targets, met-rics, or key performance indicators they aim to improve through the acquisition of a product or service 
+
+“A customer inquiring about a product takes 6 to 20 minutes to close. A customer service call takes about two minutes... When a rep is on a product inquiry call, about six other customers are waiting for service.” 
+
+Crit. 6The prospect outlines specific operational effi-ciencies, cost savings, or productivity improve-ments they expect to gain from the purchase 
+
+“One advantage we see is building blocks, as you mentioned. Updating one block should update all reports.” 
+
+Crit. 7The prospect connects features or capabilities of the product/service directly to their business needs or organizational priorities 
+
+“We see an opportunity because we have a wide range of products that require education about fit. For our women’s assortment, we have about seven different fits, multiplied by 25 fabric types, colors, and washes. It’s complex.” Criteria-De: Negative 
+
+Crit. 2The conversation consists primarily of the seller explaining potential benefits without the prospect articulating their own business goals or needs 
+
+“I’ll ask if they want 20 seats or remind them account sharing isn’t allowed. We can let them out of the contract. If they stay, they need more users.” 
+
+Crit. 4The text contains only small talk, pleasantries, or relationship-building conversation unrelated to business goals or purchasing decisions 
+
+“You hear me? Yeah, hi, Kenzie. How are you?... I’m in Quorvath... My family is on the Corswick... My sister is flying to Torrengard tonight. She plays lacrosse.” 
+
+Crit. 5The prospect discusses only pricing, contract terms, or payment options without relating these to their business objectives or expected outcomes 
+
+“They complained, so we set them to two for nine users. They’re on two now.” 
+
+Table 5: Comparative Analysis of Criteria-Based Instructions: Highlighted quotes illustrate how positive examples (blue/teal) inform the positive criteria and negative examples (red/brown) inform the negative criteria. The table demonstrates how structured criteria from both the Criteria-Ex and Criteria-De approaches capture different aspects of the Business Goals concept. Description-Ex Description Illustrative Quotes 
+
+The task is to determine whether any part of the text shows the prospect discussing their business goals, objectives, or desired outcomes in relation to a purchasing decision or process 
+
+“I definitely see it as an opportunity... I see it as a sales channel.” “We have multiple products and need to prepare reports for each one... That’s our current challenge.” 
+
+This includes when prospects explain what they want to achieve with a product/service. Prospects may describe their organization’s strategic aims or outline operational needs 
+
+“We want that channel to be more marketing-minded and product-focused rather than service-focused.” “So updating one place automatically updates all docu-ments, like for a plant manufacturing 6 products.” 
+
+Look for instances where prospects articulate their vision, priorities, requirements, or expected benefits from imple-menting a solution 
+
+“We see an opportunity because we have a wide range of products that require education about fit.” “One advantage we see is building blocks, as you men-tioned. Updating one block should update all reports.” 
+
+This may involve discussions about improving processes, solving problems, or enhancing efficiency 
+
+“When we change one document, it must be changed in all documents. That’s our current challenge... We won-der if it’s possible to maintain all this data in a single place.” “Most calls are about order tracking, which we can ad-dress with self-service and more resources.” 
+
+Exclude general small talk or discussions where only the seller is talking without the prospect articulating their own business objectives 
+
+“Everyone’s talking about the Ironwood earthquake over the last 25 minutes here on the Corswick.” “I’ll ask if they want 20 seats or remind them account sharing isn’t allowed. We can let them out of the contract. If they stay, they need more users.” Description-Cr 
+
+The task is to determine whether any part of the text shows the prospect articulating their business goals, objectives, or desired outcomes in relation to a potential purchase or implementation 
+
+“I definitely see it as an opportunity... I see it as a sales channel. We want that channel to be more marketing-minded and product-focused rather than service-focused.” “We wonder if it’s possible to maintain all this data in a single place... Updating one block should update all reports.” 
+
+Look for instances where the prospect connects the pur-chase decision to measurable business outcomes, ROI expectations, or organizational growth plans. The objec-tive is present when prospects share insights about their business model or operational structure 
+
+“A customer inquiring about a product takes 6 to 20 minutes to close. A customer service call takes about two minutes... When a rep is on a product inquiry call, about six other customers are waiting for service.” “We have a wide range of products that require education about fit. For our women’s assortment, we have about seven different fits, multiplied by 25 fabric types, colors, and washes. It’s complex.” 
+
+Exclude conversations that focus solely on technical speci-fications, pricing details, or administrative aspects without connection to broader business goals. Also exclude in-stances when the conversation is dominated by the seller without the prospect articulating how the offering aligns with their business objectives, or contains only pleas-antries 
+
+“They’re also in a two-year contract. If they add seats, they’d pay for six years, right?... They complained, so we set them to two for nine users.” “I’ll ask if they want 20 seats or remind them account sharing isn’t allowed. We can let them out of the con-tract.” “You hear me? Yeah, hi, Kenzie. How are you?... Every-one’s talking about the Ironwood earthquake.” 
+
+Table 6: Comparative Analysis of Description-Based Instructions: Highlighted quotes illustrate how positive examples (blue/teal) inform the positive guidance and negative examples (red/brown) inform the exclusion guidance. The table demonstrates how contextual descriptions from both Description-Ex and Description-Cr approaches provide holistic frameworks for the Business Goals concept. 
+
+lytical points, potentially supporting more consis-tent annotation across different raters. The narra-tive descriptions provide a more holistic framework that may better capture contextual nuances in artic-ulating business objectives. This analysis demonstrates how our task instruc-tions guide annotators through different analytical pathways. While criteria-based methods enable sys-tematic decomposition of conversational elements, narrative descriptions encourage comprehensive evaluation of speaker intent. These findings inform the design of robust annotation protocols that bal-ance analytical precision with contextual sensitivity in conversational analysis. 0.675 0.680 0.685 0.690 0.695 0.700 0.705 0.710 0.715   
+
+> Abstraction Score (Brysbaert et al., 2014)
+> 0.26
+> 0.27
+> 0.28
+> 0.29
+> 0.30
+> 0.31
+> Coverage
+> 10
+> 25
+> 50
+> 75 100
+> 10
+> 25
+> 50
+> 75
+> 100
+> 10
+> 25
+> 50
+> 75
+> 100
+> 10
+> 25
+> 50 75
+> 100
+> 10
+> 25
+> 50
+> 75
+> 100
+> Coverage vs Abstraction
+> Models
+> Claude 3 Haiku
+> GPT-4o
+> Mistral Large
+> Mistral Small
+> Claude 3.7 Sonnet
+
+Figure 14: Trade-off between abstraction and coverage in task descriptions. Point size indicates the number of examples used. Higher abstraction scores reflect more abstract descriptions, while higher coverage indicates a better representation of examples. 
+
+G Abstraction vs. Coverage in LLM-Generated Descriptions 
+
+In Figure 14, we examine how LLMs balance cov-erage and abstraction through the descriptions gen-erated by Description-Ex. Coverage is measured as the cosine similarity between model-generated descriptions and their source examples using all-MiniLM-L6-v2 embeddings, while abstraction is quantified using the concreteness ratings from Brys-baert et al. (2014). Each point represents a model-dataset pairing with varying few-shot counts (indi-cated by point size), revealing how these properties interact across different dimensions. The figure demonstrates a clear trade-off be-tween these properties. Sonnet 3.7 achieves the highest coverage scores, particularly with larger example sets, but operates at lower abstraction lev-els. Conversely, both Mistral models demonstrate superior abstraction capabilities while exhibiting reduced coverage of the original examples. This pattern highlights an inherent tension: de-scriptions that closely mirror their source ex-amples tend to be more concrete, while more abstract descriptions capture fewer specific de-tails from the training data. GPT-4o presents a more balanced approach, achieving good abstrac-tion while retaining reasonable coverage, especially when provided with moderate to large example sets. Interestingly, while we expected more examples to increase abstraction and reduce coverage, only Mistral models follow this pattern. Sonnet 3.7 ex-hibits the opposite trend, and Haiku 3 shows no clear correlation, suggesting that these LLMs differ in their learning approaches. 
+
+H Qualitative Analysis of Generated Classification Criteria 
+
+To better understand the characteristics of the gen-erated criteria for our B2B concepts, we conducted a systematic analysis of more than 3,000 criteria produced across all experimental conditions. We examined several key linguistic properties for each criterion: • Number of criteria : The average number of positive and negative criteria generated per class, reflecting the model’s ability to articu-late classification rules. • Abstraction : Computed using established concreteness ratings from the Brysbaert et al. (2014) lexical database, with higher scores indicating more abstract language. • Business indicators : Identified using pattern matching against a comprehensive lexicon of business value terminology (e.g., ROI, cus-tomer retention, market share). • Implementation focus : Detected through the presence of technical and procedural terminol-ogy related to system deployment and execu-tion processes. • Solution orientation : Assessed based on the presence of solution-focused verbs and outcome-oriented language. • Conditional logic : Tracked through business-relevant conditional statements and logical constructions. 
+
+Property Criteria-Ex Criteria-De 
+
+Positive criteria 6.0 6.5 Negative criteria 6.0 6.5 Abstraction (0-1 scale) 0.69 0.69 Business value indicators 64.4% 58.7% Implementation details 59.0% 49.0% Solution-focused language 29.1% 24.8% Conditional business logic 33.9% 38.1% Quantifiable metrics 0.1% 0.0% 
+
+Table 7: Linguistic characteristics of generated classifi-cation criteria. 
+
+Table 7 presents the differences between crite-ria derived from examples versus those derived from descriptions, revealing distinct linguistic pat-terns. Our analysis reveals that Criteria-Ex exhibits higher rates of business value references (+5.7%) and implementation details (+10.0%) compared to Criteria-De. Both approaches yield identical high abstraction scores (0.69) and maintain compara-ble numbers of positive and negative criteria, with Criteria-De generating slightly more criteria per sample. A notable finding is the near absence of quantifi-able metrics across all criteria, suggesting that mod-els prioritize qualitative over quantitative reasoning when establishing classification guidelines. Ad-ditionally, both approaches demonstrate relatively low usage of conditional logic, although Criteria-De employs conditional statements more frequently (38.1%) than Criteria-Ex (33.9%). This pattern indicates that the generated criteria tend to favor declarative statements over conditional or logical formulations. 
+
+I Human-in-the-Loop Modification Example 
+
+To illustrate the nature and impact of human modi-fications to our generated criteria (see Section 6.4), we present a detailed comparison of the original model-generated criteria of Sonnet 3.7 for the Pain Points classification task and the modifications made by two annotators with contrasting perfor-mance outcomes. Table 8 shows selected criteria where both anno-tators made modifications, comparing the original Criteria-Ex output with the human-revised versions. We focus on criteria where substantive changes were made by both annotators to highlight the dif-ferent modification strategies employed. The origi-nal model achieved 73.2% F1 on this task. The table reveals two distinct modification ap-proaches with contrasting outcomes. Annotator 1’s modifications achieved 83.0% F1 (+9.8% im-provement) through strategic simplification (remov-ing verbose phrases like “directly impacting their ability to make purchasing decisions”), semantic generalization (broadening “purchasing process” to “solutions”), and scope expansion (removing overly restrictive qualifiers). These changes enhanced the criteria’s applicability and clarity. Annotator 2’s modifications resulted in 71.9% F1 (-1.3% degradation) and involved exces-sive paraphrasing without semantic improvement (“prospect” to “potential customer”, “challenges” to “struggles”), increased linguistic complexity (“directly affecting their capability” vs “directly impacting their ability”), and inconsistent terminol-ogy introduction. These findings demonstrate that effective mod-ifications require strategic simplification, seman-tic broadening, and principled scope adjustments, while ineffective changes typically involve super-ficial rewording and unnecessary complexity. Im-portantly, our approach provides users with inter-pretable artifacts that can be meaningfully refined to improve classification performance through tar-geted human expertise. 
+
+J Average Processing Time 
+
+Figure 15 presents the average processing time of GPT-4o across all test sets, as referenced in Sec-tion 6.5. The processing times reported include the overhead of the knowledge extraction step (e.g., cri-teria, descriptions). It is important to note that for any given set of few-shot examples, our methods re-quire only a single LLM call during the knowledge extraction phase, making this overhead minimal and required only once. This visualization supports our findings regard-ing the computational efficiency advantages of our proposed methods compared to the traditional few-shot approach, especially as the number of exam-ples increases. While Summary-Ex offers mod-erate improvements over the standard Examples method, the criteria and description methods scale more efficiently with increasing example counts, maintaining stable processing times regardless of the number of examples used. 0 10 25 50 75 100 
+
+> Few-Shot Examples
+> 100
+> 150
+> 200
+> 250
+> 300
+> Average Processing Time (seconds)
+> Examples
+> Summary-Ex
+> Criteria-Ex
+> Criteria-De
+> Description-Ex
+> Description-Cr
+
+Figure 15: Average processing test time (in seconds) by method across different numbers of few-shot examples. Criterion Claude Sonnet 3.7 Annotator 1 (+9.8% F1) Annotator 2 (-1.3% F1) Positive 1 The prospect explicitly de-scribes challenges, frustrations, or difficulties they are experienc-ing with their current purchasing process, systems, or vendors. The prospect explicitly de-scribes challenges, frustrations, or difficulties they are experienc-ing with their current solutions ,systems, or vendors. The potential customer openly discusses struggles , frustra-tions, or issues they are encoun-tering with their current purchas-ing process, systems, or suppli-ers .
+
+Positive 2 The prospect mentions ineffi-ciencies, wasted time, or re-source constraints that are di-rectly impacting their ability to make purchasing decisions or implement solutions. The prospect mentions ineffi-ciencies or wasted time .The potential customer points out inefficiencies, wasted time, or resource limitations that are 
+
+directly affecting their capabil-ity to make purchase decisions or implement solutions .
+
+Negative 1 The prospect discusses general business information, company background, or role descriptions without mentioning any chal-lenges or difficulties related to purchasing processes. The prospect discusses general business information, company background, or role descriptions without mentioning any chal-lenges or difficulties .The potential customer dis-cusses general business data ,company history , or role de-scriptions without mentioning any struggles or issues related to purchasing processes .
+
+Negative 6 The conversation focuses pri-marily on logistics, scheduling, or administrative details of the current meeting rather than busi-ness challenges. 
+
+(No change) The conversation is primarily 
+
+centered on logistics, schedul-ing, or administrative details of the current meeting rather than 
+
+business struggles .
+
+Table 8: Comparison of original model-generated criteria and human modifications for Pain Points classification. Bold text highlights key differences from the original version. 
+
+K Comprehensive Experimental Results 
+
+K.1 Main Results Grid 
+
+Figure 16 illustrates the detailed evaluations of the macro-average F1 score, as discussed in Sec-tion 6.1. This visualization presents performance across the five B2B concepts (Business Goals, De-cision Criteria, Decision Makers, Decision Making Process, and Pain Points) and five models (GPT-4o, Claude Sonnet 3.7, Claude Haiku 3, Mistral Large, and Mistral Small). The grid layout allows for direct comparison of how each few-shot learn-ing method performs as the number of examples increases from 0 to 100. Notably, the visualization confirms that the criteria and description methods generally maintain higher F1 scores than the tra-ditional Examples approach and its summarized variant (Summary-Ex), both of which often exhibit declining performance with additional examples, a trend evident in all models except Claude Sonnet 3.7. 
+
+K.2 Token-Level Compression Comparison Grid 
+
+Figure 17 presents the detailed per-concept com-parison with token-level compression methods, av-eraged across all five models. The results comple-ment Table 2 in Section 6.2, showing consistent pat-terns across the five B2B concepts. Both Criteria-Ex and Description-Ex demonstrate robust perfor-mance as examples increase, while LLMLingua-2 yields poor results, consistently staying under 50% F1 across all concepts as it compresses both task instructions and examples. SC shows competitive initial performance but exhibits consistent degrada-tion, with steep declines observed in all concepts. 0 10 25 50 75 100 
+
+55 
+
+65 
+
+75 
+
+> F1-Score (%)
+> GPT-4o
+
+Business Goals 
+
+0 10 25 50 75 100 
+
+55 
+
+65 
+
+75 
+
+85 
+
+Decision Criteria 
+
+0 10 25 50 75 100 
+
+70 
+
+75 
+
+80 
+
+85 
+
+90 
+
+Decision Makers 
+
+0 10 25 50 75 100 
+
+60 
+
+65 
+
+70 
+
+75 
+
+80 
+
+Decision Making Process 
+
+0 10 25 50 75 100 
+
+50 
+
+60 
+
+70 
+
+80 
+
+90 
+
+Pain Points 
+
+0 10 25 50 75 100 
+
+60 
+
+65 
+
+70 
+
+75 
+
+80 
+
+> F1-Score (%)
+> Claude Sonnet 3.7
+
+0 10 25 50 75 100 
+
+70 
+
+75 
+
+80 
+
+85 
+
+0 10 25 50 75 100 
+
+75 
+
+80 
+
+85 
+
+90 
+
+0 10 25 50 75 100 
+
+70 
+
+75 
+
+80 
+
+85 
+
+0 10 25 50 75 100 
+
+60 
+
+70 
+
+80 
+
+0 10 25 50 75 100 
+
+45 
+
+55 
+
+65 
+
+> F1-Score (%)
+> Claude Haiku 3
+
+0 10 25 50 75 100 
+
+45 
+
+55 
+
+65 
+
+75 
+
+0 10 25 50 75 100 
+
+50 
+
+60 
+
+70 
+
+80 
+
+0 10 25 50 75 100 
+
+55 
+
+60 
+
+65 
+
+70 
+
+75 
+
+0 10 25 50 75 100 
+
+35 
+
+45 
+
+55 
+
+65 
+
+75 
+
+0 10 25 50 75 100 
+
+50 
+
+60 
+
+70 
+
+80 
+
+> F1-Score (%)
+> Mistral Large
+
+0 10 25 50 75 100 
+
+50 
+
+60 
+
+70 
+
+0 10 25 50 75 100 
+
+50 
+
+60 
+
+70 
+
+80 
+
+90 
+
+0 10 25 50 75 100 
+
+50 
+
+60 
+
+70 
+
+0 10 25 50 75 100 
+
+35 
+
+45 
+
+55 
+
+65 
+
+75 
+
+0 10 25 50 75 100 
+
+Few-Shot Examples 
+
+50 
+
+60 
+
+70 
+
+80 
+
+> F1-Score (%)
+> Mistral Small
+
+0 10 25 50 75 100 
+
+Few-Shot Examples 
+
+55 
+
+60 
+
+65 
+
+70 
+
+75 
+
+0 10 25 50 75 100 
+
+Few-Shot Examples 
+
+40 
+
+50 
+
+60 
+
+70 
+
+80 
+
+0 10 25 50 75 100 
+
+Few-Shot Examples 
+
+45 
+
+55 
+
+65 
+
+0 10 25 50 75 100 
+
+Few-Shot Examples 
+
+50 
+
+60 
+
+70 
+
+80 
+
+Examples Summary-Ex Criteria-Ex Criteria-De Description-Ex Description-Cr Figure 16: Macro-average F1 performance for all concepts and models. 0 10 25 50 75 100 
+
+Few-Shot Examples 
+
+45 
+
+55 
+
+65 
+
+75 
+
+> F1-Score (%)
+
+Business Goals 
+
+0 10 25 50 75 100 
+
+Few-Shot Examples 
+
+45 
+
+55 
+
+65 
+
+75 
+
+Decision Criteria 
+
+0 10 25 50 75 100 
+
+Few-Shot Examples 
+
+35 
+
+45 
+
+55 
+
+65 
+
+75 
+
+85 
+
+Decision Makers 
+
+0 10 25 50 75 100 
+
+Few-Shot Examples 
+
+40 
+
+50 
+
+60 
+
+70 
+
+Decision Making Process 
+
+0 10 25 50 75 100 
+
+Few-Shot Examples 
+
+40 
+
+50 
+
+60 
+
+70 
+
+80 
+
+Pain Points 
+
+Criteria-Ex Description-Ex SC LLMLingua-2 
+
+Figure 17: Macro-average F1 performance comparison with token-level compression methods, averaged over all models.

@@ -1,0 +1,247 @@
+Title: MAF: Multimodal Adaptive Few-shot Prompting for Sentiment Analysis with MLLMs
+
+URL Source: https://arxiv.org/pdf/2606.15694v1
+
+Published Time: Tue, 16 Jun 2026 01:25:48 GMT
+
+Number of Pages: 15
+
+Markdown Content:
+# MAF: Multimodal Adaptive Few-shot Prompting for Sentiment Analysis with MLLMs 
+
+Hangling Xie 1[0009 −0002 −0287 −3211] 
+
+Nanjing University of Posts and Telecommunications, Wenyuan Road No.9, Xixia District, Nanjing City, Jiangsu Province, China 
+
+xiehangling0@163.com 
+
+Abstract. Multimodal large language models (MLLMs) have demon-strated remarkable capabilities in understanding complex multimodal content. However, their performance in sentiment analysis exhibits acute sensitivity to prompt design, rendering static, uniformly applied prompts inherently suboptimal for capturing the nuanced multimodal cues that vary across inputs. To address this limitation, we propose a Multimodal 
+
+Adaptive Few-Shot Prompting ( MAF ) framework, which dynamically retrieves and integrates query-relevant demonstrations to elicit the sen-timent reasoning capabilities of MLLMs in a context-sensitive manner. MAF constructs a demonstration retrieval module that holistically en-codes facial expressions, scene context, and textual semantics, with a lip movement amplitude detection mechanism introduced for accurate speaker identification in multi-person scenarios. Departing from conven-tional fixed-weight fusion, a lightweight coefficient generation network is trained to output query-conditioned fusion weights in real time, enabling weighted aggregation of multimodal similarity scores to retrieve the top-
+
+K most informative demonstrations. Prediction stability is further en-hanced through majority voting over multiple candidate outputs gener-ated by the MLLM. Extensive experiments on public benchmark datasets demonstrate that MAF achieves substantial and consistent performance improvements over the corresponding backbone variants and remains competitive with strong multimodal sentiment-analysis baselines. 
+
+Keywords: Multimodal Sentiment Analysis · Few-shot Prompting ·
+
+Adaptive Retrieval. 
+
+## 1 Introduction 
+
+Sentiment analysis aims to automatically identify emotions in text, speech, or video. It encompasses Multimodal Sentiment Analysis (MSA) [33] for single clips and Emotion Recognition in Conversations (ERC) [23] for multi-turn dialogues. Early text-based methods used dictionaries, machine learning, or BERT. How-ever, human emotion is inherently multimodal, involving speech, face, and body language. With the growth of multimedia, integrating visual, auditory, and tex-tual information has become a focus.           
+
+> arXiv:2606.15694v1 [cs.MM] 14 Jun 2026 2Hangling Xie
+> Fig. 1. Illustration of sentiment analysis results from different prompts using ChatGLM3-6B. MAF adaptively retrieves multimodal demonstrations aligned with the query, yielding more accurate and consistent predictions.
+
+Recent multimodal large language models (MLLMs), such as GPT-4V, Qwen-VL, and LLaVA, offer new possibilities. Pre-trained on image-text pairs, they process video and text end-to-end, directly capturing emotional cues without pre-extracted features [25]. To enhance MLLMs for sentiment analysis, several approaches have targeted unified representation learning. Rahman et al. [24] integrated multimodal cues into pretrained transformers, Guo et al. [6] dynamically aligned unpaired in-puts, and Hasan et al. [8] textualized multimodal information for better LLM utilization. Despite these advances, large labeled datasets and task-specific re-training remain costly. To address this, Yang et al. [29] proposed MSE-Adapter, a lightweight plug-in for efficient multimodal handling, and Cai et al. [3] designed hierarchical multi-layer fusion to jointly model multimodal features. Neverthe-less, fixed fusion strategies and text-heavy reliance still limit adaptability to diverse inputs. Moreover, MLLMs are highly sensitive to prompt design. Small changes in wording or demonstrations can lead to very different predictions. As shown in Figure 1, random demonstrations cause the model to output Neutral, a wrong result, while adaptively retrieved and contextually aligned demonstrations cor-rectly identify Angry. Therefore, selecting adaptive multimodal demonstrations relevant to the query is crucial for eliciting MLLMs’ sentiment reasoning under few-shot prompting. To address these issues, we propose the Multimodal Adaptive Few-shot Prompting ( MAF ) framework. It does not update the parameters of the de-ployed MLLM; instead, it combines retrieval-augmented prompting with a light-weight trainable coefficient generator to achieve dynamic demonstration retrieval and adaptive weight fusion. The main contributions of this paper are as follows: 1. We design a multi-feature demonstration retrieval mechanism that integrates facial (with lip motion for speaker localization), scene, and text features to precisely retrieve complementary multimodal demonstrations. MAF 3
+
+2. We propose an adaptive coefficient generation method that trains a light-weight network to output optimal fusion weights per query for personalized similarity aggregation. 3. We establish a majority-voting inference mechanism that generates multi-ple candidate outputs and votes to stabilize predictions, thereby improving robustness. 
+
+## 2 Related Work 
+
+MSA and ERC have recently been advanced by MLLMs. Research on enhancing MLLMs for sentiment analysis falls into three categories: retrieval-augmented ex-ample selection, LLM-based multimodal sentiment analysis, and output stability enhancement. 
+
+2.1 Retrieval-Augmented Example Selection 
+
+Retrieval-Augmented Generation (RAG) has demonstrated strong capability in enhancing large language models. Originally developed for open-domain ques-tion answering, RAG retrieves contextually relevant passages and incorporates them into the model input, improving few-shot and zero-shot performance [13]. Subsequent works have proposed various optimizations, including latent retrieval for weakly supervised settings [14] and end-to-end differentiable retrieval with improved query-aware similarity scoring [15]. These advances allow RAG to en-hance LLM predictions without updating model parameters. Although most prior work focuses on textual retrieval, the underlying principle can be ex-tended to multimodal scenarios, where visual, auditory, and textual features could jointly guide example selection. Building on this idea, MAF applies a RAG-style retrieval strategy for multimodal sentiment analysis, dynamically selecting the most informative demonstrations across modalities to improve prediction quality. 
+
+2.2 Large Language Models in Multimodal Sentiment Analysis 
+
+Large language models (LLMs) such as GPT-4 and LLaMA have demonstrated strong few-shot and zero-shot reasoning capabilities on textual inputs [2, 22]. Their ability to process and generate natural language enables effective un-derstanding of sentiment-related context, but they are inherently limited to purely textual information [30]. Recent advances in multimodal large language models (MLLMs), together with multimodal prompting frameworks built on Qwen [1], LLaMA2 [26], and ChatGLM3 [5], enable the incorporation of visual cues, providing additional complementary information for sentiment understand-ing. Lightweight multimodal integration methods such as MAG-BERT [24] and MSE-Adapter [29] provide lightweight mechanisms to extend existing LLMs for multimodal inputs without full model fine-tuning, offering a parameter-efficient complement to full MLLM training. Despite these advances, current approaches 4 Hangling Xie  
+
+> Fig. 2. The overview of the MAF framework.
+
+remain sensitive to prompt quality and modality importance, which can result in unstable predictions. To address these challenges, MAF dynamically retrieves and fuses multimodal demonstrations conditioned on the input query, perform-ing adaptive weighted aggregation over facial, scene and text features to improve prediction stability and accuracy. 
+
+2.3 Output Stability Enhancement 
+
+MLLM outputs are inherently unstable due to probabilistic decoding [9]. To mitigate this, self-consistency [28] and structured prompting with LLM ensem-bling [4] have been explored, improving robustness and reliability. In dataset construction, majority voting among multiple annotators has been shown to re-duce label ambiguity and enhance annotation reliability [18], inspiring inference-time aggregation strategies. Motivated by these insights, MAF adopts majority voting over multiple sampled outputs to improve output stability in multimodal sentiment prediction. 
+
+## 3 Method 
+
+MAF first adaptively retrieves appropriate demonstrations from a multimodal corpus and directly embeds them into a prompt template. It then conducts ma-jority voting on multiple candidate outputs generated by a deployed large lan-guage model to obtain the final sentiment analysis results. As shown in Figure 2, MAF consists of three core components: the hybrid demonstration retrieval mod-ule, the adaptive coefficient generation module, and the majority voting module. Each of these modules will be elaborated on in detail in the following sections. In this study, besides the embedded demonstrations and query content, the prompt template employs fixed prompts to describe the general task. MAF 5 
+
+> Fig. 3. Illustration of the few-shot prompt used in our work.
+
+3.1 Prompt Templates and Demonstration Corpus 
+
+MAF employs a fixed multi-turn dialogue structure. Instead of engineering task-specific prompt templates, we achieve personalization by adaptively retrieving and injecting relevant multimodal demonstrations for each query. As illustrated in Figure 3, the template comprises three fixed components: a system message defining the task and output format; demonstration slots dynamically popu-lated with retrieved video-text-label pairs; and the query message containing the target video and text. During inference, the overall dialogue structure remains static; adaptability stems entirely from the retrieved demonstrations, preserving a concise and generalizable template. For each dataset, we separately construct the demonstration corpus D =
+
+{⟨ dimg i , d txt i , d label i ⟩} Ni=1 , where N = 1000 in our experiments, by randomly sam-pling instances from the training splits. To avoid data leakage, D is disjoint from the validation set, test set, and the training samples for the adaptive coefficient generator in Section 3.3. In practical deployment, this corpus can be readily expanded with additional high-quality annotated data. 
+
+3.2 Hybrid Demonstration Retrieval Module 
+
+This module retrieves the most relevant multimodal demonstrations to populate the prompt template. Since demonstration quality and relevance directly govern 6 Hangling Xie 
+
+sentiment analysis performance, constructing highly discriminative multimodal representations is critical. To this end, we propose a multi-feature hybrid retrieval module that ranks candidates using a weighted similarity of facial, scenes, and text features. Specifically, given an input query q (comprising an image sequence qimg =
+
+{qimg t }Tt=1 and text qtxt ), the module retrieves the K most similar multimodal demonstrations from D:
+
+{⟨ dimg k , d txt k , d label k ⟩} Kk=1 = fhybrid (q, D) (1) where D = {⟨ dimg i , d txt i , d label i ⟩} Ni=1 contains N demonstrations, and fhybrid (·)
+
+denotes the multi-feature similarity fusion function. For the query image sequence qimg , we first extract three granularities of feature representations: 
+
+Facial Features ef ace q : Extracted per frame qimg t using OpenFace3.0. For multi-person scenes, we localize the active speaker by calculating the sum of Eu-clidean distance changes between upper and lower lip keypoints across consecu-tive frames. Temporal average pooling is then applied to obtain the video-level feature: 
+
+ef ace q = 1
+
+T
+
+> T
+
+X
+
+> t=1
+
+ef ace q,t (2) 
+
+Scene Features escene q : Extracted via PlaceCNN for each frame, followed by temporal average pooling: 
+
+escene q = 1
+
+T
+
+> T
+
+X
+
+> t=1
+
+escene q,t (3) 
+
+Text Features etext q : Extracted using an LLM text encoder. The input text is mapped into an embedding sequence Eq , followed by max-pooling and nor-malization: 
+
+etext q = norm(MaxPooling( Eq )) (4) Candidate demonstrations pi = ⟨dimg i , d txt i , d label i ⟩ in D are processed identi-cally to obtain ef ace pi , escene pi , and etext pi . We then compute three similarity scores between q and each pi via inner products: 
+
+Facial Feature Similarity: 
+
+sf ace (q, p i) = ef ace q · ef ace pi (5) 
+
+Scene Feature Similarity: 
+
+sscene (q, p i) = escene q · escene pi (6) 
+
+Text Feature Similarity: 
+
+stext (q, p i) = etext q · etext pi (7) MAF 7
+
+The final retrieval score srank (q, p i) is obtained through weighted fusion: 
+
+srank (q, p i) = α1sf ace (q, p i) + α2sscene (q, p i) + α3stext (q, p i) (8) where α1, α 2, α 3 are non-negative fusion coefficients. In MAF, these coefficients are generated adaptively for each query by the coefficient generator described in Section 3.3. We rank all candidates by srank and select the top-K demonstrations to populate the prompt. 
+
+3.3 Adaptive Coefficient Generator 
+
+Using fixed fusion coefficients α1, α 2, α 3 in Eq. 8 is suboptimal for accommodat-ing diverse sentiment expression patterns. To dynamically optimize this fusion strategy, we propose an adaptive coefficient generator—a lightweight neural net-work that predicts optimal fusion weights in real time based on the input query content. 
+
+Model Architecture The generator takes the concatenated multi-feature rep-resentation of query q as input. Specifically, ef ace q ∈ R512 , escene q ∈ R2048 , and 
+
+etext q ∈ R1536 are concatenated into a joint vector: 
+
+hq = [ ef ace q ; escene q ; etext q ] ∈ R4096 (9) 
+
+hq is then fed into a two-layer MLP with a 256-dimensional hidden layer and ReLU activation, followed by a sigmoid output layer that produces independent scores for each candidate weight combination: 
+
+pq = σ W2 · ReLU( W1hq + b1) + b2
+
+ ∈ [0 , 1] C (10) where C is the number of predefined weight combinations and σ(·) is the element-wise sigmoid function. Each entry pq,c indicates the predicted probability that the c-th combination is correct for query q. During inference, the final fusion coefficients [α1, α 2, α 3] are taken as the combination with the highest score. 
+
+Training Objective We discretize the continuous weight space with a step size of 0.1 under the constraints α1 +α2 +α3 = 1 and αi ≥ 0, yielding C = 66 distinct triples. For each training sample xj and each triple c, we run the MAF framework and record correctness tj,c = 1[ˆ yj,c = ytrue  
+
+> j
+
+]. Note that multiple triples may be correct for the same sample, making this a multi-label setting. The generator is trained with binary cross-entropy loss: 
+
+L = − 1
+
+Ntrain 
+
+> Ntrain
+
+X
+
+> j=1
+> C
+
+X
+
+> c=1
+
+tj,c log pj,c + (1 − tj,c ) log(1 − pj,c ) (11) The model is optimized with Adam, learning rate 10 −3, and dropout p = 0 .2
+
+until the validation loss converges. 8 Hangling Xie 
+
+Inference Phase During inference, the trained generator efficiently produces query-specific fusion coefficients by selecting the weight combination with the highest predicted probability: α∗ = α(c∗) where c∗ = arg max c pq [c]. These adaptive weights guide the hybrid retrieval module to select the most relevant demonstrations, seamlessly integrating into the end-to-end MAF framework. 
+
+3.4 Majority Voting Module 
+
+Multimodal LLMs typically employ probabilistic decoding, which yields seman-tic diversity but introduces potential instability in predictions. To enhance ro-bustness, we design a majority voting module to aggregate multiple generated candidates into a reliable final prediction. Given query q and K retrieved demonstrations, we formulate a complete prompt P(q). The LLM generates M candidate sentiment labels via probabilistic sampling: 
+
+{ˆym}Mm=1 = LLM( P(q)) , ˆym ∈ Y (12) where Y is the label space. The module identifies the mode of these candidates as the final prediction: 
+
+y∗ = arg max 
+
+> y∈Y
+> M
+
+X
+
+> m=1
+
+I(ˆ ym = y) (13) where I(·) is the indicator function. Ties are resolved randomly, which empir-ically suffices to mitigate the impact of outlier predictions. This training-free mechanism operates without additional parameters, finalizing the robust MAF framework. Moreover, thanks to parallel API calls, generating M candidates incurs nearly the same latency as a single deterministic call. 
+
+## 4 Experiments 
+
+4.1 Experimental Settings Datasets To comprehensively evaluate the effectiveness of the proposed MAF framework on multimodal sentiment analysis tasks, we conducted experiments on three public benchmark datasets: CMU-MOSEI [33], CH-SIMS v2.0 [19], and MELD [23]. These three datasets complement each other well in terms of language, dialogue format, and annotation types: CMU-MOSEI provides En-glish monologue scenarios, CH-SIMS v2.0 provides diverse Chinese scenarios, and MELD provides English multi-speaker dialogue scenarios. Detailed statis-tics for each dataset are shown in Table 1. 
+
+Baselines We compared the performance of MAF against previous state-of-the-art models: TFN [32], LMF [21], MulT [27], MAG-BERT [24], Self-MM [31], AV-MC [19], UFEN-MTFN [3], TextMI [8], CHFN [6], UniMSE [11], UniSAGPT2, UniSAT5, and UniSABART [17], MMGCN [12], MM-DFN [10], EmoKEG [7], GA2MIF [16], MSE [29], and ATGFB [20]. MAF 9               
+
+> Table 1. Characteristics of sentiment and emotion datasets. The table includes the dataset name, source, language, total number of samples, and label types. Dataset Source Language Total Samples Label Types CMU-MOSEI YouTube English 23,453 [-3, +3] CH-SIMS v2.0 Movies, TV series and variety shows Chinese 4,361 [-1, +1] MELD Friends English 13,707 7 emotion categories
+
+Metrics Due to differences in task settings, we adopt dataset-specific evaluation metrics. For CMU-MOSEI, we report MAE, Corr, Acc-7, Acc-2, and F1, where Acc-2 and F1 are computed under the non-negative/negative setting. For CH-SIMS v2.0, we report MAE, Corr, Acc-2, F1, and Acc2 weak , where Acc2 weak 
+
+evaluates weak sentiment samples in the range [-0.4, 0.4]. For MELD, we report Acc and WF1. Except for MAE, higher values indicate better performance. 
+
+Implementation Details To validate the effectiveness of MAF, we conducted experiments on three representative LLM/MLLM backbones used in multimodal sentiment settings: Qwen-1.8B, LLaMA2-7B, and ChatGLM3-6B. The FAISS vector database was adopted, and search efficiency was optimized using FAISS’s approximate nearest neighbor search, thereby improving search performance. We use concurrent generation for the voting module, so the wall-clock latency of multiple candidate generations remains close to that of a single generation in our implementation. Unless otherwise stated, we set K = 3 and M = 8 , following the hyperparameter analysis in Section 4.2. All experiments were run on NVIDIA GeForce RTX 4090. To ensure reproducibility, all experiments used a fixed seed. 
+
+4.2 Experimental Results Main Result Table 2 compares MAF with representative multimodal sentiment analysis and emotion recognition baselines on CMU-MOSEI, CH-SIMS v2.0, and MELD. Overall, MAF consistently improves the corresponding MSE and AT-GFB variants under the same backbone in most metrics, demonstrating that adaptive demonstration retrieval and voting-based inference are effective across different model families. On CMU-MOSEI, MAF-ChatGLM3-6B achieves the strongest Acc-2, F1, Acc-7, and Corr scores, reaching 90.23%, 89.83%, 59.58%, and 0.805, respectively. Meanwhile, MAF-LLaMA2-7B obtains the lowest MAE of 0.475, indicating its advantage in regression-oriented sentiment intensity pre-diction. On CH-SIMS v2.0, MAF-ChatGLM3-6B obtains the best Acc-2 and F1 scores among the compared methods, with 86.89% and 85.94%, respectively, and also achieves the lowest MAE of 0.279. Although ATGFB-ChatGLM3-6B re-ports a higher Acc2 weak score, MAF maintains better overall performance across the major classification and regression metrics. On MELD, MAF-ChatGLM3-6B reaches 69.94% Acc and 69.25% WF1, outperforming previous ERC baselines and the corresponding MSE/ATGFB variants. These results show that MAF is not a backbone-specific improvement, but a general prompting framework that 10 Hangling Xie 
+
+Table 2. Performance comparison of MAF against baseline methods. Within each backbone block, the best results are highlighted in bold .Model MOSEI CH-SIMS v2.0 MELD Acc-2 F1 Acc-7 MAE Corr Acc-2 F1 Acc2 weak MAE Corr Acc WF1 TFN 78.50 78.96 51.60 0.573 0.714 76.51 76.31 66.27 0.323 0.667 60.77 57.74 LMF 80.54 80.94 51.59 0.576 0.717 77.05 77.02 69.34 0.343 0.638 61.15 58.30 MulT 81.15 81.56 52.84 0.559 0.733 79.50 79.59 69.61 0.317 0.703 - -MAG-BERT 82.51 82.77 50.41 0.583 0.741 79.79 79.78 71.87 0.334 0.691 - -Self-MM 82.81 82.53 53.46 0.530 0.765 79.01 78.89 71.87 0.335 0.640 - -AV-MC - - - - - 82.50 82.55 74.54 0.297 0.732 - -UFEN-MTFN 84.80 84.90 54.50 0.535 0.760 - - - - - - -TextMI 86.45 86.38 53.21 0.531 0.774 - - - - - - -CHFN 83.70 83.90 54.30 0.525 0.778 - - - - - - -UniMSE 85.86 85.79 54.39 0.523 0.773 - - - - - 65.09 65.51 UniSAGPT2 71.02 - 41.36 0.838 - - - - - - 48.12 31.26 UniSAT5 84.22 - 52.50 0.546 - - - - - - 64.52 62.17 UniSABART 84.93 - 50.03 0.587 - - - - - - 62.34 62.22 MMGCN - - - - - - - - - - 60.42 58.31 MM-DFN - - - - - - - - - - 62.49 59.46 EmoKEG - - - - - - - - - - 66.44 65.69 GA2MIF - - - - - - - - - - 61.65 58.94 MSE-Qwen-1.8B 84.12 83.45 52.02 0.558 0.725 80.44 80.24 73.09 0.311 0.678 62.18 59.87 ATGFB-Qwen-1.8B 87.75 87.52 54.23 0.531 0.779 80.82 80.67 74.50 0.362 0.692 65.48 62.56 
+
+MAF-Qwen-1.8B 87.98 87.62 54.48 0.520 0.783 80.94 80.81 74.65 0.338 0.729 65.52 63.28 
+
+MSE-LLaMA2-7B 86.74 86.51 55.57 0.501 0.787 75.53 75.44 68.61 0.382 0.553 65.14 63.66 ATGFB-LLaMA2-7B 88.63 87.84 57.76 0.486 0.798 77.97 77.74 71.59 0.379 0.556 66.68 63.55 
+
+MAF-LLaMA2-7B 88.76 87.91 58.12 0.475 0.795 80.53 80.65 73.90 0.326 0.694 68.81 65.76 
+
+MSE-ChatGLM3-6B 86.91 86.77 54.56 0.515 0.783 83.77 83.76 75.24 0.296 0.720 66.23 65.13 ATGFB-ChatGLM3-6B 89.83 89.49 58.04 0.529 0.803 86.85 85.75 79.43 0.284 0.736 69.91 68.93 
+
+MAF-ChatGLM3-6B 90.23 89.83 59.58 0.512 0.805 86.89 85.94 77.14 0.279 0.737 69.94 69.25 
+
+Table 3. The ablation experiment results on MOSEI, CH-SIMS v2.0, and MELD. Model MOSEI CH-SIMS v2.0 MELD Acc-2 F1 Acc-7 MAE Corr Acc-2 F1 Acc2 weak MAE Corr Acc WF1 w/o RAG 88.94 88.03 57.45 0.516 0.787 83.97 84.12 75.36 0.296 0.719 69.72 67.55 w/o adaptive retrieval 87.48 86.62 56.12 0.524 0.775 82.43 83.56 75.06 0.313 0.706 68.41 65.96 w/o adaptive weighting 88.71 87.96 56.68 0.521 0.781 82.48 83.68 74.93 0.318 0.715 69.17 67.29 w/o voting 87.30 86.11 55.37 0.534 0.771 81.72 81.89 73.55 0.330 0.697 67.65 65.50 MAF 90.23 89.83 59.58 0.512 0.805 86.89 85.94 77.14 0.279 0.737 69.94 69.25 
+
+can enhance different MLLMs through query-aware demonstration selection and robust output aggregation. 
+
+Ablation Study To evaluate the contribution of each component, we con-duct ablation experiments on CMU-MOSEI, CH-SIMS v2.0, and MELD using ChatGLM3-6B as the backbone. As shown in Table 3, the complete MAF frame-work achieves the best overall performance on all three datasets, confirming that the proposed retrieval, weighting, and voting modules are complementary. MAF 11 (a)  Impact of the  K on MELD and SIMSV2  (b)  Impact of  M on MELD and SIMSV2 (a)  Impact of the  K on MELD and SIMSV2  (b)  Impact of  M on MELD and SIMSV2 (a)  Impact of the  K on MELD and SIMSV2  (b)  Impact of  M on MELD and SIMSV2 (a)  Impact of the  K on MELD and SIMSV2  (b)  Impact of  M on MELD and SIMSV2        
+
+> Fig. 4. Impact of the number of retrieved demonstrations ( K) and the number of voting candidates ( M) on MELD and CH-SIMS v2.0. The best trade-off is achieved with K= 3 and a stable voting setting around M= 8 .
+
+Removing the RAG-based demonstration mechanism causes a noticeable drop on CH-SIMS v2.0 where Acc-2 falls from 86.89% to 83.97% but only a marginal change on MELD where Acc goes from 69.94% to 69.72%. More strik-ingly, removing adaptive retrieval leads to even larger degradation across all datasets. For example, Acc-2 on MOSEI drops from 90.23% to 87.48%, and on CH-SIMS v2.0 from 86.89% to 82.43%. This reveals that the accuracy of demon-strations is crucial, as erroneous ones may mislead the model. Removing adaptive weighting also consistently hurts performance, especially on MAE for CH-SIMS v2.0 from 0.279 to 0.318 and for MOSEI from 0.512 to 0.521, showing that fixed fusion weights cannot handle diverse sentiment cues. Removing the voting mod-ule causes a clear drop on MOSEI and CH-SIMS v2.0 but a smaller effect on MELD, where Acc declines from 69.94% to 67.65%, reflecting that large models are prone to fluctuation, making majority voting especially beneficial. 
+
+Impact of top-K and Voting Number We further analyze two key hyper-parameters in MAF: the number of retrieved demonstrations K and the number of sampled candidate outputs M . As shown in Figure 4, the left subfigure varies 
+
+K from 1 to 5. The performance on MELD and CH-SIMS v2.0 reaches its best value when K = 3 , indicating that three demonstrations provide sufficient con-textual guidance without introducing excessive irrelevant examples. When K is smaller, the prompt lacks enough task-specific references; when K is larger, less relevant demonstrations may dilute the useful sentiment cues. The right subfigure studies the effect of M in the majority voting module. Increasing M generally improves performance at the beginning, because mul-tiple sampled outputs reduce the influence of occasional unstable predictions. The curves become stable when M is around 8, after which the additional gain 12 Hangling Xie 
+
+becomes marginal. Therefore, we set K = 3 and use the voting setting around 
+
+M = 8 in our experiments, balancing prediction accuracy, robustness, and infer-ence cost. 
+
+## 5 Conclusion 
+
+This paper proposes the MAF framework to address prompt sensitivity, limited demonstration retrieval, and unstable outputs in MLLM-based sentiment anal-ysis. MAF introduces three key components: a multi-feature hybrid retrieval mechanism that integrates facial, scene, and text features with lip-motion-based speaker localization; an adaptive coefficient generator that dynamically assigns query-specific fusion weights; and a majority-voting inference strategy that im-proves prediction stability. Experiments on three public datasets show that MAF consistently improves the corresponding backbone variants and achieves compet-itive or superior performance against strong baselines. Ablation results further confirm that retrieval quality, adaptive weighting, and voting-based aggregation provide complementary gains. 
+
+## References 
+
+1. Bai, J., Bai, S., Yang, S., Wang, S., Tan, S., Wang, P., Lin, J., Zhou, C., Zhou, J.: Qwen-VL: A versatile vision-language model for understand-ing, localization, text reading, and beyond. arXiv arXiv:2308.12966 (2023). https://doi.org/10.48550/arXiv.2308.12966 2. Brown, T.B., Mann, B., Ryder, N., Subbiah, M., Kaplan, J.D., Dhariwal, P., Nee-lakantan, A., Shyam, P., Sastry, G., Askell, A., Agarwal, S., Herbert-Voss, A., Krueger, G., Henighan, T., Child, R., Ramesh, A., Ziegler, D.M., Wu, J., Winter, C., Hesse, C., Litwin, M., Gray, S., Chess, B., Clark, J., Berner, C., McCandlish, S., Radford, A., Sutskever, I., Amodei, D.: Language models are few-shot learners. In: Advances in Neural Information Processing Systems. vol. 33, pp. 1877–1901. Curran Associates, Inc. (2020) 3. Cai, Y., Li, X., Zhang, Y., Li, J., Zhu, F., Rao, L.: Multimodal sentiment analysis based on multi-layer feature fusion and multi-task learning. Scientific Reports 15 ,2126 (2025). https://doi.org/10.1038/s41598-025-85859-6 4. Gao, Z., Gao, S., Zhang, Z., Guo, Y., Chen, H., Han, J.: Structured prompting and LLM ensembling for multimodal conversational aspect-based sentiment anal-ysis. In: Proceedings of the 33rd ACM International Conference on Multimedia. p. 14107–14113. MM ’25, Association for Computing Machinery, Dublin, Ireland (2025). https://doi.org/10.1145/3746027.3762070 5. GLM, T.: Chatglm: A family of large language models from GLM-130B to GLM-4 all tools. arXiv arXiv:2406.12793 (2024). https://doi.org/10.48550/arXiv.2406.12793 6. Guo, J., Tang, J., Dai, W., Ding, Y., Kong, W.: Dynamically adjust word represen-tations using unaligned multimodal information. In: Proceedings of the 30th ACM International Conference on Multimedia. p. 3394–3402. Association for Computing Machinery, New York, NY, USA (2022). https://doi.org/10.1145/3503161.3548137 MAF 13 7. Guo, L., Cui, Y., Song, Y., Hou, H., Ding, S.: EmoKEG: Knowledge-enhanced heterogeneous graph for emotion recognition in conversation. Pattern Recognition 
+
+179 , 113500 (2026). https://doi.org/10.1016/j.patcog.2026.113500 8. Hasan, M.K., Islam, M.S., Lee, S., Rahman, W., Naim, I., Khan, M.I., Hoque, E.: TextMI: Textualize multimodal information for integrating non-verbal cues in pre-trained language models. arXiv abs/2303.15430 (2023) 9. Holtzman, A., Buys, J., Du, L., Forbes, M., Choi, Y.: The curious case of neural text degeneration. In: International Conference on Learning Representations (ICLR) (2020) 10. Hu, D., Hou, X., Wei, L., Jiang, L.X., Mo, Y.: MM-DFN: Multi-modal dynamic fusion network for emotion recognition in conversa-tions. In: ICASSP 2022 - 2022 IEEE International Conference on Acous-tics, Speech and Signal Processing (ICASSP). pp. 7037–7041 (2022). https://doi.org/10.1109/ICASSP43922.2022.9747397 11. Hu, G., Lin, T.E., Zhao, Y., Lu, G., Wu, Y., Li, Y.: UniMSE: Towards unified multimodal sentiment analysis and emotion recognition. In: Proceedings of the 2022 Conference on Empirical Methods in Natural Language Processing (EMNLP). pp. 7837–7851. Association for Computational Linguistics, Abu Dhabi, United Arab Emirates (2022). https://doi.org/10.18653/v1/2022.emnlp-main.534 12. Hu, J., Liu, Y., Zhao, J., Jin, Q.: MMGCN: Multimodal fusion via deep graph convolution network for emotion recognition in conversation. In: Proceedings of the 59th Annual Meeting of the Association for Computational Linguistics and the 11th International Joint Conference on Natural Language Processing (Volume 1: Long Papers). pp. 5666–5675. Association for Computational Linguistics, Online (2021). https://doi.org/10.18653/v1/2021.acl-long.440 13. Karpukhin, V., Oguz, B., Min, S., Lewis, P., Wu, L., Edunov, S., Chen, D., tau Yih, W.: Dense passage retrieval for open-domain question answering. In: Proceed-ings of the 2020 Conference on Empirical Methods in Natural Language Process-ing (EMNLP). pp. 6769–6781. Association for Computational Linguistics, Online (2020). https://doi.org/10.18653/v1/2020.emnlp-main.550 14. Lee, K., Chang, M.W., Toutanova, K.: Latent retrieval for weakly supervised open domain question answering. In: Proceedings of the 57th Annual Meeting of the Association for Computational Linguistics. pp. 6086–6096. Association for Com-putational Linguistics (2019). https://doi.org/10.18653/v1/P19-1612 15. Lewis, P., Perez, E., Piktus, A., Petroni, F., Karpukhin, V., Goyal, N., Küttler, H., Lewis, M., tau Yih, W., Rocktäschel, T., Riedel, S., Kiela, D.: Retrieval-augmented generation for knowledge-intensive NLP tasks. In: Advances in Neural Information Processing Systems. vol. 33, pp. 9459–9474. Curran Associates, Inc. (2020) 16. Li, J., Wang, X., Lv, G., Zeng, Z.: GA2MIF: Graph and attention based two-stage multiplexed information fusion for conversational emotion detection. IEEE Transactions on Affective Computing 15 (1), 130–143 (2024) 17. Li, Z., Lin, T.E., Wu, Y., Liu, M., Tang, F., Zhao, M., Li, Y.: UniSA: Unified generative framework for sentiment analysis. In: Proceedings of the 31st ACM In-ternational Conference on Multimedia (MM). pp. 6132–6142. MM ’23, Association for Computing Machinery, New York, NY, USA (2023) 18. Lian, Z., Sun, H., Sun, L., Gu, H., Wen, Z., Zhang, S., Chen, S., Xu, M., Xu, K., Chen, K., Chen, L., Liang, S., Li, Y., Yi, J., Liu, B., Tao, J.: Explainable multimodal emotion reasoning. arXiv arXiv:2306.15401 (2023). https://doi.org/10.48550/arXiv.2306.15401 14 Hangling Xie 19. Liu, Y., Yuan, Z., Mao, H., Liang, Z., Yang, W., Qiu, Y., Cheng, T., Li, X., Xu, H., Gao, K.: Make acoustic and visual cues matter: CH-SIMS v2.0 dataset and AV-Mixup consistent module. In: Proceedings of the 2022 International Conference on Multimodal Interaction (ICMI ’22). pp. 247–258. ACM, Bengaluru, India (2022). https://doi.org/10.1145/3536221.3556630 20. Liu, Z., Liu, S., Yan, W., Song, P., Song, Y., Gao, R.: ATGFB-MFF: Adaptive text-guided fiber bundle feature fusion with llms for multimodal sentiment analysis and emotion recognition in conversations. In: Proceedings of the ACM Web Conference 2026. pp. 7442–7453. WWW ’26, Association for Computing Machinery, New York, NY, USA (2026). https://doi.org/10.1145/3774904.3792577 21. Liu, Z., Shen, Y., Lakshminarasimhan, V.B., Liang, P.P., Zadeh, A., Morency, L.P.: Efficient low-rank multimodal fusion with modality-specific factors. In: Proceedings of the 56th Annual Meeting of the Association for Computational Linguistics (Vol-ume 1: Long Papers). pp. 2247–2256. Association for Computational Linguistics, Melbourne, Australia (2018). https://doi.org/10.18653/v1/P18-1209 22. OpenAI: Gpt-4 technical report. arXiv preprint arXiv:2303.08774 (2023). https://doi.org/10.48550/arXiv.2303.08774 23. Poria, S., Hazarika, D., Majumder, N., Naik, G., Cambria, E., Mihalcea, R.: MELD: A multimodal multi-party dataset for emotion recognition in conversations. In: Proceedings of the 57th Annual Meeting of the Association for Computational Linguistics. pp. 527–536. Association for Computational Linguistics, Florence, Italy (2019). https://doi.org/10.18653/v1/P19-1050 24. Rahman, W., Hasan, M.K., Lee, S., Zadeh, A.B., Mao, C., Morency, L.P., Hoque, E.: Integrating multimodal information in large pretrained transformers. In: Pro-ceedings of the 58th Annual Meeting of the Association for Computational Lin-guistics. pp. 2359–2369. Association for Computational Linguistics, Online (2020). https://doi.org/10.18653/v1/2020.acl-main.214 25. Shou, Y., Meng, T., Ai, W., Li, K.: Multimodal large language models meet mul-timodal emotion recognition and reasoning: A survey. arXiv 2509.24322 (2025). https://doi.org/10.48550/arXiv.2509.24322, arXiv preprint arXiv:2509.24322 26. Touvron, H., Martin, L., Stone, K., Albert, P., Almahairi, A., Babaei, Y., Bash-lykov, N., Batra, S., Bhargava, P., Bhosale, S., Bikel, D., Blecher, L., Ferrer, C.C., Chen, M., Cucurull, G., Esiobu, D., Fernandes, J., Fu, J., Fu, W., Fuller, B., Gao, C., Goswami, V., Goyal, N., Hartshorn, A., Hosseini, S., Hou, R., Inan, H., Kar-das, M., Kerkez, V., Khabsa, M., Kloumann, I., Korenev, A., Koura, P.S., Lachaux, M.A., Lavril, T., Lee, J., Liskovich, D., Lu, Y., Mao, Y., Martinet, X., Mihaylov, T., Mishra, P., Molybog, I., Nie, Y., Poulton, A., Reizenstein, J., Rungta, R., Sal-adi, K., Schelten, A., Silva, R., Smith, E.M., Subramanian, R., Tan, X.E., Tang, B., Taylor, R., Williams, A., Kuan, J.X., Xu, P., Yan, Z., Zarov, I., Zhang, Y., Fan, A., Kambadur, M., Narang, S., Rodriguez, A., Stojnic, R., Edunov, S., Scialom, T.: Llama 2: Open foundation and fine-tuned chat models. arXiv arXiv:2307.09288 
+
+(2023). https://doi.org/10.48550/arXiv.2307.09288 27. Tsai, Y.H.H., Bai, S., Liang, P.P., Kolter, J.Z., Morency, L.P., Salakhutdinov, R.: Multimodal transformer for unaligned multimodal language sequences. In: Pro-ceedings of the 57th Annual Meeting of the Association for Computational Linguis-tics (ACL). pp. 6558–6569. Association for Computational Linguistics, Florence, Italy (2019). https://doi.org/10.18653/v1/P19-1656 28. Wang, X., Wei, J., Schuurmans, D., Le, Q.V., Chi, E.H., Narang, S., Chowdhery, A., Zhou, D.: Self-consistency improves chain of thought reasoning in language models. In: International Conference on Learning Representations (ICLR) (2023) MAF 15 29. Yang, Y., Dong, X., Qiang, Y.: MSE-Adapter: A lightweight plugin endowing llms with the capability to perform multimodal sentiment analysis and emotion recog-nition. In: Proceedings of the AAAI Conference on Artificial Intelligence. vol. 39, pp. 25642–25650. Association for the Advancement of Artificial Intelligence (2025). https://doi.org/10.1609/aaai.v39i24.34755 30. Yin, S., Fu, C., Zhao, S., Li, K., Sun, X., Xu, T., Chen, E.: A survey on multi-modal large language models. National Science Review 11 (12), nwae403 (2024). https://doi.org/10.1093/nsr/nwae403 31. Yu, W., Xu, H., Yuan, Z., Wu, J.: Learning modality-specific representations with self-supervised multi-task learning for multimodal sentiment analysis. In: Proceed-ings of the AAAI Conference on Artificial Intelligence. vol. 35, pp. 10790–10797 (2021). https://doi.org/10.1609/aaai.v35i12.17289 32. Zadeh, A., Chen, M., Poria, S., Cambria, E., Morency, L.P.: Tensor fusion net-work for multimodal sentiment analysis. In: Proceedings of the 2017 Conference on Empirical Methods in Natural Language Processing (EMNLP). pp. 1103– 1114. Association for Computational Linguistics, Copenhagen, Denmark (2017). https://doi.org/10.18653/v1/D17-1115 33. Zadeh, A.B., Liang, P.P., Poria, S., Cambria, E., Morency, L.P.: Multimodal language analysis in the wild: CMU-MOSEI dataset and interpretable dy-namic fusion graph. In: Proceedings of the 56th Annual Meeting of the As-sociation for Computational Linguistics (Volume 1: Long Papers). pp. 2236– 2246. Association for Computational Linguistics, Melbourne, Australia (2018). https://doi.org/10.18653/v1/P18-1208

@@ -1,0 +1,212 @@
+{
+  "mode": "standard",
+  "generated_at": "2026-06-17T21:56:49.621008+00:00",
+  "stats": {
+    "mode": "standard",
+    "tag_count": 1,
+    "deep_divecandidates": 3,
+    "deep_cap": 6,
+    "deep_selected": 3,
+    "quick_candidates": 2,
+    "quick_skim_target": 11,
+    "quick_selected": 2
+  },
+  "deep_dive": [
+    {
+      "id": "2606.17281v1",
+      "source": "arxiv",
+      "title": "Are you speaking my languages? On spoken language adherence in multimodal LLMs",
+      "abstract": "While Large Language Model (LLM) based Automatic Speech Recognition (ASR) enables seamless multilingual use, models often misidentify the output language, compromising transcription fidelity and downstream application quality. To preserve flexibility and code-switching capabilities, we propose a soft prompting approach that hints at potential spoken languages without strictly constraining the output. We formally define this challenge as a lack of language adherence, introduce a novel metric to quantify violations, and evaluate three mitigation strategies: (1) zero-shot prompting for robust guidance under uncertainty, (2) supervised fine-tuning (SFT) to improve prompt adherence, and (3) Chain-of-Thought (CoT) reasoning to enforce adherence during decoding. We present a comparative analysis of these methods across multiple languages, evaluating effectiveness in reducing the language violation while maintaining overall ASR performance. Finally, we discuss trade-offs to guide strategy selection under various compute constraints.",
+      "authors": [
+        "Hyungwon Kim",
+        "Kandarp Joshi",
+        "Lillian Zhou",
+        "Pavel Golik",
+        "Petar Aleksic"
+      ],
+      "primary_category": "cs.CL",
+      "categories": [
+        "cs.CL",
+        "cs.SD",
+        "eess.AS"
+      ],
+      "published": "2026-06-15T20:44:42+00:00",
+      "link": "https://arxiv.org/pdf/2606.17281v1",
+      "tags": [
+        "keyword:prompt-learn",
+        "query:prompt-learn"
+      ],
+      "llm_score": 9.0,
+      "llm_evidence_en": "proposes a soft prompting approach that hints at potential spoken languages",
+      "llm_evidence_cn": "提出一种软提示方法来提示潜在的口语语言",
+      "llm_evidence": "提出一种软提示方法来提示潜在的口语语言",
+      "canonical_evidence": "提出一种软提示方法来提示潜在的口语语言",
+      "llm_tldr_en": "Proposes a soft prompting approach to hint spoken languages in multimodal LLMs, improving language adherence without constraining output flexibility.",
+      "llm_tldr_cn": "针对多模态大语言模型在语音识别中输出语言错误的问题，提出一种软提示方法，通过柔性语言提示引导模型输出正确的目标语言，而不进行严格约束。论文定义了语言一致性指标，并通过零样本提示、监督微调和链式推理三种策略进行评估，旨在提升转录保真度和下游应用质量，同时保留语码切换的灵活性。",
+      "llm_tldr": "针对多模态大语言模型在语音识别中输出语言错误的问题，提出一种软提示方法，通过柔性语言提示引导模型输出正确的目标语言，而不进行严格约束。论文定义了语言一致性指标，并通过零样本提示、监督微调和链式推理三种策略进行评估，旨在提升转录保真度和下游应用质量，同时保留语码切换的灵活性。",
+      "llm_tags": [
+        "query:prompt-learn"
+      ],
+      "matched_query_tag": "query:prompt-learn",
+      "matched_query_text": "continuous vector representations used as prompts",
+      "matched_requirement_id": "req-1",
+      "selection_source": "fresh_fetch"
+    },
+    {
+      "id": "2606.17164v1",
+      "source": "arxiv",
+      "title": "PromptMN: Pseudo Prompting Language",
+      "abstract": "Prompting has become the primary interface between humans and generative AI, yet many natural language prompts remain fragile: roles, goals, constraints, and expected outputs are often buried in prose or left implicit. In agentic and software development workflows, a misread at the first handoff can propagate through every step, since a significant portion of agent failures stem from context ambiguities rather than model limitations. This paper introduces PromptMN, a pseudo-prompting domain-specific language that annotates natural language with compact, %-prefixed typed directives covering roles, goals, requirements, priorities, constraints, plans, inputs, and outputs. Semantic resolution lets authors write in any order while the model interprets directives by function. PromptMN sits between informal prompting and programming-style pseudocode: structured enough to be inspectable and reusable, yet lightweight enough for analysts, managers, developers, and stakeholders across the software development lifecycle (SDLC). PromptMN also pairs with reverse prompt engineering. Asking a model to restate a desired outcome as PromptMN lets users inspect the inferred roles, goals, constraints, and missing assumptions before acting, reducing repair cycles and yielding a reusable artifact for aligning people and AI tools. PromptMN's feasibility is evaluated across several frontier models, including Claude Fable 5, Claude Opus 4.8, Gemini 3.1 Pro, and GPT-5.5. The models correctly resolved PromptMN instructions, including complex structures such as repetition, conditionals, methods, and a prime-checking task, without fine-tuning. The same vocabulary applies across new codebases, maintenance, and redesign in the SDLC scenarios presented. While large-scale validation remains future work, these early results suggest PromptMN is a practical step toward clearer, more reviewable human-to-AI interaction.",
+      "authors": [
+        "Enkhzol Dovdon"
+      ],
+      "primary_category": "cs.CL",
+      "categories": [
+        "cs.CL",
+        "cs.AI",
+        "cs.HC",
+        "cs.PL",
+        "cs.SE"
+      ],
+      "published": "2026-06-15T18:04:50+00:00",
+      "link": "https://arxiv.org/pdf/2606.17164v1",
+      "tags": [
+        "keyword:prompt-learn",
+        "query:prompt-learn"
+      ],
+      "llm_score": 8.0,
+      "llm_evidence_en": "proposes a pseudo-prompting DSL that annotates natural language with typed directives to reduce ambiguity",
+      "llm_evidence_cn": "提出一种伪提示领域特定语言，用类型化指令标注自然语言以减少歧义",
+      "llm_evidence": "提出一种伪提示领域特定语言，用类型化指令标注自然语言以减少歧义",
+      "canonical_evidence": "提出一种伪提示领域特定语言，用类型化指令标注自然语言以减少歧义",
+      "llm_tldr_en": "PromptMN introduces a domain-specific language that adds typed directives to natural language prompts, improving clarity and robustness in agentic workflows.",
+      "llm_tldr_cn": "现有自然语言提示常因角色、目标等隐含模糊而脆弱，尤其在智能体流程中导致错误传播。PromptMN提出一种伪提示领域特定语言，用紧凑的带类型指令标注自然语言，明确角色、目标、约束等要素。语义解析允许作者任意顺序书写，模型按功能解释指令，从而增强提示的稳健性和可解释性。在智能体开发场景中评估，有效减少了上下文歧义引发的失败。",
+      "llm_tldr": "现有自然语言提示常因角色、目标等隐含模糊而脆弱，尤其在智能体流程中导致错误传播。PromptMN提出一种伪提示领域特定语言，用紧凑的带类型指令标注自然语言，明确角色、目标、约束等要素。语义解析允许作者任意顺序书写，模型按功能解释指令，从而增强提示的稳健性和可解释性。在智能体开发场景中评估，有效减少了上下文歧义引发的失败。",
+      "llm_tags": [
+        "query:prompt-learn"
+      ],
+      "matched_query_tag": "query:prompt-learn",
+      "matched_query_text": "discrete natural language prompts for guiding models",
+      "matched_requirement_id": "req-2",
+      "selection_source": "fresh_fetch"
+    },
+    {
+      "id": "2606.17372v1",
+      "source": "arxiv",
+      "title": "Implicit vs. Explicit Prompting Strategies for LVLMs in Referential Communication",
+      "abstract": "Two recent studies (Jones et al. (2026); Zeng et al. (2026)) reach apparently contradictory conclusions about whether LVLMs can coordinate on efficient referring expressions. We control for task differences between the studies while directly comparing their prompting styles. We replicate the finding that models can coordinate efficient referring expressions when explicitly prompted to do so, suggesting that other task differences are not responsible for divergent results. However, we also find that the same models fail to infer the need for communicative efficiency from a more implicit prompt, highlighting critical differences between how humans and AI systems communicate.",
+      "authors": [
+        "Peter Zeng",
+        "Amie J. Paige",
+        "Weiling Li",
+        "Susan E. Brennan",
+        "Owen Rambow",
+        "Cameron R. Jones"
+      ],
+      "primary_category": "cs.CL",
+      "categories": [
+        "cs.CL",
+        "cs.AI"
+      ],
+      "published": "2026-06-16T00:05:56+00:00",
+      "link": "https://arxiv.org/pdf/2606.17372v1",
+      "tags": [
+        "keyword:prompt-learn",
+        "query:prompt-learn"
+      ],
+      "llm_score": 8.0,
+      "llm_evidence_en": "compares implicit vs explicit prompting strategies, finding explicit prompts succeed while implicit fail in referential communication",
+      "llm_evidence_cn": "对比隐式与显式提示策略，发现显式提示成功而隐式提示失败",
+      "llm_evidence": "对比隐式与显式提示策略，发现显式提示成功而隐式提示失败",
+      "canonical_evidence": "对比隐式与显式提示策略，发现显式提示成功而隐式提示失败",
+      "llm_tldr_en": "The paper shows that LVLMs coordinate on efficient referring expressions when explicitly prompted, but fail with implicit prompts, highlighting differences between human and AI communication.",
+      "llm_tldr_cn": "针对LVLM在指代交流中的协调能力存在矛盾结论，本研究控制任务差异，直接对比提示风格。结果复制了显式提示下模型能有效协调的发现，但相同模型在隐式提示下无法推断交流效率需求，揭示了人类与AI沟通方式的本质差异。",
+      "llm_tldr": "针对LVLM在指代交流中的协调能力存在矛盾结论，本研究控制任务差异，直接对比提示风格。结果复制了显式提示下模型能有效协调的发现，但相同模型在隐式提示下无法推断交流效率需求，揭示了人类与AI沟通方式的本质差异。",
+      "llm_tags": [
+        "query:prompt-learn"
+      ],
+      "matched_query_tag": "query:prompt-learn",
+      "matched_query_text": "discrete natural language prompts for guiding models",
+      "matched_requirement_id": "req-2",
+      "selection_source": "fresh_fetch"
+    }
+  ],
+  "quick_skim": [
+    {
+      "id": "2606.15288v1",
+      "source": "arxiv",
+      "title": "Hybrid NARX-LLM for Greenland Iceberg Discharge: Prompt-Driven Residual Correction",
+      "abstract": "Greenland iceberg discharge exhibits complex nonlinear dynamics with limited observability, challenging traditional predictive models. We present a Hybrid NARX-LLM framework that combines a nonlinear autoregressive model with exogenous inputs (NARX) and a large language model (LLM) for residual correction. We further propose a Physics-Informed Prompt (PIP) method that transforms unstructured physical knowledge into structured prompts for zero-shot in-context reasoning. The primary objective is to explore the corrective potential of this framework for modeling Greenland iceberg discharge, rather than merely optimizing predictive accuracy. The NARX component captures intrinsic temporal dependencies, while the LLM, guided by PIP, encodes glacier dynamics and environmental drivers and perceives key trend patterns to correct systematic prediction errors. This integration allows the model to reason about unmodeled factors and produce interpretable residuals, enhancing overall predictive accuracy. Applied to Greenland iceberg discharge time series, our approach addresses extreme events that are difficult to predict due to rare variations and nonstationary trends, a limitation often overlooked by traditional methods. By fusing structured time-series modeling with knowledge-driven foundation AI, the framework offers a scalable and interpretable pathway to bridge data-limited climate forecasting with physics-informed LLM reasoning. The code is available.",
+      "authors": [
+        "Yiquan Gao",
+        "Duohui Xu"
+      ],
+      "primary_category": "cs.LG",
+      "categories": [
+        "cs.LG",
+        "cs.AI",
+        "physics.ao-ph"
+      ],
+      "published": "2026-06-13T13:03:17+00:00",
+      "link": "https://arxiv.org/pdf/2606.15288v1",
+      "tags": [
+        "keyword:prompt-learn"
+      ],
+      "llm_score": 7.0,
+      "llm_evidence_en": "Uses Physics-Informed Prompt for zero-shot in-context reasoning without task-specific examples",
+      "llm_evidence_cn": "利用物理信息提示进行零样本上下文推理，无任务特定示例",
+      "llm_evidence": "利用物理信息提示进行零样本上下文推理，无任务特定示例",
+      "canonical_evidence": "利用物理信息提示进行零样本上下文推理，无任务特定示例",
+      "llm_tldr_en": "Proposes a Hybrid NARX-LLM framework with Physics-Informed Prompts that transform physical knowledge into structured prompts for zero-shot in-context residual correction in modeling Greenland iceberg discharge, demonstrating the potential of LLM corrective capabilities.",
+      "llm_tldr_cn": "针对格陵兰冰山排放建模中复杂非线性动态和有限观测数据的挑战，提出混合NARX-LLM框架，通过物理信息提示（PIP）方法将非结构化物理知识转化为结构化提示，实现零样本上下文推理的残差校正。实验表明，LLM在提示引导下能够有效捕捉冰川学原理，校正传统时间序列模型的预测误差，为科学建模中嵌入领域知识提供了新型范式。",
+      "llm_tldr": "针对格陵兰冰山排放建模中复杂非线性动态和有限观测数据的挑战，提出混合NARX-LLM框架，通过物理信息提示（PIP）方法将非结构化物理知识转化为结构化提示，实现零样本上下文推理的残差校正。实验表明，LLM在提示引导下能够有效捕捉冰川学原理，校正传统时间序列模型的预测误差，为科学建模中嵌入领域知识提供了新型范式。",
+      "llm_tags": [
+        "query:prompt-learn"
+      ],
+      "matched_query_tag": "query:prompt-learn",
+      "matched_query_text": "using prompts without any task-specific examples",
+      "matched_requirement_id": "req-5",
+      "selection_source": "fresh_fetch",
+      "quick_tier": "7"
+    },
+    {
+      "id": "2606.15517v1",
+      "source": "arxiv",
+      "title": "SHARD: Safe and Helpful Alignment via Self-Reframing Distillation",
+      "abstract": "Large language models often struggle with sensitive prompts. They may refuse outright, provide generic safety boilerplate, or fail to address the user's legitimate informational needs that can be answered safely. We introduce SHARD, a self-reframing distillation method to improve safe-helpfulness. It first rewrites sensitive prompts to surface benign intent using philosophical guidelines, then reframes its original responses into safe, more helpful ones, and finally fine-tunes the model on its self-reframed responses. Across DNA and the English subset of LINGUASAFE, SHARD improves helpfulness for most model families while preserving safety. It also remains competitive with distillation from a larger teacher model, suggesting that models can internalize safe and helpful behavior elicited from their own. Warning: This paper contains content that may be offensive or harmful.",
+      "authors": [
+        "Viswonathan Manoranjan",
+        "Amogh Gupta",
+        "Anvesh Rao Vijjini",
+        "Thomas Hofweber",
+        "Snigdha Chaturvedi"
+      ],
+      "primary_category": "cs.CL",
+      "categories": [
+        "cs.CL"
+      ],
+      "published": "2026-06-14T00:12:53+00:00",
+      "link": "https://arxiv.org/pdf/2606.15517v1",
+      "tags": [
+        "keyword:prompt-learn",
+        "query:prompt-learn"
+      ],
+      "llm_score": 7.0,
+      "llm_evidence_en": "rewrites sensitive prompts to surface benign intent, automatically generating improved prompts",
+      "llm_evidence_cn": "自动重写敏感提示以生成更安全的引导性提示",
+      "llm_evidence": "自动重写敏感提示以生成更安全的引导性提示",
+      "canonical_evidence": "自动重写敏感提示以生成更安全的引导性提示",
+      "llm_tldr_en": "SHARD rewrites sensitive prompts to surface benign intent and reframes model responses, then fine-tunes the model on self-reframed responses, improving helpfulness while preserving safety.",
+      "llm_tldr_cn": "本文针对大语言模型在敏感提示下要么拒绝要么提供无用安全套话的问题，提出SHARD方法，自动重写敏感提示以揭示无害意图，并重构响应为安全有用的回答，通过自我构建数据微调模型，在保持安全的同时提升了有用性。",
+      "llm_tldr": "本文针对大语言模型在敏感提示下要么拒绝要么提供无用安全套话的问题，提出SHARD方法，自动重写敏感提示以揭示无害意图，并重构响应为安全有用的回答，通过自我构建数据微调模型，在保持安全的同时提升了有用性。",
+      "llm_tags": [
+        "query:prompt-learn"
+      ],
+      "matched_query_tag": "query:prompt-learn",
+      "matched_query_text": "Techniques for automatic prompt generation in natural language processing",
+      "matched_requirement_id": "req-10",
+      "selection_source": "fresh_fetch",
+      "quick_tier": "7"
+    }
+  ]
+}

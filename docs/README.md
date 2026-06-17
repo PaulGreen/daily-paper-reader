@@ -6,46 +6,37 @@
 </div>
 
 ## 每次日报
-- 最新运行日期：2026-06-16
-- 运行时间：2026-06-16 23:17:16 UTC
+- 最新运行日期：2026-06-17
+- 运行时间：2026-06-17 22:01:29 UTC
 - 运行状态：成功
-- 本次总论文数：8
-- 精读区：6
+- 本次总论文数：5
+- 精读区：3
 - 速读区：2
 
 ### 今日简报（AI）
-今日精读6篇AI前沿论文，聚焦多模态情感分析与视频动作识别。  
-最值得关注的是MAF：用自适应少样本提示让多模态大模型精准捕捉情感，以及从帧到时间图的视频理解新思路。  
-推荐读者跟进少样本提示在垂直场景的落地实验，体验最新多模态模型时不妨试试情感分析任务。
-- 详情：[/202606/16/README](/202606/16/README)
+今日精读探索了多模态大模型的“口语忠诚度”谜题（9.0分）与伪提示语言新范式，并速览了冰山预测与安全对齐两项应用。
+最值得关注的两个方向：一是口语指令如何不被视觉信息干扰（语音遵循），二是用“伪语言”重构提示交互，让模型更懂你的话。
+建议优先读9分论文，思考你的语音助手为何总“看图说话”；同时试用伪提示思路，可能帮你轻松改进指令生成。
+- 详情：[/202606/17/README](/202606/17/README)
 
 ### 精读区论文标签
-1. [MAF: Multimodal Adaptive Few-shot Prompting for Sentiment Analysis with MLLMs](/202606/16/2606.15694v1-maf-multimodal-adaptive-few-shot-prompting-for-sentiment-analysis-with-mllms)  
-   标签：评分：10.0/10、query:prompt-learn
-   evidence：动态检索多模态少样本演示以适配提示
-2. [From Frames to Temporal Graphs: In-Context Egocentric Action Recognition with Vision-Language Models](/202606/16/2606.15417v1-from-frames-to-temporal-graphs-in-context-egocentric-action-recognition-with-vision-language-models)  
+1. [Are you speaking my languages? On spoken language adherence in multimodal LLMs](/202606/17/2606.17281v1-are-you-speaking-my-languages-on-spoken-language-adherence-in-multimodal-llms)  
    标签：评分：9.0/10、query:prompt-learn
-   evidence：利用少样本图演示进行上下文动作识别
-3. [Distilling Examples into Task Instructions: Enhanced In-Context Learning for Real-World B2B Conversations](/202606/16/2606.15641v1-distilling-examples-into-task-instructions-enhanced-in-context-learning-for-real-world-b2b-conversations)  
-   标签：评分：9.0/10、query:prompt-learn
-   evidence：将冗长示例蒸馏为紧凑、可解释的任务指令，用于少样本分类
-4. [Acoustic Prompting via Stage-wise Modulation for Few-Shot Learning in Audio Language Models](/202606/16/2606.15751v1-acoustic-prompting-via-stage-wise-modulation-for-few-shot-learning-in-audio-language-models)  
-   标签：评分：9.0/10、query:prompt-learn
-   evidence：在音频编码器中引入可训练的连续提示向量，通过梯度下降优化以适应小样本任务。
-5. [Stack: In-Context Learning of Single-Cell Biology](/202606/16/biorxiv-10-64898-2026-01-09-698608-v2-stack-in-context-learning-of-single-cell-biology)  
-   标签：评分：9.0/10、query:prompt-learn
-   evidence：利用细胞演示进行上下文学习
-6. [LLM-Assisted Stance Detection in Scientific Discourse: A Test Case in Bayesian Cognitive Science](/202606/16/2606.15566v1-llm-assisted-stance-detection-in-scientific-discourse-a-test-case-in-bayesian-cognitive-science)  
+   evidence：提出一种软提示方法来提示潜在的口语语言
+2. [PromptMN: Pseudo Prompting Language](/202606/17/2606.17164v1-promptmn-pseudo-prompting-language)  
    标签：评分：8.0/10、query:prompt-learn
-   evidence：诊断门控提示优化搜索用于零样本立场检测
+   evidence：提出一种伪提示领域特定语言，用类型化指令标注自然语言以减少歧义
+3. [Implicit vs. Explicit Prompting Strategies for LVLMs in Referential Communication](/202606/17/2606.17372v1-implicit-vs-explicit-prompting-strategies-for-lvlms-in-referential-communication)  
+   标签：评分：8.0/10、query:prompt-learn
+   evidence：对比隐式与显式提示策略，发现显式提示成功而隐式提示失败
 
 ### 速读区论文标签
-1. [ttda704 at SemEval-2026 Task 6: Structured Chain-of-Thought Prompting for Political Evasion Detection](/202606/16/2606.15770v1-ttda704-at-semeval-2026-task-6-structured-chain-of-thought-prompting-for-political-evasion-detection)  
+1. [Hybrid NARX-LLM for Greenland Iceberg Discharge: Prompt-Driven Residual Correction](/202606/17/2606.15288v1-hybrid-narx-llm-for-greenland-iceberg-discharge-prompt-driven-residual-correction)  
    标签：评分：7.0/10、query:prompt-learn
-   evidence：使用结构化思维链提示引导模型行为
-2. [Small Data, Big Noise: Adversarial Training for Robust Parameter-Efficient Fine-Tuning](/202606/16/2606.10610v1-small-data-big-noise-adversarial-training-for-robust-parameter-efficient-fine-tuning)  
-   标签：评分：6.0/10、query:prompt-learn
-   evidence：为PEFT方法引入对抗训练，可提升软提示调优的鲁棒性
+   evidence：利用物理信息提示进行零样本上下文推理，无任务特定示例
+2. [SHARD: Safe and Helpful Alignment via Self-Reframing Distillation](/202606/17/2606.15517v1-shard-safe-and-helpful-alignment-via-self-reframing-distillation)  
+   标签：评分：7.0/10、query:prompt-learn
+   evidence：自动重写敏感提示以生成更安全的引导性提示
 
 
 <div class="dpr-home-promo-card">

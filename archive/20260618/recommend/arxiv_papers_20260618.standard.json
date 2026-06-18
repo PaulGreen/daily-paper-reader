@@ -1,0 +1,215 @@
+{
+  "mode": "standard",
+  "generated_at": "2026-06-18T22:21:14.847822+00:00",
+  "stats": {
+    "mode": "standard",
+    "tag_count": 1,
+    "deep_divecandidates": 5,
+    "deep_cap": 6,
+    "deep_selected": 5,
+    "quick_candidates": 0,
+    "quick_skim_target": 11,
+    "quick_selected": 0
+  },
+  "deep_dive": [
+    {
+      "id": "2606.18902v1",
+      "source": "arxiv",
+      "title": "SAGE: Stochastic Prompt Optimization via Agent-Guided Exploration",
+      "abstract": "Context engineering has emerged as a primary lever for improving AI systems without parameter updates. Recent work showing that textual gradients do not function as real gradients motivates treating automatic prompt optimization (APO) as black-box search. We introduce SPO (Stochastic Prompt Optimization), a framework for stochastic search over prompt space, and compare three strategies of increasing sophistication: error-informed random search, a genetic algorithm with evolutionary operators, and SAGE (SPO via Agent-Guided Exploration), a multi-agent pipeline with diagnostic code execution. Across three benchmarks, no single strategy dominates; effectiveness depends on the interaction of landscape structure with error type. We further deploy SAGE on a mental-health chatbot under a continuous optimization paradigm, where it compounds eight cycles of individually-noisy A/B tests into a statistically robust gain in next-day retention. We argue that coupling qualitative diagnosis with quantitative validation is what makes agentic optimization effective for open-ended task-oriented dialogue.",
+      "authors": [
+        "Ziyi Zhu",
+        "Luka Smyth",
+        "Saki Shinoda",
+        "Jinghong Chen"
+      ],
+      "primary_category": "cs.CL",
+      "categories": [
+        "cs.CL"
+      ],
+      "published": "2026-06-17T10:25:25+00:00",
+      "link": "https://arxiv.org/pdf/2606.18902v1",
+      "tags": [
+        "keyword:prompt-learn",
+        "query:prompt-learn"
+      ],
+      "llm_score": 10.0,
+      "llm_evidence_en": "Introduces SPO framework with agent-guided exploration for automatic discrete prompt optimization",
+      "llm_evidence_cn": "提出基于智能体引导探索的随机提示优化框架，实现自动离散提示生成",
+      "llm_evidence": "提出基于智能体引导探索的随机提示优化框架，实现自动离散提示生成",
+      "canonical_evidence": "提出基于智能体引导探索的随机提示优化框架，实现自动离散提示生成",
+      "llm_tldr_en": "This paper treats automatic prompt optimization as black-box search and presents SPO, comparing error-informed random search, genetic algorithm, and SAGE multi-agent pipeline, finding no dominant strategy but performance depends on landscape-error interaction.",
+      "llm_tldr_cn": "本文将自动提示优化视为黑箱搜索，提出SPO框架比较三种策略：基于错误的随机搜索、遗传算法和SAGE多智能体诊断执行管道，发现在三个基准上无单一策略占优，效果取决于提示空间结构与错误类型的交互，并成功部署于心理健康任务。",
+      "llm_tldr": "本文将自动提示优化视为黑箱搜索，提出SPO框架比较三种策略：基于错误的随机搜索、遗传算法和SAGE多智能体诊断执行管道，发现在三个基准上无单一策略占优，效果取决于提示空间结构与错误类型的交互，并成功部署于心理健康任务。",
+      "llm_tags": [
+        "query:prompt-learn"
+      ],
+      "matched_query_tag": "query:prompt-learn",
+      "matched_query_text": "Techniques for automatic prompt generation in natural language processing",
+      "matched_requirement_id": "req-10",
+      "selection_source": "fresh_fetch"
+    },
+    {
+      "id": "2606.15631v1",
+      "source": "arxiv",
+      "title": "Retrieve, Don't Retrain: Extending Vision Language Action Models to New Tasks at Test Time",
+      "abstract": "Extending a vision-language-action (VLA) policy to a new task typically requires task-specific teleoperated demonstrations and per-task fine-tuning, making adaptation costly in both data collection and compute. In this paper, we show that this target-side per-task adaptation cost can be replaced by retrieval. Our retrieval-augmented policy is trained once on paired demonstrations from the target embodiment (query) and a cheaper embodiment (pool, e.g., human-hand video), then frozen. New tasks are added at deployment by appending pool-side demonstrations to a retrieval pool. The frozen policy conditions on retrieved trajectories at every control step, so new tasks are absorbed by indexing data rather than updating parameters. Fine-tuning is needed only to take on a new, unseen embodiment, not for each new task. We show that retrieval improves policies beyond a specific backbone, including standard VLA policies, but its effect is especially pronounced in Cosmos Policy, a video-generation-based world-action model (WAM). In this setting, retrieval supplies coarse task progression, while the WAM's future-image objective provides an additional visual consistency signal that strengthens the retrieval-conditioned actions. On PushT, we study how retrieval provides a reusable high-level motion prior for cross-embodiment generalization to unseen goal angles, while on RoboTwin 2.0 our method outperforms cross-embodiment baselines on unseen tasks, and we additionally demonstrate the method on a real robot.",
+      "authors": [
+        "Jeongeun Park",
+        "Juhan Park",
+        "Taekyung Kim",
+        "Sungjoon Choi",
+        "Dongyoon Han",
+        "Sangdoo Yun"
+      ],
+      "primary_category": "cs.RO",
+      "categories": [
+        "cs.RO",
+        "cs.AI"
+      ],
+      "published": "2026-06-14T06:48:01+00:00",
+      "link": "https://arxiv.org/pdf/2606.15631v1",
+      "tags": [
+        "keyword:prompt-learn",
+        "query:prompt-learn"
+      ],
+      "llm_score": 9.0,
+      "llm_evidence_en": "Uses retrieved task demonstrations as context to adapt vision-language-action policy at test time without retraining",
+      "llm_evidence_cn": "使用检索到的任务演示作为上下文，在测试时无需重新训练即可适配视觉-语言-动作策略",
+      "llm_evidence": "使用检索到的任务演示作为上下文，在测试时无需重新训练即可适配视觉-语言-动作策略",
+      "canonical_evidence": "使用检索到的任务演示作为上下文，在测试时无需重新训练即可适配视觉-语言-动作策略",
+      "llm_tldr_en": "Proposes retrieval-augmented vision-language-action policy that adapts to new tasks at deployment by conditioning on retrieved demonstrations, eliminating task-specific fine-tuning and enabling test-time task extension.",
+      "llm_tldr_cn": "本文提出检索增强的视觉-语言-动作策略，通过基于检索到的演示在每一步进行条件生成，在部署时无需针对新任务微调即可扩展任务，用索引数据替代参数更新，显著降低了适应成本。",
+      "llm_tldr": "本文提出检索增强的视觉-语言-动作策略，通过基于检索到的演示在每一步进行条件生成，在部署时无需针对新任务微调即可扩展任务，用索引数据替代参数更新，显著降低了适应成本。",
+      "llm_tags": [
+        "query:prompt-learn"
+      ],
+      "matched_query_tag": "query:prompt-learn",
+      "matched_query_text": "learning from demonstrations provided in the prompt context",
+      "matched_requirement_id": "req-3",
+      "selection_source": "fresh_fetch"
+    },
+    {
+      "id": "2606.17372v2",
+      "source": "arxiv",
+      "title": "Implicit vs. Explicit Prompting Strategies for LVLMs in Referential Communication",
+      "abstract": "Two recent studies (Jones et al. (2026); Zeng et al. (2026)) reach apparently contradictory conclusions about whether LVLMs can coordinate on efficient referring expressions. We control for task differences between the studies while directly comparing their prompting styles. We replicate the finding that models can coordinate efficient referring expressions when explicitly prompted to do so, suggesting that other task differences are not responsible for divergent results. However, we also find that the same models fail to infer the need for communicative efficiency from a more implicit prompt, highlighting critical differences between how humans and AI systems communicate.",
+      "authors": [
+        "Peter Zeng",
+        "Amie J. Paige",
+        "Weiling Li",
+        "Susan E. Brennan",
+        "Owen Rambow",
+        "Cameron R. Jones"
+      ],
+      "primary_category": "cs.CL",
+      "categories": [
+        "cs.CL",
+        "cs.AI"
+      ],
+      "published": "2026-06-16T00:05:56+00:00",
+      "link": "https://arxiv.org/pdf/2606.17372v2",
+      "tags": [
+        "keyword:prompt-learn",
+        "query:prompt-learn"
+      ],
+      "llm_score": 9.0,
+      "llm_evidence_en": "Compares explicit vs implicit natural language prompts for guiding LVLM behavior in referential communication",
+      "llm_evidence_cn": "比较显式和隐式自然语言提示在指称交流中指导LVLM行为的效果",
+      "llm_evidence": "比较显式和隐式自然语言提示在指称交流中指导LVLM行为的效果",
+      "canonical_evidence": "比较显式和隐式自然语言提示在指称交流中指导LVLM行为的效果",
+      "llm_tldr_en": "Investigates how explicit vs implicit prompting strategies affect large vision-language models' ability to coordinate efficient referring expressions, finding that models succeed with explicit but fail with implicit prompts, highlighting critical human-AI communication differences.",
+      "llm_tldr_cn": "本文研究显式与隐式提示策略如何影响大型视觉语言模型在高效指称表达协调上的能力，发现模型仅在显式提示下成功，在隐式提示下失败，揭示了人类与AI系统在交流上的关键差异。",
+      "llm_tldr": "本文研究显式与隐式提示策略如何影响大型视觉语言模型在高效指称表达协调上的能力，发现模型仅在显式提示下成功，在隐式提示下失败，揭示了人类与AI系统在交流上的关键差异。",
+      "llm_tags": [
+        "query:prompt-learn"
+      ],
+      "matched_query_tag": "query:prompt-learn",
+      "matched_query_text": "discrete natural language prompts for guiding models",
+      "matched_requirement_id": "req-2",
+      "selection_source": "fresh_fetch"
+    },
+    {
+      "id": "2606.18389v1",
+      "source": "arxiv",
+      "title": "Want Better Synthetic Data? Steer It: Activation Steering for Low-Resource Language Generation",
+      "abstract": "Large language models (LLMs) have become an effective tool for synthetic data generation, including for low-resource languages, where generated data can improve downstream task performance. Current best-performing approaches typically rely on few-shot prompting with target-language examples, which increases inference costs and may reduce diversity through lexical anchoring. In this work, we investigate activation steering as an alternative for low-resource synthetic data generation. We study two steering strategies: Language Steering, which targets the linguistic identity of a language, and Quality Steering, which captures well-formedness by contrasting human-written and backtranslated text representations. We evaluate these methods across four open-source LLMs, multiple layers, and 11 typologically diverse languages by generating sentiment and topic classification data and finetuning smaller classifiers. Steering is applied in both zero-shot and few-shot prompting settings and compared against non-steered counterparts. Our results show that steering on early layers consistently improves the diversity of generated data while often yielding stronger downstream model performance, particularly for low-resource languages.",
+      "authors": [
+        "Jan Cegin",
+        "Daniil Gurgurov",
+        "Yusser Al Ghussin",
+        "Simon Ostermann"
+      ],
+      "primary_category": "cs.CL",
+      "categories": [
+        "cs.CL"
+      ],
+      "published": "2026-06-16T18:34:21+00:00",
+      "link": "https://arxiv.org/pdf/2606.18389v1",
+      "tags": [
+        "keyword:prompt-learn",
+        "query:prompt-learn"
+      ],
+      "llm_score": 9.0,
+      "llm_evidence_en": "Directly addresses few-shot prompting drawbacks for synthetic data generation via activation steering.",
+      "llm_evidence_cn": "直接针对少样本提示的缺点，提出激活操控替代方案。",
+      "llm_evidence": "直接针对少样本提示的缺点，提出激活操控替代方案。",
+      "canonical_evidence": "直接针对少样本提示的缺点，提出激活操控替代方案。",
+      "llm_tldr_en": "Proposes activation steering as an alternative to few-shot prompting for low-resource language data generation, reducing cost and improving diversity.",
+      "llm_tldr_cn": "针对少样本提示在低资源语言合成数据生成中成本高且多样性受限的问题，提出激活操控方法，通过语言操控和质量操控引导模型生成，无需目标语言示例。实验表明该方法在降低推理成本的同时提升了下游任务性能，为提示学习提供了新视角。",
+      "llm_tldr": "针对少样本提示在低资源语言合成数据生成中成本高且多样性受限的问题，提出激活操控方法，通过语言操控和质量操控引导模型生成，无需目标语言示例。实验表明该方法在降低推理成本的同时提升了下游任务性能，为提示学习提供了新视角。",
+      "llm_tags": [
+        "query:prompt-learn"
+      ],
+      "matched_query_tag": "query:prompt-learn",
+      "matched_query_text": "learning from demonstrations provided in the prompt context",
+      "matched_requirement_id": "req-3",
+      "selection_source": "fresh_fetch"
+    },
+    {
+      "id": "2606.18620v1",
+      "source": "arxiv",
+      "title": "BCL: Bayesian In-Context Learning Framework for Information Extraction",
+      "abstract": "Existing information extraction (IE) tasks increasingly adopt in-context learning (ICL) with large language models. However, current approaches either show inconsistent performance across model scales or lack systematic optimization and generalizability. Building on this, we propose BCL (Bayesian In-Context Learning Framework for Information Extraction), the first optimization framework that uses particle filtering with Bayesian updates to systematically refine label representations across IE tasks. Through four steps initialization, observation, weight update, and resampling, BCL generalizes to both sequence labeling and relation classification paradigms. Extensive experiments demonstrate substantial and consistent improvements over existing approaches.",
+      "authors": [
+        "Haoliang Liu",
+        "Chengkun Cai",
+        "Xu Zhao",
+        "Han Zhu",
+        "Shizhou Huang",
+        "Xinglin Zhang",
+        "Tao Chen",
+        "Jenq-Neng Hwang",
+        "Zhang Huaping",
+        "Lei Li"
+      ],
+      "primary_category": "cs.CL",
+      "categories": [
+        "cs.CL",
+        "cs.AI"
+      ],
+      "published": "2026-06-17T02:34:32+00:00",
+      "link": "https://arxiv.org/pdf/2606.18620v1",
+      "tags": [
+        "keyword:prompt-learn",
+        "query:prompt-learn"
+      ],
+      "llm_score": 8.0,
+      "llm_evidence_en": "In-context learning with Bayesian optimization for few-shot IE",
+      "llm_evidence_cn": "基于贝叶斯优化的上下文学习，用于少样本信息抽取",
+      "llm_evidence": "基于贝叶斯优化的上下文学习，用于少样本信息抽取",
+      "canonical_evidence": "基于贝叶斯优化的上下文学习，用于少样本信息抽取",
+      "llm_tldr_en": "Proposes BCL, a Bayesian optimization framework for in-context learning that refines label representations via particle filtering, improving information extraction tasks consistently.",
+      "llm_tldr_cn": "现有信息抽取任务虽采用大模型上下文学习，但跨模型规模性能不稳定且缺乏系统优化。本文提出BCL框架，利用粒子滤波与贝叶斯更新系统优化标签表示，通过初始化、观测、权重更新和重采样四步，适用于序列标注和关系分类。大量实验表明，BCL在多个模型上显著且稳定提升性能，为上下文学习的优化提供了新思路，增强了少样本信息抽取的可靠性。",
+      "llm_tldr": "现有信息抽取任务虽采用大模型上下文学习，但跨模型规模性能不稳定且缺乏系统优化。本文提出BCL框架，利用粒子滤波与贝叶斯更新系统优化标签表示，通过初始化、观测、权重更新和重采样四步，适用于序列标注和关系分类。大量实验表明，BCL在多个模型上显著且稳定提升性能，为上下文学习的优化提供了新思路，增强了少样本信息抽取的可靠性。",
+      "llm_tags": [
+        "query:prompt-learn"
+      ],
+      "matched_query_tag": "query:prompt-learn",
+      "matched_query_text": "providing a few examples in the prompt to adapt model behavior",
+      "matched_requirement_id": "req-4",
+      "selection_source": "fresh_fetch"
+    }
+  ],
+  "quick_skim": []
+}

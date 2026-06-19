@@ -1,0 +1,39 @@
+{
+  "label": "2026-06-19",
+  "date": "2026-06-19",
+  "generated_at": "2026-06-19T21:57:48",
+  "count": 2,
+  "papers": [
+    {
+      "paper_id": "202606/19/2606.20538v1-multi-task-bayesian-in-context-learning",
+      "section": "deep",
+      "title_en": "Multi-Task Bayesian In-Context Learning",
+      "authors": "Qingyang Zhu, Eric Karl Oermann, Kyunghyun Cho",
+      "date": "2026-06-18",
+      "pdf": "https://arxiv.org/pdf/2606.20538v1",
+      "score": "9.0",
+      "evidence": "用于摊销层次贝叶斯预测的多任务上下文学习框架",
+      "tldr": "贝叶斯预测推断虽具原则优势，但精确计算困难且现有摊销上下文学习方法缺乏适应新先验的能力。本文提出多任务上下文学习框架，将先验信息作为上下文前缀，训练Transformer从先验与目标任务序列中学习跨先验族预测分布。在分布外元分布及高维隐结构先验等难度递增评估中，方法匹配oracle贝叶斯预测器性能，同时速度提升数个数量级，并成功应用于真实时空温度预测。该工作为灵活、高效的摊销贝叶斯预测推断开辟了新路径。",
+      "tags": "query:prompt-learn",
+      "abstract_en": "Bayesian predictive inference provides a principled framework for uncertainty quantification, data efficiency, and robust generalization. However, exact inference is often intractable, and scalable approximations may remain computationally expensive or require restrictive modeling assumptions that degrade predictive performance. Prior-Data Fitted and in-context models have recently emerged as an amortized alternative by learning to map datasets directly to predictive distributions, but existing approaches are tightly coupled to the support of the training prior and lack explicit mechanisms for adapting to new priors at test time, resulting in limited robustness under distribution shift. We introduce a multi-task in-context learning framework for amortized hierarchical Bayesian predictive inference that explicitly represents prior information as a prefix of in-context datasets. A transformer trained on sequences of prior and target tasks learns to adapt its predictions across families of priors. On a suite of evaluations with increasing difficulty, including out-of-meta-distribution priors and priors with high-dimensional latent structures, our method matches oracle Bayesian predictors while being orders of magnitude faster. We further demonstrate its practical relevance on a real-world spatiotemporal temperature prediction benchmark. Code is available at https://github.com/martianmartina/multi-task-bayesian-icl/.",
+      "source": "arxiv",
+      "selection_source": "fresh_fetch"
+    },
+    {
+      "paper_id": "202606/19/2606.14862v1-tacstyle-personalizing-tactile-robot-policies-using-structured-behavior-representations",
+      "section": "quick",
+      "title_en": "TacStyle: Personalizing Tactile Robot Policies using Structured Behavior Representations",
+      "authors": "Kevin Robledo, Matías I. Torres Galaz, Kumar Dixhant Rai, Shelly Sara Ulman, Tasmia Tasrin, Heramb Nemlekar",
+      "date": "2026-06-12",
+      "pdf": "https://arxiv.org/pdf/2606.14862v1",
+      "score": "6.0",
+      "evidence": "使用语言提示来确定任务并学习结构化行为表示以实现个性化",
+      "tldr": "机器人辅助操作中，用户常需调整力度等行为风格，但抽象语言难以精细描述连续变化的执行方式。TacStyle方法首先学习结构化潜在空间按偏好差异组织轨迹，随后利用大语言模型解析用户偏好提示并在该空间选取表征以生成相应力控行为。仿真与真实实验表明，该方法适应个性化偏好的精准度显著优于直接语言条件策略，且所需偏好标注数据量大幅减少。这为人机交互中通过少量自然语言实现连续风格控制提供了新思路。",
+      "tags": "query:prompt-learn",
+      "abstract_en": "Robotic systems that assist humans should be capable of adapting their behaviors to individual user preferences. For instance, users may want a robot arm to adjust the amount of force it applies while folding their laundry or cleaning furniture. Natural language provides an intuitive way for humans to communicate such preferences. Recent progress in language-conditioned robot policies has shown that robots can successfully use language prompts to determine what task to perform. However, extending the same approach to realize how the task should be performed requires detailed labels describing the preferences or styles of trajectories in the task data. Not only is collecting such annotations challenging, but conditioning directly on these labels may also fail to provide fine-grained control over a continuous range of behaviors. For example, it can be difficult to convey the exact force that a robot must apply through abstract instructions like \"apply a bit more pressure than before\". Therefore, in this work, we propose using language to reason over preferred behaviors instead of directly generating them. We first learn a structured latent representation that organizes user preferences according to differences in the corresponding trajectories. Then, given a preference prompt, we use a foundation model to interpret this latent space and choose a value that produces the desired behavior. Through both simulation and real-world experiments, we show that selecting robot behaviors from an intuitively structured latent space enables more precise adaptation to user preferences while requiring significantly fewer preference labels than language-conditioned policies.",
+      "source": "arxiv",
+      "selection_source": "fresh_fetch"
+    }
+  ],
+  "errors": []
+}

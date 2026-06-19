@@ -6,38 +6,26 @@
 </div>
 
 ## 每次日报
-- 最新运行日期：2026-06-18
-- 运行时间：2026-06-18 22:25:02 UTC
+- 最新运行日期：2026-06-19
+- 运行时间：2026-06-19 21:57:41 UTC
 - 运行状态：成功
-- 本次总论文数：5
-- 精读区：5
-- 速读区：0
+- 本次总论文数：2
+- 精读区：1
+- 速读区：1
 
 ### 今日简报（AI）
-今日精读两篇顶会前沿，聚焦 AI 智能体在随机提示优化与视觉语言动作模型迁移上的突破。  
-SAGE 通过智能体引导探索，将提示优化效率提升至新高度；Retrieve, Don't Retrain 揭示“检索即迁移”无需重训即可适应新任务。  
-建议读者从 SAGE 的探索机制和“零训练扩展”思路入手，思考如何让模型更灵活地应对未知场景。
-- 详情：[/202606/18/README](/202606/18/README)
+今天精读了一篇高分论文，探讨了如何让AI像人类一样从少数例子中快速学会多个任务。最值得关注的方向是贝叶斯推理与上下文学习的结合，这能让模型更可靠地权衡新信息与已有知识。建议感兴趣的读者可以关注这类方法在医疗诊断或个性化推荐上的应用潜力。
+- 详情：[/202606/19/README](/202606/19/README)
 
 ### 精读区论文标签
-1. [SAGE: Stochastic Prompt Optimization via Agent-Guided Exploration](/202606/18/2606.18902v1-sage-stochastic-prompt-optimization-via-agent-guided-exploration)  
-   标签：评分：10.0/10、query:prompt-learn
-   evidence：提出基于智能体引导探索的随机提示优化框架，实现自动离散提示生成
-2. [Retrieve, Don't Retrain: Extending Vision Language Action Models to New Tasks at Test Time](/202606/18/2606.15631v1-retrieve-dont-retrain-extending-vision-language-action-models-to-new-tasks-at-test-time)  
+1. [Multi-Task Bayesian In-Context Learning](/202606/19/2606.20538v1-multi-task-bayesian-in-context-learning)  
    标签：评分：9.0/10、query:prompt-learn
-   evidence：使用检索到的任务演示作为上下文，在测试时无需重新训练即可适配视觉-语言-动作策略
-3. [Implicit vs. Explicit Prompting Strategies for LVLMs in Referential Communication](/202606/18/2606.17372v2-implicit-vs-explicit-prompting-strategies-for-lvlms-in-referential-communication)  
-   标签：评分：9.0/10、query:prompt-learn
-   evidence：比较显式和隐式自然语言提示在指称交流中指导LVLM行为的效果
-4. [Want Better Synthetic Data? Steer It: Activation Steering for Low-Resource Language Generation](/202606/18/2606.18389v1-want-better-synthetic-data-steer-it-activation-steering-for-low-resource-language-generation)  
-   标签：评分：9.0/10、query:prompt-learn
-   evidence：直接针对少样本提示的缺点，提出激活操控替代方案。
-5. [BCL: Bayesian In-Context Learning Framework for Information Extraction](/202606/18/2606.18620v1-bcl-bayesian-in-context-learning-framework-for-information-extraction)  
-   标签：评分：8.0/10、query:prompt-learn
-   evidence：基于贝叶斯优化的上下文学习，用于少样本信息抽取
+   evidence：用于摊销层次贝叶斯预测的多任务上下文学习框架
 
 ### 速读区论文标签
-- 本次无速读推荐。
+1. [TacStyle: Personalizing Tactile Robot Policies using Structured Behavior Representations](/202606/19/2606.14862v1-tacstyle-personalizing-tactile-robot-policies-using-structured-behavior-representations)  
+   标签：评分：6.0/10、query:prompt-learn
+   evidence：使用语言提示来确定任务并学习结构化行为表示以实现个性化
 
 
 <div class="dpr-home-promo-card">

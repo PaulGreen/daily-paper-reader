@@ -1,6 +1,11 @@
 * <a class="dpr-sidebar-root-link" href="#/">首页</a>
 * <a class="dpr-sidebar-root-link dpr-sidebar-noactive-link" href="javascript:void(0)" data-dpr-hash="#/tutorial/README">使用教程</a>
 * Daily Papers
+  * 2026-06-19 <!--dpr-date:20260619-->
+    * 精读区
+      * <a class="dpr-sidebar-item-link dpr-sidebar-item-structured" href="#/202606/19/2606.20538v1-multi-task-bayesian-in-context-learning" data-sidebar-item="{&quot;title&quot;: &quot;Multi-Task Bayesian In-Context Learning&quot;, &quot;link&quot;: &quot;https://arxiv.org/abs/2606.20538v1-multi-task-bayesian-in-context-learning&quot;, &quot;score&quot;: &quot;9.0&quot;, &quot;tags&quot;: [{&quot;kind&quot;: &quot;query&quot;, &quot;label&quot;: &quot;prompt-learn&quot;}], &quot;evidence&quot;: &quot;用于摊销层次贝叶斯预测的多任务上下文学习框架&quot;}">Multi-Task Bayesian In-Context Learning</a>
+    * 速读区
+      * <a class="dpr-sidebar-item-link dpr-sidebar-item-structured" href="#/202606/19/2606.14862v1-tacstyle-personalizing-tactile-robot-policies-using-structured-behavior-representations" data-sidebar-item="{&quot;title&quot;: &quot;TacStyle: Personalizing Tactile Robot Policies using Structured Behavior Representations&quot;, &quot;link&quot;: &quot;https://arxiv.org/abs/2606.14862v1-tacstyle-personalizing-tactile-robot-policies-using-structured-behavior-representations&quot;, &quot;score&quot;: &quot;6.0&quot;, &quot;tags&quot;: [{&quot;kind&quot;: &quot;query&quot;, &quot;label&quot;: &quot;prompt-learn&quot;}], &quot;evidence&quot;: &quot;使用语言提示来确定任务并学习结构化行为表示以实现个性化&quot;}">TacStyle: Personalizing Tactile Robot Policies using Structured Behavior Representations</a>
   * 2026-06-18 <!--dpr-date:20260618-->
     * 精读区
       * <a class="dpr-sidebar-item-link dpr-sidebar-item-structured" href="#/202606/18/2606.18902v1-sage-stochastic-prompt-optimization-via-agent-guided-exploration" data-sidebar-item="{&quot;title&quot;: &quot;SAGE: Stochastic Prompt Optimization via Agent-Guided Exploration&quot;, &quot;link&quot;: &quot;https://arxiv.org/abs/2606.18902v1-sage-stochastic-prompt-optimization-via-agent-guided-exploration&quot;, &quot;score&quot;: &quot;10.0&quot;, &quot;tags&quot;: [{&quot;kind&quot;: &quot;query&quot;, &quot;label&quot;: &quot;prompt-learn&quot;}], &quot;evidence&quot;: &quot;提出基于智能体引导探索的随机提示优化框架，实现自动离散提示生成&quot;}">SAGE: Stochastic Prompt Optimization via Agent-Guided Exploration</a>

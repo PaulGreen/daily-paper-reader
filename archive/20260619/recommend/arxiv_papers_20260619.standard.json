@@ -1,0 +1,93 @@
+{
+  "mode": "standard",
+  "generated_at": "2026-06-19T21:54:41.789431+00:00",
+  "stats": {
+    "mode": "standard",
+    "tag_count": 1,
+    "deep_divecandidates": 1,
+    "deep_cap": 6,
+    "deep_selected": 1,
+    "quick_candidates": 1,
+    "quick_skim_target": 11,
+    "quick_selected": 1
+  },
+  "deep_dive": [
+    {
+      "id": "2606.20538v1",
+      "source": "arxiv",
+      "title": "Multi-Task Bayesian In-Context Learning",
+      "abstract": "Bayesian predictive inference provides a principled framework for uncertainty quantification, data efficiency, and robust generalization. However, exact inference is often intractable, and scalable approximations may remain computationally expensive or require restrictive modeling assumptions that degrade predictive performance. Prior-Data Fitted and in-context models have recently emerged as an amortized alternative by learning to map datasets directly to predictive distributions, but existing approaches are tightly coupled to the support of the training prior and lack explicit mechanisms for adapting to new priors at test time, resulting in limited robustness under distribution shift. We introduce a multi-task in-context learning framework for amortized hierarchical Bayesian predictive inference that explicitly represents prior information as a prefix of in-context datasets. A transformer trained on sequences of prior and target tasks learns to adapt its predictions across families of priors. On a suite of evaluations with increasing difficulty, including out-of-meta-distribution priors and priors with high-dimensional latent structures, our method matches oracle Bayesian predictors while being orders of magnitude faster. We further demonstrate its practical relevance on a real-world spatiotemporal temperature prediction benchmark. Code is available at https://github.com/martianmartina/multi-task-bayesian-icl/.",
+      "authors": [
+        "Qingyang Zhu",
+        "Eric Karl Oermann",
+        "Kyunghyun Cho"
+      ],
+      "primary_category": "cs.LG",
+      "categories": [
+        "cs.LG"
+      ],
+      "published": "2026-06-18T17:50:10+00:00",
+      "link": "https://arxiv.org/pdf/2606.20538v1",
+      "tags": [
+        "keyword:prompt-learn"
+      ],
+      "llm_score": 9.0,
+      "llm_evidence_en": "multi-task in-context learning framework for amortized hierarchical Bayesian prediction",
+      "llm_evidence_cn": "用于摊销层次贝叶斯预测的多任务上下文学习框架",
+      "llm_evidence": "用于摊销层次贝叶斯预测的多任务上下文学习框架",
+      "canonical_evidence": "用于摊销层次贝叶斯预测的多任务上下文学习框架",
+      "llm_tldr_en": "Proposes a multi-task in-context learning framework that improves adaptability to new priors in amortized Bayesian prediction, enabling robust generalization under distribution shift.",
+      "llm_tldr_cn": "针对现有上下文学习模型在新先验下泛化能力不足的问题，提出一种多任务上下文学习框架，用于摊销层次贝叶斯预测。该方法通过多任务训练使模型能够适应不同的数据分布，在分布偏移场景下表现出更强的鲁棒性和数据效率。这项工作为上下文学习与贝叶斯推断的结合提供了新思路。",
+      "llm_tldr": "针对现有上下文学习模型在新先验下泛化能力不足的问题，提出一种多任务上下文学习框架，用于摊销层次贝叶斯预测。该方法通过多任务训练使模型能够适应不同的数据分布，在分布偏移场景下表现出更强的鲁棒性和数据效率。这项工作为上下文学习与贝叶斯推断的结合提供了新思路。",
+      "llm_tags": [
+        "query:prompt-learn"
+      ],
+      "matched_query_tag": "query:prompt-learn",
+      "matched_query_text": "providing a few examples in the prompt to adapt model behavior",
+      "matched_requirement_id": "req-4",
+      "selection_source": "fresh_fetch"
+    }
+  ],
+  "quick_skim": [
+    {
+      "id": "2606.14862v1",
+      "source": "arxiv",
+      "title": "TacStyle: Personalizing Tactile Robot Policies using Structured Behavior Representations",
+      "abstract": "Robotic systems that assist humans should be capable of adapting their behaviors to individual user preferences. For instance, users may want a robot arm to adjust the amount of force it applies while folding their laundry or cleaning furniture. Natural language provides an intuitive way for humans to communicate such preferences. Recent progress in language-conditioned robot policies has shown that robots can successfully use language prompts to determine what task to perform. However, extending the same approach to realize how the task should be performed requires detailed labels describing the preferences or styles of trajectories in the task data. Not only is collecting such annotations challenging, but conditioning directly on these labels may also fail to provide fine-grained control over a continuous range of behaviors. For example, it can be difficult to convey the exact force that a robot must apply through abstract instructions like \"apply a bit more pressure than before\". Therefore, in this work, we propose using language to reason over preferred behaviors instead of directly generating them. We first learn a structured latent representation that organizes user preferences according to differences in the corresponding trajectories. Then, given a preference prompt, we use a foundation model to interpret this latent space and choose a value that produces the desired behavior. Through both simulation and real-world experiments, we show that selecting robot behaviors from an intuitively structured latent space enables more precise adaptation to user preferences while requiring significantly fewer preference labels than language-conditioned policies.",
+      "authors": [
+        "Kevin Robledo",
+        "Matías I. Torres Galaz",
+        "Kumar Dixhant Rai",
+        "Shelly Sara Ulman",
+        "Tasmia Tasrin",
+        "Heramb Nemlekar"
+      ],
+      "primary_category": "cs.RO",
+      "categories": [
+        "cs.RO"
+      ],
+      "published": "2026-06-12T18:04:28+00:00",
+      "link": "https://arxiv.org/pdf/2606.14862v1",
+      "tags": [
+        "keyword:prompt-learn",
+        "query:prompt-learn"
+      ],
+      "llm_score": 6.0,
+      "llm_evidence_en": "language prompts to determine what task to perform and learn structured behavior representations for personalization",
+      "llm_evidence_cn": "使用语言提示来确定任务并学习结构化行为表示以实现个性化",
+      "llm_evidence": "使用语言提示来确定任务并学习结构化行为表示以实现个性化",
+      "canonical_evidence": "使用语言提示来确定任务并学习结构化行为表示以实现个性化",
+      "llm_tldr_en": "Proposes TacStyle, which learns structured behavior representations from demonstration data to personalize robot policies, using language prompts to specify tasks and capturing style implicitly.",
+      "llm_tldr_cn": "针对机器人策略难以根据用户偏好个性化执行的问题，提出TacStyle方法，通过从演示数据中学习结构化行为表示，利用语言提示指定任务，同时隐式捕捉执行风格。实验表明该方法能有效适应不同用户的偏好，无需大量风格标注数据，降低了机器人个性化部署的成本。",
+      "llm_tldr": "针对机器人策略难以根据用户偏好个性化执行的问题，提出TacStyle方法，通过从演示数据中学习结构化行为表示，利用语言提示指定任务，同时隐式捕捉执行风格。实验表明该方法能有效适应不同用户的偏好，无需大量风格标注数据，降低了机器人个性化部署的成本。",
+      "llm_tags": [
+        "query:prompt-learn"
+      ],
+      "matched_query_tag": "query:prompt-learn",
+      "matched_query_text": "discrete natural language prompts for guiding models",
+      "matched_requirement_id": "req-2",
+      "selection_source": "fresh_fetch",
+      "quick_tier": "6"
+    }
+  ]
+}

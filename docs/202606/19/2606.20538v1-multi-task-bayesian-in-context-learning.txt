@@ -1,0 +1,819 @@
+Title: Multi-Task Bayesian In-Context Learning
+
+URL Source: https://arxiv.org/pdf/2606.20538v1
+
+Published Time: Fri, 19 Jun 2026 01:24:33 GMT
+
+Number of Pages: 20
+
+Markdown Content:
+# Multi-Task Bayesian In-Context Learning 
+
+Qingyang Zhu 1 Eric Karl Oermann 1 2 Kyunghyun Cho 1
+
+## Abstract 
+
+Bayesian predictive inference provides a prin-cipled framework for uncertainty quantification, data efficiency, and robust generalization. How-ever, exact inference is often intractable, and scal-able approximations may remain computationally expensive or require restrictive modeling assump-tions that degrade predictive performance. Prior-Data Fitted and in-context models have recently emerged as an amortized alternative by learning to map datasets directly to predictive distributions, but existing approaches are tightly coupled to the support of the training prior and lack explicit mechanisms for adapting to new priors at test time, resulting in limited robustness under distri-bution shift. We introduce a multi-task in-context learning framework for amortized hierarchical Bayesian predictive inference that explicitly rep-resents prior information as a prefix of in-context datasets. A transformer trained on sequences of prior and target tasks learns to adapt its predic-tions across families of priors. On a suite of eval-uations with increasing difficulty, including out-of-meta-distribution priors and priors with high-dimensional latent structures, our method matches oracle Bayesian predictors while being orders of magnitude faster. We further demonstrate its prac-tical relevance on a real-world spatiotemporal tem-perature prediction benchmark. Code is available at https://github.com/martianmart ina/multi-task-bayesian-icl/ .
+
+## 1. Introduction 
+
+Bayesian predictive inference provides a principled frame-work for data-efficient learning, calibrated uncertainty, and robust decision-making by combining prior knowledge with observed evidence.      
+
+> 1New York University 2NYU Langone Health. Correspondence to: Kyunghyun Cho <kyunghyun.cho@nyu.edu >.
+> Proceedings of the 43 rd International Conference on Machine Learning , Seoul, South Korea. PMLR 306, 2026. Copyright 2026 by the author(s).
+
+However, computing the posterior predictive distribution (PPD) requires integrating over latent variables and is typi-cally intractable (Blei et al., 2017; MacKay, 1992). Markov chain Monte Carlo (MCMC) methods (Neal, 1996; Andrieu et al., 2003) offer asymptotically exact inference but are of-ten prohibitively slow at test time, especially in high dimen-sions or with complex likelihoods. Faster approximation alternatives such as (stochastic) variational inference (Blei et al., 2017) optimize an evidence lower bound but introduce bias when the variational family is misspecified. Moreover, both approaches depend on carefully specified generative models which we often lack knowledge of, making per-formance sensitive to modeling choices and brittle under distribution shift. A recent line of work explores amortized posterior and pre-dictive inference by training neural models on simulated data (Edwards & Storkey, 2017; Garnelo et al., 2018; Cran-mer et al., 2020; Lueckmann et al., 2021). These models directly map observations or datasets to posterior or pre-dictive distributions, avoiding per-instance optimization or sampling at test time. In-context learning (ICL) (Brown et al., 2020), as an instance of meta-learning (Hochreiter et al., 2001; Finn et al., 2017; Kirsch et al., 2022), extends this paradigm to a substantially larger scale and greater flexi-bility by representing datasets as sequences and conditioning directly on long contexts of examples (Agarwal et al., 2024). Several works further interpret ICL as performing implicit Bayesian inference (Xie et al., 2022; Aky ¨urek et al., 2023; Mittal et al., 2025). As instantiations along the direction, Prior-Data Fitted Networks (PFNs) and TabPFNs (M ¨uller et al., 2022; Hollmann et al., 2023) demonstrate that ICL can closely match Bayesian oracles for several task fami-lies, suggesting that transformers can implement Bayesian inference in their activations. However, a fundamental limitation is shared across these amortized inference approaches. Although the posterior predictive distribution depends on both the prior and the likelihood, existing methods typically predict conditioning only on the evidence dataset. By meta training the model over many datasets sampled from the training prior, that latent distribution is baked into model weights and cannot be modified at test time without retraining or fine-tuning. In many real settings, however, the prior is not fixed. It may vary across users, domains, or environments, and one 1
+
+> arXiv:2606.20538v1 [cs.LG] 18 Jun 2026 Multi-Task Bayesian In-Context Learning
+
+may wish to explicitly adapt it to encode different beliefs or preferences. Under such prior shifts, predictors trained with a fixed implicit prior lack an explicit mechanism for adapta-tion, making their out-of-distribution behavior unclear. In this work, we introduce a simple mechanism to make amortized in-context prediction Bayesian with controllable priors. We propose Multi-Task Bayesian In-Context Learn-ing , a framework for amortized hierarchical Bayesian predic-tive inference in which prior information is represented as a prefix of in-context datasets, as illustrated in Figure 1. In contrast to PFNs, where a single prior is implicitly fixed in the model parameters, our construction exposes a direct test-time interface for adaptation to many priors: changing the prefix datasets modifies the induced prior and correspond-ingly steers the posterior predictive distribution, without any parameter updates. We evaluate multi-task Bayesian ICL across increasingly challenging regimes, including both in-meta-distribution and out-of-meta-distribution priors, priors with varying tail-heaviness, high-dimensional structured priors, and real-world environmental data. To summarize, our contributions are fourfold: • Flexible Test-Time Adaptation Framework for ICL: 
+
+We introduce a framework that represents priors explic-itly as prefixes of in-context datasets. This provides a direct interface for controllable adaptation to new priors at test time without any parameter updates. • Hierarchical Bayesian Inference Engine: We show that our approach serves as a hierarchical Bayesian predictive inference engine. It quantitatively matches oracle Bayesian predictors across a diverse range of task families. • Robust Generalization: We demonstrate robust gen-eralization under systematically controlled out-of-meta-distribution (OoMD) prior shifts. We also find the OoMD generalization pattern of our approach is aligned with that of hierarchical Bayesian inference. • Inference Efficiency: We demonstrate that our method achieves orders-of-magnitude faster inference than classical Bayesian baselines such as MCMC and SVI. 
+
+## 2. In-Context Learning: Preliminaries 
+
+We refer to In-Context Learning (ICL) as a setting in which a blackbox function approximates the following posterior predictive distribution (PPD): 
+
+p(yt = y| { (x1, y 1), . . . , (xt−1, y t−1)}
+
+| {z }
+
+> =Ct−1
+
+, x t). (1) For instance, if y ∈ R, we are solving a regression problem, 
+
+p(yt = y|C, x t) = N (y|μt, σ 2 
+
+> t
+
+), (2) where 
+
+μt = w⊤ 
+
+> μ
+
+h, (3) 
+
+log σ2 
+
+> t
+
+= w⊤ 
+
+> σ2
+
+h, (4) 
+
+h = F (Ct−1, x t; ϕ). (5) 
+
+F is a blackbox function that can handle a variable-length sequence/set, such as a recurrent network or an attention-based neural network. We use θ = ( wμ, w σ2 , ϕ ) to refer to all the parameters of this in-context learner. We can train the in-context learner, that is, estimating the parameters, with a large number of tasks and associated example sequences: 
+
+D =
+
+n
+
+(( x(k)1 , y (k)1 ), . . . , (x(k) 
+
+> lk
+
+, y (k) 
+
+> lk
+
+)) 
+
+oKk=1 
+
+, (6) where lk is the maximum number of examples we have collected for the k-th task. The loss is then a usual cross-entropy loss: 
+
+L(θ) = − 1
+
+K
+
+> K
+
+X
+
+> k=1
+> lk
+
+X
+
+> t=1
+
+log pθ (y(k) 
+
+> t
+
+|C(k)
+
+> t−1
+
+, x (k) 
+
+> t
+
+). (7) 
+
+## 3. How can In-Context Learning be Bayesian? 
+
+In Bayesian learning, a PPD p(yt|xt, C t−1) can be written down as: 
+
+p(yt|xt, C t−1) = 
+
+Z
+
+> Z
+
+p(yt|xt, Z )
+
+| {z }
+
+> likelihood
+
+q(Z|Ct−1)
+
+| {z }
+
+> posterior
+
+dZ (8) 
+
+∝
+
+Z
+
+> Z
+
+p(yt|xt, Z ) p(Z)
+
+| {z } 
+
+> prior
+> t−1
+
+Y
+
+> i=1
+
+p(yi|xi, Z )d Z, 
+
+(9) where Z is a latent variable that needs to be marginalized out. This reflects a generative story in which each input x is given to us, a sample of the latent variable Z is drawn from the prior distribution, and given the pair (x, Z ), we draw the associated output y from the likelihood distribution. Once we observe a series of t−1 pairs Ct−1, we can narrow down the potential values Z can take by inferring the posterior distribution. From this perspective, we must specify two ingredients in Bayesian learning. They are the prior p(Z) and likelihood distributions p(y|x, Z ), where we assume the input is in-dependent of Z and is fixed. This is clear from how the posterior distribution q(z|Ci) depends on both of these dis-tributions, and if we change either of these, the posterior 2Multi-Task Bayesian In-Context Learning 
+
+distribution changes accordingly, and so does the predictive distribution. We express the balance between our own prior belief and observation of data, by appropriately choosing these two distributions. A typical definition of in-context learning from the previous section however works directly with the PPD. This implies that this balance between the prior and likelihood is also made arbitrarily through the process of learning from many tasks, and that there is no way for us to directly control this trade-off. This prevents us from fully utilizing the power of in-context learning. In other words, we must be able to introduce an extra knob to in-context learning, in order for us to truly use it as a Bayesian learning algorithm. 
+
+## 4. Multi-Task Bayesian In-Context Learning 
+
+A major challenge in making in-context learning more Bayesian is the lack of our knowledge of and control over the implicit latent variable Z. This latent variable is implic-itly defined and marginalized out as part of the process of in-context learning. Even if we know what this latent vari-able was, it is unclear what is the best way to represent this latent variable and the prior distribution over it and present it to the in-context learner. 
+
+Input Representation. We instead assume that we are provided with an extra set of datasets, where each dataset corresponds to a set of observations drawn from a distinct generative process but that shares the prior distribution. That is, by carefully considering these extra set of datasets, we can infer the prior distribution over the latent variable. More specifically, we assume the availability of K extra datasets: 
+
+Dk = (xk 
+
+> 1
+
+, y k 
+
+> 1
+
+), . . . , (xkM , y kM ) , (10) where 
+
+Zk ∼ p(Z) (11) 
+
+yki ∼ pk(y|xki , Z k). (12) By appending and marking these extra datasets, Dprior =D1, . . . , D K , at the beginning of Ct−1 from Eq. (2) as the extra datasets informative of the prior p(Z), we can introduce the prior distribution knob into in-context learning. That is, as a desideratum, the Bayesian in-context learner can now be trained to capture 
+
+p(y|xt, C t−1, D prior ) ∼
+
+∝
+
+Z
+
+p(y|xt, Z ) p(Z)
+
+> t−1
+
+Y
+
+> j=1
+
+p(yj |xj , Z ) d Z. (13) Changing Dprior has the same impact as correspondingly altering the prior p(Z) on the right hand side.  
+
+> Figure 1. We propose a framework for amortized hierarchical Bayesian predictive inference using in-context learning. Tasks are drawn from a meta-distribution over priors rather than a single fixed prior. A transformer adapts to different priors by conditioning on prior datasets within a single context.
+
+In practice, we would create a long sequence of (x, y ) tu-ples, where each consecutive subsequence corresponds to a separate dataset and is separated by neighboring ones with a special token. For instance, a typical prefix for the model to condition on would take the form of 
+
+⟨prior ⟩ (x(1) 1 , y (1) 1 ), . . . , (x(1)  
+
+> M
+
+, y (1)  
+
+> M
+
+)
+
+...
+
+⟨prior ⟩ (x(K)1 , y (K)1 ), . . . , (x(K) 
+
+> M
+
+, y (K) 
+
+> M
+
+)
+
+⟨target ⟩ (x1, y 1), . . . , (xt−1, y t−1), x t
+
+This construction naturally defines a multi-task episode, in which each dataset of size M corresponds to a distinct task 
+
+defined by a latent variable Z drawn from a shared prior 
+
+p(Z), with the first K tasks serving as prior tasks and the final task serving as the target task. 
+
+Model Instantiation. In this work, the in-context learner 
+
+F (·) is instantiated as a decoder-only transformer. Each token corresponds to an input pair (xt, y t−1), represented by concatenating their raw values and projecting them into the model embedding space; special tokens are encoded using special values of x. At each position, the trans-former produces a hidden state ht, which is mapped through lightweight linear projection heads to the parameters of the predictive distribution defining pθ (yt | · ).
+
+Training Objective. The model is trained to maximize the log-likelihood of target-task observations conditioned on both the target context and the prior datasets. Each training episode is generated hierarchically. We first sample episode-level hyperparameters λ ∼ p(λ) from a meta-distribution. Conditioned on λ, we sample K + 1 task parameters {wk}K+1  
+
+> k=1
+
+and generate corresponding datasets 
+
+{Dk}K+1  
+
+> k=1
+
+. The first K datasets are provided as prior con-text, and the (K + 1) -th dataset defines the target task. We 3Multi-Task Bayesian In-Context Learning 
+
+provide the fully expanded hierarchical Bayesian predictive expression according to the data generation procedure in Appendix A. Let T denote the set of target positions in the input sequence. The training objective minimizes the expected negative log-likelihood L(θ) in the following form: 
+
+Eλ, {Dk }
+
+"
+
+1
+
+|T | 
+
+X
+
+> t∈T
+
+− log pθ (yt | Ct−1, x t, D prior )
+
+#
+
+. (14) 
+
+Likelihood Instantiation. We consider two likelihoods with latent task w ∈ Rd: linear regression y | x, w ∼N (w⊤x, σ 2I) and logistic regression y | x, w ∼
+
+Bernoulli( σ(w⊤x)) , where σ(·) is the sigmoid function. The linear model has a closed-form PPD when p(w) is Gaus-sian, while the logistic model is typically non-conjugate and PPD is intractable. This necessitates an approximate infer-ence algorithm. 
+
+## 5. Experiments 
+
+We first evaluate whether a multi-task in-context learner can act as an amortized hierarchical Bayesian predictor: (i) when the prior family matches training, (ii) under controlled distribution shift in the prior, and (iii) when the latent gener-ative process becomes high-dimensional and structured.                            
+
+> Sec. Prior family Episode latents λTask latents
+> 5.2 N(μ1,I)μ{wk}K+1
+> k=1
+> 5.3 StudentT ν(μ1,I)μ, ν {wk}K+1
+> k=1
+> 5.4 [fA]#N(μ1,I)μ, A ∈Rd×d{zk}K+1
+> k=1
+> Table 1. Summary of per-section experimental setup variation. Each episode contains Kprior tasks and one target task; episode-level latents are shared across tasks.
+
+5.1. Shared Setup Data. We define a prior family as a parametric class 
+
+{p(w | λ) : λ ∈ Λ}, such as a Gaussian distribution with varying mean (section 5.2) or a Student’s t-distribution with both varying mean and varying degrees of freedom (section 5.3). Meta-training induces a meta-distribution p(λ) over prior parameters. A test episode is In-Meta-Distribution (IMD) if its λ lies within the support of training p(λ), and 
+
+Out-of-Meta-Distribution (OoMD) otherwise. In all experiments, the input dimension is d = 8 and is sampled as x ∼ N (0, I). the output y is scalar, the number of prior tasks is K = 20 , and each task contains M = 50 
+
+context points. The choice of prior family p(w | λ) and meta-distribution p(λ) varies across experiments (Table 1). For linear regression, we fix the observation noise to σ =0.5. For logistic regression, due to the existence of the sigmoid function, we evaluate models with μ = 0 . See detailed explanation in Appendix G.3. 
+
+Model. We train a small GPT-2 model 1 with full-causal mask from scratch with Rotary Position Embeddings (Su et al., 2024). We document the hyperparameters and model training details in Appendix C. 
+
+Predictive Metrics Since all models are trained by mini-mizing cross-entropy loss, which in expectation corresponds to minimizing the Kullback-Leibler (KL) divergence to the target predictive distribution, KL is the most directly aligned evaluation metric. We evaluate all models using KL from their predicted PPD to the oracle PPD. When the oracle is intractable, we use an MCMC model given the correct prior to approximate it. Additionally, we report results using To-tal Variation (TV) divergence in Appendix F, which exhibit consistent qualitative trends with results using KL. 
+
+Bayesian Oracle and Baseline Models. We compare neu-ral predictors against four Bayesian reference models that differ along two axes: (i) the inference algorithm, and (ii) the information available at test time, which leads to either standard Bayesian Inference or Hierarchical Bayesian In-ference. We summarize the major differences between the reference models in Table 2. We include the full model configurations in the Appendix D. 
+
+(i) MCMC/SVI is a privileged reference that is conditioned on the ground truth prior hyperparameters λ used to generate each test episode. It therefore does not need to infer the prior from data, and performs posterior inference only over task-level latents. It models PPD via p(y∗ | x∗, D tgt , λ ),
+
+with the oracle and fixed prior p(w | λ).Such MCMC model when given sufficiently long chains serves as the oracle reference for computing predictive di-vergences when PPD is intractable as in logistic regression. In contrast, SVI relies on a restricted variational family and is not guaranteed to recover the true posterior predictive, even with unlimited optimization. 
+
+(ii) MCMC-HIER /SVI-HIER is a more realistic hierar-chical Bayesian reference that receives the same inputs as multi-task ICL: K prior datasets and one target dataset. It is explicitly specified with the correct prior family but must infer the episode-level parameter λ from the prior datasets with the same meta-prior p(λ) as the distribution used to generate the training data for ICL. It models PPD via pHIER (y∗ | x∗, D tgt , {Dprior }).
+
+Performance Expectations. Across all experiments, all four Bayesian exact inference models are instantiated with 
+
+> 1https://github.com/karpathy/nanoGPT
+
+4Multi-Task Bayesian In-Context Learning Model Observed Data Correct Generative Model Specification Access to True λ Asymptotically Exact? 
+
+MCMC (Oracle) Dtgt ✓ ✓ ✓
+
+SVI Dtgt ✓ ✓ ×
+
+MCMC-HIER {Dprior }Kk=1 , D tgt ✓ × ✓
+
+SVI-HIER {Dprior }Kk=1 , D tgt ✓ × ×
+
+ICL w/ prefix {Dprior }Kk=1 , D tgt × × ×
+
+ICL no prefix Dtgt × × ×
+
+Table 2. Comparison of Bayesian reference models and ICL models in terms of modeling knowledge and inference properties. All Bayesian references are explicitly specified with the correct probabilistic generative model class. Oracle models are conditioned on the true episode-level prior hyperparameters λ, whereas hierarchical models must infer λ from prior datasets given the same inputs as neural model. MCMC-based methods are asymptotically unbiased given sufficient compute, while variational methods introduce approximation bias since the variational posterior family may be restricted. ICL models have no knowlegde of the true data generation process. Both only observes the evidence of x and y.
+
+the correct generative model for each task, including the functional form of the prior and likelihood. Therefore, the Bayesian inference models are privileged with knowledge of the true data-generating process. They only need to infer the specific latent variables and parameters in each episode from the observed datasets. In contrast, the neural in-context learner observes only input–output pairs (x, y )
+
+and must implicitly learn the structure from data. Consequently, when inference is evaluated with sufficiently many posterior samples, the Bayesian models constitute oracle upper bounds on achievable predictive performance under the same observational inputs. In particular, we expect the predictive divergence to satisfy 
+
+∆MCMC ≤ ∆MCMC-HIER ≤ ∆neural 
+
+when the Bayesian models are correctly specified and mod-els are evaluated in expectation over infinite samples. 
+
+5.2. In-Meta-Distribution Hierarchical Bayesian Predictive Inference 
+
+We first investigate whether the amortized in-context learner can implement hierarchical Bayesian predictive inference 
+
+when the test prior is IMD, i.e., when the meta-prior over prior parameters is correctly specified. We evaluate this hypothesis along two complementary axes: (i) whether the neural predictor quantitatively matches the oracle posterior predictive distribution, and (ii) whether the model correctly interprets the prefix datasets as prior information .For both linear regression and logistic regression, we use the same prior family p(w | μ) = N (w; μ1, I) and meta-prior 
+
+p(μ) = U(−8, 8) .5.2.1. Q UANTITATIVE MATCH : D IVERGENCE FROM 
+
+BAYESIAN ORACLE 
+
+In the linear setting, shown in Fig. 2, the x-axis varies the number of target-task observations while the prior prefix 
+
+Figure 2. KL divergence between the PPDs produced by different inference methods and the oracle PPD for linear regression, evalu-ated across multiple target context lengths and test priors. 
+
+remains fixed. Multi-task ICL (with prefix) closely matches MCMC-HIER and achieves negligible KL across all con-text lengths under IMD priors. This indicates the neural model learns a predictive mapping from (Dprior , D tgt ) to the posterior predictive distribution quantitatively consis-tent with that of hierarchical Bayesian inference. Under OoMD priors, multi-task ICL exhibits superior robustness to MCMC-HIER in low-data regimes. We conjecture that this is due to the neural model’s ability to extrapolate in the space of priors. On the other hand, MCMC-HIER is strictly 5Multi-Task Bayesian In-Context Learning 200 400 600 800 1000 
+
+> # samples (MCMC) / steps (SVI)
+> 0.0
+> 0.1
+> 0.2
+> 0.3
+> 0.4
+> 0.5
+> KL
+> MCMC
+> MCMC-HIER
+> SVI
+> SVI-HIER
+> with prefix (mean=0.0027)
+> no prefix (mean=0.12)
+
+(a) Target context length 5. 200 400 600 800 1000  
+
+> # samples (MCMC) / steps (SVI)
+> 0.0
+> 0.1
+> 0.2
+> 0.3
+> 0.4
+> 0.5
+> 0.6
+> KL
+> MCMC
+> MCMC-HIER
+> SVI
+> SVI-HIER
+> with prefix (mean=0.0051)
+> no prefix (mean=0.013)
+
+(b) Target context length 20. 
+
+Figure 3. KL divergence between the PPDs produced by different inference methods and the oracle PPD (approximated from con-verged MCMC) for logistic regression. The x-axis is the number of posterior samples for MCMC models and the number of opti-mization steps for SVI models. MCMC models are given 1000 warmup steps prior to collecting any posterior samples. 
+
+constrained to work with the mis-specified prior. In addi-tion, ICL without prefix performs consistently worse than the multi-task ICL, especially under OoMD priors. Without access to the prior prefix, ICL relies on a fixed prior distri-bution that is baked into its weights and lacks a mechanism for test-time prior adaptation. In the case of logistic regression, we also need to examine two regimes separated by the number of observations in the target task, i.e., the evidence. When the number of evidence samples is low, the influence of the choice of the prior is greater. We see this effect in Figure 3 (a) where the ICL without prior cannot match the oracle PPD. The proposed approach of multi-task ICL however can recover the oracle PPD as well as the other baseline approaches. As the number of evidence samples increases, the likelihood increasingly dominates and the effect of the prior diminishes. This allows ICL without prior to eventually match the performance of multi-task ICL, as evident from Figure 3 (b). This behavior is consistent with Bayesian posterior concentration, and highlights that accurate prior inference is most critical in the low-data regime. 5.2.2. M ECHANISM MATCH : P RIOR ADAPTABILITY 
+
+CHECK 
+
+Beyond quantitative agreement, we examine whether the neural model mechanistically interprets the prefix datasets as prior information, rather than ignoring them or treating them as additional target evidence. To isolate the effect of the prior prefix, we hold the target prediction problem fixed and vary only the auxiliary prior data. We first sample a target task wtgt ∼ N (0, I), fix its target context Dtgt and query inputs Xquery , and then ap-pend different prior prefixes sampled from different shifted prior distributions. 
+
+Qualitative prior adaptability. Figure 4a illustrates how the distribution of model’s predicted logits p(wT x | Dprior )
+
+change as the preceding prior prefix is varied. It reveals 
+
+(a) Histograms with different colors show the model’s predicted logit distributions under different prior prefixes. 
+
+(b) KL divergence between multi-task ICL and Bayesian references. Pooled MCMC corresponds to the MCMC that incorrectly treat prior data as evidence for target task. 
+
+Figure 4. Prior adaptability check for logistic regression with a fixed target context of length = 5 and different prior prefixes. 
+
+systematic changes in the variance of the distribution of pre-dicted logits as a function of the prior prefix. This demon-strates that the prefix exerts a coherent and controllable influence on the predictive distribution. 
+
+Ruling out evidence pooling. A potential alternative ex-planation is that the model simply pools prior and target data points as if they were generated by a single latent task, rather than interpreting the prefix as prior information. To test this hypothesis, we compare neural predictions against two Bayesian baselines: (i) MCMC-HIER POOL , which assumes that a single latent generates both prior and target datapoints and jointly infers the latent and prior mean, and (ii) MCMC-ORACLE , which is conditioned on the true prior parameters and represents the optimal Bayesian predictor. Figure 4b reports KL divergence between neural predic-tions and these references under prior adaptations. The neural model is significantly closer to MCMC-ORACLE 
+
+than to MCMC-HIER POOL , indicating that its behavior is not naive evidence pooling and instead aligns with correct Bayesian conditioning on prior information. 
+
+5.3. Robustness to OoMD and Increasingly Heavy-Tailed Priors 
+
+Having established that multi-task ICL recovers hierarchical Bayesian prediction under matched meta-training condi-6Multi-Task Bayesian In-Context Learning 
+
+tions, we next investigate robustness when the test prior becomes OoMD and systematically harder. We focus on controlled shifts in tail-heaviness, where posterior inference becomes statistically unstable and computationally expen-sive for classical Bayesian methods. We use Student’s t
+
+priors over latent tasks, i.e., w ∼ StudentT ν (μ1, I), where smaller degrees of freedom ν induce heavier tails. Each result is shown as a heatmap. For all models, the lo-cation parameter is sampled per episode as μ ∼ U (−8, 8) .The tail-heaviness is controlled by a discrete grid of log ν ∈{3, 2, 1, 0, −1, −2, −3}. Each row corresponds to a neu-ral model meta-trained on a finite mixture over degrees of freedom 
+
+log ν ∼ U{ 3, 2, . . . , r },
+
+where r is the row label and denotes the minimum log ν
+
+included in the training mixture. Therefore, lower rows correspond to a broader mixture with increasingly heavy-tailed training priors. Each column evaluates generalization to a test prior with μ = 0 and a specific log ν (left to right), sweeping both IMD and OoMD regimes. For a Student’s t-distribution, the variance is undefined for 
+
+ν ≤ 2 and the mean is undefined for ν ≤ 1. Accordingly, the transition from log ν = 1 to log ν = 0 marks a qualita-tive shift in statistical regularity, while log ν ≤ − 1 corre-sponds to extremely heavy-tailed regimes. This transition is clearly reflected in the heatmap results from Figure 5. When the training meta-prior remains relatively narrow and does not include extreme heavy-tailed components ( ν ≤ 2), multi-task ICL already exhibits non-trivial OoMD gener-alization, closely mirroring the behavior of MCMC-HIER .In particular, a model trained only on log ν = 3 general-izes reliably up to test log ν = 1 . However, generalization degrades as the test prior enters regimes with undefined variance or mean, indicating a sharp increase in inherent difficulty for inference. Importantly, this degradation is not arbitrary, but follows a systematic pattern as the test prior deviates from the training support. In particular, the generalization behavior exhibits a clear threshold pattern : accurate generalization to a given test tail-heaviness requires the training mixture to include sufficiently heavy-tailed components. Empirically, light and moderately heavy tails ( log ν ≥ 1) are already well cov-ered by training on log ν = 3 alone, whereas entering the regime with undefined moments ( log ν ≤ 0) requires pro-gressively heavier-tailed training mixtures. This threshold structure is aligned with that of MCMC-HIER : both models display nearly identical heatmap patterns. This indicates that extrapolation beyond the training support is possible but fundamentally bounded. The fact that this alignment persists even in OoMD regimes also provides strong evi-dence that multi-task ICL has truly learned a mechanism consistent with hierarchical Bayesian predictive inference. Finally, when the training mixture includes sufficiently heavy-tailed components (down to log ν = −2 or −3), the multi-task ICL achieves near-oracle performance across the full sweep of test priors, from light-tailed Gaussian-like regimes to extremely heavy-tailed distributions. Therefore, the model has learned a generalizable amortized inference mechanism rather than overfitting to a narrow prior family, and that exposure to sufficient prior diversity during meta-training enables robust extrapolation across distributional regimes. SVI-HIER exhibits qualitatively different behavior: its per-formance is largely invariant across rows, indicating that expanding the support of the ν mixture in the meta-prior is not sufficient to improve performance under heavy-tailed priors, even when those priors are IMD. This highlights the intrinsic difficulty of inference in heavy-tailed regimes and underscores that the strong OoMD generalization ob-served for multi-task ICL is non-trivial and not merely a consequence of broader prior coverage. 
+
+5.4. Scaling to Flow-Based Priors with High-Dimensional Parameters 
+
+While section 5.3 probes robustness under increasing tail-heaviness within a low-dimensional parametric family, real-world priors often exhibit substantially richer structure that cannot be captured by a small number of scalar parameters. To stress-test whether multi-task ICL can scale beyond text-book prior families, we construct priors by pushing for-ward a base Gaussian distribution through a normalizing flow (Chen et al., 2018), spiral flow specifically. This in-duces complex and highly non-Gaussian geometries in the task distribution, parameterized by a dense Rd×d transfor-mation matrix. We train and evaluate ICL across different spiral flow instantiations, each defined by a distinct hidden parameter matrix. This tests generalization across high-dimensional prior parameterizations. 
+
+z ∼ N (μ1, I), Aij 
+
+> i.i.d.
+
+∼ N (0 , 1) , w = fA(z), (15) During meta-training, μ ∼ U (−8, 8) is sampled per episode. Due to the rotational symmetry of the spiral flow, nonzero means yield qualitatively distinct transformed distributions. Therefore, we fix μ = 4 to induce nontrivial geometric warping at test time. The definition of the spiral flow and visualizations of the induced priors for different μ are pro-vided in Appendix E. We also report evaluations on OoMD 
+
+μ = 12 in Appendix G.4. We report predictive divergence in Figure 6 as a function of wall-clock time, since MCMC exhibits a large per-sample time cost in this setting. To ensure a fair comparison, we configure MCMC-HIER with the minimum number of warmup steps required to reliably reach the oracle perfor-mance. Although MCMC-HIER converges quickly after 7Multi-Task Bayesian In-Context Learning            
+
+> (a) Multi-task ICL. (b) MCMC-hier (upperbound). (c) SVI-hier.
+> Figure 5. Heatmaps of KL divergence to the oracle PPD from ( left ) multi-task ICL, ( middle ) hierarchical MCMC, and ( right ) hierarchical SVI. Rows index the minimum log νincluded in the meta-training mixture (increasing tail-heaviness downward), and columns sweep the test prior log ν, covering IMD and OoMD regimes. Lower (darker) values indicate better agreement with the oracle.
+
+warmup, its runtime remains dominated by warmup and per-sample costs. In contrast, multi-task Bayesian ICL achieves comparable quality while being orders-of-magnitude faster, demonstrating its scalability to complex flow-based priors.  
+
+> Figure 6. Predictive KL divergence versus wall-clock inference time for flow-based priors with high-dimensional latents.
+
+5.5. Real-World Evaluation on ERA5 
+
+We next evaluate whether this prior-prefix mechanism still provides practical benefits in a real-world setting where data is noisy and latent structure is complex and unclear. We use the spatiotemporal temperature prediction task from ERA5 climate data (Store et al., 2024; Hersbach et al., 2023). The model needs to predict surface air temperature from latitude, longitude, time, and elevation, while auxiliary datasets are sampled from the same spatial region but from different non-overlapping time windows. We consider two 2019 evaluation protocols. In the IID split , train, validation, and test examples are distinct random samples from the full year of 2019, so validation and test are distributionally matched to training. In the OOD split ,training examples are sampled from the first six months of 2019 excluding the final 14 days, validation examples from those final 14 days, and test examples from the last six months of 2019, creating a severe seasonal temporal shift. The 2020 Test column evaluates the checkpoints selected on the 2019 IID validation set on the full year of 2020. This tests future-year temporal generalization while preserving full seasonal coverage. Table 3 demonstrates that prior prefixes are useful for real-world spatiotemporal prediction when the training data cover the relevant seasonal variation. Under the 2019 IID split, MT with K = 2 consistently improves over 
+
+K = 0 on validation, test, and 2020 Test, showing that auxiliary datasets provide useful local context beyond the target dataset alone. MT also outperforms Set-MT in this regime, suggesting that the sequential prior-prefix model can better exploit structured correlations across datasets when those correlations remain valid at test time. The 2019 OOD split is qualitatively different: training on early-year data and testing on late-year data induces a severe seasonal shift, so correlations that are useful for validation may fail on the test distribution. Indeed, the MT hyperparameter rank-ings by validation NLL and OOD test NLL are nearly re-versed, consistent with domain-generalization observations that in-distribution and out-of-distribution performance can be negatively correlated when models rely on features or correlations that are predictive in training environments but fail under shift (Makino et al., 2025). In this severe regime, the stronger permutation-invariant inductive bias of Set-MT appears to improve robustness by limiting reliance on order-or prefix-specific correlations. Similarly for models with 
+
+K = 0 . Overall, when the training data cover the relevant seasonal structure, prior prefixes consistently improve MT-ICL and generalize well to the future-year 2020 evaluation. Please see Appendix H for full details about this experiment and the implementation of Set-MT model. 8Multi-Task Bayesian In-Context Learning                                            
+
+> Table 3. Results on ERA5 under IID/OOD splits. Entries are NLL/MSE. MT denotes multi-task ICL, and Set-MT denotes multi-task ICL with set aggregation over prior datasets. All entries use the learning rate and checkpoint selected by best validation NLL. Split Config Val ↓Test ↓2020 Test ↓
+> 2019 IID MT, K=0 -1.72 / .004 -2.02 / .004 -2.00 / .003 MT, K=2 -2.29 / .003 -2.33 / .003 -2.31 / .003
+> Set-MT, K=0 -2.04 / .004 -2.17 / .004 -2.15 / .004 Set-MT, K=2 -2.16 / .004 -2.18 / .004 -2.17 / .003 2019 OOD MT, K=0 -1.28 / .007 -0.39 / .007 –MT, K=2 -2.06 / .006 7.13 / 1.254 –Set-MT, K=0 -0.94 / .008 -0.58 / .041 –Set-MT, K=2 -1.64 / .007 -0.20 / .057 –
+
+## 6. Related Work 
+
+Amortized Inference Through Meta-Learning. There have been a series of studies in which deep neural networks were trained to imitate or closely approximate computa-tionally intractable inference procedures in probabilistic models. This line of studies include Neural Processes and their variants, Neural Statisticians, (meta-)Simulation-Based Inferences and Prior-Data Fitted Networks (Gordon et al., 2019; Edwards & Storkey, 2017; Bruinsma et al., 2021; Gloeckler et al., 2024; M ¨uller et al., 2022; Hollmann et al., 2023; M ¨uller et al., 2025). These approaches all share the characteristics of meta-learning (Hochreiter et al., 2001; Santoro et al., 2016; Finn et al., 2017), in which a set of sample sets are drawn from a meta-distribution over distri-butions, and a neural network is trained to work with a set of observations and outputs a desirable target distribution, such as a posterior distribution. Until recently, these studies have however been constrained to a relatively small scale, working with only a few tens or hundreds of samples at a time. Furthermore, they have largely focused on handling likelihood via a set of samples and treated the prior implic-itly. We identify this latter point as a significant omission in this line of investigation and study the impact of explicitly encoding the prior via a separate set of prior-shared datasets in the context of meta-inference. 
+
+Prior-Flexible Amortized Inference. A complementary line of work studies amortized inference models with ex-plicit interfaces for changing the prior at test time. Chang et al. (2025) introduce a general transformer-based condi-tioning engine that explicitly represents task-relevant latent variables and allows users to provide priors over those la-tents at inference time as histogram-like distributions. Sim-ilarly, Whittle et al. (2026) allow representing priors and posteriors as Gaussian mixture models. In contrast, instead of requiring users to specify priors directly in latent space, we specify prior information in data space through auxiliary in-context datasets. 
+
+In-Context Learning and Multi-Task Contexts. It was recently found that large-scale language models, when pre-trained on a large amount of the web corpus, exhibits an in-context learning capability (Brown et al., 2020). This observation has led to the realization that LLMs, or the transformers underlying them, are capable of performing so-phisticated learning and inference even at a very large scale, such as handling thousands of training examples in a single forward pass (Agarwal et al., 2024). This has led to the recent surge of interest in meta-inference in the context of ICL (Garg et al., 2022; Kirsch et al., 2022; Xie et al., 2022; Aky ¨urek et al., 2023; Von Oswald et al., 2023; Ravent ´os et al., 2023; Coda-Forno et al., 2023; Reuter et al., 2025). In these studies, prior distributions were treated implicitly, similarly to earlier meta-inference studies. Several recent works have also extended context-conditioned prediction to multi-task or multi-dataset set-tings. Shen et al. (2023) combine meta-learning and multi-task learning in episodic multi-task settings. Ashman et al. (2024) extend Transformer Neural Processes to condition not only on a target context set but also on additional re-lated datasets, using a pseudo-token set-based architecture, and prove the benefit of this related-dataset prefix against a target-only variant. Li et al. (2025) likewise use multiple in-context datasets, but focus on transfer for Bayesian opti-mization, where the model serves as a surrogate optimized for regret and robustness to negative transfer. In contrast, we evaluate against Bayesian reference posterior predictive distributions directly. 
+
+## 7. Conclusion and Limitations 
+
+We introduced Multi-Task Bayesian In-Context Learning ,a simple framework that bridges the flexibility and scala-bility of in-context learning with the principled structure of hierarchical Bayesian inference by representing priors explicitly as in-context dataset prefixes, enabling test-time control over the prior. Empirically, our approach matches oracle Bayesian predictors across diverse prior families, gen-eralizes robustly under out-of-meta-distribution shifts, and achieves orders-of-magnitude faster inference than classical Bayesian baselines. We further demonstrate its practical applicability on a real-world environmental benchmark. We also acknowledge the limitations of our approach. Multi-task ICL might suffer from the attention cost that scales quadratically with sequence length. The in-context multi-task setting further increases the computational cost. This architecture also does not explicitly enforce permutation invariance, either within a dataset or across datasets, al-though posterior predictive inference should not depend on arbitrary orderings of the same evidence. However, empiri-cally, we find the model’s sensitivity to permutations can be diminutive as shown in Appendix G.1. 9Multi-Task Bayesian In-Context Learning 
+
+## Acknowledgements 
+
+This work was supported by the Institute of Information & Communications Technology Planning & Evaluation (IITP) with a grant funded by the Ministry of Science and ICT (MSIT) of the Republic of Korea in connection with the Global AI Frontier Lab International Collaborative Re-search. (No. RS-2024-00469482 & RS-2024-00509257). 
+
+## Impact Statement 
+
+This work contributes a general framework for controllable amortized inference in neural sequence models, bridging ideas from in-context learning and hierarchical Bayesian modeling. By enabling explicit representation and adapta-tion of prior assumptions at test time, the approach supports more flexible, transparent, and robust predictive systems that is computationally efficient. In personalized medicine, for example, electronic health records could be used to provide similar patients as prior context, with our model enabling rapid adaptation of treatment response predictions for a new patient with limited observations in a setting where both speed (clinical time constraints) and calibrated uncertainty (informed consent, risk communication) are es-sential. Alternatively for drug discovery historical trials could serve as prior context, our method could enable faster identification of valid candidates with reliable confidence estimates—critical for costly downstream study planning. The ability to swap prior contexts without retraining also supports iterative trial designs where the target shifts as projects evolve. 
+
+## References 
+
+Agarwal, R., Singh, A., Zhang, L., Bohnet, B., Rosias, L., Chan, S., Zhang, B., Anand, A., Abbas, Z., Nova, A., Co-Reyes, J. D., Chu, E., Behbahani, F., Faust, A., and Larochelle, H. Many-shot in-context learning. In Globerson, A., Mackey, L., Belgrave, D., Fan, A., Paquet, U., Tomczak, J., and Zhang, C. (eds.), Advances in Neural Information Processing Systems , volume 37, pp. 76930– 76966. Curran Associates, Inc., 2024. doi: 10.52202/079 017-2447. Aky ¨urek, E., Schuurmans, D., Andreas, J., Ma, T., and Zhou, D. What learning algorithm is in-context learn-ing? investigations with linear models. In The Eleventh International Conference on Learning Representations ,2023. URL https://openreview.net/forum ?id=0g0X4H8yN4I .Andrieu, C., De Freitas, N., Doucet, A., and Jordan, M. I. An introduction to mcmc for machine learning. Machine learning , 50(1):5–43, 2003. Ashman, M., Diaconu, C., Weller, A., and Turner, R. E. In-context in-context learning with transformer neural processes. In Antor ´an, J. and Naesseth, C. A. (eds.), Pro-ceedings of the 6th Symposium on Advances in Approx-imate Bayesian Inference , volume 253 of Proceedings of Machine Learning Research , pp. 1–29. PMLR, 21 Jul 2024. URL https://proceedings.mlr.pres s/v253/ashman24a.html .Bingham, E., Chen, J. P., Jankowiak, M., Obermeyer, F., Pradhan, N., Karaletsos, T., Singh, R., Szerlip, P., Hors-fall, P., and Goodman, N. D. Pyro: Deep universal prob-abilistic programming. Journal of machine learning re-search , 20(28):1–6, 2019. Blei, D. M., Kucukelbir, A., and McAuliffe, J. D. Variational inference: A review for statisticians. Journal of the Ameri-can Statistical Association , 112(518):859–877, Apr 2017. ISSN 1537-274X. doi: 10.1080/01621459.2017.1285773. URL http://dx.doi.org/10.1080/0162145 9.2017.1285773 .Brown, T., Mann, B., Ryder, N., Subbiah, M., Kaplan, J. D., Dhariwal, P., Neelakantan, A., Shyam, P., Sastry, G., Askell, A., et al. Language models are few-shot learners. 
+
+Advances in neural information processing systems , 33: 1877–1901, 2020. Bruinsma, W., Requeima, J., Foong, A. Y. K., Gordon, J., and Turner, R. E. The gaussian neural process. In 
+
+Third Symposium on Advances in Approximate Bayesian Inference , 2021. URL https://openreview.net /forum?id=rzsDn7Vzxf .Chang, P. E., Loka, N. R. B. S., Huang, D., Remes, U., Kaski, S., and Acerbi, L. Amortized probabilistic condi-tioning for optimization, simulation and inference. In The 28th International Conference on Artificial Intelligence and Statistics , 2025. URL https://openreview.n et/forum?id=3kRGSyp309 .Chen, R. T., Rubanova, Y., Bettencourt, J., and Duvenaud, D. K. Neural ordinary differential equations. Advances in neural information processing systems , 31, 2018. Coda-Forno, J., Binz, M., Akata, Z., Botvinick, M., Wang, J. X., and Schulz, E. Meta-in-context learning in large language models. In Thirty-seventh Conference on Neural Information Processing Systems , 2023. URL https: //openreview.net/forum?id=sx0xpaO0za .Cranmer, K., Brehmer, J., and Louppe, G. The frontier of simulation-based inference. Proceedings of the National Academy of Sciences , 117(48):30055–30062, May 2020. ISSN 1091-6490. doi: 10.1073/pnas.1912789117. URL 
+
+http://dx.doi.org/10.1073/pnas.191278 9117 .10 Multi-Task Bayesian In-Context Learning 
+
+Edwards, H. and Storkey, A. Towards a neural statistician. In 5th International Conference on Learning Representa-tions , pp. 1–13, 2017. Finn, C., Abbeel, P., and Levine, S. Model-agnostic meta-learning for fast adaptation of deep networks. In Interna-tional conference on machine learning , pp. 1126–1135. PMLR, 2017. Garg, S., Tsipras, D., Liang, P. S., and Valiant, G. What can transformers learn in-context? a case study of simple function classes. In Koyejo, S., Mohamed, S., Agarwal, A., Belgrave, D., Cho, K., and Oh, A. (eds.), Advances in Neural Information Processing Systems , volume 35, pp. 30583–30598. Curran Associates, Inc., 2022. Garnelo, M., Schwarz, J., Rosenbaum, D., Viola, F., Rezende, D. J., Eslami, S. M. A., and Teh, Y. W. Neural processes. ArXiv , abs/1807.01622, 2018. URL https: //api.semanticscholar.org/CorpusID: 49568863 .Gloeckler, M., Deistler, M., Weilbach, C. D., Wood, F., and Macke, J. H. All-in-one simulation-based inference. In 
+
+Forty-first International Conference on Machine Learn-ing , 2024. URL https://openreview.net/for um?id=DL79HYCFFq .Gordon, J., Bronskill, J., Bauer, M., Nowozin, S., and Turner, R. Meta-learning probabilistic inference for pre-diction. In International Conference on Learning Repre-sentations , 2019. URL https://openreview.net /forum?id=HkxStoC5F7 .Hersbach, H., Bell, B., Berrisford, P., Biavati, G., Hor ´anyi, A., Mu ˜noz Sabater, J., Nicolas, J., Peubey, C., Radu, R., Rozum, I., et al. Era5 hourly data on single levels from 1940 to present. Copernicus climate change service (c3s) climate data store (cds) , 10(1.24381):24381, 2023. Hochreiter, S., Younger, A. S., and Conwell, P. R. Learning to learn using gradient descent. In International confer-ence on artificial neural networks , pp. 87–94. Springer, 2001. Hoffman, M. D., Gelman, A., et al. The no-u-turn sampler: adaptively setting path lengths in hamiltonian monte carlo. 
+
+J. Mach. Learn. Res. , 15(1):1593–1623, 2014. Hollmann, N., M ¨uller, S., Eggensperger, K., and Hutter, F. TabPFN: A transformer that solves small tabular classi-fication problems in a second. In The Eleventh Interna-tional Conference on Learning Representations , 2023. URL https://openreview.net/forum?id= cp5PvcI6w8_ .Kirsch, L., Harrison, J., Sohl-Dickstein, J., and Metz, L. General-purpose in-context learning by meta-learning transformers. arXiv preprint arXiv:2212.04458 , 2022. Li, Y. L., Daulton, S., M ¨uller, S., Wilson, A. G., and Bakshy, E. Robust multi-task modeling for bayesian optimization via in-context learning. In NeurIPS 2025 Workshop: Re-liable ML from Unreliable Data , 2025. URL https: //openreview.net/forum?id=iwqJLEPgvF .Lueckmann, J.-M., Boelts, J., Greenberg, D., Goncalves, P., and Macke, J. Benchmarking simulation-based inference. In International conference on artificial intelligence and statistics , pp. 343–351. PMLR, 2021. MacKay, D. J. A practical bayesian framework for backprop-agation networks. Neural computation , 4(3):448–472, 1992. Makino, T., Park, J. W., Tagasovska, N., Kudo, T., Coelho, P., Huetter, J.-C., Yao, H., Hoeckendorf, B., Leote, A. C., Ra, S., et al. Supervised contrastive block disentangle-ment. arXiv preprint arXiv:2502.07281 , 2025. Mittal, S., Elmoznino, E., Gagnon, L., Bhardwaj, S., Lajoie, G., and Sridhar, D. Does learning the right latent variables necessarily improve in-context learning? In Forty-second International Conference on Machine Learning , 2025. URL https://openreview.net/forum?id= tuYmhlu62K .M ¨uller, S., Hollmann, N., Arango, S. P., Grabocka, J., and Hutter, F. Transformers can do bayesian inference. In 
+
+International Conference on Learning Representations ,2022. URL https://openreview.net/forum ?id=KSugKcbNf9 .M ¨uller, S., Reuter, A., Hollmann, N., R ¨ugamer, D., and Hutter, F. Position: The future of bayesian prediction is prior-fitted. In Forty-second International Conference on Machine Learning Position Paper Track , 2025. URL 
+
+https://openreview.net/forum?id=5Hpm 74b1Ga .Neal, R. M. Bayesian leaning for neural networks, 1996. Ravent ´os, A., Paul, M., Chen, F., and Ganguli, S. Pretrain-ing task diversity and the emergence of non-bayesian in-context learning for regression. Advances in neural information processing systems , 36:14228–14246, 2023. Reuter, A., Rudner, T. G. J., Fortuin, V., and R ¨ugamer, D. Can transformers learn full bayesian inference in context? In Forty-second International Conference on Machine Learning , 2025. URL https://openreview.net /forum?id=9Ip6fihKbc .Santoro, A., Bartunov, S., Botvinick, M., Wierstra, D., and Lillicrap, T. Meta-learning with memory-augmented neu-ral networks. In International conference on machine learning , pp. 1842–1850. PMLR, 2016. 11 Multi-Task Bayesian In-Context Learning 
+
+Shen, J., Zhen, X., Wang, Q., and Worring, M. Episodic multi-task learning with heterogeneous neural processes. 
+
+Advances in Neural Information Processing Systems , 36: 75214–75228, 2023. Store, C. C. D. et al. Era5 hourly data on single levels from 1940 to present. Datos recuperados entre noviembre ,2024. Su, J., Ahmed, M., Lu, Y., Pan, S., Bo, W., and Liu, Y. Roformer: Enhanced transformer with rotary position embedding. Neurocomput. , 568(C), February 2024. ISSN 0925-2312. doi: 10.1016/j.neucom.2023.127063. URL 
+
+https://doi.org/10.1016/j.neucom.2023. 127063 .Von Oswald, J., Niklasson, E., Randazzo, E., Sacramento, J., Mordvintsev, A., Zhmoginov, A., and Vladymyrov, M. Transformers learn in-context by gradient descent. In International Conference on Machine Learning , pp. 35151–35174. PMLR, 2023. Whittle, G., Ziomek, J., Rawling, J., and Osborne, M. A. Distribution transformers: Fast approximate bayesian inference with on-the-fly prior adaptation, 2026. URL 
+
+https://arxiv.org/abs/2502.02463 .Xie, S. M., Raghunathan, A., Liang, P., and Ma, T. An explanation of in-context learning as implicit bayesian inference. In International Conference on Learning Rep-resentations , 2022. URL https://openreview.n et/forum?id=RdJVFCHjUMI .12 Multi-Task Bayesian In-Context Learning 
+
+## A. Hierarchical Bayesian Predictive Expression 
+
+When training the multi-task ICL using negative log-likelihood, we expect the model to learn the following hierarchical Bayesian model as an empirical desideratum reflecting the data generation procedure. 
+
+p(y∗ | x∗, C t−1, {D(k)prior }Kk=1 ) ∝
+
+Z
+
+p(λ) dλ 
+
+" Z
+
+p(y∗ | x∗, wtgt )
+
+ t−1Y
+
+> j=1
+
+p(yj | xj , wtgt )
+
+
+
+p(wtgt | λ) dwtgt 
+
+#
+
+×
+
+" KY
+
+> k=1
+
+Z
+
+p(w(k) | λ)
+
+ MY
+
+> m=1
+
+p(y(k) 
+
+> m
+
+| x(k) 
+
+> m
+
+, w(k))
+
+
+
+dw(k)
+
+#
+
+.
+
+Here, wtgt denotes the latent task parameter for the target task, while w(k) denotes the latent task parameter for the k-th prior dataset. The variable λ for each input sequence parameterizes the prior distribution p(w | λ) for that sequence. We sample λ from a fixed meta-prior p(λ) during training. The target context is denoted by Ct−1 = {(xj , y j )}t−1
+
+> j=1
+
+, which contains the observed input-output pairs from the target task before predicting y∗ at query input x∗.
+
+## B. Linear Regression PPD Derivation 
+
+We consider the case of Bayesian linear regression with the following prior and likelihood distributions: 
+
+p(w) = N (w | μw, I), (16) 
+
+p(y | X, w) = N (y | Xw , σ 2I), (17) where y = [ y1, . . . , y N ]⊤, X = [ x⊤ 
+
+> 1
+
+; . . . ; x⊤ 
+
+> N
+
+].Since Gaussian is the conjugate prior for the Gaussian likelihood, the posterior is also Gaussian with the following mean and covariance: 
+
+μN = ΣN
+
+ 1
+
+σ2 X⊤y + μw
+
+
+
+, ΣN =
+
+ 1
+
+σ2 X⊤X + I
+
+−1
+
+. (18) The PPD is then another Gaussian with the following mean and covariance, and clearly a function of prior mean μw:
+
+μpred = x⊤∗ μN , and σ2 
+
+> pred
+
+= σ2 + x⊤∗ ΣN x∗ (19) It is clear that the predictive distribution is a function of the mean μw of the prior distribution. When μw = 0 , we get an important special case of ridge regression: 
+
+μpred = ϕ(x∗)⊤
+
+ 1
+
+σ2 Φ⊤Φ + I
+
+−1  1
+
+σ2 Φ⊤Y
+
+
+
+. (20) 
+
+## C. Hyperparameters and Training Details 
+
+For all the experiments on synthetic data, we use the following hyperparameters for GPT2: hidden dimension 128, feedforward dimension 512, 8 layers, and 8 attention heads, equipped with Rotary Position Embeddings (Su et al., 2024). We train on 10M sequences with 5K validation sequences, using a batch size of 4096 and sweeping the learning rate from 
+
+10 −4 to 5 × 10 −3. Validation data are sampled from the training distribution with distinct random seeds. Models are trained for up to 100 epochs, and we select the checkpoint with the lowest validation loss. 13 Multi-Task Bayesian In-Context Learning 
+
+## D. Bayesian Exact Inference Model Configurations 
+
+We use Pyro (Bingham et al., 2019) for probabilistic modeling for MCMC with NUTS (Hoffman et al., 2014) and SVI. We summarize the specific model configurations in Table 4 and Table 5. Since we use MCMC to approximate the ground truth PPD, we set a large number of posterior samples to ensure the MCMC model converges to the ground truth PPD. Additionally, in section 5.4, since we are comparing the inference time between inference algorithms, we use minimal warmup steps MCMC need to reflect the minimal inference cost for MCMC.                        
+
+> Model Warmup Steps Num. Posterior Samples Num. Thinning Num. Chains
+> MCMC (oracle) 1000 10000 10 1MCMC-hier 1000 1000 10 1
+> Table 4. Summary of Bayesian model configurations for MCMC-based methods used in experiments.
+> Model Num. Posterior Samples Num. Opt Steps Variational Family / LR
+> SVI 200 1000 Diagonal Normal / 1×10 −2
+> Table 5. Summary of Bayesian model configurations for SVI-based methods used in experiments.
+
+## E. Spiral-Flow-Based Priors 
+
+E.1. Definition Episode-level parameters. For each episode, we sample a location parameter and a skew-symmetric matrix that defines the spiral flow: 
+
+μ ∼ U (μmin , μ max ), (21) 
+
+M ∼ N (0 , I d×d) , (22) 
+
+A := M − M ⊤. (23) By construction, A is skew-symmetric and has d(d−1) 2 degrees of freedom. 
+
+Base latent and spiral flow map. Let z ∈ Rd denote a base latent variable. Given A, we define an invertible spiral flow 
+
+fA : Rd → Rd by 
+
+fA(z) := exp  A ∥z∥22
+
+ z, (24) where exp( ·) denotes the matrix exponential. 
+
+Task-level latents and pushforward prior. Conditioned on the episode parameters (μ, A ), each task k draws an indepen-dent base latent 
+
+zk | μ ∼ N (μ1, I d), (25) 
+
+wk = fA(zk), (26) which induces the task prior 
+
+p(w | μ, A ) = ( fA)# N (μ1, I d). (27) 14 Multi-Task Bayesian In-Context Learning 
+
+E.2. Visualizations 
+
+Below we show the t-SNE and UMAP (2D) visualizations of N (μ, I) samples after a Spiral Flow transformation for different μ.
+
+Figure 7. t-SNE and UMAP (2D) visualizations of N (μ, I) samples after a randomly initialized Spiral Flow transformation. The Spiral Flow is rotationally symmetric, therefore a standard Gaussian distribution will stay standard Gaussian after transformation. 
+
+15 Multi-Task Bayesian In-Context Learning 
+
+## F. Results measured using TV divergence 
+
+Below we show the results using TV divergence to the ground truth PPD. 200 400 600 800 1000 
+
+> # samples (MCMC) / steps (SVI)
+> 0.05
+> 0.10
+> 0.15
+> 0.20
+> 0.25
+> 0.30
+> 0.35
+> 0.40
+> TV
+> MCMC
+> MCMC-HIER
+> SVI
+> SVI-HIER
+> with prefix (mean=0.025)
+> no prefix (mean=0.16)
+
+(a) Target context length 5. 200 400 600 800 1000  
+
+> # samples (MCMC) / steps (SVI)
+> 0.00
+> 0.05
+> 0.10
+> 0.15
+> 0.20
+> 0.25
+> 0.30
+> 0.35
+> 0.40
+> TV
+> MCMC
+> MCMC-HIER
+> SVI
+> SVI-HIER
+> with prefix (mean=0.032)
+> no prefix (mean=0.047)
+
+(b) Target context length 20. 
+
+Figure 8. TV divergence between the PPDs produced by different inference methods and the oracle PPD (approximated from converged MCMC) for logistic regression. The x-axis is the number of posterior samples for MCMC models and the number of optimization steps for SVI models. MCMC models are given 1000 warmup steps prior to collecting any posterior samples. 
+
+(a) Multi-task ICL. (b) MCMC-HIER (upperbound). (c) SVI-hier. 
+
+Figure 9. Heatmaps of TV divergence to the oracle PPD from ( left ) multi-task ICL, ( middle ) hierarchical MCMC, and ( right ) hierarchical SVI. Rows index the minimum log ν included in the meta-training mixture (increasing tail-heaviness downward), and columns sweep the test prior log ν, covering IMD and OoMD regimes. Lower (darker) values indicate better agreement with the oracle. 
+
+## G. Supplementary Analyses 
+
+G.1. Permutation Sensitivity Evaluations. 
+
+We evaluate permutation sensitivity for prior w ∼ N (0, I ) and target context length 20 in the logistic regression setting (same setup as Figure 3(b)). For each evaluation example, we generate 10 permuted versions of the same prefix and compute: (i) the average pairwise symmetric KL between the resulting model PPDs, using 0.5 KL( q1 ∥, q 2) + KL( q2 ∥ q1), and (ii) the mean and standard deviation of KL to the oracle across the 10 permutations. We then average these per-example statistics over 60 independently sampled evaluation examples and report mean ± SEM in Table 6. We can see that although the decoder-only causal prefix is not exchangeable by construction, our model’s empirical sensitivity to permutations is diminutive under this experiment. Model performance also remains close to the oracle. 16 Multi-Task Bayesian In-Context Learning                                     
+
+> Figure 10. TV divergence versus wall-clock inference time for spiral flow priors with high-dimensional latents.
+> Table 6. Permutation sensitivity in the logistic regression setting with prior w∼ N (0, I )and target context length 20, matching Figure 3(b). Entries are mean ±SEM over 60 evaluation examples. Permutation Oracle KL Oracle KL Std. Pairwise Sym. KL Pairwise Sym. KL Std. Prior dataset order 0.005 ±0.004 0.0005 ±0.0006 0.0002 ±0.0001 0.0001 ±0.0002
+> Within-dataset points 0.005 ±0.004 0.0005 ±0.0005 0.0001 ±0.0001 0.0001 ±0.0001
+
+G.2. Experiments on Varying the Number of Prior Datasets K
+
+G.2.1. T RAINING ON FIXED K
+
+To study how model performance depends on the amount of prior evidence, we trained separate models for number of prior tasks K ∈ { 1, 5, 20 , 30 } and evaluated each model in the corresponding regime. We report two quantities. First, to assess predictive quality, we measure KL between the PPD estimated by multi-task ICL and the oracle MCMC PPD. Second, to probe “shrinkage” of prior given more evidence of prior (larger K), we also measure the variability of the model’s PPD under repeated resampling of the prior prefix while holding the target context fixed. For each test target context and each K, we sample 10 prior prefixes from the same prior, compute the model PPD for each prefix, and report the average pairwise KL divergence among these PPDs. If the model is performing hierarchical inference, this between-prefix variability should decrease with K, since larger collections of prior tasks provide a more concentrated estimate of the shared prior. In terms of quality, KL to oracle is already low at K = 1 and remains small across all tested K. More importantly, in terms of hierarchical inference, the between-prefix variability decreases sharply and monotonically with K. Thus, as more prior datasets are provided, the inferred predictive distribution becomes markedly less sensitive to the particular sampled prefix, which is exactly the qualitative behavior expected if the model is using additional prior-task evidence to form a more concentrated estimate of the shared prior. 17 Multi-Task Bayesian In-Context Learning                                                         
+
+> Table 7. Sensitivity to the number of prior datasets K. Entries are mean ±SEM.
+> KKL to oracle KL std. across prefixes Pairwise sym. KL Pairwise sym. KL std.
+> 10.0064 ±0.00064 0.0068 ±0.00092 0.0074 ±0.00071 0.0088 ±0.00085 50.0036 ±0.00018 0.0026 ±0.00023 0.0036 ±0.00031 0.0043 ±0.00041 20 0.0052 ±0.00051 0.0014 ±0.00015 0.0014 ±0.00014 0.0014 ±0.00018 30 0.0040 ±0.00027 0.00098 ±0.00010 0.00090 ±0.000074 0.00098 ±0.000095
+
+G.2.2. T RAINING ON VARYING K AND LENGTH EXTRAPOLATION TEST 
+
+In addition, we trained a single multi-task ICL model with the number of prior datasets K sampled during training from 
+
+K ∈ [0 , 10] , and evaluated this same model with varying K.We test both In-Meta-Distribution (IMD) settings, where K ∈ { 1, 5, 10 }, and Out-of-Meta-Distribution (OoMD) settings, where K ∈ { 15 , 20 } and K is larger than max training K. We focus on OoMD larger K rather than smaller K because smaller-K cases can always be obtained during training by subsampling from examples with larger K, so generalization to fewer prior datasets is naturally covered by the variable-K training setup. In contrast, inference with substantially larger K
+
+than seen in training is the more meaningful and difficult test also due to length extrapolation. The rest of the setup matches our previous rebuttal experiment. We use the same two metrics as in our previous response: KL to oracle for predictive accuracy and pairwise symmetric KL across prior-prefix resamplings for shrinkage/PPD stability.                                                                                                    
+
+> Table 8. Comparison across different numbers of prior datasets K. Entries are mean ±SEM. Method K= 1 K= 5 K= 10 K= 15 (OoMD) K= 20 (OoMD) MCMC-Hier 0.0071 ±0.0011 0.0039 ±0.00059 0.0025 ±0.00024 0.0022 ±0.00023 0.0022 ±0.00014
+> SVI-Hier 0.0089 ±0.0012 0.0041 ±0.00040 0.0032 ±0.00023 0.0033 ±0.00030 0.0022 ±0.00013
+> Multi-task ICL 0.0064 ±0.00097 0.0027 ±0.00037 0.0014 ±0.00013 0.029 ±0.0028 0.032 ±0.0027
+> Table 9. Sensitivity of multi-task ICL across different numbers of prior datasets K. Entries are mean ±SEM.
+> KKL to oracle Pairwise sym. KL
+> 10.0062 ±0.00062 0.0078 ±0.00073 50.0027 ±0.00017 0.0034 ±0.00030 10 0.0014 ±0.000072 0.0016 ±0.00012 15 (OoMD) 0.024 ±0.0010 0.026 ±0.00079 20 (OoMD) 0.031 ±0.0013 0.035 ±0.00094
+
+In the IMD regime, multi-task ICL adapts very well to different amounts of prior evidence: KL to oracle remains low and is even slightly better than MCMC-hier on the test dataset, while pairwise symmetric KL decreases sharply with K, indicating that the model’s PPD becomes less sensitive to the sampled prior prefix as more prior datasets are observed. This is the expected qualitative signature of prior shrinkage under hierarchical inference. In the OoMD regime ( K = 15 , 20 ), performance degrades in both metrics, but the model still yields a reasonably bounded KL. We believe this degradation is driven largely by sequence-length extrapolation: when K at test time is much larger than the maximum seen during training, the total input length, which scales with both K and per-dataset size M , becomes far longer than anything encountered during training, and such length extrapolation remains challenging for standard transformers. 
+
+G.3. Logistic Regression Results with Non-Zero Prior Mean. 
+
+In this section we explain why we fix the mean of prior distribution μ = 0 when using logistic regression likelihood. In the logistic model y | x, w ∼ Bernoulli( σ(w⊤x)) with w ∼ N (μ1, I ) and x ∼ N (0, I ), for fixed x we have 
+
+w⊤x ∼ N (μ1⊤x, ∥x∥2). When μ = 0 , the logit distribution is centered around 0, so after marginalizing over w, the predictive probabilities remain concentrated around the high-uncertainty regime of the sigmoid rather than its saturated tails. 18 Multi-Task Bayesian In-Context Learning 
+
+As |μ| increases, the logit distribution shifts away from 0, so the sigmoid is more often in a saturated regime and the labels become increasingly close to deterministic. Thus, large |μ| reduces the difficulty of the posterior predictive task in logistic regression. This saturation effect is specific to the logistic likelihood and is the reason we fixed μ = 0 in that setting. In Table 10, we additionally evaluated logistic regression over the same range μ ∈ [−8, 8] as in the linear regression experiments and the qualitative conclusions remain unchanged for multi-task ICL, although OoMD test prior does have a negative impact. The setting is the same as in Figure 3(b) (target context length 20), except that here we additionally vary μ across columns. Table values are KL to oracle (mean ± sem). For the Bayesian baselines, we report the 1000-sample (MCMC) / 1000-step (SVI) results, which correspond to the maximal-compute setting in Figure 3(b) and to their best achieved performance.       
+
+> Table 10. Comparison of different values of μunder logistic regression. Values are reported as mean ±standard error across test samples. All values are scaled by 10 −3.
+
+Method μ = 0 μ = 4 μ = 8 μ = 10 (OoMD) MCMC 1.41 ± 0.09 0.71 ± 0.04 0.39 ± 0.02 0.33 ± 0.02 
+
+MCMC-hier 2.17 ± 0.14 1.30 ± 0.10 1.59 ± 0.29 5.59 ± 0.30 
+
+SVI 1.66 ± 0.07 0.70 ± 0.03 0.39 ± 0.01 0.30 ± 0.02 
+
+SVI-hier 2.22 ± 0.13 126 .57 ± 10 .92 428 .20 ± 28 .67 580 .19 ± 35 .70 
+
+ICL (with prefix) 5.06 ± 0.55 1.81 ± 0.30 1.33 ± 0.23 3.69 ± 0.27 
+
+ICL (no prefix) 12 .64 ± 2.01 14 .13 ± 2.96 37 .04 ± 2.91 62 .67 ± 3.42 
+
+G.4. OoMD Results for FLow-Based Prior Experiments. 
+
+To directly evaluate OoMD generalization, we ran an additional experiment at μ = 12 , which lies outside the training support. The new result in Table 11 supports the same conclusion as in the in-distribution setting: multi-task ICL remains    
+
+> Table 11. Comparison of hierarchical Bayesian references and multi-task ICL when testing under OoMD spiral-flow prior with μ= 12 .
+
+Method K KL to oracle Wall-clock time (s) MCMC-hier 50 0.264 ± 0.024 1.30 × 10 3
+
+MCMC-hier 1000 0.246 ± 0.024 1.65 × 10 4
+
+SVI-hier 1000 0.788 ± 0.043 9.49 × 10 2
+
+Multi-task ICL N/A 0.262 ± 0.024 6.24 × 10 −3
+
+close to hierarchical MCMC in predictive accuracy even under an OoMD shift in μ, while being several orders of magnitude faster at inference time. 
+
+## H. ERA5 Details 
+
+H.1. Experiment Details Dataset and task. We consider surface air temperature prediction over Central Europe using ERA5 data from 2019 and 2020. The spatial domain covers latitudes in [42 ◦, 53 ◦] and longitudes in [8 ◦, 28 ◦]. The data have a spatial resolution of 
+
+0.25 ◦ in both latitude and longitude. We subsample the temporal dimension to retain 6-hourly timestamps, namely 00:00, 06:00, 12:00, and 18:00. Each input coordinate x is four-dimensional, consisting of latitude, longitude, time, and elevation. Elevation is computed from the geopotential variable in ERA5. The response y is the standardized 2-meter temperature. Both inputs and outputs are standardized using statistics computed on the corresponding training distribution. 
+
+Input sequence construction. Each dataset is constructed by sampling a 10 × 10 latitude-longitude patch, corresponding to a 2.5◦ × 2.5◦ spatial region, together with a 3-step temporal window spanning 18 hours. This yields 10 × 10 × 3 = 300 
+
+spatiotemporal points per dataset. The target dataset consists of one such 300-point patch. For K ∈ { 0, 2}, we optionally sample K auxiliary datasets from the same spatial patch but from non-overlapping temporal windows. These auxiliary datasets serve as prior-prefix datasets. The loss is applied only to the 300 target-dataset points. 19 Multi-Task Bayesian In-Context Learning  
+
+> Figure 11. Ablation model of multi-task ICL that has the permutation invariance between prior datasets enforced.
+
+Splits. We use 16,000 training episodes, 2,000 validation episodes, and 2,000 test episodes. In the 2019 IID split, train, validation, and test episodes are sampled from the full year of 2019. In the 2019 OOD split, training episodes are sampled from the first six months of 2019 excluding the final 14 days, validation episodes are sampled from those final 14 days, and test episodes are sampled from the last six months of 2019. For the 2020 Test evaluation, we take checkpoints selected on the 2019 IID validation set and evaluate them on episodes sampled from the full year of 2020. 
+
+Training and model selection. We train all models with batch size 64 using AdamW with weight decay 10 −2. The learning-rate schedule uses 500 warmup steps followed by cosine decay. We apply gradient clipping with maximum norm 1.0 and enable RoPE. Models are trained for at most 1000 epochs, with early stopping patience 50. Early stopping and checkpoint selection is based on validation negative log-likelihood (NLL). For each model and split, we sweep the learning rate over 
+
+{10 −6, 5×10 −6, 10 −5, 5×10 −5, 10 −4, 5×10 −4, 10 −3}.
+
+H.2. Set-Aggregated Multi-Task ICL 
+
+We implement a variant of multi-task ICL, which we refer to as Set-MT in Table 3, that treats the collection of prior datasets as an unordered set while preserving the internal order of observations within each dataset. We do not enforce permutation invariance within each dataset because, for the ERA5 task, datapoints inside one dataset are sampled from the same local spatiotemporal patch and are therefore naturally correlated. The model architecture is illustrated in Figure 11. Each prior dataset is first processed independently by a shared causal-mask transformer, producing a sequence of hidden embeddings for that prior dataset. We use local positional embeddings within each dataset, resetting the positional indices for every prior dataset. This prevents the model from depending on an arbitrary ordering of the prior datasets. The resulting prior-dataset representations are then concatenated and passed through a bidirectional-mask transformer, allowing information to be exchanged across all prior datasets. Because the prior datasets are encoded with shared parameters and local positional embeddings, this block acts as a permutation-equivariant set aggregator over prior datasets. The target dataset is then processed together with the aggregated prior representation using a final hybrid block-structured-mask transformer. In this final block, prior tokens can attend bidirectionally to other prior tokens, while target tokens attend to all prior tokens and only to preceding target tokens. The model therefore conditions target predictions on aggregated prior information without allowing leakage from future target outputs. Finally, the model predicts the target responses autoregressively using the same Gaussian likelihood parameterization as MT-ICL. In our ERA5 experiments, we use a 4-layer transformer for each of the blocks described above. 20

@@ -6,26 +6,29 @@
 </div>
 
 ## 每次日报
-- 最新运行日期：2026-06-19
-- 运行时间：2026-06-19 21:57:41 UTC
+- 最新运行日期：2026-06-20
+- 运行时间：2026-06-20 21:16:10 UTC
 - 运行状态：成功
 - 本次总论文数：2
-- 精读区：1
-- 速读区：1
+- 精读区：2
+- 速读区：0
 
 ### 今日简报（AI）
-今天精读了一篇高分论文，探讨了如何让AI像人类一样从少数例子中快速学会多个任务。最值得关注的方向是贝叶斯推理与上下文学习的结合，这能让模型更可靠地权衡新信息与已有知识。建议感兴趣的读者可以关注这类方法在医疗诊断或个性化推荐上的应用潜力。
-- 详情：[/202606/19/README](/202606/19/README)
+今日精读两项满分级研究，聚焦AI如何像人类一样“少说多做”：通过技能行为压缩实现动态适配，以及用上下文学习自主迁移深度学习负载。
+最值得关注的方向：SoftSkill让AI在复杂场景中仅需极简指令即可切换技能，而Agentic Framework展示了智能体无监督完成算力调度迁移的潜力。
+下一步，可以思考这些技术将如何让你手机里的智能助手更懂你的意图，悄然帮你搞定跨设备任务。
+- 详情：[/202606/20/README](/202606/20/README)
 
 ### 精读区论文标签
-1. [Multi-Task Bayesian In-Context Learning](/202606/19/2606.20538v1-multi-task-bayesian-in-context-learning)  
+1. [SoftSkill: Behavioral Compression for Contextual Adaptation](/202606/20/2606.20333v1-softskill-behavioral-compression-for-contextual-adaptation)  
+   标签：评分：10.0/10、query:prompt-learn
+   evidence：通过下一个令牌预测调节紧凑的连续上下文对象（软增量）作为行为先验，等同于软提示调优。
+2. [Agentic Framework for Deep Learning workload migration via In-Context Learning](/202606/20/2606.15994v1-agentic-framework-for-deep-learning-workload-migration-via-in-context-learning)  
    标签：评分：9.0/10、query:prompt-learn
-   evidence：用于摊销层次贝叶斯预测的多任务上下文学习框架
+   evidence：结合上下文学习（ICL）与基于执行神谕的自调试，构建ICL语境作为严格参考
 
 ### 速读区论文标签
-1. [TacStyle: Personalizing Tactile Robot Policies using Structured Behavior Representations](/202606/19/2606.14862v1-tacstyle-personalizing-tactile-robot-policies-using-structured-behavior-representations)  
-   标签：评分：6.0/10、query:prompt-learn
-   evidence：使用语言提示来确定任务并学习结构化行为表示以实现个性化
+- 本次无速读推荐。
 
 
 <div class="dpr-home-promo-card">

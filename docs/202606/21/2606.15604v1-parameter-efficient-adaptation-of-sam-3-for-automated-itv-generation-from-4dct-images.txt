@@ -1,0 +1,177 @@
+Title: Parameter-Efficient Adaptation of SAM 3 for Automated ITV Generation from 4DCT Images
+
+URL Source: https://arxiv.org/pdf/2606.15604v1
+
+Published Time: Tue, 16 Jun 2026 01:17:44 GMT
+
+Number of Pages: 10
+
+Markdown Content:
+# Parameter-Efficient Adaptation of SAM 3 for Automated ITV Generation from 4DCT Images 
+
+Changwoo Song 1,2 
+
+> 1
+
+Oncosoft Inc., Seoul, South Korea  
+
+> 2
+
+Department of Computer Science & Engineering, Chungnam National University, Daejeon, South Korea 
+
+song921216@gmail.com 
+
+Abstract. Four-dimensional computed tomography (4DCT) captures the full respiratory cycle of thoracic anatomy, yet current Internal Tar-get Volume contouring workflows process each phase in isolation, discard-ing temporal coherence and leaving contours vulnerable to phase-specific artifacts. We present a lightweight framework that applies parameter-efficient fine-tuning to the Segment Anything Model 3 (SAM 3) via low-rank adaptation (LoRA) to align its text-prompted segmentation with the medical domain using only seven annotated 3D CT volumes. Fur-thermore, the framework incorporates a hard negative mining strategy to improve boundary discrimination in low-contrast thoracic regions. At inference, phase-wise predictions are refined through phase-coherent tem-poral filtering and spatial connectivity analysis. Since respiratory motion is continuous and periodic, genuine anatomy appears in contiguous blocks of phases, whereas transient artifacts appear sporadically and are thus effectively suppressed. Experiments on pulmonary and cardiac structures yield median Dice scores of 0.968 and 0.910 with 95th-percentile Haus-dorff distances of 0.998 mm and 2.931 mm, respectively. The proposed framework effectively eliminates the severe false-positive predictions in-herent in the zero-shot inference of the unadapted SAM 3. With only seven annotated volumes, the framework retains over 95% of full-data accuracy, and the entire pipeline is trainable on a single consumer-grade GPU, demonstrating a scalable, data-efficient solution for adaptive ra-diotherapy. 
+
+Keywords: 4DCT · Internal Target Volume · Segment Anything Model 
+
+· Parameter-Efficient Fine-Tuning · Adaptive Radiotherapy. 
+
+## 1 Introduction 
+
+Respiratory motion remains a principal source of geometric uncertainty in tho-racic radiotherapy. The Internal Target Volume (ITV), defined as the envelope of the clinical target volume across all respiratory phases [8], is the standard ap-proach for encapsulating this motion [19, 10]. Four-dimensional computed tomog-raphy (4DCT) [20] provides the temporal resolution needed to capture the full breathing cycle; however, current clinical practice typically derives the ITV by  
+
+> arXiv:2606.15604v1 [cs.CV] 14 Jun 2026 2C. Song
+
+contouring each phase independently and merging the results, a labor-intensive procedure that scales poorly with the number of structures and phases [10, 1]. Deep learning has shown remarkable success in automating medical im-age segmentation [18, 9, 6, 21], yet deploying such models in radiotherapy work-flows faces persistent obstacles: large annotation requirements [14]—especially for 4DCT with ten or more phase volumes per scan—prohibitive GPU costs, and the neglect of inter-phase temporal coherence that could suppress transient artifacts. Foundation models such as the Segment Anything Model (SAM) [11, 16] have demonstrated strong zero-shot generalization on natural images, yet the substantial domain gap to CT—low soft-tissue contrast, narrow Hounsfield-unit windows, and absence of color cues—renders direct application unreliable [14, 25, 22]. Full fine-tuning of a billion-parameter model demands hundreds of annotated volumes and multi-GPU infrastructure, placing it out of reach for most clin-ical sites. Parameter-Efficient Fine-Tuning (PEFT) via Low-Rank Adaptation (LoRA) [7] resolves this tension: by injecting small trainable rank-decomposition matrices into frozen transformer layers, LoRA enables effective domain transfer with minimal data and a single consumer-grade GPU [3]. In this work, we present a framework that bridges the gap between foundation-model capability and clinical 4DCT requirements. Our contributions are three-fold: 1. We demonstrate that text-prompted, LoRA-based PEFT of SAM 3 achieves robust thoracic segmentation with high data efficiency—requiring only seven 3D CT volumes. This serves as a highly efficient proof-of-concept that gener-alizes directly to unseen 4DCT phases in a zero-shot manner, incurring less than a 0.04 DSC drop on 3D CT benchmarks compared to 79-case training. 2. We introduce a hard negative mining (HNM) strategy tailored to low-contrast thoracic boundaries, improving boundary discrimination without additional annotation effort. 3. We propose a spatiotemporal filtering strategy leveraging respiratory pe-riodicity to retain only voxels in contiguous phase blocks. This robustly suppresses sporadic artifacts inherent in zero-shot predictions, yielding a clinically plausible ITV representation verified by a radiation oncologist. 
+
+## 2 Methods 
+
+2.1 Overview 
+
+Given a 4DCT acquisition V = {V1, V 2, . . . , V T } consisting of T respiratory phase volumes (typically T =10 ), our goal is to produce a consolidated ITV mask 
+
+MITV for each target structure. The pipeline comprises three key components: (1) LoRA-adapted SAM 3 generates per-phase segmentation masks { ˆMt}Tt=1 us-ing text prompts, (2) an HNM strategy applied during training to refine the learning signal in ambiguous regions, and (3) a spatiotemporal filter used at inference to fuse the T predictions into a single ITV. The overall inference ar-chitecture is illustrated in Fig. 1. SAM 3 Adaptation for Automated ITV Generation from 4DCT 3            
+
+> Fig. 1. Overview of the proposed framework. SAM 3is adapted via LoRA and prompted with target structure names. Phase-wise 3D predictions are filtered by res-piratory phase coherence and spatial connectivity to produce a unified ITV.
+
+2.2 Parameter-Efficient Fine-Tuning with LoRA 
+
+SAM 3 [2], the latest iteration of the Segment Anything Model, employs a vision transformer (ViT) [4] backbone pretrained on large-scale natural image–video datasets. While its architecture generalizes well to diverse visual domains, the distribution gap between natural scenes and low-contrast CT imagery necessi-tates domain adaptation. Full fine-tuning of the entire model is prohibitive for clinical sites with lim-ited GPU resources; we therefore freeze all pretrained weights and inject LoRA modules into all attention projection matrices (query, key, value, and output) of each transformer block. LoRA parameterizes the update of a frozen weight ma-trix W0 ∈ Rd×k via a low-rank decomposition W = W0 + BA , where B ∈ Rd×r ,
+
+A ∈ Rr×k, and rank r ≪ min( d, k ) [7]. Only A and B are trained, reducing the number of trainable parameters by over two orders of magnitude compared to full fine-tuning. SAM 3 accepts multi-modal prompts; we employ text prompts specifying the target structure name (e.g., “heart”, “lung”) to condition the decoder, eliminating the need for interactive point or bounding-box annotations during inference. 
+
+2.3 Hard Negative Mining 
+
+Thoracic CT exhibits regions where tissue boundaries are inherently ambiguous— for instance, the interface between the heart and the adjacent mediastinal fat, or the lung boundary near the diaphragm. Standard training with uniform sampling under-represents these challenging voxels, leading to false-positive predictions that propagate into the ITV. Inspired by contrastive learning and hard example mining [17, 12], we inte-grate an HNM strategy into our loss objective. After each forward pass, we iden-tify voxels that are predicted as foreground but labeled as background (i.e., false positives), and rank them by prediction confidence. These voxels are re-weighted 4 C. Song 
+
+in the loss computation, which combines a Dice loss [15] with a focused binary cross-entropy term: 
+
+L = LDice + λ · 1
+
+|H| 
+
+X
+
+> i∈H
+
+ℓBCE (ˆ pi, y i), (1) where H denotes the hard negative set, ˆpi is the predicted probability, yi is the ground-truth label, and λ controls the mining strength. This encourages the model to allocate representational capacity to the most confusable regions, directly reducing false-positive rates without requiring additional annotations. 
+
+2.4 Spatiotemporal Filtering for ITV Generation 
+
+A key observation is that anatomical structures move along a continuous, quasi-periodic trajectory throughout the respiratory cycle. Consequently, if a voxel truly belongs to a target organ, it should be detected in a contiguous block of respiratory phases rather than sporadically. Transient artifacts—such as motion blur at phase transitions or streak artifacts—appear in isolated, non-adjacent phases and can therefore be distinguished from genuine anatomy. We exploit this property through a two-stage filtering process. 
+
+Phase Coherence. For each voxel position x, let ˆMt(x) ∈ { 0, 1} denote the binary prediction from phase t. Since the respiratory cycle is periodic (phase T
+
+is adjacent to phase 1), we define the maximum circular run length R(x) as the longest contiguous block of consecutive phases in which the voxel is detected. A voxel is retained if R(x) ≥ Rmin , where Rmin is a minimum-consecutive-phase threshold. 
+
+Spatial Connectivity. After phase-coherence filtering, residual isolated voxel clus-ters may persist due to prediction noise. We apply connected-component analysis and discard components smaller than a volume threshold Vmin , retaining only spatially coherent regions. The final ITV is obtained as: 
+
+MITV (x) = CC ≥Vmin 
+
+1[R(x) ≥ Rmin ], (2) where CC ≥Vmin [·] retains connected components exceeding Vmin voxels. 
+
+## 3 Experiments and Results 
+
+3.1 Dataset and Implementation Details 
+
+Dataset. Two distinct datasets were used. For LoRA fine-tuning , we curated a separate collection of conventional 3D CT volumes with expert-delineated heart and bilateral lung contours. The full set of 89 cases was split into 79 for training, 5 for validation, and 5 for testing. We investigated training set sizes of 79, 39, 19, and 7 cases (100%, 50%, 25%, and 10% of the training set) to evaluate data SAM 3 Adaptation for Automated ITV Generation from 4DCT 5
+
+efficiency; the minimal configuration uses only seven annotated 3D CT volumes. Training slices were augmented with boundary-proximal background slices— axial slices adjacent to organ boundaries that contain no foreground—at a ratio of 30% relative to positive slices. For 4DCT evaluation , we adopted the publicly available "CT-vs-PET-Ventilation-Imaging" dataset from The Cancer Imaging Archive (TCIA) [5], comprising 4DCT scans of 20 lung cancer patients sorted into 10 respiratory phase bins (0%–90%). The LoRA-adapted model, trained exclusively on 3D CT, was applied to each phase without further fine-tuning. 
+
+Implementation. Experiments were conducted on a single NVIDIA RTX 3080 GPU ( 10 GB VRAM). SAM 3 was initialized from its publicly available pre-trained weights. LoRA modules ( r=8 ) were injected into all attention projections of every transformer layer, yielding approximately 1.59 M trainable parameters— less than 0.19% of the 842 M total. While prior medical SAM adaptations [24] often restrict LoRA to specific projections to minimize overhead, we extended it to the entire attention block to fully leverage SAM 3’s representation power. We trained for up to 20 epochs using the AdamW optimizer [13] with a fixed learning rate of 1 × 10 −4 and early stopping (patience of 5 epochs on validation DSC). The HNM ratio was set to |H| =256 voxels per batch, with λ=0 .5. To prevent training collapse from premature boundary penalization, λ is held at zero for the first three epochs (warm-up) and then linearly increased to its target value over five epochs. For spatiotemporal filtering, we set Rmin =3 (requiring detection in at least three consecutive respiratory phases) and Vmin =100 voxels. 
+
+3.2 Quantitative Results 
+
+Without adaptation, zero-shot SAM 3 yields near-zero DSC (0.028 and 0.082 for the “heart” and “lung” prompts, respectively) on thoracic CT, confirming the large domain gap between natural and medical images. LoRA adaptation im-proves segmentation accuracy (DSC of 0.603 and 0.663, respectively); however, the 95th-percentile Hausdorff Distance (HD95) of 111.8 mm and 89.6 mm in-dicate persistent distant false positives outside the target organs. Incorporating HNM resolves this issue: the heart DSC reaches 0.910 with an HD95 of 2.931 mm, and the lung DSC reaches 0.968 with an HD95 of 0.998 mm, as summarized in Table 1. This effect is illustrated qualitatively in Fig. 2: at central slices both adapted models approximate the ground truth, whereas at boundary and distant slices only the model trained with HNM effectively suppresses false positives. 
+
+3.3 Ablation Studies 
+
+Effect of Training Set Size. We trained four models using 79, 39, 19, and 7 an-notated 3D CT volumes (100%, 50%, 25%, and 10%) and evaluated each on the held-out test set. The results are summarized in Table 2 and Fig. 3. For the tar-gets prompted with "heart" and "lung", the DSC gap between the largest (79 cases) and smallest (7 cases) training sets remains under 0.04, demonstrating 6 C. Song                       
+
+> Table 1. Segmentation performance comparison on the held-out test set. Best results are underlined.
+> “heart” “lung” Method DSC HD95 DSC HD95 SAM 3 (zero-shot) 0.028 319.452 0.082 328.962 SAM 3 + LoRA 0.603 111.828 0.663 89.608 SAM 3 + LoRA + HNM 0.910 2.931 0.968 0.998
+> Fig. 2. Qualitative comparison across three axial slices. Red: prediction; green: ground truth. (a) Input CT. (b) Zero-shot SAM 3. (c) LoRA. (d) LoRA + HNM. (e) Ground truth. Top to bottom: central, boundary, and distant cardiac slices.
+
+that the proposed adaptation (LoRA + HNM) reaches near-saturation perfor-mance with remarkably few samples. This confirms that LoRA’s low-rank update preserves the pretrained representations, requiring only a few domain-specific ex-amples to overcome the natural-to-medical distribution shift. 
+
+4DCT ITV Generation. To evaluate clinical applicability, we applied the trained model (LoRA + HNM) to the TCIA 4DCT dataset (20 patients, 10 phases each) without further fine-tuning, filtering predictions with Rmin =3 and Vmin =100 
+
+voxels. Since no expert-delineated ITV ground truth is available, the generated contours were visually assessed by a radiation oncologist. Across all 20 patients, the ITVs were judged anatomically plausible, suggesting that a model trained solely on 3D CT generalizes to 4DCT phases and that spatiotemporal filtering effectively integrates phase-wise predictions into a clinically usable ITV. The ef-fect of spatiotemporal filtering on representative cardiac axial slices is illustrated in Fig. 4. 
+
+## 4 Discussion and Conclusion 
+
+We have presented a data-efficient, resource-aware framework for automated ITV generation from 4DCT. By adapting SAM 3 through LoRA on only seven SAM 3 Adaptation for Automated ITV Generation from 4DCT 7
+
+Table 2. Data-efficiency ablation. ∆DSC denotes the drop relative to the 100% base-line. 
+
+“heart” “lung” Training Cases (%) DSC ∆DSC DSC ∆DSC 79 (100%) 0.910 – 0.968 –39 (50%) 0.886 0.024 0.967 0.001 19 (25%) 0.878 0.032 0.963 0.005 7 (10%) 0.872 0.038 0.953 0.015 100 50 25 10       
+
+> Training Data (%)
+> 0.84
+> 0.86
+> 0.88
+> 0.90
+> 0.92
+> 0.94
+> 0.96
+> 0.98
+> DSC  0.910
+> 0.968
+> 0.886
+> 0.967
+> 0.878
+> 0.963
+> 0.872
+> 0.953
+> Heart
+> Lung
+> 100 50 25 10
+> Training Data (%)
+> 88
+> 90
+> 92
+> 94
+> 96
+> 98
+> 100
+> Performance Retention (%)
+> 100.0%
+> 100.0%
+> 97.4%
+> 99.9%
+> 96.5%
+> 99.5%
+> 95.8%
+> 98.5%
+> Heart
+> Lung
+> 90% threshold
+> 79 39 19 7
+> Number of Training Cases
+
+Fig. 3. Data efficiency: DSC (left) and performance retention (right) as training set size decreases. Both organs retain >95% of full-data accuracy with only 7 cases. 
+
+annotated 3D CT volumes—with a DSC degradation of under 0.04 relative to 79-case training—and applying it directly to unseen 4DCT phases, our approach circumvents the two most cited barriers to clinical deployment of deep learning segmentation: data scarcity and computational cost. The compact 3.2 GB model trained on a single consumer-grade GPU ( 10 GB VRAM) is directly transferable to clinical workstations, eliminating the dependency on dedicated computing infrastructure. Incorporating the HNM strategy substantially reduces HD95 by eliminating distant false positives, and spatiotemporal filtering further suppresses sporadic artifacts at the ITV level. Visual assessment by a radiation oncologist confirmed anatomically plausible ITVs across all 20 TCIA patients, despite the absence of 4DCT-specific training data—an important clinical benefit, as spurious contour regions inflate the ITV and potentially expose healthy tissue to unnecessary dose. From an adaptive radiotherapy perspective [23], the pipeline’s efficiency facil-itates rapid re-segmentation within minutes upon the acquisition of new 4DCT scans, and the text-prompted interface allows clinicians to target different struc-tures without retraining. 8 C. Song           
+
+> Fig. 4. Spatiotemporal filtering on representative cardiac axial slices. (a) AIP (average of 10 phases). (b) Union ITV (red). (c) Refined ITV (green, Rmin =3 ). (d) Retained ITV (green) and removed noise (yellow). Top: cardiac boundary; bottom: distant slice.
+
+The primary limitations of this study are twofold: (1) the 4DCT evaluation relies on qualitative expert assessment due to the inherent clinical difficulty of es-tablishing voxel-perfect ITV ground truth across continuous respiratory phases, and (2) the dataset originates from a single institution and scanner vendor (TCIA CT-vs-PET-Ventilation-Imaging, 20 patients) [5]. Multi-center validation with quantitative evaluation against consensus expert contours would strengthen the generalizability claim. Additionally, extending this zero-shot framework to gross tumor volume (GTV) segmentation in the presence of large respiratory excur-sion (e.g., lower-lobe lung tumors) warrants dedicated investigation, as tumor boundaries are inherently more ambiguous than those of organs at risk (OARs) such as the heart and lungs. In conclusion, our results demonstrate that combining parameter-efficient foundation model adaptation with spatiotemporal 4DCT integration provides a scalable, highly data-efficient proof-of-concept for automated motion envelope generation. Validated on principal thoracic organs, this framework demonstrates that robust 4DCT ITV generation is achievable even without 4DCT-specific training data, establishing a strong foundation for future extension to complex tumor ITVs. SAM 3 Adaptation for Automated ITV Generation from 4DCT 9
+
+## References 
+
+1. Cardenas, C.E., Yang, J., Anderson, B.M., Court, L.E., Brock, K.B.: Advances in auto-segmentation. In: Seminars in radiation oncology. vol. 29, pp. 185–197. Elsevier (2019) 2. Carion, N., Gustafson, L., Hu, Y.T., Debnath, S., Hu, R., Suris, D., Ryali, C., Al-wala, K.V., Khedr, H., Huang, A., Lei, J., Ma, T., Guo, B., Kalla, A., Marks, M., Greer, J., Wang, M., Sun, P., Rädle, R., Afouras, T., Mavroudi, E., Xu, K., Wu, T.H., Zhou, Y., Momeni, L., Hazra, R., Ding, S., Vaze, S., Porcher, F., Li, F., Li, S., Kamath, A., Cheng, H.K., Dollár, P., Ravi, N., Saenko, K., Zhang, P., Feichtenhofer, C.: Sam 3: Segment anything with concepts (2025), https://arxiv.org/abs/2511.16719 3. Ding, N., Qin, Y., Yang, G., Wei, F., Yang, Z., Su, Y., Hu, S., Chen, Y., Chan, C.M., Chen, W., et al.: Parameter-efficient fine-tuning of large-scale pre-trained language models. Nature machine intelligence 5(3), 220–235 (2023) 4. Dosovitskiy, A., Beyer, L., Kolesnikov, A., Weissenborn, D., Zhai, X., Unterthiner, T., Dehghani, M., Minderer, M., Heigold, G., Gelly, S., Uszkoreit, J., Houlsby, N.: An image is worth 16x16 words: Transformers for image recognition at scale (2021), https://arxiv.org/abs/2010.11929 5. Eslick, E.M., Kipritidis, J., Gradinscak, D., Stevens, M.J., Bai-ley, D.L., Harris, B., Booth, J.T., Keall, P.J.: Ct ventilation as a functional imaging modality for lung cancer radiotherapy (ct-vs-pet-ventilation-imaging) (2022). https://doi.org/10.7937/3PPX-7S22, https://www.cancerimagingarchive.net/collection/ct-vs-pet-ventilation-imaging/ 6. Hatamizadeh, A., Tang, Y., Nath, V., Yang, D., Myronenko, A., Landman, B., Roth, H., Xu, D.: Unetr: Transformers for 3d medical image segmentation (2021), https://arxiv.org/abs/2103.10504 7. Hu, E.J., Shen, Y., Wallis, P., Allen-Zhu, Z., Li, Y., Wang, S., Wang, L., Chen, W.: Lora: Low-rank adaptation of large language models (2021), https://arxiv.org/abs/2106.09685 8. International Commission on Radiation Units and Measurements: ICRU Report 62: Prescribing, Recording and Reporting Photon Beam Therapy (Supplement to ICRU Report 50). International Commission on Radiation Units and Measure-ments (1999) 9. Isensee, F., Jaeger, P.F., Kohl, S.A., Petersen, J., Maier-Hein, K.H.: nnu-net: a self-configuring method for deep learning-based biomedical image segmentation. Nature methods 18 (2), 203–211 (2021) 10. Keall, P.J., Mageras, G.S., Balter, J.M., Emery, R.S., Forster, K.M., Jiang, S.B., Kapatoes, J.M., Low, D.A., Murphy, M.J., Murray, B.R., et al.: The management of respiratory motion in radiation oncology report of aapm task group 76 a. Medical physics 33 (10), 3874–3900 (2006) 11. Kirillov, A., Mintun, E., Ravi, N., Mao, H., Rolland, C., Gustafson, L., Xiao, T., Whitehead, S., Berg, A.C., Lo, W.Y., et al.: Segment anything. In: Proceedings of the IEEE/CVF international conference on computer vision. pp. 4015–4026 (2023) 12. Lin, T.Y., Goyal, P., Girshick, R., He, K., Dollár, P.: Focal loss for dense object detection. In: Proceedings of the IEEE international conference on computer vision. pp. 2980–2988 (2017) 13. Loshchilov, I., Hutter, F.: Decoupled weight decay regularization (2019), https://arxiv.org/abs/1711.05101 10 C. Song 14. Ma, J., He, Y., Li, F., Han, L., You, C., Wang, B.: Segment anything in medical images. Nature communications 15 (1), 654 (2024) 15. Milletari, F., Navab, N., Ahmadi, S.A.: V-net: Fully convolutional neural networks for volumetric medical image segmentation (2016), https://arxiv.org/abs/1606.04797 16. Ravi, N., Gabeur, V., Hu, Y.T., Hu, R., Ryali, C., Ma, T., Khedr, H., Rädle, R., Rolland, C., Gustafson, L., et al.: Sam 2: Segment anything in images and videos. arXiv preprint arXiv:2408.00714 (2024) 17. Robinson, J., Chuang, C.Y., Sra, S., Jegelka, S.: Contrastive learning with hard negative samples (2021), https://arxiv.org/abs/2010.04592 18. Ronneberger, O., Fischer, P., Brox, T.: U-net: Convolutional networks for biomedi-cal image segmentation. In: International Conference on Medical image computing and computer-assisted intervention. pp. 234–241. Springer (2015) 19. Underberg, R.W., Lagerwaard, F.J., Slotman, B.J., Cuijpers, J.P., Senan, S.: Use of maximum intensity projections (mip) for target volume generation in 4dct scans for lung cancer. International Journal of Radiation Oncology* Biology* Physics 
+
+63 (1), 253–260 (2005) 20. Vedam, S., Keall, P., Kini, V., Mostafavi, H., Shukla, H., Mohan, R.: Acquiring a four-dimensional computed tomography dataset using an external respiratory signal. Physics in Medicine & Biology 48 (1), 45–62 (2003) 21. Wasserthal, J., Breit, H.C., Meyer, M.T., Pradella, M., Hinck, D., Sauter, A.W., Heye, T., Boll, D.T., Cyriac, J., Yang, S., et al.: Totalsegmentator: robust segmen-tation of 104 anatomic structures in ct images. Radiology: Artificial Intelligence 
+
+5(5), e230024 (2023) 22. Wu, J., Ji, W., Liu, Y., Fu, H., Xu, M., Xu, Y., Jin, Y.: Medical sam adapter: Adapting segment anything model for medical image segmentation (2023), https://arxiv.org/abs/2304.12620 23. Yan, D., Wong, J., Vicini, F., Michalski, J., Pan, C., Frazier, A., Horwitz, E., Mar-tinez, A.: Adaptive modification of treatment planning to minimize the deleterious effects of treatment setup errors. International Journal of Radiation Oncology* Biology* Physics 38 (1), 197–206 (1997) 24. Zhang, K., Liu, D.: Customized segment anything model for medical image seg-mentation (2023), https://arxiv.org/abs/2304.13785 25. Zhu, J., Hamdi, A., Qi, Y., Jin, Y., Wu, J.: Medical sam 2: Segment medical images as video via segment anything model 2 (2024), https://arxiv.org/abs/2408.00874

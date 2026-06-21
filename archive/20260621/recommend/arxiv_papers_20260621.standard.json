@@ -1,0 +1,178 @@
+{
+  "mode": "standard",
+  "generated_at": "2026-06-21T21:14:19.574159+00:00",
+  "stats": {
+    "mode": "standard",
+    "tag_count": 1,
+    "deep_divecandidates": 2,
+    "deep_cap": 6,
+    "deep_selected": 2,
+    "quick_candidates": 2,
+    "quick_skim_target": 11,
+    "quick_selected": 2
+  },
+  "deep_dive": [
+    {
+      "id": "2606.19157v1",
+      "source": "arxiv",
+      "title": "IndicContextEval: A Benchmark for Evaluating Context Utilisation in Audio Large Language Models Across 8 Indic Languages",
+      "abstract": "AudioLLMs enable speech recognition conditioned on textual prompts such as domain descriptions or entity lists. However, it remains unclear whether these models genuinely utilise such context or rely on parametric knowledge learned during pretraining. Existing benchmarks cannot answer this question because they evaluate transcription under fixed prompting conditions and rarely include explicit contextual inputs. We introduce IndicContextEval, a 56-hour multilingual benchmark of natural speech from 555 speakers across 8 Indian languages and 23 professional domains. We design a 7-level prompting framework that progressively introduces contextual signals, including metadata, natural-language descriptions, entity lists in English and native script, and adversarial prompts with incorrect entities. Evaluating five models reveals substantial differences in context utilisation behaviour, highlighting the need for explicit evaluation of contextual grounding in AudioLLMs.",
+      "authors": [
+        "Sakshi Joshi",
+        "Dhruv Subhash Rathi",
+        "Sanskar Singh",
+        "Eldho Ittan George",
+        "R J Hari",
+        "Kaushal Bhogale",
+        "Mitesh M. Khapra"
+      ],
+      "primary_category": "eess.AS",
+      "categories": [
+        "eess.AS",
+        "cs.CL"
+      ],
+      "published": "2026-06-17T14:59:37+00:00",
+      "link": "https://arxiv.org/pdf/2606.19157v1",
+      "tags": [
+        "keyword:prompt-learn",
+        "query:prompt-learn"
+      ],
+      "llm_score": 8.0,
+      "llm_evidence_en": "designs a prompting framework to evaluate how audio LLMs utilize textual prompts as context",
+      "llm_evidence_cn": "设计提示框架评估音频大语言模型如何利用文本提示作为上下文",
+      "llm_evidence": "设计提示框架评估音频大语言模型如何利用文本提示作为上下文",
+      "canonical_evidence": "设计提示框架评估音频大语言模型如何利用文本提示作为上下文",
+      "llm_tldr_en": "This paper introduces a multilingual benchmark with a 7-level prompting framework to assess whether audio LLMs genuinely use contextual prompts for speech recognition, finding that models struggle to utilize domain descriptions and entity lists.",
+      "llm_tldr_cn": "针对音频大语言模型是否能真正利用文本提示中的上下文信息的问题，本文构建了一个多语言基准，包含7级提示框架，通过逐步引入元数据、自然语言描述等上下文信号，评估模型在语音识别中的上下文利用能力，发现现有模型难以有效利用领域描述和实体列表等信息。",
+      "llm_tldr": "针对音频大语言模型是否能真正利用文本提示中的上下文信息的问题，本文构建了一个多语言基准，包含7级提示框架，通过逐步引入元数据、自然语言描述等上下文信号，评估模型在语音识别中的上下文利用能力，发现现有模型难以有效利用领域描述和实体列表等信息。",
+      "llm_tags": [
+        "query:prompt-learn"
+      ],
+      "matched_query_tag": "query:prompt-learn",
+      "matched_query_text": "discrete natural language prompts for guiding models",
+      "matched_requirement_id": "req-2",
+      "selection_source": "fresh_fetch"
+    },
+    {
+      "id": "2606.19635v1",
+      "source": "arxiv",
+      "title": "Token Factory: Efficiently Integrating Diverse Signals into Large Recommendation Models",
+      "abstract": "Large Recommendation Models (LRMs) have demonstrated promising capabilities in industry-scale recommendation tasks. However, holistically integrating traditional signals into these transformer-based architectures effectively and efficiently remains a major challenge. Conventional approaches that \"textualize\" these signals directly or create discrete item representations often lead to excessively long prompts, substantial memory footprints, and high computational overhead. To overcome these limitations, we propose \"Token Factory\", a framework designed to transform traditional signals into \"soft tokens\" that can be directly processed by LRMs. This approach enables efficient integration and compression of heterogeneous input features, preventing prompt length explosion while enhancing model performance. We detail the architecture of Token Factory and present experimental results validating its effectiveness in a production-scale recommendation environment.",
+      "authors": [
+        "Xilun Chen",
+        "Shao-Chuan Wang",
+        "Baykal Cakici",
+        "Lukasz Heldt",
+        "Lichan Hong",
+        "Raghu Keshavan",
+        "Aniruddh Nath",
+        "Li Wei",
+        "Xinyang Xi"
+      ],
+      "primary_category": "cs.IR",
+      "categories": [
+        "cs.IR",
+        "cs.AI",
+        "cs.LG"
+      ],
+      "published": "2026-06-17T22:27:36+00:00",
+      "link": "https://arxiv.org/pdf/2606.19635v1",
+      "tags": [
+        "keyword:prompt-learn"
+      ],
+      "llm_score": 8.0,
+      "llm_evidence_en": "transforms traditional signals into soft tokens for efficient prompting",
+      "llm_evidence_cn": "将传统信号转化为软令牌以实现高效提示",
+      "llm_evidence": "将传统信号转化为软令牌以实现高效提示",
+      "canonical_evidence": "将传统信号转化为软令牌以实现高效提示",
+      "llm_tldr_en": "Proposes Token Factory to convert diverse signals into soft tokens, reducing prompt length and overhead in large recommendation models.",
+      "llm_tldr_cn": "针对大型推荐模型集成传统信号时提示过长、内存占用大的问题，提出令牌工厂框架，将异质输入特征转化为可学习的软令牌直接处理，实现高效压缩与集成。实验表明该方法在不牺牲推荐质量的前提下显著降低了计算开销，为将丰富信号融入Transformer推荐模型提供了新范式。",
+      "llm_tldr": "针对大型推荐模型集成传统信号时提示过长、内存占用大的问题，提出令牌工厂框架，将异质输入特征转化为可学习的软令牌直接处理，实现高效压缩与集成。实验表明该方法在不牺牲推荐质量的前提下显著降低了计算开销，为将丰富信号融入Transformer推荐模型提供了新范式。",
+      "llm_tags": [
+        "query:prompt-learn"
+      ],
+      "matched_query_tag": "query:prompt-learn",
+      "matched_query_text": "continuous vector representations used as prompts",
+      "matched_requirement_id": "req-1",
+      "selection_source": "fresh_fetch"
+    }
+  ],
+  "quick_skim": [
+    {
+      "id": "2606.20138v1",
+      "source": "arxiv",
+      "title": "Learning to Prompt: Improving Student Engagement with Adaptive LLM-based High-School Tutoring",
+      "abstract": "LLMs can personalize education, although current static-prompt tutoring systems struggle to adapt to diverse academic disciplines. We develop and test a system with subject-aware prompting, based on 14 pedagogical features (e.g., tutor scaffolding, student understanding) extracted from raw transcripts. We first train a prompt routing model in a simulation environment, and then deploy it for online adaptation with actual high-school students. The simulation benchmark shows the router outperforming two static baselines ($0.694$ vs. $0.647$ and $0.64$, $p<0.001$). A/B testing ($N=656$ conversations from 359 students) shows sim-to-real transfer where the model switches from analytical to scaffolding learning strategies. Our adaptive prompt selection mechanism improves instructional efficiency, maintains pedagogical quality and reduces interactions by around 3 turns ($p=0.007$). While a greedy router achieves a comparable exercise conversion rate with the baseline ($19.1\\%$ vs. $19.6\\%$), a stochastic router that samples strategies leads to a higher conversion rate ($28.1\\%$).",
+      "authors": [
+        "Po-Chin Chang",
+        "Nicholas Hogan",
+        "Aske Plaat",
+        "Michiel T. van der Meer"
+      ],
+      "primary_category": "cs.AI",
+      "categories": [
+        "cs.AI",
+        "cs.CL",
+        "cs.HC",
+        "cs.LG"
+      ],
+      "published": "2026-06-18T12:00:37+00:00",
+      "link": "https://arxiv.org/pdf/2606.20138v1",
+      "tags": [
+        "keyword:prompt-learn",
+        "query:prompt-learn"
+      ],
+      "llm_score": 7.0,
+      "llm_evidence_en": "uses a trained router to automatically select optimal prompts for tutoring",
+      "llm_evidence_cn": "训练一个路由器自动为辅导任务选择最佳提示",
+      "llm_evidence": "训练一个路由器自动为辅导任务选择最佳提示",
+      "canonical_evidence": "训练一个路由器自动为辅导任务选择最佳提示",
+      "llm_tldr_en": "This paper introduces adaptive prompting for LLM-based tutoring by training a prompt routing model on pedagogical features, and shows improved student engagement over static prompts in both simulation and real-world A/B tests.",
+      "llm_tldr_cn": "针对LLM辅导系统静态提示适应性不足的问题，本文开发了基于学科感知的自适应提示系统。该系统从原始对话中提取14种教学特征，训练提示路由模型以在模拟环境中优化提示选择，并部署到实际在线辅导中。模拟基准测试显示路由模型显著优于静态基线（0.694 vs. 0.647），真实A/B测试（656次对话）证实自适应提示能根据情境在分析式与支架式学习策略间切换，提高了学生参与度。",
+      "llm_tldr": "针对LLM辅导系统静态提示适应性不足的问题，本文开发了基于学科感知的自适应提示系统。该系统从原始对话中提取14种教学特征，训练提示路由模型以在模拟环境中优化提示选择，并部署到实际在线辅导中。模拟基准测试显示路由模型显著优于静态基线（0.694 vs. 0.647），真实A/B测试（656次对话）证实自适应提示能根据情境在分析式与支架式学习策略间切换，提高了学生参与度。",
+      "llm_tags": [
+        "query:prompt-learn"
+      ],
+      "matched_query_tag": "query:prompt-learn",
+      "matched_query_text": "Techniques for automatic prompt generation in natural language processing",
+      "matched_requirement_id": "req-10",
+      "selection_source": "fresh_fetch",
+      "quick_tier": "7"
+    },
+    {
+      "id": "2606.15604v1",
+      "source": "arxiv",
+      "title": "Parameter-Efficient Adaptation of SAM 3 for Automated ITV Generation from 4DCT Images",
+      "abstract": "Four-dimensional computed tomography (4DCT) captures the full respiratory cycle of thoracic anatomy, yet current Internal Target Volume contouring workflows process each phase in isolation, discarding temporal coherence and leaving contours vulnerable to phase-specific artifacts. We present a lightweight framework that applies parameter-efficient fine-tuning to the Segment Anything Model 3 (SAM 3) via low-rank adaptation (LoRA) to align its text-prompted segmentation with the medical domain using only seven annotated 3D CT volumes. Furthermore, the framework incorporates a hard negative mining strategy to improve boundary discrimination in low-contrast thoracic regions. At inference, phase-wise predictions are refined through phase-coherent temporal filtering and spatial connectivity analysis. Since respiratory motion is continuous and periodic, genuine anatomy appears in contiguous blocks of phases, whereas transient artifacts appear sporadically and are thus effectively suppressed. Experiments on pulmonary and cardiac structures yield median Dice scores of 0.968 and 0.910 with 95th-percentile Hausdorff distances of 0.998 mm and 2.931 mm, respectively. The proposed framework effectively eliminates the severe false-positive predictions inherent in the zero-shot inference of the unadapted SAM 3. With only seven annotated volumes, the framework retains over 95% of full-data accuracy, and the entire pipeline is trainable on a single consumer-grade GPU, demonstrating a scalable, data-efficient solution for adaptive radiotherapy.",
+      "authors": [
+        "Changwoo Song"
+      ],
+      "primary_category": "eess.IV",
+      "categories": [
+        "eess.IV",
+        "cs.CV"
+      ],
+      "published": "2026-06-14T05:12:57+00:00",
+      "link": "https://arxiv.org/pdf/2606.15604v1",
+      "tags": [
+        "keyword:prompt-learn"
+      ],
+      "llm_score": 6.0,
+      "llm_evidence_en": "uses text-prompted segmentation to guide medical image analysis",
+      "llm_evidence_cn": "使用文本提示分割引导医学图像分析",
+      "llm_evidence": "使用文本提示分割引导医学图像分析",
+      "canonical_evidence": "使用文本提示分割引导医学图像分析",
+      "llm_tldr_en": "Adapts SAM 3 with LoRA for text-prompted automated contouring from 4DCT, improving temporal coherence and boundary accuracy.",
+      "llm_tldr_cn": "针对4DCT图像中内部靶区勾画处理孤立相位、忽略时间相干性的问题，提出利用高效参数微调（LoRA）适配Segment Anything Model 3，通过文本提示进行分割，并结合难例挖掘提升边界判别。在少量标注数据下，该方法实现了时序连贯且准确的自动靶区生成，为医学图像分析中利用大视觉模型提供了有效途径。",
+      "llm_tldr": "针对4DCT图像中内部靶区勾画处理孤立相位、忽略时间相干性的问题，提出利用高效参数微调（LoRA）适配Segment Anything Model 3，通过文本提示进行分割，并结合难例挖掘提升边界判别。在少量标注数据下，该方法实现了时序连贯且准确的自动靶区生成，为医学图像分析中利用大视觉模型提供了有效途径。",
+      "llm_tags": [
+        "query:prompt-learn"
+      ],
+      "matched_query_tag": "query:prompt-learn",
+      "matched_query_text": "discrete natural language prompts for guiding models",
+      "matched_requirement_id": "req-2",
+      "selection_source": "fresh_fetch",
+      "quick_tier": "6"
+    }
+  ]
+}

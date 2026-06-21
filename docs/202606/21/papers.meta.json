@@ -1,0 +1,69 @@
+{
+  "label": "2026-06-21",
+  "date": "2026-06-21",
+  "generated_at": "2026-06-21T21:17:30",
+  "count": 4,
+  "papers": [
+    {
+      "paper_id": "202606/21/2606.19157v1-indiccontexteval-a-benchmark-for-evaluating-context-utilisation-in-audio-large-language-models-across-8-indic-languages",
+      "section": "deep",
+      "title_en": "IndicContextEval: A Benchmark for Evaluating Context Utilisation in Audio Large Language Models Across 8 Indic Languages",
+      "authors": "Sakshi Joshi, Dhruv Subhash Rathi, Sanskar Singh, Eldho Ittan George, R J Hari, Kaushal Bhogale, Mitesh M. Khapra",
+      "date": "2026-06-17",
+      "pdf": "https://arxiv.org/pdf/2606.19157v1",
+      "score": "8.0",
+      "evidence": "设计提示框架评估音频大语言模型如何利用文本提示作为上下文",
+      "tldr": "针对音频大语言模型是否真正利用文本上下文的问题，我们提出IndicContextEval基准，涵盖8种印度语言、23个专业领域、555位说话者的56小时自然语音，并设计七级提示框架逐步提供元数据、自然语言描述、实体列表及对抗性错误实体。评估五个模型发现上下文利用行为差异明显，凸显显式评估上下文基础能力的必要性。",
+      "tags": "query:prompt-learn",
+      "abstract_en": "AudioLLMs enable speech recognition conditioned on textual prompts such as domain descriptions or entity lists. However, it remains unclear whether these models genuinely utilise such context or rely on parametric knowledge learned during pretraining. Existing benchmarks cannot answer this question because they evaluate transcription under fixed prompting conditions and rarely include explicit contextual inputs. We introduce IndicContextEval, a 56-hour multilingual benchmark of natural speech from 555 speakers across 8 Indian languages and 23 professional domains. We design a 7-level prompting framework that progressively introduces contextual signals, including metadata, natural-language descriptions, entity lists in English and native script, and adversarial prompts with incorrect entities. Evaluating five models reveals substantial differences in context utilisation behaviour, highlighting the need for explicit evaluation of contextual grounding in AudioLLMs.",
+      "source": "arxiv",
+      "selection_source": "fresh_fetch"
+    },
+    {
+      "paper_id": "202606/21/2606.19635v1-token-factory-efficiently-integrating-diverse-signals-into-large-recommendation-models",
+      "section": "deep",
+      "title_en": "Token Factory: Efficiently Integrating Diverse Signals into Large Recommendation Models",
+      "authors": "Xilun Chen, Shao-Chuan Wang, Baykal Cakici, Lukasz Heldt, Lichan Hong, Raghu Keshavan, Aniruddh Nath, Li Wei, Xinyang Xi",
+      "date": "2026-06-17",
+      "pdf": "https://arxiv.org/pdf/2606.19635v1",
+      "score": "8.0",
+      "evidence": "将传统信号转化为软令牌以实现高效提示",
+      "tldr": "大型推荐模型（LRMs）在工业界广泛应用，但如何高效整合用户行为、物品特征等传统信号仍存瓶颈。传统方法将这些信号文本化，导致输入序列冗长、内存和计算开销指数级增长。Token Factory提出一种新思路：将离散信号映射为连续的“软令牌”，通过轻量级编码器压缩成固定数量的向量，直接馈入Transformer。此举有效避免了提示长度爆炸，同时保留了异构信息。在真实推荐系统的AB测试中，该方法不仅降低了模型延迟与资源占用，还显著提升了点击率等核心业务指标。该工作为大规模推荐模型的多源特征融合提供了通用、高效的框架，有望加速大模型在工业推荐中的落地。",
+      "tags": "query:prompt-learn",
+      "abstract_en": "Large Recommendation Models (LRMs) have demonstrated promising capabilities in industry-scale recommendation tasks. However, holistically integrating traditional signals into these transformer-based architectures effectively and efficiently remains a major challenge. Conventional approaches that \"textualize\" these signals directly or create discrete item representations often lead to excessively long prompts, substantial memory footprints, and high computational overhead. To overcome these limitations, we propose \"Token Factory\", a framework designed to transform traditional signals into \"soft tokens\" that can be directly processed by LRMs. This approach enables efficient integration and compression of heterogeneous input features, preventing prompt length explosion while enhancing model performance. We detail the architecture of Token Factory and present experimental results validating its effectiveness in a production-scale recommendation environment.",
+      "source": "arxiv",
+      "selection_source": "fresh_fetch"
+    },
+    {
+      "paper_id": "202606/21/2606.20138v1-learning-to-prompt-improving-student-engagement-with-adaptive-llm-based-high-school-tutoring",
+      "section": "quick",
+      "title_en": "Learning to Prompt: Improving Student Engagement with Adaptive LLM-based High-School Tutoring",
+      "authors": "Po-Chin Chang, Nicholas Hogan, Aske Plaat, Michiel T. van der Meer",
+      "date": "2026-06-18",
+      "pdf": "https://arxiv.org/pdf/2606.20138v1",
+      "score": "7.0",
+      "evidence": "训练一个路由器自动为辅导任务选择最佳提示",
+      "tldr": "当前LLM辅导系统依赖静态提示，难以适应不同学科与教学情境，限制了学生参与度。本研究提出自适应提示路由机制，基于14种教学特征训练路由模型，动态选择分析性或支架式学习策略。模拟与真实A/B测试显示，路由器显著优于静态基线，减少约3轮互动并保持教学品质，随机路由更将练习转换率提升至28.1%。该工作证明了模拟到真实迁移的有效性，为自适应智能辅导提供了实用方案。",
+      "tags": "query:prompt-learn",
+      "abstract_en": "LLMs can personalize education, although current static-prompt tutoring systems struggle to adapt to diverse academic disciplines. We develop and test a system with subject-aware prompting, based on 14 pedagogical features (e.g., tutor scaffolding, student understanding) extracted from raw transcripts. We first train a prompt routing model in a simulation environment, and then deploy it for online adaptation with actual high-school students. The simulation benchmark shows the router outperforming two static baselines ($0.694$ vs. $0.647$ and $0.64$, $p<0.001$). A/B testing ($N=656$ conversations from 359 students) shows sim-to-real transfer where the model switches from analytical to scaffolding learning strategies. Our adaptive prompt selection mechanism improves instructional efficiency, maintains pedagogical quality and reduces interactions by around 3 turns ($p=0.007$). While a greedy router achieves a comparable exercise conversion rate with the baseline ($19.1\\%$ vs. $19.6\\%$), a stochastic router that samples strategies leads to a higher conversion rate ($28.1\\%$).",
+      "source": "arxiv",
+      "selection_source": "fresh_fetch"
+    },
+    {
+      "paper_id": "202606/21/2606.15604v1-parameter-efficient-adaptation-of-sam-3-for-automated-itv-generation-from-4dct-images",
+      "section": "quick",
+      "title_en": "Parameter-Efficient Adaptation of SAM 3 for Automated ITV Generation from 4DCT Images",
+      "authors": "Changwoo Song",
+      "date": "2026-06-14",
+      "pdf": "https://arxiv.org/pdf/2606.15604v1",
+      "score": "6.0",
+      "evidence": "使用文本提示分割引导医学图像分析",
+      "tldr": "当前4DCT内靶区勾画逐相独立处理，忽略呼吸周期连续性，易受伪影干扰。本文提出轻量框架，通过LoRA微调SAM 3并结合硬负例挖掘实现文本提示医学分割，利用相位一致时间滤波和空间连通性细化预测。仅需7例标注，肺和心脏分割中位Dice达0.968与0.910，Hausdorff距离0.998mm与2.931mm，有效消除零样本假阳性，精度保留超95%，且全程可单GPU训练，为自适应放疗提供了数据高效、可扩展的解决方案。",
+      "tags": "query:prompt-learn",
+      "abstract_en": "Four-dimensional computed tomography (4DCT) captures the full respiratory cycle of thoracic anatomy, yet current Internal Target Volume contouring workflows process each phase in isolation, discarding temporal coherence and leaving contours vulnerable to phase-specific artifacts. We present a lightweight framework that applies parameter-efficient fine-tuning to the Segment Anything Model 3 (SAM 3) via low-rank adaptation (LoRA) to align its text-prompted segmentation with the medical domain using only seven annotated 3D CT volumes. Furthermore, the framework incorporates a hard negative mining strategy to improve boundary discrimination in low-contrast thoracic regions. At inference, phase-wise predictions are refined through phase-coherent temporal filtering and spatial connectivity analysis. Since respiratory motion is continuous and periodic, genuine anatomy appears in contiguous blocks of phases, whereas transient artifacts appear sporadically and are thus effectively suppressed. Experiments on pulmonary and cardiac structures yield median Dice scores of 0.968 and 0.910 with 95th-percentile Hausdorff distances of 0.998 mm and 2.931 mm, respectively. The proposed framework effectively eliminates the severe false-positive predictions inherent in the zero-shot inference of the unadapted SAM 3. With only seven annotated volumes, the framework retains over 95% of full-data accuracy, and the entire pipeline is trainable on a single consumer-grade GPU, demonstrating a scalable, data-efficient solution for adaptive radiotherapy.",
+      "source": "arxiv",
+      "selection_source": "fresh_fetch"
+    }
+  ],
+  "errors": []
+}

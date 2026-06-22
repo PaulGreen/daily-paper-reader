@@ -1,0 +1,39 @@
+{
+  "label": "2026-06-22",
+  "date": "2026-06-22",
+  "generated_at": "2026-06-22T22:11:51",
+  "count": 2,
+  "papers": [
+    {
+      "paper_id": "202606/22/2606.19584v1-language-instructed-vision-embeddings-for-controllable-and-generalizable-perception",
+      "section": "deep",
+      "title_en": "Language-Instructed Vision Embeddings for Controllable and Generalizable Perception",
+      "authors": "Chengzhi Mao, Xudong Lin, Wen-Sheng Chu",
+      "date": "2026-06-17",
+      "pdf": "https://arxiv.org/pdf/2606.19584v1",
+      "score": "8.0",
+      "evidence": "利用语言作为高层指导生成任务中心化嵌入",
+      "tldr": "当前视觉基础模型多为静态特征提取器，需将任务适应负担转嫁给下游大规模模型，且易出现视觉幻觉。本文提出语言指令视觉嵌入（LIVE），利用语言作为高层指导，在推理时动态生成任务导向嵌入，使编码器专注上下文相关细节，实现可控、泛化的表征，无需重训练。在MMVP上，LIVE显著减少视觉幻觉（+34点）；视觉问答性能超越数倍参数量的视觉语言模型；并能泛化至未知指令与任务。为构建指令驱动的自适应视觉智能提供了直接可行方案。",
+      "tags": "query:prompt-learn",
+      "abstract_en": "Vision foundation models are typically trained as static feature extractors, placing the burden of task adaptation onto large downstream models. We propose an alternative paradigm: instead of solely feeding visual features into language models, we use language itself to dynamically guide the vision encoder. Our method, Language-Instructed Vision Embeddings (LIVE), leverages language as high-level guidance to produce task-centric embeddings at inference time, removing the need for task-specific retraining. This enables the encoder to focus on contextually relevant aspects of the input, yielding more controllable and generalizable representations. Empirically, LIVE reduces visual hallucinations (+34 points on MMVP), surpasses vision-language models with orders of magnitude more parameters on visual question answering, and generalizes to unseen instructions and tasks -- offering a direct path toward adaptive, instruction-driven visual intelligence.",
+      "source": "arxiv",
+      "selection_source": "fresh_fetch"
+    },
+    {
+      "paper_id": "202606/22/2606.19857v1-large-language-models-do-not-always-need-readable-language",
+      "section": "quick",
+      "title_en": "Large Language Models Do Not Always Need Readable Language",
+      "authors": "Jiayi Zhu, Haoxuan Peng, Junxi Wang, Liang Ke, Chen Zhang, Linfeng Zhang",
+      "date": "2026-06-18",
+      "pdf": "https://arxiv.org/pdf/2606.19857v1",
+      "score": "6.0",
+      "evidence": "研究LLM可恢复的非人类可读文本表示（BabelTele），支持紧凑的模型中心提示。",
+      "tldr": "大型语言模型（LLMs）通常依赖于人类可读的自然语言进行交互，但当信息接收者是另一模型时，或许并不需要人类可读性。本文提出BabelTele，一种高度紧凑的非标准文本表示，可大幅偏离自然语言却保留核心语义。实验表明，将文本压缩至原长度的27.9%时，仍能维持99.5%的语义保真度，并在跨模型迁移、代理记忆等任务中保持可靠性能。该工作揭示了人类可读性与模型端语义恢复可部分解耦，为未来探索模型原生表示开辟了新路径。",
+      "tags": "query:prompt-learn",
+      "abstract_en": "Large language models (LLMs) are commonly prompted and interfaced with human-readable natural language, even when the intended reader is another model. This paper investigates whether semantic information can be encoded in compact, non-standard textual forms that sacrifice human readability while remaining recoverable by LLMs. We refer to this class of model-centric textual representations as BabelTele, approached here not as a fixed protocol but as an empirical probe into LLMs' capacity to generate and interpret such representations. Through readability diagnostics, model likelihood measures, human questionnaires, and downstream task evaluations, we find that BabelTele can substantially depart from ordinary natural language while preserving core semantics for instruction-tuned LLMs. As a task-agnostic representational paradigm, BabelTele demonstrates high information density, maintaining 99.5% semantic fidelity even when the text volume is condensed to 27.9% of its original length. We further evaluate its semantic robustness in cross-model transfer, agent memory, and multi-agent communication. Results suggest that BabelTele can reduce context overhead while generally maintaining reliable downstream performance, although its effectiveness depends on the compressor-reader pair and task setting. These findings indicate that human readability, natural-language typicality, and model-side semantic recoverability can be partially decoupled, opening a path toward model-native representations in future exploration of LLM systems.",
+      "source": "arxiv",
+      "selection_source": "fresh_fetch"
+    }
+  ],
+  "errors": []
+}

@@ -1,0 +1,95 @@
+{
+  "mode": "standard",
+  "generated_at": "2026-06-22T22:08:19.546611+00:00",
+  "stats": {
+    "mode": "standard",
+    "tag_count": 1,
+    "deep_divecandidates": 1,
+    "deep_cap": 6,
+    "deep_selected": 1,
+    "quick_candidates": 1,
+    "quick_skim_target": 11,
+    "quick_selected": 1
+  },
+  "deep_dive": [
+    {
+      "id": "2606.19584v1",
+      "source": "arxiv",
+      "title": "Language-Instructed Vision Embeddings for Controllable and Generalizable Perception",
+      "abstract": "Vision foundation models are typically trained as static feature extractors, placing the burden of task adaptation onto large downstream models. We propose an alternative paradigm: instead of solely feeding visual features into language models, we use language itself to dynamically guide the vision encoder. Our method, Language-Instructed Vision Embeddings (LIVE), leverages language as high-level guidance to produce task-centric embeddings at inference time, removing the need for task-specific retraining. This enables the encoder to focus on contextually relevant aspects of the input, yielding more controllable and generalizable representations. Empirically, LIVE reduces visual hallucinations (+34 points on MMVP), surpasses vision-language models with orders of magnitude more parameters on visual question answering, and generalizes to unseen instructions and tasks -- offering a direct path toward adaptive, instruction-driven visual intelligence.",
+      "authors": [
+        "Chengzhi Mao",
+        "Xudong Lin",
+        "Wen-Sheng Chu"
+      ],
+      "primary_category": "cs.CV",
+      "categories": [
+        "cs.CV"
+      ],
+      "published": "2026-06-17T20:39:04+00:00",
+      "link": "https://arxiv.org/pdf/2606.19584v1",
+      "tags": [
+        "keyword:prompt-learn",
+        "query:prompt-learn"
+      ],
+      "llm_score": 8.0,
+      "llm_evidence_en": "leverages language as high-level guidance to produce task-centric embeddings",
+      "llm_evidence_cn": "利用语言作为高层指导生成任务中心化嵌入",
+      "llm_evidence": "利用语言作为高层指导生成任务中心化嵌入",
+      "canonical_evidence": "利用语言作为高层指导生成任务中心化嵌入",
+      "llm_tldr_en": "Proposes Language-Instructed Vision Embeddings (LIVE) that use natural language instructions to dynamically adapt vision encoders for controllable perception without task-specific retraining.",
+      "llm_tldr_cn": "针对视觉基础模型需大量下游适配的问题，提出语言指导的视觉嵌入方法LIVE。该方法在推理时利用自然语言指令动态调整视觉编码器，使其聚焦于任务相关的特征，无需重新训练。实验显示LIVE能显著减少视觉幻觉（MMVP上提升34点），并在多项任务上超越传统视觉语言模型，开辟了以语言为提示的可控感知新范式。",
+      "llm_tldr": "针对视觉基础模型需大量下游适配的问题，提出语言指导的视觉嵌入方法LIVE。该方法在推理时利用自然语言指令动态调整视觉编码器，使其聚焦于任务相关的特征，无需重新训练。实验显示LIVE能显著减少视觉幻觉（MMVP上提升34点），并在多项任务上超越传统视觉语言模型，开辟了以语言为提示的可控感知新范式。",
+      "llm_tags": [
+        "query:prompt-learn"
+      ],
+      "matched_query_tag": "query:prompt-learn",
+      "matched_query_text": "discrete natural language prompts for guiding models",
+      "matched_requirement_id": "req-2",
+      "selection_source": "fresh_fetch"
+    }
+  ],
+  "quick_skim": [
+    {
+      "id": "2606.19857v1",
+      "source": "arxiv",
+      "title": "Large Language Models Do Not Always Need Readable Language",
+      "abstract": "Large language models (LLMs) are commonly prompted and interfaced with human-readable natural language, even when the intended reader is another model. This paper investigates whether semantic information can be encoded in compact, non-standard textual forms that sacrifice human readability while remaining recoverable by LLMs. We refer to this class of model-centric textual representations as BabelTele, approached here not as a fixed protocol but as an empirical probe into LLMs' capacity to generate and interpret such representations. Through readability diagnostics, model likelihood measures, human questionnaires, and downstream task evaluations, we find that BabelTele can substantially depart from ordinary natural language while preserving core semantics for instruction-tuned LLMs. As a task-agnostic representational paradigm, BabelTele demonstrates high information density, maintaining 99.5% semantic fidelity even when the text volume is condensed to 27.9% of its original length. We further evaluate its semantic robustness in cross-model transfer, agent memory, and multi-agent communication. Results suggest that BabelTele can reduce context overhead while generally maintaining reliable downstream performance, although its effectiveness depends on the compressor-reader pair and task setting. These findings indicate that human readability, natural-language typicality, and model-side semantic recoverability can be partially decoupled, opening a path toward model-native representations in future exploration of LLM systems.",
+      "authors": [
+        "Jiayi Zhu",
+        "Haoxuan Peng",
+        "Junxi Wang",
+        "Liang Ke",
+        "Chen Zhang",
+        "Linfeng Zhang"
+      ],
+      "primary_category": "cs.CL",
+      "categories": [
+        "cs.CL",
+        "cs.AI"
+      ],
+      "published": "2026-06-18T07:05:19+00:00",
+      "link": "https://arxiv.org/pdf/2606.19857v1",
+      "tags": [
+        "keyword:prompt-learn",
+        "query:prompt-learn"
+      ],
+      "llm_score": 6.0,
+      "llm_evidence_en": "Investigation of non-human-readable textual representations (BabelTele) recoverable by LLMs, enabling compact model-centric prompts.",
+      "llm_evidence_cn": "研究LLM可恢复的非人类可读文本表示（BabelTele），支持紧凑的模型中心提示。",
+      "llm_evidence": "研究LLM可恢复的非人类可读文本表示（BabelTele），支持紧凑的模型中心提示。",
+      "canonical_evidence": "研究LLM可恢复的非人类可读文本表示（BabelTele），支持紧凑的模型中心提示。",
+      "llm_tldr_en": "This paper shows that LLMs can encode and interpret compact non-standard text, preserving semantics, which supports the feasibility of discrete prompt optimization without natural language constraints.",
+      "llm_tldr_cn": "该论文探究大语言模型生成和解释牺牲人类可读性的紧凑非标准文本（BabelTele）的能力。实验表明BabelTele能大幅偏离自然语言但仍保留核心语义，为模型间通信和以模型为中心的离散提示优化提供了实证基础，证明提示不必拘泥于自然语言形式。",
+      "llm_tldr": "该论文探究大语言模型生成和解释牺牲人类可读性的紧凑非标准文本（BabelTele）的能力。实验表明BabelTele能大幅偏离自然语言但仍保留核心语义，为模型间通信和以模型为中心的离散提示优化提供了实证基础，证明提示不必拘泥于自然语言形式。",
+      "llm_tags": [
+        "query:prompt-learn"
+      ],
+      "matched_query_tag": "query:prompt-learn",
+      "matched_query_text": "Techniques for automatic prompt generation in natural language processing",
+      "matched_requirement_id": "req-10",
+      "selection_source": "fresh_fetch",
+      "quick_tier": "6"
+    }
+  ]
+}

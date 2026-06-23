@@ -1,0 +1,637 @@
+Title: Latent Personal Memory: Represent personal memory as dynamic soft prompts
+
+URL Source: https://arxiv.org/pdf/2606.20911v1
+
+Published Time: Tue, 23 Jun 2026 00:17:03 GMT
+
+Number of Pages: 17
+
+Markdown Content:
+# Latent Personal Memory: Represent personal memory as dynamic soft prompts 
+
+Debrup Das 1,*,† 
+
+> debrupdas@umass.edu
+
+Avinash Amballa 2,* 
+
+> a.amballa@samsung.com
+
+Yashas Malur Saidutta 2
+
+Vijay Srinivasan 2 Vivek Kulkarni 2 Srinivas Chappidi 21University of Massachusetts Amherst 2Samsung Research America Abstract 
+
+Personalizing large language models (LLMs) requires encoding long-term, user-specific be-havioral patterns in a way that is computation-ally efficient, scalable, and compatible with a frozen base model. We present Latent Personal Memory (LPM), a scalable framework that rep-resents user-specific history as a compact, per-sistent matrix of N latent slots, that are inter-pretable. A shared cross-attention projection network maps these slots into dynamic, input-conditioned soft prompts that are prepended to the input of a frozen LLM. We evaluate LPM on PersonaMem v1 and LoCOMO bench-marks across Qwen3-1.7B, 4B, and 8B back-bones. Results demonstrate that LPM outper-forms LoRA and Prompt Tuning by up to 8.8 % and 54.4% in overall accuracy respectively on PersonaMem v1, while reducing KV-cache usage by over 64x . On LoCoMo, LPM matches LoRA’s accuracy with 120x fewer trainable pa-rameters. We also show that LPM’s efficiency grows with context length and outperforms full-context at 128K context length. 
+
+1 Introduction & Background 
+
+Personalizing large language models (LLMs) re-quires retaining long-term user-specific informa-tion while remaining computationally efficient ,scaling with a growing user base, minimizing stor-age, and preserving the model’s general capabili-ties. Existing approaches struggle to jointly satisfy these requirements. Full-context methods (Liu et al., 2025) prepend the entire user history at in-ference, incurring high latency and large KV-cache overhead due to the quadratic cost of self-attention. 
+
+RAG approaches (Lewis et al., 2020; Guo et al., 2025; Huang and Huang, 2026; Xia et al., 2025) 
+
+> *Equal contribution.
+> †Work during internship at Samsung Research America, AI-Center-Mountain View.
+
+shorten prompts but maintain external stores that 
+
+grow with user history . Recent text-based mem-ory methods (Hu et al., 2026) store history as dis-crete structured units that are retrieved and updated as preferences evolve, but often rely on agentic architectures with large memory footprints with multiple LLMs, hierarchical memories, and ded-icated modules for memory updates (Wang and Chen, 2025; Wang et al., 2026; Yan et al., 2026). Crucially, both RAG and text-based memory oper-ate in the text space which is well-suited for exact factual recall, but poor at scaling with user history length and at abstracting how user preferences evolve . Parameter-efficient fine-tuning methods like LoRA (Hu et al., 2022) train small per-user weights but modify the base LLM, risking degra-dation of general reasoning (Shuttleworth et al., 2025). Prompt tuning (Lester et al., 2021) learns static per-user soft prompts but suffers from limited expressivity . Context-compression methods (Hu-ber et al., 2025; Tan et al., 2024) target generic compression rather than long-term personalization. 
+
+Latent memory methods instead encode user in-formation into the model’s internal representations. Recent latent memory architectures with richer in-ternal memory (Wang et al., 2024, 2025; Yang et al., 2024; Zhang et al., 2026) require large-scale or continual pretraining to learn memory read/write dynamics making them neither scalable nor inter-pretable . See Appendix 2 for further discussion on related works. To overcome the above limitations, we intro-duce L ATENT PERSONAL MEMORY (LPM ), a scalable personalization framework that represents each user’s history as a compact matrix of latent memory slots. A shared projection network dynam-ically retrieves question-conditioned soft prompts from these slots, which are prepended to the ques-tion and fed into the frozen LLM. Unlike static prompt tuning or LoRA, the retrieved prompts vary with the user query while keeping the backbone  
+
+> arXiv:2606.20911v1 [cs.CL] 18 Jun 2026 Figure 1: (a) Training methodology of LPM and (b) Inference setup for LPM.
+
+unchanged . LPM offers four advantages: (1) Scala-bility: per-user memory is small and the projection network does not scale with users, (2) Efficiency: 
+
+latent compression substantially reduces KV-cache, memory footprint, and latency versus full-context, 
+
+(3) Long context: LPM’s cost stays roughly con-stant as context grows while full-context inference scales sharply, (4) Interpretability: LPM offers interpretable memory in constrast to LoRA and prompt tuning. We evaluate LPM on PersonaMem v1 (Jiang et al., 2025) and LoCoMo (Maharana et al., 2024) across Qwen3-1.7B, 4B, and 8B. On 
+
+PersonaMem v1 , LPM consistently outperforms LoRA and prompt tuning across all backbones, approaching full-context accuracy at up to 64 x
+
+smaller KV cache and 4 x lower latency . On Lo-CoMo , LPM matches LoRA’s accuracy with ∼120 
+
+x fewer trainable parameters .
+
+2 Related Works 
+
+Full-context methods. A direct approach to per-sonalization is to prepend the user’s entire inter-action history to each query (Liu et al., 2025). While conceptually simple, this incurs high la-tency and substantial computational overhead from large K-V cache sizes. The cost stems from the self-attention mechanism, whose complexity scales quadratically with sequence length, so inference costs grow rapidly with the number of input tokens. 
+
+Retrieval-augmented generation (RAG). RAG approaches (Lewis et al., 2020; Guo et al., 2025; Huang and Huang, 2026; Xia et al., 2025) reduce prompt length by retrieving only relevant snippets from an external store. However, they rely on per-user indices that grow with history length and incur additional overhead for updates as new interactions accumulate. 
+
+Text-based memory methods. A growing line of work (Hu et al., 2026) stores user history as discrete units in structured form, retrieving, reorganizing, and updating entries as preferences evolve. Many of these adopt agentic architectures with high mem-ory footprints, requiring multiple LLMs in memory, hierarchical memory levels, and dedicated modules for memory evolution and generation (Wang and Chen, 2025; Wang et al., 2026; Yan et al., 2026). A smaller subset, including Mem0 (Chhikara et al., 2025) and LightMem (Fang et al., 2026), instead targets scalable, efficient deployment with lower latency. All of these methods, however, leave the user memory external to the LLM, maintaining a per-user index that grows with history length and preserves user history in the text space. 
+
+Parameter-efficient fine-tuning. Methods such as LoRA (Hu et al., 2022) train a small set of per-user weights efficiently. However, because they directly modify the base LLM’s weights, they risk degrading its general reasoning capabilities as ob-served in some works (Shuttleworth et al., 2025). Latent memory methods. An alternative line of work encodes user information directly into the model’s internal representations, offering a more compact alternative to text-based memory. Prompt tuning (Lester et al., 2021) learns static per-user soft prompts concatenated before the question, compressing each user into a fixed, low-capacity representation that limits personalization expressiv-ity. Context-compression methods (Huber et al., 2025; Tan et al., 2024) train compressors that map long contexts into shorter soft-token sequences, but target generic compression rather than long-term personalization. More recent latent memory ar-chitectures introduce richer internal memory struc-tures at higher cost: MemoryLLM (Wang et al., 2024) and M+ (Wang et al., 2025) learn a self-updatable latent memory pool but require large-scale C4 / Common-Crawl-style pretraining to ac-quire their read/write dynamics. Memory3 (Yang et al., 2024) represents latent memory as K-V cache vectors written and read via a continual pretraining stage. MemGen (Zhang et al., 2026) generates la-tent memory tokens via a separate generator LLM, adding both parameter and GPU-memory costs. LPM also falls in the latent memory family but focuses specifically on efficient memory represen-tation for personalization . We build on a frozen pre-trained LLM, requiring no additional pretrain-ing , and pair a small per-user slot matrix with a shared projection network trained once across the user population. This yields a memory footprint that scales efficiently with the number of users. 
+
+3 LPM Methodology 
+
+LPM builds on the observation that parameter-efficient fine-tuning (PEFT) methods offer better accuracy and lower computational costs than few-shot In-Context Learning (ICL) (Liu et al., 2022). Rather than storing or re-processing raw conver-sation histories at inference time, Latent Personal Memory (LPM) represents each user’s history as a compact matrix of learned latent slots. A shared projection network then maps these slots into dy-namic, input-conditioned soft prompts that are prepended to the input of the frozen LLM. 
+
+Per-user latent slots. Each user u is associated with a persistent memory matrix Mu ∈ RN xdmem of 
+
+N latent slots, that are learned during training (Fig 1). These slots serve as a compressed, user-specific representation of the individual’s conversational history. 1
+
+Shared projection network. Given a context x,we compute embeddings ϵ(x) using a small frozen embedding model, then apply cross-attention be-tween ϵ(x) and Mu to obtain ˜Ph. Here, the sub-script h represents the memory head. 
+
+˜Ph = softmax 
+
+ WQh e(x) ( WKh Muh )⊤
+
+> √d
+
+
+
+WV h Muh .
+
+(1) Sharing the projection network across users makes the approach scalable and compatible with feder-ated learning, since user-specific slots can remain local while shared parameters are updated jointly. To avoid the bottleneck of a single memory matrix, we use H independent memory heads Muh , each with its own slots and projection. Per head, ˜Ph
+
+passes through an MLP and LayerNorm to produce 
+
+Ph(x, M uh ) ∈ Rd, where d is the LLM hidden di-mension. The equation for the MLP+LayerNorm pipeline used for computing the soft prompts of LPM is provided below. 
+
+Ph(x, M uh ) = LN h
+
+  ˜Ph + MLP( ˜Ph). (2) The H prompts are concatenated and prepended to the input: 
+
+ˆy = LLM frozen ([ P1(x, M u1); . . . ; PH (x, M uH ); x]) 
+
+Because x drives the attention query, the same memory Mu yields different soft prompts for dif-ferent inputs. 
+
+3.1 Training. 
+
+The user’s full history Cuser is split into fixed-size chunks processed sequentially to compress context into memory. For each chunk Ct, the model per-forms next-token prediction (Tandon et al., 2025) using a soft prompt retrieved from current memory slots, augmented with a hinge-style entropy regular-izer motivated by mixture-of-experts works (Zoph et al., 2022; Li et al., 2025): 
+
+L = − X
+
+> i
+
+log p
+
+
+
+C(i) 
+
+> t
+
+| C(<i ) 
+
+> t
+
+, P t−1
+
+
+
++ α · max  0, H target − H(a),
+
+(3) where H(a) is the entropy of the slot-attention distribution and Htarget is an hyperparameter set  
+
+> 1In our Personamemv1 setting, there are only ∼65K unique parameters per user across all heads, independent of history length.
+
+Algorithm 1 LPM training algorithm 
+
+Input: Users {u}Uu=1 with contexts Hu; chunk size S; epochs E
+
+Input: Shared projection θ; per-user slots {Mu} 
+
+> 1:
+
+for e = 1 to E do  
+
+> 2:
+
+Initialize accumulated gradient gθ ← 0 
+
+> 3:
+
+for u = 1 to U do  
+
+> 4:
+
+Load Mu; split Hu into chunks 
+
+C1,u , . . . , C Tu,u  
+
+> 5:
+
+for t = 1 to Tu do  
+
+> 6:
+
+if t = 1 then  
+
+> 7:
+
+P ← P (C1,u , M u; θ) 
+
+> 8:
+
+else  
+
+> 9:
+
+P ← P (Ct−1,u , M u; θ) 
+
+> 10:
+
+end if  
+
+> 11:
+
+Compute L on chunk Ct,u using soft prompt P 
+
+> 12:
+
+Accumulate gθ ← gθ + ∇θL 
+
+> 13:
+
+Update Mu by gradient step on ∇Mu L 
+
+> 14:
+
+end for  
+
+> 15:
+
+Save Mu 
+
+> 16:
+
+end for  
+
+> 17:
+
+Update θ using accumulated gradient gθ 
+
+> 18:
+
+end for Output: Trained shared projection θ; per-user slots {Mu}
+
+to 0.4 ∗ log(k) where k is the number of memory slots in each head. The asymmetric regularizer penalizes attention collapse but never forces uni-formity, preventing semantic redundancy across slots while allowing concentration when appropri-ate. The prompt Pt−1 is retrieved from the previous 
+
+chunk Ct−1 to prevent future-token leakage (Fig 1 (a)). We iterate over users and, per user, over con-text chunks, updating the active user’s slots Muh at each step. Projection-network gradients are accu-mulated across all users and applied once per epoch to avoid noisy updates (Algorithm 1). Trainable parameters are WQh , W Kh , W V h , the MLP, Lay-erNorm, and {Muh }; the base LLM stays frozen. See Appendix 1.2 for chat-template details. 
+
+3.2 Inference. 
+
+At inference, LPM uses only the user’s question to retrieve soft prompts, which are prepended to the question tokens and passed to the frozen LLM, yielding a short effective context and low latency (Fig 1 (b)). The cost of processing each user’s his-tory is paid once during training and amortized over all subsequent inference queries, making LPM sig-nificantly more efficient than full-context or RAG-based approaches at deployment. 
+
+4 Experiments 
+
+4.1 Datasets 
+
+We evaluate LPM on two long-context personaliza-tion benchmarks: PersonaMem v1 (Jiang et al., 2025), a multiple-choice personalization bench-mark, and LoCOMO (Maharana et al., 2024), a generative long-context QA benchmark. 
+
+PersonaMem v1. PersonaMem v1 (Jiang et al., 2025) is a long-range personalization benchmark containing approximately 32K-token contexts per user together with multiple-choice questions span-ning six in-situ personalization categories: fac-tual recall, suggesting new ideas, tracking pref-erence evolution, reasons behind preference up-dates, preference-aligned recommendations, and generalization to new scenarios. We evaluate on all 20 users in the dataset and report multiple-choice accuracy. The per-category question counts are summarized in Table 9. 
+
+LoCOMO. LoCOMO (Maharana et al., 2024) is a long-conversation benchmark consisting of multiple dialogue sessions between two individ-uals with average context lengths of approximately 9K tokens. The benchmark contains single-hop, multi-hop, temporal, and open-domain questions requiring long-context reasoning over conversa-tions. Following prior work, we use GPT-5-mini as a judge model (Chhikara et al., 2025) to eval-uate free-form generations against gold answers using binary CORRECT/WRONG scoring. The per-category question counts are summarized in Table 8. Alongside task performance, we report infer-ence efficiency metrics : context length , KV-cache memory , peak GPU memory , latency , and trainable parameters .
+
+Experimental Setup. We evaluate on Qwen3-1.7B, 4B, and 8B backbones. Considering realistic deployment, we assume access only to long user histories Cuser without user-specific QA supervi-sion. Unlike context distillation approaches (Snell et al., 2022) that rely on synthetically generated supervision, we avoid generating QA pairs from the context, as such methods introduce addi-tional computational overhead and are difficult to scale . Hyperparameters and compute infrastruc-ture for both datasets are provided in Table 18. We Table 1: PersonaMem v1 main results: Qwen3-8B. Accuracy (%) across PersonaMem question categories, together with inference efficiency. Means are computed across all questions. Question types and notations in Table 9.                                                                                                
+
+> Accuracy (%) ↑Efficiency ↓
+> Method R-Fact Sug P-Evol P-Rec P-Rsn Gen Overall Extra Ctx KV (MB) Peak (MB) Lat. (s)
+> Full-context 46.60 6.50 73.40 41.80 81.80 59.60 53.30 025943.2 3648.27 23001.9 3.81 RAG (top-8) 52.74 20.43 54.03 41.82 64.85 46.88 44.50 02232.0 313.88 16177.5 1.79 LightMem (top-50) 44.52 23.65 35.25 54.54 54.54 45.61 41.77 02523.8 354.77 16248.1 1.67 LoRA 33.60 17.20 61.20 30.90 74.70 35.10 44.30 154 M 403.5 56.73 15671.4 5.44 Prompt Tuning 33.60 6.50 30.90 32.70 53.50 26.30 31.24 40 M 953.5 120.0 16302.5 1.65 Embedding-to-Prefix 28.08 9.68 59.71 34.55 70.71 31.58 40.75 346 M 411.5 55.54 16942.1 0.36 LPM (Ours) 35.62 3.23 66.91 45.45 80.81 54.39 48.22 1.3 M 411.5 56.73 16216.8 0.88
+
+compare LPM against several baselines: (i) Full-context , where the user’s entire history is fed at inference time, (ii) RAG , where a retriever selects relevant context for each query, (iii) LightMem 
+
+(Fang et al., 2026), a lightweight and efficient text memory-augmentation baseline, (iv) LoRA (Hu et al., 2022), training low rank adaption weights for each user and (v) Prompt Tuning (Lester et al., 2021), per-user soft prompts with 450 prompt to-kens, (vi) Embedding-to-prefix (8 prefix) (Huber et al., 2025): learns a trainable projection to map context embeddings to prefixes. Above three meth-ods are trained sequentially with next token predic-tion on the context chunks similar to LPM. 
+
+5 Results and Discussion 
+
+5.1 PersonaMem v1 (Qwen3-8B). 
+
+Table 1 shows that LPM substantially outperforms baselines LoRA ( 8.8% ), Prompt Tuning ( 54.4% ), LightMem ( 15.4% ), RAG ( 8.3% ) while approach-ing full-context performance at a fraction of the inference cost. The question type-wise accuracy shows LPM achieves the strongest gains on rea-sons behind preference updates , tracking prefer-ence evolution , and generalizing to new scenario 
+
+questions, which are closer to semantic personal-ization than exact facts recall . These results align with our intuition that latent memory slots are bet-ter suited for compact, abstract representations of user preferences than for more factual retrieval .On the efficiency side, LPM reduces KV-cache us-age by over 64 times (from 3.65 GB to 56.73 MB) while achieving low inference latency . 
+
+5.2 Scaling across backbone sizes. 
+
+Table 2 shows results across Qwen3-1.7B, 4B backbones. LPM consistently outperforms LoRA,                 
+
+> Method Qwen3-1.7B Qwen3-4B
+> Full-context 36.84 48.30
+> RAG (top-8) 31.88 42.42 LightMem (top-50) 29.54 38.20 LoRA 22.92 39.70 Prompt Tuning 18.85 38.70 Embedding-to-Prefix 21.90 43.46
+> LPM (Ours) 30.05 44.70
+
+Table 2: Scaling across backbones : PersonaMem v1 overall accuracy (%). 
+
+Prompt Tuning, and LightMem across all model sizes. The gains are especially pronounced for smaller models, where latent memory provides stronger personalization benefits under limited model capacity. 
+
+5.3 LPM vs Full-context on the 128K-context split of PersonaMem v1. 
+
+We further evaluate on the long-context split of PersonaMem v1, where context lengths grow from 
+
+32 K to 128 K tokens. As shown in Figure 2, Full-context accuracy degrades below LPM by 14 .5% 
+
+at 128K context length. At the same time, LPM’s peak memory, latency and KV cache size stays essentially flat, whereas full-context grows with the input length. 
+
+5.4 LoCOMO Results. 
+
+Table 3 reports results on LoCOMO on Qwen3-8B. Full-context achieves the highest accuracy (71 .10% ), likely because the average context length of 8k remains manageable for direct condition-ing during generation. Among other approaches, LPM achieves performance comparable to LoRA (33 .25% vs. 33 .10% ) while requiring nearly 120 x
+
+fewer parameters ( 0.65 M vs. 77 M). LPM also im-proves inference efficiency by 3 times, shrinks KV-30             
+
+> 40
+> 50
+> Accuracy (%)  53.3
+> 28.7
+> 48.2
+> 33.6
+> Accuracy (%) (higher is better)
+> 10 0
+> 10 1
+> 10 2
+> Latency (s)
+> 3.81
+> 40.3
+> 0.88 0.87
+> Latency (s) (lower is better)
+> PersonaMem v1
+> 32k split
+> PersonaMem v1
+> 128k split
+> 10 4
+> 10 5
+> Peak Memory (MB)
+> 23,002
+> 75,826
+> 16,217 16,178
+> Peak Memory (MB) (lower is better)
+> PersonaMem v1
+> 32k split
+> PersonaMem v1
+> 128k split
+> 10 2
+> 10 3
+> 10 4
+> KV-cache Size (MB)
+> 3,648
+> 16,636
+> 56.7 47.6
+> KV-cache Size (MB) (lower is better)
+> Full-context LPM (Ours)
+
+Figure 2: Scaling behavior of Full-context vs LPM on PersonaMem v1 as context grows from ∼32 K to 
+
+∼128 K tokens. 
+
+Table 3: LoCOMO results on Q WEN 3-8B. Question-type columns correspond to Single-hop (SH), Multi-hop (MH), Temporal (Temp.) and Open-domain (Open.) accuracy. The efficiency stats are mean values across all questions.                                                   
+
+> Accuracy (%) ↑Efficiency ↓
+> Method MH Open Temp SH. Acc Extra Ctx KV Mem Lat. Full-context 64.5 54.2 36.1 88.6 71.10 020626.0 2900.5 21370.3 3.43 RAG 47.2 36.5 23.1 65.4 51.42 04232.57 595.20 16663.80 2.85 LoRA 30.8 33.3 7.7 43.5 33.12 77M 45.2 6.4 15676.9 3.53 Prompt Tun. 31.9 29.2 12.8 39.4 31.88 20M 495.2 69.6 15817.7 0.87
+> LPM 31.2 45.8 10.9 41.0 33.25 0.65M 45.2 15.3 18835.5 1.19
+
+cache usage from 2.9GB to only 15 .3MB compared to full context. Similar trends are observed across Qwen3-4B and Qwen3-1.7B as shown in Table 4. Additional ablations on LoCoMo are provided in Appendix 5.6. 
+
+Table 4: LoCOMO results on Q WEN 3-4B and Q WEN 3-1.7B. Question-type columns correspond to Single-hop (SH), Multi-hop (MH), Temporal (Temp.) and Open-domain (Open.) accuracy. 
+
+QWEN 3-4B QWEN 3-1.7B Method MH Open Temp SH Acc MH Open Temp SH Acc Full-context 62.8 38.5 25.9 80.5 63.3 53.9 48.9 35.2 81.2 64.6 LoRA 28.2 33.1 7.9 41.1 31.3 18.8 32.3 8.4 31.7 24.5 Prompt Tun. 28.4 36.5 10.6 37.3 30.1 18.8 29.1 9.0 32.8 25.0 
+
+LPM 30.5 38.5 14.6 41.0 33.4 22.3 36.5 8.7 32.9 26.2 
+
+5.5 General Capability preservation. 
+
+Table 5 shows that LPM (trained on PersonaMem) largely preserves the base model’s capabilities. LPM matches the base model on GSM-8K and MMLU datasets (nine-subject split of MMLU) 
+
+Method GSM-8K MMLU 
+
+Base model 92.3 68.47 LoRA 90.7 67.35 
+
+Ours (LPM) 90.8 70.27 
+
+Table 5: General reasoning preservation on Q WEN 3-8B with model trained on PersonaMemv1. 
+
+5.6 Ablation Studies 
+
+In this section we ablate two design choices of LPM: (i) the entropy load balancing loss term 
+
+of LPM, and (ii) the number of memory heads .For both ablations we keep all other hyperparame-ters fixed and report per-category accuracy on the LOCOMO benchmark together with the overall av-erage. Our reference configuration ( LPM ) uses 64 memory heads and the asymmetric entropy regular-izer loss term described in Section 3. Ablation Variant SH MH Temp. Open. Acc. Entropy term LPM (default, w entropy) 41.0 31.2 10.9 45.8 33.25                 
+
+> w/o entropy 36.15 28.37 14.33 38.54 30.32 No of memory heads LPM (default, 64 heads) 41.0 31.2 10.9 45.8 33.25
+> 8 heads 31.87 23.76 6.23 37.50 25.39
+
+Table 6: Ablations of the entropy regularizer and the number of memory heads on LOCOMO. The default LPM configuration (64 heads, w/ entropy) is repeated as the reference row for each ablation. All other compo-nents are held fixed. 
+
+5.6.1 Effect of the entropy regularization term. 
+
+Table 6 shows that removing the entropy-based load balancing loss term leads to a drop in average accuracy (33.25 → 30.32). The default configu-ration improves substantially on single-hop (41.0 vs. 36.15), multi-hop (31.2 vs. 28.37), and open-domain (45.8 vs. 38.54), while removing the regu-larizer yields a modest gain on temporal questions (10.9 → 14.33). Since single-hop questions dom-inate LoCoMo (841 out of 1540 questions; see Table 8), the single-hop gain is the largest contrib-utor to the higher overall average. In practice, the regularizer additionally acts as a safeguard against head collapse, which we observed in early runs of training without it. 
+
+5.6.2 Effect of the number of memory heads. 
+
+Reducing the number of heads from 64 to 8 de-grades average accuracy substantially (33.25 →
+
+25.39) as shown in Table 6. The drop is across all types but sharpest on single-hop (41.0 → 31.87) and open-domain (45.8 → 37.50), with notable UMAP Dimension 1 
+
+> UMAP Dimension 2
+> UMAP of Learned Memory Slot Vectors ( 32 slots × 12 users )
+> User Identity
+> User 2
+> User 4
+> User 5
+> User 6
+> User 7
+> User 9
+> User 10
+> User 11
+> User 13
+> User 14
+> User 15
+> User 18
+> 2
+> 4
+> 5
+> 6
+> 7
+> 9
+> 10
+> 11
+> 13
+> 14
+> 15
+> 18
+
+Figure 3: UMAP projection of the 32 learned memory slots for Personamem users. Each color denotes a distinct user. 
+
+drops on multi-hop (31.2 → 23.76) and temporal (10.9 → 6.23) as well. No category benefits from the smaller head count, indicating that the addi-tional memory capacity from 64 heads is broadly useful across question types. We therefore adopt 64 heads as the default configuration. 
+
+6 Analysis of Learned Memory Representations 
+
+A key advantage of our approach is that the train-able memory slots learn user-specific representa-tions. To verify this, we perform a geometric anal-ysis on the PersonaMemv1. For each of the 20 users, we average the trained slot matrices across 8 heads to obtain Mu ∈ R32x256 , then project all slot vectors into 2D with UMAP (McInnes et al., 2020) (Figure 3). The slots form coherent, well-separated per-user clusters, suggesting they cap-ture user-specific behavioral structure. To test whether this geometric separation reflects mean-ingful behavioral differences, we conduct a rubric-based qualitative similarity study on representative users (2, 4, 14, 15). For each pair, the full con-versational histories ( ∼32K tokens) were given to CLAUDE -O PUS -4.7 as judge, which scored pair-wise similarity along dimensions including domain-specific preferences, communication style, person-ality traits (rubric in Table 11; full protocol in Ap-pendix B). Table 7 reports representative scores. Notably, all pairings involving User 14 (the far-thest from other users in UMAP space) receive the lowest similarity scores, aligning the geometric and rubric-based views. Example judge outputs for the most and least similar pairs appear in Ta-bles 13and 14. Further qualitative findings are in Appendix 2.3. Together, these results indicate that the learned memory slots are interpretable and en-code behavioral traits beyond topical content. User Pair Mean Score Qualitative Label User 2 ↔ User 4 3.11 Moderately–Highly Similar User 2 ↔ User 15 2.67 Moderately Similar User 4 ↔ User 15 2.67 Moderately Similar User 4 ↔ User 14 2.33 Somewhat Similar User 2 ↔ User 14 2.22 Somewhat Similar User 15 ↔ User 14 1.89 Weakly Similar 
+
+Table 7: Representative rubric-based pairwise user sim-ilarity scores from LLM judge. 
+
+7 Conclusion 
+
+In this paper. we introduce LPM, a scalable frame-work for LLM personalization that represents each user’s history as a small persistent matrix of la-tent slots and projects them into soft prompts via a shared projection network, making it scalable. Across PersonaMem and LoCOMO, LPM consis-tently outperforms LoRA and Prompt Tuning with 
+
+fewer parameters and lower inference costs . Geo-metric analysis of the learned memory slots reveals that LPM learns interpretable latent representa-tions that capture personalized behavioral patterns. 
+
+Limitations 
+
+Our work is not without its limitations. 
+
+(i) Hybrid approaches: LPM under-performs in memorizing factual knowledge. Future works can explore hybrid approaches combining latent and text-based memory approaches for personaliza-tion. A complementary explicit fact cache may be needed for applications that require exact recall. 
+
+(ii) Memory granularities: LPM relies on the fact that all heads equally capture long-term and short-term memory. Structuring memory heads to capture long-term vs. short-term memory of the user using heuristics, can be a future direction of research. 
+
+8 Acknowlegements. 
+
+We thank Haris Jeelani, Samsung Research Amer-ica for help on baseline evaluations. This work was supported entirely by Samsung Research America, AI-Center Mountain View. 
+
+References 
+
+Prateek Chhikara, Dev Khant, Saket Aryan, Taranjeet Singh, and Deshraj Yadav. 2025. Mem0: Building production-ready ai agents with scalable long-term memory. Preprint , arXiv:2504.19413. Jizhan Fang, Xinle Deng, Haoming Xu, Ziyan Jiang, Yuqi Tang, Ziwen Xu, Shumin Deng, Yunzhi Yao, Mengru Wang, Shuofei Qiao, Huajun Chen, and Ningyu Zhang. 2026. Lightmem: Lightweight and ef-ficient memory-augmented generation. In The Four-teenth International Conference on Learning Repre-sentations .Zirui Guo, Lianghao Xia, Yanhua Yu, Tu Ao, and Chao Huang. 2025. LightRAG: Simple and fast retrieval-augmented generation. In Findings of the Associa-tion for Computational Linguistics: EMNLP 2025 ,pages 10746–10761, Suzhou, China. Association for Computational Linguistics. Edward J Hu, yelong shen, Phillip Wallis, Zeyuan Allen-Zhu, Yuanzhi Li, Shean Wang, Lu Wang, and Weizhu Chen. 2022. LoRA: Low-rank adaptation of large language models. In International Conference on Learning Representations .Yuyang Hu, Shichun Liu, Yanwei Yue, Guibin Zhang, Boyang Liu, Fangyi Zhu, Jiahang Lin, Honglin Guo, Shihan Dou, Zhiheng Xi, Senjie Jin, Jiejun Tan, Yan-bin Yin, Jiongnan Liu, Zeyu Zhang, Zhongxiang Sun, Yutao Zhu, Hao Sun, Boci Peng, and 28 others. 2026. Memory in the age of ai agents. Preprint ,arXiv:2512.13564. Yizheng Huang and Jimmy Xiangji Huang. 2026. A survey on retrieval-augmented text generation for large language models. ACM Comput. Surv. , 58(12). Bernd Huber, Ghazal Fazelnia, Andreas Damianou, Se-bastian Peleato, Max Lefarov, Praveen Ravichan-dran, Marco De Nadai, Mounia Lalmas-Roellke, and Paul N. Bennett. 2025. Embedding-to-prefix: Parameter-efficient personalization for pre-trained large language models. Preprint , arXiv:2505.17051. Bowen Jiang, Zhuoqun Hao, Young-Min Cho, Bryan Li, Yuan Yuan, Sihao Chen, Lyle Ungar, Camillo J. Taylor, and Dan Roth. 2025. Know me, respond to me: Benchmarking llms for dynamic user profil-ing and personalized responses at scale. Preprint ,arXiv:2504.14225. Brian Lester, Rami Al-Rfou, and Noah Constant. 2021. The power of scale for parameter-efficient prompt tuning. In Proceedings of the 2021 Conference on Empirical Methods in Natural Language Processing ,pages 3045–3059, Online and Punta Cana, Domini-can Republic. Association for Computational Lin-guistics. Patrick Lewis, Ethan Perez, Aleksandra Piktus, Fabio Petroni, Vladimir Karpukhin, Naman Goyal, Hein-rich Küttler, Mike Lewis, Wen-tau Yih, Tim Rock-täschel, Sebastian Riedel, and Douwe Kiela. 2020. Retrieval-augmented generation for knowledge-intensive nlp tasks. In Proceedings of the 34th Inter-national Conference on Neural Information Process-ing Systems , NIPS ’20, Red Hook, NY, USA. Curran Associates Inc. Dengchun Li, Naizheng Wang, Zihao Zhang, Haoyang Yin, Lei Duan, Meng Xiao, and Mingjie Tang. 2025. Dynmole: Boosting mixture of lora experts fine-tuning with a hybrid routing mechanism. Preprint ,arXiv:2504.00661. Haokun Liu, Derek Tam, Mohammed Muqeeth, Jay Mo-hta, Tenghao Huang, Mohit Bansal, and Colin Raffel. 2022. Few-shot parameter-efficient fine-tuning is bet-ter and cheaper than in-context learning. Preprint ,arXiv:2205.05638. Jiaheng Liu, Dawei Zhu, Zhiqi Bai, Yancheng He, Huanxuan Liao, Haoran Que, Zekun Wang, Chenchen Zhang, Ge Zhang, Jiebin Zhang, Yuanx-ing Zhang, Zhuo Chen, Hangyu Guo, Shilong Li, Ziqiang Liu, Yong Shan, Yifan Song, Jiayi Tian, Wen-hao Wu, and 18 others. 2025. A comprehensive sur-vey on long context language modeling. Preprint ,arXiv:2503.17407. Adyasha Maharana, Dong-Ho Lee, Sergey Tulyakov, Mohit Bansal, Francesco Barbieri, and Yuwei Fang. 2024. Evaluating very long-term conversational memory of LLM agents. In Proceedings of the 62nd Annual Meeting of the Association for Computational Linguistics (Volume 1: Long Papers) , pages 13851– 13870, Bangkok, Thailand. Association for Compu-tational Linguistics. Leland McInnes, John Healy, and James Melville. 2020. Umap: Uniform manifold approximation and projection for dimension reduction. Preprint ,arXiv:1802.03426. Reece S Shuttleworth, Jacob Andreas, Antonio Torralba, and Pratyusha Sharma. 2025. LoRA vs full fine-tuning: An illusion of equivalence. Charles Burton Snell, Dan Klein, and Ruiqi Zhong. 2022. Learning by distilling context. ArXiv ,abs/2209.15189. Sijun Tan, Xiuyu Li, Shishir G Patil, Ziyang Wu, Tian-jun Zhang, Kurt Keutzer, Joseph E. Gonzalez, and Raluca Ada Popa. 2024. LLoCO: Learning long con-texts offline. In Proceedings of the 2024 Conference on Empirical Methods in Natural Language Process-ing , pages 17605–17621, Miami, Florida, USA. As-sociation for Computational Linguistics. Arnuv Tandon, Karan Dalal, Xinhao Li, Daniel Koceja, Marcel Rød, Sam Buchanan, Xiaolong Wang, Jure Leskovec, Sanmi Koyejo, Tatsunori Hashimoto, Car-los Guestrin, Jed McCaleb, Yejin Choi, and Yu Sun. 2025. End-to-end test-time training for long context. 
+
+Preprint , arXiv:2512.23675. Yu Wang and Xi Chen. 2025. Mirix: Multi-agent memory system for llm-based agents. Preprint ,arXiv:2507.07957. Yu Wang, Yifan Gao, Xiusi Chen, Haoming Jiang, Shiyang Li, Jingfeng Yang, Qingyu Yin, Zheng Li, Xian Li, Bing Yin, Jingbo Shang, and Ju-lian McAuley. 2024. Memoryllm: Towards self-updatable large language models. Preprint ,arXiv:2402.04624. Yu Wang, Dmitry Krotov, Yuanzhe Hu, Yifan Gao, Wangchunshu Zhou, Julian McAuley, Dan Gutfre-und, Rogerio Feris, and Zexue He. 2025. M+: Ex-tending memoryllm with scalable long-term memory. 
+
+Preprint , arXiv:2502.00592. Yu Wang, Ryuichi Takanobu, Zhiqi Liang, Yuzhen Mao, Yuanzhe Hu, Julian McAuley, and Xiaojian Wu. 2026. MEM-$\alpha$: LEARNING MEM-ORY CONSTRUCTION VIA REINFORCEMENT LEARNING. Yuan Xia, Jingbo Zhou, Zhenhui Shi, Jun Chen, and Haifeng Huang. 2025. Improving retrieval aug-mented language model with self-reasoning. In Pro-ceedings of the Thirty-Ninth AAAI Conference on Ar-tificial Intelligence and Thirty-Seventh Conference on Innovative Applications of Artificial Intelligence and Fifteenth Symposium on Educational Advances in Artificial Intelligence , AAAI’25/IAAI’25/EAAI’25. AAAI Press. Sikuan Yan, Xiufeng Yang, Zuchao Huang, Ercong Nie, Zifeng Ding, Zonggen Li, Xiaowen Ma, Jinhe Bi, Kristian Kersting, Jeff Z. Pan, Hinrich Schütze, Volker Tresp, and Yunpu Ma. 2026. Memory-r1: Enhancing large language model agents to manage and utilize memories via reinforcement learning. 
+
+Preprint , arXiv:2508.19828. Hongkang Yang, Zehao Lin, Wenjin Wang, Hao Wu, Zhiyu Li, Bo Tang, Wenqiang Wei, Jinbo Wang, Zeyun Tang, Shichao Song, Chenyang Xi, Yu Yu, Kai Chen, Feiyu Xiong, Linpeng Tang, and Weinan E. 2024. Memory 3: Language modeling with explicit memory. Journal of Machine Learning ,3(3):300–346. Guibin Zhang, Muxin Fu, and Shuicheng YAN. 2026. Memgen: Weaving generative latent memory for self-evolving agents. In The Fourteenth International Conference on Learning Representations .Barret Zoph, Irwan Bello, Sameer Kumar, Nan Du, Yanping Huang, Jeff Dean, Noam Shazeer, and William Fedus. 2022. St-moe: Designing stable and transferable sparse expert models. Preprint ,arXiv:2202.08906. A Appendix 
+
+1.1 Dataset full details            
+
+> ID Category # Questions 1Multi-hop 282 2Temporal 321 3Open-domain 96 4Single-hop 841
+> Total 1540
+
+Table 8: LoCOMO per-category question counts. 1. Multi-hop questions require synthesizing information from multiple sessions. 2. temporal questions require time-related reasoning. 3. open-domain questions re-quire commonsense or external knowledge. 4. single-hop questions are answerable from a single session.               
+
+> Category # Questions Recall user shared facts (R-Fact) 146 Suggest new ideas (Sug) 93 Track full preference evolution (P-Evol) 139 Recall reasons behind previous updates (P-Rsn) 99 Provide preference-aligned recommendations (P-Rec) 55 Generalize to new scenarios (Gen) 57
+> Total 589
+
+Table 9: PersonaMem v1 per-category question counts. 
+
+1.2 Chat Template and Training Details 
+
+We train LPM with a chunk-based objective that operates over a chat-formatted sequence. The soft prompts produced by the memory module are in-serted into the first system block, immediately after the system token and before the " ### CONTEXT END ### " marker that delimits the latent context from the textual instruction. The training loss is com-puted only from the first context token. All tokens preceding it (including the soft-prompt positions, the system instruction, and the user instruction) are masked out and do not contribute to the loss. This ensures that the model is optimized to use the la-tent memory rather than to reconstruct the template scaffolding around it. The exact chat template used during training is reproduced below. Two aspects of this template are worth highlight-ing. Firstly, the soft prompts are placed inside the 
+
+system block rather than as a separate prefix, which keeps them within the region of the sequence that the underlying chat model is trained to treat as con-ditioning. Secondly, the user instruction is kept short and generic to anchor the assistant block but not encode any task-specific information. 
+
+Role Content 
+
+system [Dynamic soft prompts from all heads] ### CONTEXT END ### 
+
+You have access to a latent memory block above. This block contains relevant context, the end of which is marked with ### CONTEXT END ### .
+
+user Prioritize the information in the above latent mem-ory block to predict the following next text accu-rately. 
+
+assistant [Context chunk tokens - loss is computed here] 
+
+Table 10: Message structure of the chat template used for chunk-based training. Soft prompts are prepended inside the system block, immediately before the ### CONTEXT END ### marker. The training loss is masked everywhere except on the assistant turn, starting from the first context token. 
+
+1.3 LOCOMO Evaluation Judge Prompt 
+
+For evaluation on LOCOMO we follow the proto-col introduced Mem0 (Chhikara et al., 2025) and use an LLM-as-a-judge setup. Each generated answer is compared against the gold answer by an GPT-5-mini that returns a binary CORRECT / WRONG label together with a short rationale. The judge is prompted to be lenient with respect to sur-face form (e.g. verbosity, paraphrase, alternative date formats) and to treat refusals as correct when the gold answer itself indicates that the information is not available in the conversation history. We pro-vide both the system prompt and the per-example user prompt below for reproducibility. 
+
+System prompt 
+
+You are an LLM Judge. Your task is to label an answer to a question as CORRECT or WRONG . You will be given the following data: 0. a question (posed by one user to another user), 0. a “gold” (ground truth) answer, 0. a generated answer, which you will score as CORRECT /WRONG .The point of the question is to ask about something one user should know about the other user based on their prior conversations. The gold answer will usually be a concise and short answer that includes the referenced topic, for example: 
+
+Question: Do you remember what I got the last time I went to Hawaii? 
+
+Gold answer: A shell necklace The generated answer might be much longer, but you should be generous with your grading—as long as it touches on the same topic as the gold answer, it should be counted as CORRECT .For time-related questions, the gold answer will be a specific date, month, year, etc. The generated answer might be much longer or use relative time references (like “last Tuesday” or “next month”), but you should be generous with your grading—as long as it refers to the same date or time period as the gold answer, it should be counted as CORRECT . Even if the format differs (e.g., “May 7th” vs. “7 May”), consider it CORRECT if it is the same date. There is an edge case where the actual answer cannot be found in the data, and in that case the gold answer will say so (e.g., “You did not mention this information.”); if the generated answer says that it cannot be answered or it does not know all the details, it should be counted as CORRECT .Respond with JSON: {"reasoning": "...", "correct": true or false}         
+
+> User prompt (per example)
+> Now it’s time for the real question:
+> Question: {question}
+> Gold answer: {answer}
+> Generated answer: {model_output}
+> First, provide a short (one sentence) explanation of your reasoning. Short reasoning is preferred. If it’s correct, set correct=true .Respond with JSON: {"reasoning": "...", "correct": true or false}
+
+The judge is queried independently for every (question, gold answer, generated answer) triple, and final accuracies are reported as the fraction of triples labelled CORRECT. We use the same judge model and decoding settings across all methods compared in the main paper to ensure a like-for-like comparison. 
+
+B Rubric-Based User Similarity Evaluation 
+
+To interpret the structure observed in the learned memory slot embeddings (Figure 3), we conduct a qualitative similarity analysis across representative users from PersonaMemV1. The objective of this study is to determine whether the learned latent representations preserve meaningful behavioral dis-tinctions between users beyond topical overlap. 
+
+2.1 Evaluation Setup 
+
+For each evaluated user, the full PersonaMemV1 conversational history ( ∼32K tokens) was provided to C LAUDE OPUS 4.7 as a judge model. The judge was instructed to compare users pairwise using a structured similarity rubric designed to capture long-term behavioral and interactional characteris-tics. The details of the rubric is provided in Table 11. 
+
+Aggregate scoring. The overall similarity score is computed as the mean across all dimensions. The interpretation of the aggregate similarity scores is provided in Table 12. 
+
+Evaluation guidelines. The rubric prioritizes evidence density and specificity during scoring. Explicitly stated preferences are weighted more strongly than inferred preferences, and granular overlaps (e.g., highly specific shared behaviors or preferences) are scored higher than broad category-level similarities. Partial overlaps are assigned in-termediate scores when one user’s preferences form only a subset of another user’s broader behavioral patterns. 
+
+2.2 Representative Pairwise Similarity Scores 2.3 Qualitative Findings 
+
+A consistent pattern emerges from the analysis. Users 2, 4, and 15 form a relatively coherent be-havioral cluster despite discussing substantially dif-ferent topical domains. The judge model identifies several recurring similarities across these users: • personality and communication styles, • repeated engagement with organized communi-ties or activities, • preference shifts toward smaller and more au-thentic interactions over time, • recurring cycles of exploration, burnout, and re-engagement. Importantly, these similarities arise primarily from interaction dynamics and behavioral trajecto-ries rather than explicit topical overlap. This sug-gests that the learned memory slots capture higher-level conversational structure beyond surface-level semantic similarity. An example output from the judge model is presented in Table 13. In contrast, User 14 is consistently identified as the most behaviorally distinct user. The output from the judge model on the most dissimilar user pairs (14 and 15) is presented in Table 14. All pairings involving User 14 receive the lowest sim-ilarity scores in the evaluation. The judge model characterizes User 14 as more socially exploratory and emotionally driven compared to the remain-ing users, whose interactions are primarily intellec-tual, educational, or community-oriented. This dis-tinction is also reflected in the learned embedding # Dimension Evaluation Criteria 
+
+1 Domain-specific likes Measures overlap in what users actively enjoy or seek out, including genres, hobbies, activities, products, aesthetics, media preferences, and recurring interests. Higher scores require overlap at a granular level rather than broad category similarity alone. 2 Domain-specific dislikes Measures overlap in what users avoid, reject, or dislike. Shared dislikes are treated as strong behavioral signals and often correlate more strongly with personality alignment than shared positive preferences. 3 Lifestyle and routines Evaluates similarity in routines and behavioral structure, including work style, social rhythms, travel habits, daily routines, activity patterns, and preference for structured versus casual engagement. 4 Values and priorities Measures alignment in what users consistently prioritize, such as learning, career growth, authenticity, financial security, community engagement, autonomy, or personal relationships. 5 Personality and communica-tion style Evaluates conversational tone and behavioral traits, including verbosity, emotional expressiveness, openness, humor, decisiveness, analytical think-ing, and interaction style. 6 Goals and aspirations Measures similarity in long-term ambitions and pursuits, including profes-sional goals, learning objectives, relationship goals, creative aspirations, or community-building efforts. 7 Constraints and circum-stances Captures shared constraints or contextual factors such as occupational limitations, financial constraints, family situations, health considerations, or geographic circumstances. 8 Expertise and knowledge do-mains Measures overlap in areas of expertise, technical knowledge, cultural fluency, or domains where users demonstrate substantial familiarity or long-term engagement. 9 Aesthetic and stylistic prefer-ences Evaluates alignment in stylistic preferences, including visual aesthetics, design sensibilities, narrative preferences, fashion tastes, media consump-tion style, and environmental preferences. 10 Preference evolution and be-havioral stability Measures whether users exhibit similar behavioral trajectories over time, such as recurring exploration patterns, preference shifts, adoption or aban-donment of activities, and long-term interaction dynamics. 
+
+Table 11: Dimensions used in the rubric-based similarity evaluation. The rubric is designed to capture long-term behavioral and interactional similarity beyond surface-level topical overlap.       
+
+> Mean Similarity Score Qualitative Label
+> 3.5 – 4.0 Highly similar 2.5 – 3.4 Moderately similar 1.5 – 2.4 Somewhat similar 0.5 – 1.4 Mostly dissimilar 0.0 – 0.4 Dissimilar / opposed
+
+Table 12: Qualitative interpretation of aggregate simi-larity scores. The overall similarity score is computed as the mean across all dimensions. 
+
+space visualized in Figure 3, where User 14 occu-pies a comparatively isolated region. The agree-ment between the qualitative rubric analysis and the geometric structure of the learned memory slots provides evidence that the model preserves mean-ingful long-term behavioral distinctions between users. 
+
+C Qualitative Examples on LoCOMO Dataset 
+
+Table 15 shows representative successes and Ta-ble 16 shows characteristic failure modes. 
+
+3.0.1 Success Cases 
+
+The model demonstrates strong recall of semantic and relational content across a range of question types. On multi-hop questions, it correctly chains facts distributed across sessions. On single-hop questions, there are examples where important enti-ties are reliably recovered even from long contexts. Notably, the model also generalizes beyond direct recall, inferring plausible continuations from mem-orized personality traits and values, suggesting that the latent memory encodes not just surface facts but a richer implicit representation of the user’s profile .
+
+3.0.2 Failure Cases 
+
+The compressed latent representation is lossy for 
+
+precise numerical and temporal content such as exact dates, counts, and verbatim strings , while the semantic content is largely preserved. These results suggest a clear direction for fu-ture work by augmenting the latent memory with a lightweight cache or a scratchpad for high-Dimension Score Judge Model Output (User 2 ↔ User 4) 
+
+Domain-specific likes 2 No topical overlap (books vs. films), but both users strongly engage with narrative-driven media, value indie creators, and participate in cultural events and communities. Domain-specific dis-likes 4 Strong alignment in disliking rigid club formats, overwhelming large-scale events, binge-style consumption, and shallow online discussions. Lifestyle and routines 3 Both users shifted from structured participation toward more casual and self-paced interactions over time. Values and priorities 3 Both value authentic engagement, learning, community participation, and depth of experience over performative participation. Personality and commu-nication style 4 Highly reflective, introspective, and articulate communication styles with strong preference for intimate interactions over crowded environments. Goals and aspirations 3 Both aim to deepen their craft and engage more authentically with their respective communities. Expertise and knowl-edge domains 2 Different topical domains, but both exhibit deep cultural fluency and creator-oriented engagement patterns. Aesthetic and stylistic preferences 3 Shared preference for emotional depth, character-driven narratives, and non-mainstream experiences. Preference evolution and stability 4 Nearly identical behavioral trajectories characterized by exploration, burnout from structured engagement, and eventual transition toward smaller authentic interactions. 
+
+Overall 3.11 “Despite zero topical overlap, this pair is the most behaviorally aligned. They share remarkably similar interaction trajectories and conversational styles.” 
+
+Table 13: Judge model outputs using Claude 4.7-Opus for the most similar user pair User 2 and 4 identified during rubric-based evaluation. Despite discussing different domains, the users exhibit highly aligned behavioral patterns, communication styles, and interaction trajectories. 
+
+precision numerical and temporal facts, while re-taining the compact semantic compression for broader contextual knowledge. In this way, it can potentially help get the best of both worlds (RAG & latent memory). 
+
+D Personamemv1 Details 
+
+4.1 Prompt used for evaluation 
+
+The prompt used for Personamem evaluation is presented in Figure 4. 
+
+Figure 4: PersonaMemv1 inference prompt. The three fields are concatenated (separated by blank lines) and wrapped in a Qwen3 user-turn chat template. No long-form conversation context or user history is prepended. 
+
+Find the most appropriate model response from the options . Pick a single option after the special token < final_answer >. Provide the reasoning for your choice after final answer . { user_question_or_message } { all_options } 
+
+4.2 Qualitative Examples on PersonaMemv1 
+
+We present qualitative examples from the Person-aMem 32k evaluation of our model LPM. The ex-amples illustrate that the model learns to compress personalized user memory directly into its parame-ters . At inference time it successfully tracks pref-erence evolution , generalizes learned knowledge across domains , and generates preference-aligned recommendations , without having access to the original conversation. Table 17 presents qualita-tive examples of LPM’s output on Personamemv1. This highlights the effectiveness of latent memory approaches in memorizing personalized user pref-erences, while being considerabily more efficient compared to full context and text memory methods. The failure example on Suggest New Ideas is in-sightful: proposing genuinely novel activities re-quires reasoning about what is absent from the user’s history rather than what is present. This requires a negation operation in the reasoning pro-cess that goes beyond simply surfacing memorized preferences. 
+
+E Resources 
+
+The resources used for our work are summarized in Table 19. Dimension Score Judge Model Output (User 15 ↔ User 14) 
+
+Domain-specific likes 1 Very different interests and motivations. Slight overlap only in attending community discussions or social events. Domain-specific dis-likes 2 Limited overlap. Both dislike unproductive networking events, but for sub-stantially different reasons: inefficacy versus social discomfort. Lifestyle and routines 2 Both explore many activities, but their motivations differ substantially (social connection vs. knowledge-building). Values and priorities 2 Only partial overlap. One prioritizes personal connection while the other prioritizes education and financial empowerment. Personality and commu-nication style 3 Both are reflective and verbose, but one is emotionally exploratory while the other is analytically self-evaluative. Goals and aspirations 1 Fundamentally different long-term goals and motivations. Expertise and knowl-edge domains 1 No meaningful overlap in expertise or domain knowledge. Aesthetic and stylistic preferences 2 Some overlap in preferring smaller and casual settings over formal or highly structured environments. Preference evolution and stability 3 Surface-level similarity in exploration patterns, but driven by substantially different underlying motivations. 
+
+Overall 1.89 “The similarity is largely superficial and behavioral rather than personality-level alignment.” 
+
+Table 14: Judge model outputs using Claude 4.7-Opus for the most dissimilar user pair User 14 and 15, identified during rubric-based evaluation. Although some high-level behavioral patterns overlap, the users differ substantially in motivations, conversational dynamics, and long-term goals. 
+
+Table 15: LoCOMO success cases. The model answers correctly from latent memory alone, with no conversation context at inference time.       
+
+> Type Question Gold Answer Model Response
+> Multi-hop “What places has Joanna submitted her work to?” film contest, film festival “Joanna has submitted her work to a few different places, including a few film festivals and some online platforms.”
+> Captures the key entity (film festivals) and plausibly generalizes to online platforms. It is successful in chaining facts across sessions.
+> Single-hop (partial recall) “What authors has Tim read books from?” J.K. Rowling, G.R.R. Martin, P. Rothfuss, P. Coelho, J.R.R. Tolkien “Tim has read books from J.K. Rowling, George R.R. Martin.”
+> A correct but compressed subset: high-salience entities are preserved while less-emphasised ones are dropped.
+> Open-domain/Reasoning “What fields would Caroline be likely to pursue in her education?” psychology, counseling certification “Caroline would likely pursue education in psychology, counseling, or social work. She’s passionate about advocating for the LGBTQ+ community and helping others.”
+> The model does not merely recall a stated fact. It infers a plausible educational trajectory from memorized personality traits and values.
+> Factual recall “Where did Caroline move from 4 years ago?” Sweden “Caroline moved from Sweden to Canada 4 years ago.”
+> Precise single-entity recall of a static biographical detail buried across multiple sessions.
+
+Table 16: LoCOMO failure cases. The dominant failure mode is imprecise numerical or temporal content despite correct semantic recall. 
+
+Type Question Gold Answer Model Response 
+
+Exact-date recall “When did Caroline go to the LGBTQ support group?” 7 May 2023 “Caroline went to the LGBTQ support group in June 2023.” 
+
+Correct semantic content (approximate month and year), imprecise numerical content (wrong month, no day). Timestamps are the first detail compressed away. 
+
+Exact-count recall “How many Prius has Evan owned?” two “Evan had one Prius. It’s been a great way to reduce his environmental impact.” 
+
+The model retains the entity (Prius) and the associated sentiment (environmental motivation) but loses the exact count. Small integers embedded in incidental context are prone to compression error. Table 17: Qualitative PersonaMem 32k examples. Correct model outputs are shown for three task types; a failure 
+
+case for Suggest New Ideas is included in the final row. The correct option is shown in bold in each option list. 
+
+Task Type User Query & Options (abbreviated) Model Response (excerpt) 
+
+Track Full Preference Evolution Query: “It delves into the psychology behind book characters and narratives, which has really sparked my interest again. . . In some ways, it makes the reading experience feel like a deeper exploration of the human condition. . . ” (a) Initially enjoyed podcasts, then maintained interest steadily, now rekindled. 
+
+(c) Initially enjoyed podcasts, then lost interest, now rekindled. 
+
+(b) Initially found them uninteresting, then got into them, now rekindled. (d) No initial mention of enjoying them, then lost interest, now rekindled. 
+
+(c) “I see you’ve gone through quite a journey with your interest in book podcasts. Initially, you enjoyed listening to them, but then there was a period when you lost interest. Now, it’s great to hear that your interest has been rekindled. . . ” 
+
+✓
+
+Generalize to New Scenarios Query: “I’m considering whether I should start scripting my cooking videos or just go with the flow. What do you think?” (a) Scripting provides structure and consistent flow. (b) Scripting makes editing easier. 
+
+(c) Going with the flow allows creativity and authenticity. 
+
+(d) A hybrid approach gives the best of both worlds. 
+
+(c) “Going with the flow might allow for more creativity and authenticity in your cooking videos. . . If you enjoy expressing yourself freely, you might find this approach more fulfilling.” 
+
+✓
+
+Preference-Aligned Recommendation Query: “I’m planning a weekend getaway and want to try something creatively fulfilling. What would you suggest?” 
+
+(a) Capturing nature soundscapes in a forest or by a lake. 
+
+(b) Traditional island cooking or Polynesian tattoo design. (c) Painting in an art studio or backyard. (d) Writing stories or poetry in a cozy nook. 
+
+(a) “How about diving into a soundscape adventure by capturing the symphony of nature. . . blending the serene rustling of leaves, the melodic rush of water streams. . . ” 
+
+✓
+
+Suggest New Ideas 
+
+(failure case )
+
+Query: “How can I find a more fulfilling way to express my love for music?” (a) Music criticism: writing album reviews. 
+
+(b) Writing about your musical journey or performing live. 
+
+(c) Collaborating with musicians from diverse backgrounds. (d) Exploring sound engineering and digital remixes. 
+
+(c) “Collaborating with others who share your musical interests. . . A user found fulfillment through working with musicians from diverse backgrounds. . . ” 
+
+Correct: (b) Table 18: Training hyperparameters and compute requirements for LPM on LoCoMo and PersonaMem-v1. 
+
+Hyperparameter LoCoMo PersonaMem-v1 
+
+Embedding model Qwen3-Embedding-0.6B BERT-base-uncased Epochs 8 4Batch size 1 4Gradient accumulation steps 4 4Learning rate 3e−3 3e−3
+
+Target entropy Htarget = 0 .4 log k Htarget = 0 .4 log k
+
+Number of memory slots 32 32 Memory dimension 1024 256 Number of memory heads 64 8Tokens per chunk 128 64 Entropy loss weight 0.1 0.1 GPU used 1 NVIDIA A40 (40GB) 1 NVIDIA A40 (40GB) GPU hours 7.52 2.16 
+
+Table 19: Resources used in this work. 
+
+Resource Link 
+
+Qwen family of models https://huggingface.co/Qwen Draw.io https://www.drawio.com Claude Opus 4.7 https://www.anthropic.com PersonamemV1 https://huggingface.co/datasets/bowen-upenn/PersonaMem Locomo dataset https://github.com/snap-research/locomo

@@ -1,0 +1,557 @@
+Title: Adversarial Domain Prompt Tuning and Generation for Single Domain Generalization
+
+URL Source: https://arxiv.org/pdf/2606.21736v1
+
+Published Time: Tue, 23 Jun 2026 01:19:22 GMT
+
+Number of Pages: 12
+
+Markdown Content:
+# Adversarial Domain Prompt Tuning and Generation for Single Domain Generalization 
+
+## Zhipeng Xu 1,De Cheng 1*, Xinyang Jiang 2, Nannan Wang 1, Dongsheng Li 2, Xinbo Gao 31Xidian University, 2Microsoft Research Asia, 3Chongqing University of Posts and Telecommunications 
+
+xu zhipeng@stu.xidian.edu.cn, {nnwang,dcheng }@xidian.edu.cn 
+
+{xinyangjiang, dongsli }@microsoft.com, gaoxb@cqupt.edu.cn 
+
+## Abstract 
+
+Single domain generalization (SDG) aims to learn a ro-bust model, which could perform well on many unseen do-mains while there is only one single domain available for training. One of the promising directions for achieving single-domain generalization is to generate out-of-domain (OOD) training data through data augmentation or image generation. Given the rapid advancements in AI-generated content (AIGC), this paper is the first to propose lever-aging powerful pre-trained text-to-image (T2I) foundation models to create the training data. However, manually de-signing textual prompts to generate images for all possi-ble domains is often impractical, and some domain char-acteristics may be too abstract to describe with words. To address these challenges, we propose a novel Progres-sive Adversarial Prompt Tuning (PAPT) framework for pre-trained diffusion models. Instead of relying on static tex-tual domains, our approach learns two sets of abstract prompts as conditions for the diffusion model: one that cap-tures domain-invariant category information and another that models domain-specific styles. This adversarial learn-ing mechanism enables the T2I model to generate images in various domain styles while preserving key categorical features. Extensive experiments demonstrate the effective-ness of the proposed method, achieving superior perfor-mances to state-of-the-art single-domain generalization ap-proaches. Code is available in the supplementary materials. 
+
+## 1. Introduction 
+
+Recent machine learning models ( e.g. , deep neural net-work) have achieved remarkable performances on various tasks, under the key assumption that the training and testing data are independently and identically distributed ( i.e. , iid ). However, this assumption often does not hold in many real-
+
+> *
+
+Corresponding authors. Source domain  𝓓 𝑆         
+
+> T2I foundation
+> model
+> A photo of a horse
+> in the style of
+> Domain -specific
+> prompt Generate
+> Domain prompt
+> pool ( 𝒫 )
+> Adversarial
+> training
+> Add into
+> Generate domain 𝓓 𝐺
+> Continuous Generation
+> T2I foundation model
+> Source domain 𝓓 𝑆
+> A photo
+> of a horse
+> Generate
+> Generate domain 𝓓 𝐺
+> Source domain 𝓓 𝑆
+> Generate domain 𝓓 𝐺
+> Existing domain
+> augmentation method
+> Generate
+
+Figure 1. Comparison between our method with existing single domain generalization approaches: Left: the traditional domain augmentation-based method; Middle: the simple T2I foundation model with text description as prompt for domain augmentation; 
+
+Right: our proposed method, which learns two sets of abstract prompts ( i.e. , category and domain) instead of the static textual domains, to instruct the diffusion-based T2I foundation model for generating images of a wide range of domain styles. 
+
+world scenarios due to the domain shift, especially when testing on out-of-distribution (OOD) or previously unseen datasets. To mitigate the issue of domain shift, various ap-proaches have been proposed, including domain adaptation (DA) [9, 21, 37, 42, 46, 48] and domain generalization (DG) methods [10–12, 64, 65, 69, 73]. These methods typically involve incorporating data from multiple training domains (e.g. , multi-domain generalization), or the target domain data. Despite showing encouraging performances on the OOD data, it may not always be applicable due to data ac-quiring budget or privacy issue. Therefore, we aim to ad-dress the more challenging but more useful task, i.e. , single domain generalization (SDG). SDG aims to train a model on a labeled source domain and perform well on multiplied unseen target domains. This learning paradigm presents significant challenges because only one source domain is given and the target domains are usually unseen/out-of-distribution and unavailable dur-
+
+> arXiv:2606.21736v1 [cs.CV] 19 Jun 2026
+
+ing training. Existing works have made considerable suc-cesses by employing data augmentation to extend the distri-bution of the source domain [4, 55] or learning adaptive data normalization [19] typically. However, it remains challeng-ing how to construct diverse domains to achieve a provable generalization performance on target domains. Namely, it is challenging to guarantee a mitigated distribution dis-crepancy between the generated domains and target do-mains. Recent research provides strong evidence that Text-to-Image (T2I) foundation models have a powerful ability to generate images from text descriptions. Given that text inherently conveys rich semantic information, these models can produce a wide variety of images across different do-mains using text prompts. However, there still contains the following key issues that need to be addressed: 1) How to generate images from domains whose characteristics that are too abstract to describe with language? 2) How to en-able T2I models to automatically generate a sufficiently di-verse range of images across different domains? 
+
+To address these challenges, this paper proposes to au-tomatically learn a group of abstract prompts for out-of-distribution image generation with T2I models, eliminat-ing the need for manually crafted descriptions. As shown in Fig. 1, our method applies prompt-tuning to diffusion-based T2I models, learning two types of abstract prompts: 
+
+category prompts , which capture domain-invariant category information that remains consistent across domains, and 
+
+domain prompts , which represent diverse domain styles, including those too abstract to express in words ( e.g. ,“a photo of [class prompt] in the style of [do-main prompt]”). Furthermore, to ensure both diversity in domain styles and consistency in key categorical features of generated images, we propose a novel Progressive Ad-versarial Prompt Tuning (PAPT) framework. In this frame-work, we first learn category prompts from the source do-main data, then progressively learn new domain prompts, which are stored in a domain-specific memory bank. This framework reduces style similarity between newly gener-ated domains and those already in the memory bank while enhancing semantic consistency between generated images and their corresponding category prompts. The main contributions can be summarized as follows: • We propose the first work that leverages the text-to-image foundation model for single-domain generaliza-tion (SDG). To obtain a wider range of domain styles be-yond manual language description, we propose to learn a group of abstract learnable prompts representing diverse domains instead of static textual domains. • We propose a novel Progressive Adversarial Prompt Tun-ing (PAPT) framework to balance the trade-off between generating images in diverse domain styles and preserv-ing key categorical features. • Through generating images with high domain diversity, the proposed method achieves superior performances to state-of-the-art SDG methods, illustrated by extensive ex-periments on mainstream SDG datasets. 
+
+## 2. Related work 
+
+2.1. Domain Generalization 
+
+Over the last decade, many efforts have been devoted to do-main generalization (DG) to address the OOD issue. Cur-rently, DG methods can mainly be categorized into five dimensions, including domain alignment [10, 21], meta-learning [18, 63, 74], data augmentation [4, 55], disentan-gled representation learning [30, 44], and capturing causal relations. Despite showing encouraging performances on OOD data, their real-world applications are still limited due to the necessity of having data from other domains. In this work, we focus on an extreme case in DG: single domain generalization (SDG). 
+
+2.2. Data augmentation for SDG 
+
+SDG focuses on generalizing a model learned from only one source domain to multiple unseen target domains. To address this challenging problem, several methods have de-signed various data augmentation algorithms to enhance the diversity and informativeness of training data. In partic-ular, some works [45, 61, 62, 76] have demonstrated that the method of adversarial domain augmentation (ADA) can be highly effective in enhancing the generalization ability and robustness of the model by synthesizing virtual images during the training process. [67, 77] operate in the style space defined with style statistics, which can be simply ap-plied to any tasks/models. [19] proposes a generic normal-ization approach (ASR-Norm) to adapt the data originating from diverse domains when trained with ADA. Although these methods construct new domains via data augmenta-tion, these methods are not able to cover an arbitrary style that has a large distribution gap with the source domain. To address this limitation, we leverage the T2I foundation model to generate a wider variety of domain images, aiming for larger diversity. 
+
+2.3. Text-to-Image model 
+
+T2I model has been widely studied in the context of GANs [22], with the key developments including models like DALL-E [51] and CogView [17], which allows users to synthesize novel scenes with unseen compositions and produce vivid images in a myriad of styles. Recently, re-markable visual results have been achieved by leveraging large-scale auto-regressive [51] or diffusion models [40]. [52] proposes the latent diffusion model, which applies dif-fusion model in the latent space of powerful pre-trained autoencoders and uses text with rich semantic information as a condition to guide the generation of images. Some Source domain     
+
+> 𝓓 𝑆
+> Class relevant prompt
+> 𝑧 0
+> ϵ𝑧 𝑡
+> Denoising
+> step ϵ𝜃 ∙
+> ොϵϵ
+
+𝓛 𝐿𝐷𝑀 predict                          
+
+> 𝑧 0:Input features
+> 𝑧 𝑡 : Noisy input features
+> ϵ:Gaussian noise
+> ϵ𝜃 : Predictive noise
+> VAE
+> Encoder 𝑓 𝐸
+> A photo of In the style of
+> A photo of In the style of 𝐸 𝑖
+> 𝑑
+> Domain -specific memory bank 𝒫
+> Text encoder 𝑓 𝐵 Text encoder 𝑓 𝐵
+> Feature based on
+> previous domain class -invariant feature
+> 𝑧 𝑇 Denoising
+> step ϵ𝜃 ∙𝑧 𝑡
+> Conditioning input feature
+> VAE
+> Decoder 𝑓 𝐷
+> ×𝑇 −𝑡
+> 𝑧 0
+> Generate domain
+> 𝓓 𝐺
+> Adversarial
+> training
+> 𝓛 𝑐𝑙𝑎𝑠𝑠
+> 𝓛 𝑑𝑜𝑚𝑎𝑖𝑛
+> Sample generated by 𝒫 Sample generated by 𝐸 𝑜
+> 𝑑
+> Training Only
+> Generate Only
+> Training & Generate
+> 𝒫 =𝒫 ∪𝐸 𝑜
+> 𝑑
+> (a) Category Prompt Tuning
+> (b) Adversarial Domain Prompt Tuning
+> (c) Progressive Training Scheme
+
+⋯𝐸 1 
+
+> 𝑐
+
+𝐸 2 
+
+> 𝑐
+
+𝐸 𝐾  
+
+> 𝑐
+> Text encoder 𝑓 𝐵
+
+⋯𝐸 1 
+
+> 𝑑
+
+𝐸 2 
+
+> 𝑑
+
+𝐸 𝑁  
+
+> 𝑑
+> Newly learned domain 𝐸 𝑜
+> 𝑑
+
+𝐸 𝑜 
+
+> 𝑑
+> Learnable
+
+Figure 2. The framework of our proposed method. We first train a set of category prompts Eck for each class to capture domain-invariant category information in step (a). Subsequently, we train domain prompts Edo that represent abstract domain styles instead of rigid textual domains through adversarial domain prompt tuning in step (b). As new domain prompts are learned, they are added to a domain-specific memory bank. We then minimize the style similarity between the newly generated domain and previous domains in the memory bank, while maximizing the semantic consistency between generated images and the corresponding category in step (c). 
+
+work [14, 68] fit a neural network reward function using human scores or relative preferences and then finetune the latent diffusion model. However, re-training a model with an expanded dataset for each new concept is prohibitively expensive. Thus, [20] proposes a method that does not alter the parameters of the latent diffusion model. Instead, they optimize conditional input prompts. 
+
+## 3. Methodology 
+
+3.1. Problem Definition 
+
+Let DS be one labeled source domain and DT =
+
+{D T 
+
+> 1
+
+, DT 
+
+> 2
+
+, · · · , DT  
+
+> NT
+
+} be the multiple target domains, where N T is the total number of target domains. We de-note DS = {(xi, y i)}N s
+
+> i=1
+
+, where xi ∈ X is the ith training example sampled from the input space X , and yi ∈ Y is the corresponding label. In particular, we consider K classes in each domain. The mth unseen target domain can also be defined as DT 
+
+> m
+
+= {(xi, y i)}N T
+
+> m
+> i=1
+
+, where N T 
+
+> m
+
+is the number of training samples from the mth domain DT
+
+> m
+
+. Single-domain generalization (SDG) aims to build a model that can per-form well on all unseen target domains, through generating images in diverse domain styles to address the domain dis-tribution shift problem. Note that, this study is verified on solving the image classification problem. 
+
+3.2. Overall Framework of our Method 
+
+This paper proposes a novel Progressive Adversarial Prompt Tuning (PAPT) framework for the pre-trained T2I model, to generate images of a wide range of domain styles, for SDG. Our approach aims to learn two sets of abstract prompts instead of the textual description to instruct the diffusion-based T2I foundation model. Specifically, the 
+
+Category Prompt Tuning is first adopted to capture categori-cal features from the source domain data. Then, Adversarial Domain Prompt Tuning is utilized to learn domain prompts, which model domain styles different from some predefined or previously learned ones in the domain-specific memory bank. To generate a sufficiently diverse range of images across different domains automatically, we propose the Pro-gressive Training Scheme . This mechanism designs a mem-ory bank to store the learned domain prompts, which is iter-atively updated by adding the new domain prompt. Specif-ically, the new domain prompt is progressively and adver-sarially learned to be different from existing ones. Finally, by leveraging source domain and the multiple generated do-main images together, we can learn a powerful SDG model. 
+
+3.3. Preliminaries 
+
+We implement our method over Latent Diffusion Mod-els (LDMs) [52], which consist of two core components. Firstly, an auto-encoder is pre-trained on a large dataset. An encoder fE learns to map the input images x into the spatial latent representation z0 = fE (x). The decoder fD
+
+reconstructs the image from the latent representation, such that fD (fE (x)) −→ x. The amount of noise added varies ac-cording to the timestep t following a variance schedule of 
+
+{βt ∈ (0 , 1) }Tt=1 , with T being the total timestep. Then we can add noise ϵ to the latent representation z0 as follows: 
+
+zt = √αtz0 + √1 − αtϵ, ϵ ∈ N (0 , 1) , (1) where ϵ is sampled from Gaussian distribution and αt = 1 −
+
+βt, αt = Qti=1 αi. The second component is a conditional denoising module, which learns a reverse diffusion process that predicts the noise ˆϵ:
+
+ˆϵ = ϵθ (zt, t, Φ( w)) , (2) where w is the text embedding vector containing the image content descriptions ( i.e. , the class name), and Φ( ·) is an en-coder that maps the condition input of some text description into an intermediate representation Φ( w). Following [52], it is mapped to the intermediate layers of the UNet [53] 
+
+ϵθ (·) in Eq. 2 via a cross-attention layer implemented as 
+
+Attention( Q, K, V) = Softmax( QK ⊤ 
+
+> √d
+
+) · V, with: 
+
+Q = W(i) 
+
+> Q
+
+· φi(zt), K = W(i) 
+
+> K
+
+· Φ( w), V = W(i) 
+
+> V
+
+· Φ( w).
+
+(3) Here, φi(zt) denotes an intermediate representation of the UNet implementing ϵθ , W(i) 
+
+> Q
+
+, W(i) 
+
+> V
+
+, W(i) 
+
+> K
+
+are projection matrices, and Φ( w) is the conditional input for the diffu-sion model. The LDM loss can be written as: 
+
+LLDM = EfE (x),y,ϵ ∈N (0 ,1) ,t 
+
+∥ϵ − ˆϵ∥22
+
+ , (4) where ∥ · ∥ is L2 norm [26] and both Φ( ·) and ϵθ are jointly optimized via Eq. 4. 
+
+3.4. Category Prompt Tuning 
+
+The Category Prompt Tuning aims to capture domain-invariant category information from the source domain data. In real-world scenarios, some concepts/categories are diffi-cult for the diffusion model to understand through a single class label/name. So in the first stage, we use LDMs to train a set of prompts for each category, serving as an abstract representation for the corresponding class. Specifically, we denote tck as the input string to facilitate the domain-invariant category description of the kth class as follows, 
+
+tck = “ a photo of a ∗ ”, k ∈ [1 , K ]. (5) In Eq. 5, K is the total number of classes, and ‘ ∗’ is de-fined as a ‘placeholder’ indicating the position of class name within the input string. Subsequently, the input string tck fol-lows tokenization and then each token is transformed into the embedding vector. Suppose Mc is the length of the to-kens corresponding to the input string tck after the exclusion of the placeholder ‘ ∗’, then the corresponding tokenized vector can be defined as ˆtck = [ˆ tck, 1, · · · , ˆtck,j , · · · , ˆtck,M c ]. Following the embedding function ε(·) for all the tokens, we then add a learnable category prompt Eck for the kth 
+
+domain-invariant category description at the position of the placeholder in the embedding space: 
+
+wck = [ ε(ˆ tck, 1), · · · , ε (ˆ tck,j ), · · · , ε (ˆ tck,M c ), Eck]. (6) Afterward, we use Φ( wck) as the category condition in-put to the cross-attention layer of the UNet ϵθ (·), direct-ing the prediction of noise while optimizing only Eck with 
+
+LLDM in Eq. 4. To be specific, Φ( ·) is the text encoder of CLIP [49] in our experiment. Finally, we can learn K
+
+category prompts with each for one class. 
+
+3.5. Adversarial Domain Prompt Tuning 
+
+Image Sampling with Domain Prompt. In this paper, we aim to learn a set of abstract domain prompts, where each prompt in the domain-specific memory bank P is used to instruct the pre-trained diffusion model to generate im-ages in a specific domain style: 
+
+P = {Ed 
+
+> 1
+
+, E d 
+
+> 2
+
+, · · · , E dN }, P ∈ RN ×D, (7) where N in Eq. 7 represents the number of learned domains in P, and D represents the prompts dimension. Given the 
+
+ith domain prompt Edi in P, we compose a text description to generate an image belonging to k-th category as follows: 
+
+tc-dk,i = “ a photo of a ∗ in the style of † ”,where k ∈ [1 , K ], i ∈ [1 , N ], (8) where the token embedding of ∗ and † will be replaced by our learnable category prompt Eck and domain prompt Edi ,respectively. Similar to Eq. 6, ˆtc-dk,i is defined as a set of tokens corresponding to the input string tc-dk,i . As a result, the overall token embedding of wc-dk,i is formulated as: 
+
+wc-dk,i = [ ε(ˆ tc-dk,i, 1), · · · , Eck, · · · , ε (ˆ tc-dk,i,M c-d ), Edi ], (9) where Mc-d is the length of the tokens in ˆtc-dk,i . Finally, we use the pre-trained diffusion model to generate the image belonging to kth category with ith domain style, by feed-ing the obtained token embedding wc-dk,i into the diffusion denoiser in Eq. 2 at every Denoising Diffusion Probabilistic Models (DDPMs) [27] sampling step. 
+
+Domain Prompt Tuning. Next, we elaborate on how to learn the domain prompt by our proposed Adversarial Do-main Prompt Tuning module. The goal of this module is to ensure that the domain style of the image generated with the currently learned domain prompt is different from the domain styles stored in the memory bank P.First, we set up an initial memory bank of prompts by manually selecting several textual domains and using their corresponding token embeddings as the initial domain Ideal class boundaries  Domain -specific memory bank            
+
+> Class 0 Class 0
+> Class 1 Class 1
+> (a) w/o Progressive Training Scheme (b) w/ Progressive Training Scheme
+> Domain2 feature &&Domain1 feature Domain3 feature &
+> Actual class boundaries Space of classification errors &domain Ldomain Lclass Lclass L
+
+Figure 3. This figure shows the impact of the Progressive Training Scheme. By comparing the two figures, we found that after using the Progressive Training Scheme, the areas of classification errors have decreased. This observation indicates that the more diverse abstract domains we learn, the more likely we are to generate OOD images that are close to the classification boundary. 
+
+prompts in the memory bank. In order to learn a new do-main prompt Edo , we first use the diffusion model to gen-erate an original latent representation z0 from the kth cat-egory by composing the text description following Eq. 8. Then, the domain similarity between the generated z0 and the i-th domain style in P is formulated as the probability that z0 belongs to the ith domain: 
+
+pdi (z0; Φ( wdi )) = exp( < z0, Φ( wdi ) > /τ )
+
+PNi=1 exp( < z0, Φ( wdi ) > /τ ) , (10) where we can define pd = [ pd
+
+> 1
+
+, · · · , pdi , · · · , pdN ] as the collection of probabilities for domain classification. τ is a hyper-parameter to control the sharpness of the output, and 
+
+< ·, · > is the dot product which can be termed as the cosine similarity as the features are normalized. The wdi in Eq. 10 represents the token embedding cor-responding to the domain-specific textual description tdi in Eq. 11 of the ith domain style in the P:
+
+tdi = “ in the style of † ”, i ∈ [1 , N ], (11) 
+
+wdi = [ ε(ˆ tdi, 1), · · · , ε (ˆ tdi,j ), · · · , ε (ˆ tdi,M d ), Edi ], (12) where ˆtdi can be defined as a set of tokens corresponding to the domain-specific textual description tdi and Md is the length of the tokens in ˆtdi . As a result, the adversarial do-main loss is formulated to minimize the total style similarity between the z0 and all the previous domains in the memory bank P. wdi corresponds to each learnable domain prompt 
+
+Edi in P. In other words, we want the newly generated do-main Edo to be distributionally different from the previous domain in P:
+
+Ldomain = −
+
+> N
+
+X
+
+> i=1
+
+− log pdi (z0; Φ( wdi )) . (13) To ensure z0 still maintains the category semantics af-ter optimizing with the adversarial domain loss, we further propose a category consistency loss, which maximizes the semantic consistency between z0 and the categorical em-bedding wck in Eq. 6: 
+
+Lclass = − log pck(z0; Φ( wck))) , (14) where the pck represent the probability of z0 belonging to the kth category. We calculate the pck with the same as Eq. 10 by z0 and Φ( wck). The final adversarial domain prompt tuning loss is written as: 
+
+Lall = Lclass + λLdomain , (15) where λ in Eq. 15 is a hyper-parameter. It balances the trade-off between training the new domain prompt distri-butionally different from existing ones and preserving its key categorical semantic information. Optimizing Eq. 15 requires sampling z0 and back-propagating the gradient through the entire sequence of sampling steps, which is im-practical. As a result, we propose using a one-step approxi-mation of z0. Specifically, we first sample an inter-mediate state zt with a relatively low noise level, and then conduct a one-step approximation of z0 with zt, and the loss gradient is only back-propagated from the t-th to the 0-th step: 
+
+z0 = 1
+
+√αt
+
+ zt − √1 − αtϵθ
+
+ zt, t, Φ  wc-dk,i 
+
+ . (16) 
+
+3.6. Progressive Training Scheme 
+
+To automatically generate images with diverse domain styles, we need to progressively update P by continuously adding new domain prompts. To achieve this, we pro-pose a Progressive Training Scheme: after a certain number of prompt tuning iterations, the currently learned domain prompt Edo is added to P, allowing P to be gradually up-dated with new styles as follows: 
+
+P ← P ∪ { Edo }. (17) Fig. 3 provides a sample illustration. The purpose of this training scheme is to ensure that each time when we train the new domain Edo using adversarial domain loss in Eq. 13, we can also increase the distance between the new domain 
+
+Edo and the previously added domain Edi in P. In this way, each training domain will be distributionally different from previous ones. Thus, we have a higher probability of learn-ing more challenging abstract domains. 
+
+## 4. Experiments 
+
+4.1. Datasets and Evaluation Protocols 
+
+Following previous works [47, 56], we adopt five com-monly used benchmark datasets in DG tasks for evalua-tion: PACS [32] (4 domains, 9,991 samples, 7 classes), VLCS [32] (4 domains, 10,729 samples, 5 classes), Office-Home [60] (4 domains, 15,588 samples, 65 classes), Do-mainNet [43] (6 domains, 586,575 samples, 345 classes) and TerraIncognita [2] (4 domains, 24,788 samples, 10 classes). To ensure reliable results, we calculate the aver-age performance across multiple experiments (Avg-acc). 
+
+4.2. Implementation details 
+
+In our implementation, we adopt the ResNet-18 [24] for PACS and VLCS and ResNet-50 [24] for OfficeHome pre-trained on ImageNet [16] as backbone for the SDG setting, follows [47, 56] for a fair comparison. The models are trained for 50 epochs using a batch size of 64 and a learning rate of 0.001 for each stage. We utilize the SGD optimizer and conduct the training on a single NVIDIA RTX3090 GPU. In our proposed method, the parameter N in Eq. 7 is set to 5. The parameter λ in Eq. 15 is set to 10 . To ensure the reliability of our method, we independently repeat all experiments five times and report the average results. 
+
+Table 1. SDG results (%) on PACS. One domain is used as the source domain and the others are used as the target domain.                                                                                                       
+
+> Method Venue PACSAvg.
+> Augmix [25] ICLR’20 38.30 66.54 70.16 52.48 56.87 RSC [29] ECCV’20 41.60 73.40 75.90 56.20 61.80 L2D [67] ICCV’21 52.29 76.91 77.88 53.66 65.18 RSC+ASR [29] CVPR’21 54.60 76.70 79.30 61.60 68.10 pAdaIn [41] CVPR’21 33.66 64.96 65.24 32.04 49.98 ERM [59] ICLR’21 33.65 65.38 64.20 34.15 49.34 Mixstyle [77] ICLR’21 37.44 67.60 70.38 34.57 52.50 EFDMix [75] CVPR’22 42.50 63.20 73.90 38.10 54.40 DSU [35] ICLR’22 42.10 71.54 74.51 47.75 58.97 ACVC [15] CVPRW’22 48.05 73.68 77.39 55.30 63.61 MAD [47] CVPR’23 52.95 75.51 77.25 57.75 65.87 P-RC [13] CVPR’23 57.11 76.98 78.54 62.89 68.88 Meta-Casual [6] CVPR’23 59.60 77.13 80.14 62.55 69.86 ITTA [7] CVPR’23 56.50 78.40 79.80 60.70 68.80 Prompt-Driven [34] CVPR’24 60.09 78.77 82.69 62.94 71.12
+> PAPT (Ours) -62.12 69.84 78.57 80.34 72.72
+
+Table 2. SDG results (%) on VLCS. One domain is used as the source domain and the others are used as the target domain.                                                             
+
+> Method Venue VLCSAvg.
+> Augmix [25] ICLR’20 75.25 59.52 45.90 57.43 59.53 ERM [59] ICLR’21 76.72 58.86 44.95 57.71 59.56 pAdaIn [41] CVPR’21 76.03 65.21 43.17 57.94 60.59 Mixstyle [77] ICLR’21 75.73 61.29 44.66 56.57 59.56 EFDMix [75] CVPR’22 72.35 61.41 52.34 63.28 62.33 DSU [35] ICLR’22 76.93 69.20 46.54 58.36 62.76 ACVC [15] CVPRW’22 76.15 61.23 47.43 60.18 61.25 MAD [47] CVPR’23 76.15 69.36 48.04 61.74 63.82
+> PAPT (Ours) -73.16 74.69 69.66 75.96 73.37
+
+4.3. Results on Single Domain Generalization 
+
+We compare our method with baseline method [59], the data augmentation based method [8, 15, 25, 35, 41, 47, 75, 77], the domain invariant representation based method [1, 3, 21, 29, 31, 36, 57], the feature disentanglement based method [39], the distributionally robust optimization based method [54], the gradient operation based method [29, 50] and the flatness-aware based methods [36, 56, 66, 78]. Tab. 1, Tab. 2, and Tab. 3 show the comparison results on PACS, VLCS, and OfficeHome, respectively. Notably, our 
+
+Table 3. SDG results (%) on OfficeHome. One domain is used as the source domain and the others are used as the target domain.                                                                                                                                           
+
+> Method Venue ACPRAvg.
+> DANN [21] IJCAI’16 55.20 49.30 48.40 58.40 52.80 CORAL [57] ICCV’16 55.60 52.80 50.30 59.40 54.50 IRM [1] -54.90 53.20 48.60 59.20 54.00 MMD [36] ICCV’18 55.10 52.00 50.30 59.30 54.20 OrgMixup [72] ICLR’18 56.00 54.40 50.40 61.00 55.50 Mixup [70] -55.50 54.10 49.40 59.40 54.60 CutMix [71] CVPR’19 53.50 52.20 47.70 60.20 53.40 CDANN [21] -55.20 49.90 47.60 58.60 52.80 GroupDRO [54] ICLR’20 55.10 52.00 50.30 59.30 54.20 MTL [3] JMLR’21 55.30 53.30 49.00 60.40 54.50 ARM [74] NeurIPS’21 55.00 51.60 47.30 59.30 53.30 VREx [31] ICML’21 55.50 52.60 49.10 59.30 54.10 Mixstyle [77] ICLR’21 44.30 29.80 33.60 48.50 39.00 ERM [59] ICLR’21 55.60 52.80 50.30 59.40 54.50 SAM [36] ICLR’21 56.90 53.80 50.90 61.50 55.80 SagNet [39] CVPR’21 56.90 53.40 50.80 61.20 55.60 Fishr [50] ICML’22 55.10 51.20 49.20 59.90 53.90 RIDG [8] ICCV’23 56.80 55.40 50.50 60.90 55.90 SAGM [66] CVPR’23 57.70 54.80 51.50 61.40 56.30 ITTA [7] CVPR’23 56.00 51.50 50.50 61.60 54.90 UDIM [56] ICLR’24 58.50 55.70 54.50 64.50 58.30
+> PAPT (Ours) -59.81 68.30 59.12 60.87 62.03
+
+proposed method outperforms the state-of-the-art method by 1.60%, 9.55%, and 3.73% on Avg-acc on all bench-mark datasets. Especially when taking ”Sketch” (PACS), ”Caltech101” (VLCS), ”SUN09” (VLCS), and ”Clipart” (OfficeHome) as the source domain, our PAPT leads to 17.40%, 21.62%, 14.22% and 12.60% improvement in Avg-acc. It is important to highlight that the domain shift in the VLCS dataset mainly comes from background and view-point changes. In other words, the domain label does not convey any semantic information. Since the result on VLCS (63.82% →73.37%) further proves our proposed method does not rely on the domain labels from the source domain, it can be applied to other robustness tasks that do not con-tain domain labels (VLCS and TerraInc). To sum up, our proposed method has two main advantages: (1) We fully leverage the flexibility of learnable domain prompts to rep-resent abstract and challenge domains instead of relying on rigid textual domains. (2) Unlike existing data augmen-tation methods, We propose a novel progressive training scheme to harness the potential of the T2I model to gen-erate diverse images automatically. Further mitigating the domain discrepancies between source and target domains. 
+
+4.4. Results on Multiple Domain Generalization 
+
+We extend our proposed method to multi-source DG setting by extracting the same images as input from various source domains to train class prompt Eck. Then keep the subse-quent training process consistent with the SDG setting. We compare our method with several popular DG methods. Tab. 4 shows the multi-source DG results on all the DG benchmark datasets with ResNet-50 [24] as the back-bone. Notably, our proposed method outperforms the state-of-the-art method SMOS by 1.34% on Avg-acc. (1) This further demonstrates that our proposed method not only Table 4. Multi-source DG results (%) on PACS, VLCS, OfficeHome, TerraInc, and DomainNet benchmark datasets. 
+
+Method Venue PACS VLCS OfficeHome TerraInc DomainNet Avg. 
+
+DANN [21] IJCAI’16 83.60 ±0.40 78.60 ±0.40 65.90 ±0.60 46.70 ±0.50 38.30 ±0.40 62.60 CORAL [57] ICCV’16 86.20 ±0.30 78.80 ±0.60 68.70 ±0.30 47.60 ±1.00 41.50 ±0.10 64.50 MLDG [33] AAAI’18 84.90 ±1.00 77.20 ±0.40 66.80 ±0.60 47.70 ±0.90 41.20 ±0.10 63.60 GroupDRO [54] ICLR’20 84.40 ±0.80 76.70 ±0.60 66.00 ±0.70 43.20 ±1.10 33.30 ±0.20 60.70 RSC [29] ECCV’20 85.20 ±0.90 77.10 ±0.50 65.50 ±0.90 46.60 ±1.00 38.90 ±0.50 62.70 VREx [31] ICML’21 84.90 ±0.60 78.30 ±0.20 66.40 ±0.60 46.40 ±0.60 33.60 ±2.20 61.90 Mixstyle [77] ICLR’21 85.20 ±0.30 77.90 ±0.50 60.40 ±0.20 44.00 ±0.70 34.00 ±0.10 60.30 ERM [59] ICLR’21 85.50 ±0.20 77.30 ±0.40 66.50 ±0.30 46.10 ±1.80 43.80 ±0.10 63.90 SAM [36] ICLR’21 85.80 ±0.20 79.40 ±0.10 69.60 ±0.10 43.30 ±0.70 44.30 ±0.00 64.50 SagNet [39] CVPR’21 86.30 ±0.20 77.80 ±0.50 68.10 ±0.10 48.60 ±1.00 40.30 ±0.10 64.20 Miro [5] ECCV’22 85.40 ±0.40 79.00 ±0.00 70.50 ±0.40 50.40 ±1.10 44.30 ±0.20 65.90 GSAM [78] ICLR’22 85.90 ±0.10 79.10 ±0.20 69.30 ±0.00 47.00 ±0.80 44.60 ±0.20 65.10 SAGM [66] CVPR’23 86.60 ±0.20 80.00 ±0.30 70.10 ±0.20 48.80 ±0.90 45.00 ±0.20 66.10 DomainDrop [23] ICCV’23 87.90 ±0.30 79.80 ±0.30 68.70 ±0.10 51.50 ±0.40 44.40 ±0.50 66.50 GMDG [58] CVPR’24 85.60 ±0.30 79.20 ±0.30 70.70 ±0.20 51.10 ±0.90 44.60 ±0.10 66.30 SMOS [38] CVPR’24 89.40 ±0.30 79.80 ±0.10 71.60 ±0.10 55.40 ±0.40 45.30 ±0.00 68.30 RES [28] ECCV’24 90.00 ±0.30 79.80 ±0.20 71.80 ±0.30 51.40 ±0.60 46.70 ±0.20 67.90 
+
+PAPT (Ours) - 91.69 ±0.44 80.84 ±0.32 71.21 ±0.53 54.27 ±1.01 50.18 ±0.47 69.64 
+
+benefits single-domain generalization but also enhances multi-source domain generalization; (2) In the challeng-ing case with large style discrepancies, such as Domain-Net, our PAPT can even gain significant performance than SMOS by 4.88%. (3) The representative data augmen-tation method, e.g. Mixstyle, shows the limited perfor-mance with ERM on VLCS (77.30% →77.90%) and Ter-raInc (43.80% →34.00%) dataset. We speculate that this may result from the distinct types of domain shifts, which typically manifest as differences in viewpoint and back-ground in VLCS and TerraInc, rather than as variations in texture and style commonly observed in other DG datasets. Notably, our proposed PAPT substantially improves the ERM of 3.54% and 6.38% on two datasets, respectively. This observation indicates that compared to the existing data augmentation based methods, our PAPT not only al-leviates the negative impacts of style shifts but also guaran-tees a provable generalization performance under varying viewpoint conditions. 
+
+4.5. Ablation Study 
+
+To validate the effectiveness of each component of our pro-posed PAPT, we conduct ablation studies in Tab. 5 and Tab. 6. Our baseline (see 1st row) only uses the source domain as training data. In 2nd row, we use a simple description ( “a photo of a [class ]” ) as the input of T2I 
+
+model to generate additional training images. In 3rd row, we train category prompt Eck using the Category Prompt Tuning (CPT) , and generate images with some textual do-mains. In 4th row, we train a domain prompt Edi using the Adversarial Domain Prompt Tuning (AD) and generate im-ages with only one Edi and textual domains. In 5th row, we incorporate the Progressive Training Scheme (PTS) to generate images with diverse domain prompts in P.
+
+Table 5. Ablation studies on individual components of our pro-posed method on PACS dataset with SDG setting.                                                 
+
+> T2I CPT AD PTS PACSAvg.
+> ✗✗✗✗34.00 58.60 66.40 27.50 46.60
+> ✓✗✗✗40.23 59.17 68.80 66.91 58.78
+> ✓✓✗✗55.55 68.87 71.56 69.36 66.34
+> ✓✓✓✗58.72 69.00 75.61 77.55 70.22
+> ✓✓✓✓62.12 69.84 78.57 80.34 72.72
+
+Table 6. Ablation studies on individual components of our pro-posed method on VLCS dataset with SDG setting.                                                 
+
+> T2I CPT AD PTS VLCSAvg.
+> ✗✗✗✗71.81 61.06 52.60 62.32 61.95
+> ✓✗✗✗72.08 69.31 60.75 70.95 68.28
+> ✓✓✗✗72.68 70.44 61.54 71.70 69.09
+> ✓✓✓✗72.94 73.95 67.94 75.20 72.51
+> ✓✓✓✓73.16 74.69 69.66 75.96 73.37
+
+Table 7. The impact of manually designed textual domain initial-ization in P on PACS, VLCS, and OfficeHome with SDG setting. 
+
+Idx PACS VLCS OfficeHome Avg. 
+
+Initialization with watercolor, oil painting and pixlate. 1 72.72 ±0.32 73.37 ±0.21 62.03 ±0.38 73.05 Initialization with ink drawing, cyber art and realism. 2 72.13 ±0.19 73.05 ±0.28 61.99 ±0.44 72.59 initialization with printmaking, line art and pastel. 3 72.57 ±0.24 73.12 ±0.15 62.08 ±0.36 72.85 
+
+The Effectiveness of Adversarial Domain Prompt Tun-ing (AD). Our Adversarial Domain Prompt Tuning substan-tially improves the model performance of 0.13% ∼8.19% across each domain and 3.88% on Avg-acc (see 3rd and 
+
+4th row in Tab. 5) on PACS dataset. In contrast, the man-ually designed textual domain demonstrates limited perfor-mance as some domain characteristics are too abstract to describe with words. Unlike relying on rigid textual in-put, our AD fully leverages the flexibility of learnable do-main prompts to more effectively characterize the diverse abstract styles, resulting in a generalization performance gain. Meanwhile, existing data augmentation methods that PACS dataset            
+
+> Art painting Sketch
+> Photo Cartoon
+> Prompt: A photo
+> of a house
+> Prompt: A photo of a 𝑬 𝒌
+> 𝒄 in the style
+> of watercolor (basic domain in 𝒫 )
+> Prompt: A photo of a 𝑬 𝒌
+> 𝒄
+> in the style of 𝑬 𝒊
+> 𝒅
+> Prompt: A photo of a 𝑬 𝒌
+> 𝒄
+> in the style of 𝑬 𝒊
+> 𝒅 (with 𝒫 )
+
+Figure 4. This figure shows the training data generated by the T2I model under different input conditions, corresponding to each row in the Tab. 5 and Tab. 6. It can be observed that our proposed method learns some abstract domains that are difficult to describe with language after replacing the manually designed textual domains with the domain prompt Edi . Furthermore, after applying the Progressive Training Scheme, the T2I model generates a sufficiently diverse range of images across different domains. N=1 N=2 N=3 N=4 N=5       
+
+> 69.8
+> 70.6
+> 71.4
+> 72.2
+> 73.0
+> 73.8 Impact of N on SDG setting
+> PACS
+> VLCS
+> N=1 N=2 N=3 N=4 N=5
+> 78.1
+> 82.1
+> 86.1
+> 90.1
+> 94.1 Impact of N on multi-source DG setting
+> PACS
+> VLCS
+
+Figure 5. Impact of domain prompt number in Eq. 7 N on PACS and VLCS dataset on SDG setting and multi-source DG setting. 
+
+mainly introduce diverse styles obtain relatively slight per-formance gains on VLCS dataset compared to PACS ones. However, our AD significantly improves the model perfor-mance of 0.28% ∼6.40% across each domain and 3.42% on Avg-acc (see 3rd and 4th row in Tab. 6). This observation indicates our AD can better model the changes in back-ground and viewpoint and mitigate the distributional differ-ence under these conditions with the powerful pre-trained T2I model. The results basically indicate the advantage of AD across different domain shifts. Fig. 4 also shows some images generated by our proposed method. 
+
+The Effectiveness of Progressive Training Scheme (PTS). Our Progressive Training Scheme achieves improve-ments of 0.84% ∼3.40% across each domain and 2.50% on Avg-acc (see 4th row and 5th row in Tab. 5) on PACS dataset and 0.22% ∼1.72% across each domain and 0.83% on Avg-acc (see 4th row and 5th row in Tab. 6) on VLCS dataset. This observation indicates that by ensuring uni-formly well performance across sufficiently diverse do-mains, our PAPT can further shrink the distribution discrep-ancies between source and target domains. To visualize the effectiveness of our PTS, we conduct experiments to as-sess the impact of domain prompt number N in Eq. 7 on SDG and multi-source DG setting, respectively, as shown in Fig. 5. Even under the multi-source DG setting with more source domains, PTS can still improve the model’s gener-alization performance as the number of N increases. To further demonstrate the stability of our PTS, we studied the impact of different initialization of the manually designed textual domains in P, as shown in Tab. 7. It is observable that our PTS shows slight fluctuations in individual bench-mark datasets, demonstrating the insensitive to the initial-ization of P.0 5 10 15 20                    
+
+> Value of
+> 61.75
+> 61.84
+> 61.93
+> 62.02
+> 62.11
+> 62.20
+> Accuracy (%)  62.08
+> 61.84
+> 62.12
+> 62.05
+> 61.91
+> Impact of on Photo
+> 0510 15 20
+> Value of
+> 68.7
+> 69.0
+> 69.3
+> 69.6
+> 69.9
+> Accuracy (%)
+> 68.85
+> 69.15
+> 69.84 69.76
+> 69.55
+> Impact of on Art
+> 0510 15 20
+> Value of
+> 78.05
+> 78.18
+> 78.31
+> 78.44
+> 78.57
+> 78.70
+> Accuracy (%)
+> 78.14
+> 78.49
+> 78.57 78.6
+> 78.19
+> Impact of on Cartoon
+> 0510 15 20
+> Value of
+> 80.10
+> 80.16
+> 80.22
+> 80.28
+> 80.34
+> 80.40
+> Accuracy (%)
+> 80.15
+> 80.32 80.34
+> 80.28
+> 80.18
+> Impact of on Sketch
+
+Figure 6. Parameter analysis of λ in Eq. 15 on PACS dataset. 
+
+4.6. Parameter Analysis 
+
+We conduct experiments to analyze the impact of the hyper-parameters in our method on PACS dataset, including λ in Eq. 15. The results are shown in Fig. 6. λ is a parameter to balance the trade-off between generating images in di-verse domain styles and preserving key categorical features. Based on Fig. 6, we set λ = 10 for all datasets. 
+
+## 5. Conclusion 
+
+In this paper, we propose the Progressive Adversarial Do-main Prompt Tuning framework based on the pre-trained T2I foundation model on SDG. Our method leverages ad-versarial training to learn two sets of abstract prompts, one that captures domain-invariant category information and another that models domain-specific styles. Furthermore, we employ the Progressive Training Scheme to enhance the diversity of domain styles. Extensive experiments on multiple DG datasets have demonstrated that our frame-work outperforms existing state-of-the-art SDG methods. References 
+
+[1] Martin Arjovsky, L´ eon Bottou, Ishaan Gulrajani, and David Lopez-Paz. Invariant risk minimization. arXiv preprint arXiv:1907.02893 , 2019. 6 [2] Sara Beery, Grant Van Horn, and Pietro Perona. Recognition in terra incognita. In Proceedings of the European confer-ence on computer vision (ECCV) , pages 456–473, 2018. 6 [3] Gilles Blanchard, Aniket Anand Deshmukh, Urun Dogan, Gyemin Lee, and Clayton Scott. Domain generalization by marginal transfer learning. Journal of machine learning re-search , 22(2):1–55, 2021. 6 [4] Fabio M Carlucci, Antonio D’Innocente, Silvia Bucci, Bar-bara Caputo, and Tatiana Tommasi. Domain generalization by solving jigsaw puzzles. In Proceedings of the IEEE/CVF conference on computer vision and pattern recognition ,pages 2229–2238, 2019. 2 [5] Junbum Cha, Kyungjae Lee, Sungrae Park, and Sanghyuk Chun. Domain generalization by mutual-information regu-larization with pre-trained models. In European conference on computer vision , pages 440–457. Springer, 2022. 7 [6] Jin Chen, Zhi Gao, Xinxiao Wu, and Jiebo Luo. Meta-causal learning for single domain generalization. In Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition , pages 7683–7692, 2023. 6 [7] Liang Chen, Yong Zhang, Yibing Song, Ying Shan, and Lingqiao Liu. Improved test-time adaptation for domain generalization. In Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition , pages 24172– 24182, 2023. 6 [8] Liang Chen, Yong Zhang, Yibing Song, Anton Van Den Hen-gel, and Lingqiao Liu. Domain generalization via rationale invariance. In Proceedings of the IEEE/CVF International Conference on Computer Vision , pages 1751–1760, 2023. 6 [9] De Cheng, Lingfeng He, Nannan Wang, Shizhou Zhang, Zhen Wang, and Xinbo Gao. Efficient bilateral cross-modality cluster matching for unsupervised visible-infrared person reid. In Proceedings of the 31st ACM International Conference on Multimedia , pages 1325–1333, 2023. 1 [10] De Cheng, Zhipeng Xu, Xinyang Jiang, Nannan Wang, Dongsheng Li, and Xinbo Gao. Disentangled prompt rep-resentation for domain generalization. In Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition , pages 23595–23604, 2024. 1, 2 [11] De Cheng, Zhipeng Xu, Xinyang Jiang, Dongsheng Li, Nan-nan Wang, and Xinbo Gao. Prompt disentanglement via language guidance and representation alignment for domain generalization. IEEE Transactions on Pattern Analysis and Machine Intelligence , 2026. [12] De Cheng, Mingyue Zeng, Zhipeng Xu, Di Xu, Nannan Wang, and Xinbo Gao. Interference-isolated elastic weight consolidation and knowledge calibration for incremental ob-ject detection. In Proceedings of the Fourteenth Interna-tional Conference on Learning Representations , 2026. 1 [13] Seokeon Choi, Debasmit Das, Sungha Choi, Seunghan Yang, Hyunsin Park, and Sungrack Yun. Progressive random con-volutions for single domain generalization. In Proceedings of the IEEE/CVF Conference on Computer Vision and Pat-tern Recognition , pages 10312–10322, 2023. 6 [14] Kevin Clark, Paul Vicol, Kevin Swersky, and David J Fleet. Directly fine-tuning diffusion models on differentiable re-wards. arXiv preprint arXiv:2309.17400 , 2023. 3 [15] Ilke Cugu, Massimiliano Mancini, Yanbei Chen, and Zeynep Akata. Attention consistency on visual corruptions for single-source domain generalization. In Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition , pages 4165–4174, 2022. 6 [16] Jia Deng, Wei Dong, Richard Socher, Li-Jia Li, Kai Li, and Li Fei-Fei. Imagenet: A large-scale hierarchical image database. In 2009 IEEE conference on computer vision and pattern recognition , pages 248–255. Ieee, 2009. 6 [17] Ming Ding, Zhuoyi Yang, Wenyi Hong, Wendi Zheng, Chang Zhou, Da Yin, Junyang Lin, Xu Zou, Zhou Shao, Hongxia Yang, et al. Cogview: Mastering text-to-image generation via transformers. Advances in neural information processing systems , 34:19822–19835, 2021. 2 [18] Qi Dou, Daniel Coelho de Castro, Konstantinos Kamnitsas, and Ben Glocker. Domain generalization via model-agnostic learning of semantic features. Advances in neural informa-tion processing systems , 32, 2019. 2 [19] Xinjie Fan, Qifei Wang, Junjie Ke, Feng Yang, Boqing Gong, and Mingyuan Zhou. Adversarially adaptive normal-ization for single domain generalization. In Proceedings of the IEEE/CVF conference on Computer Vision and Pattern Recognition , pages 8208–8217, 2021. 2 [20] Rinon Gal, Yuval Alaluf, Yuval Atzmon, Or Patash-nik, Amit H Bermano, Gal Chechik, and Daniel Cohen-Or. An image is worth one word: Personalizing text-to-image generation using textual inversion. arXiv preprint arXiv:2208.01618 , 2022. 3 [21] Yaroslav Ganin, Evgeniya Ustinova, Hana Ajakan, Pas-cal Germain, Hugo Larochelle, Franc ¸ois Laviolette, Mario March, and Victor Lempitsky. Domain-adversarial training of neural networks. Journal of machine learning research ,17(59):1–35, 2016. 1, 2, 6, 7 [22] Ian Goodfellow, Jean Pouget-Abadie, Mehdi Mirza, Bing Xu, David Warde-Farley, Sherjil Ozair, Aaron Courville, and Yoshua Bengio. Generative adversarial networks. Commu-nications of the ACM , 63(11):139–144, 2020. 2 [23] Jintao Guo, Lei Qi, and Yinghuan Shi. Domaindrop: Sup-pressing domain-sensitive channels for domain generaliza-tion. In Proceedings of the IEEE/CVF international confer-ence on computer vision , pages 19114–19124, 2023. 7 [24] Kaiming He, Xiangyu Zhang, Shaoqing Ren, and Jian Sun. Deep residual learning for image recognition. In Proceed-ings of the IEEE conference on computer vision and pattern recognition , pages 770–778, 2016. 6 [25] Dan Hendrycks, Norman Mu, Ekin D Cubuk, Barret Zoph, Justin Gilmer, and Balaji Lakshminarayanan. Augmix: A simple data processing method to improve robustness and uncertainty. arXiv preprint arXiv:1912.02781 , 2019. 6 [26] Geoffrey Hinton, Oriol Vinyals, and Jeff Dean. Distill-ing the knowledge in a neural network. arXiv preprint arXiv:1503.02531 , 2015. 4 [27] Jonathan Ho, Ajay Jain, and Pieter Abbeel. Denoising dif-fusion probabilistic models. Advances in neural information processing systems , 33:6840–6851, 2020. 4 [28] Wei Huang, Yilei Shi, Zhitong Xiong, and Xiao Xiang Zhu. Representation enhancement-stabilization: Reducing bias-variance of domain generalization. 7 [29] Zeyi Huang, Haohan Wang, Eric P Xing, and Dong Huang. Self-challenging improves cross-domain generalization. In 
+
+Computer vision–ECCV 2020: 16th European conference, Glasgow, UK, August 23–28, 2020, proceedings, part II 16 ,pages 124–140. Springer, 2020. 6, 7 [30] Aditya Khosla, Tinghui Zhou, Tomasz Malisiewicz, Alexei A Efros, and Antonio Torralba. Undoing the dam-age of dataset bias. In Computer Vision–ECCV 2012: 12th European Conference on Computer Vision, Florence, Italy, October 7-13, 2012, Proceedings, Part I 12 , pages 158–171. Springer, 2012. 2 [31] David Krueger, Ethan Caballero, Joern-Henrik Jacobsen, Amy Zhang, Jonathan Binas, Dinghuai Zhang, Remi Le Priol, and Aaron Courville. Out-of-distribution general-ization via risk extrapolation (rex). In International confer-ence on machine learning , pages 5815–5826. PMLR, 2021. 6, 7 [32] Da Li, Yongxin Yang, Yi-Zhe Song, and Timothy MHospedales. Deeper, broader and artier domain generaliza-tion. In Proceedings of the IEEE international conference on computer vision , pages 5542–5550, 2017. 5, 6 [33] Da Li, Yongxin Yang, Yi-Zhe Song, and Timothy Hospedales. Learning to generalize: Meta-learning for do-main generalization. In Proceedings of the AAAI conference on artificial intelligence , 2018. 7 [34] Deng Li, Aming Wu, Yaowei Wang, and Yahong Han. Prompt-driven dynamic object-centric learning for single do-main generalization. In Proceedings of the IEEE/CVF Con-ference on Computer Vision and Pattern Recognition , pages 17606–17615, 2024. 6 [35] Xiaotong Li, Yongxing Dai, Yixiao Ge, Jun Liu, Ying Shan, and Ling-Yu Duan. Uncertainty model-ing for out-of-distribution generalization. arXiv preprint arXiv:2202.03958 , 2022. 6 [36] Ya Li, Mingming Gong, Xinmei Tian, Tongliang Liu, and Dacheng Tao. Domain generalization via conditional invari-ant representations. In Proceedings of the AAAI conference on artificial intelligence , 2018. 6, 7 [37] Mingsheng Long, Jianmin Wang, Guiguang Ding, Jiaguang Sun, and Philip S Yu. Transfer feature learning with joint distribution adaptation. In Proceedings of the IEEE inter-national conference on computer vision , pages 2200–2207, 2013. 1 [38] Yiran Luo, Joshua Feinglass, Tejas Gokhale, Kuan-Cheng Lee, Chitta Baral, and Yezhou Yang. Grounding stylistic do-main generalization with quantitative domain shift measures and synthetic scene images. In Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition ,pages 7303–7313, 2024. 7 [39] Hyeonseob Nam, HyunJae Lee, Jongchan Park, Wonjun Yoon, and Donggeun Yoo. Reducing domain gap by reduc-ing style bias. In Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition , pages 8690– 8699, 2021. 6, 7 [40] Alex Nichol, Prafulla Dhariwal, Aditya Ramesh, Pranav Shyam, Pamela Mishkin, Bob McGrew, Ilya Sutskever, and Mark Chen. Glide: Towards photorealistic image generation and editing with text-guided diffusion models. arXiv preprint arXiv:2112.10741 , 2021. 2 [41] Oren Nuriel, Sagie Benaim, and Lior Wolf. Permuted adain: Reducing the bias towards global statistics in image clas-sification. In Proceedings of the IEEE/CVF conference on computer vision and pattern recognition , pages 9482–9491, 2021. 6 [42] Yingwei Pan, Ting Yao, Yehao Li, Yu Wang, Chong-Wah Ngo, and Tao Mei. Transferrable prototypical networks for unsupervised domain adaptation. In Proceedings of the IEEE/CVF conference on computer vision and pattern recognition , pages 2239–2247, 2019. 1 [43] Xingchao Peng, Qinxun Bai, Xide Xia, Zijun Huang, Kate Saenko, and Bo Wang. Moment matching for multi-source domain adaptation. In Proceedings of the IEEE/CVF inter-national conference on computer vision , pages 1406–1415, 2019. 6 [44] Xingchao Peng, Zijun Huang, Ximeng Sun, and Kate Saenko. Domain agnostic learning with disentangled repre-sentations. In International conference on machine learning ,pages 5102–5112. PMLR, 2019. 2 [45] Fengchun Qiao, Long Zhao, and Xi Peng. Learning to learn single domain generalization. In Proceedings of the IEEE/CVF conference on computer vision and pattern recognition , pages 12556–12565, 2020. 2 [46] Sanqing Qu, Guang Chen, Jing Zhang, Zhijun Li, Wei He, and Dacheng Tao. Bmd: A general class-balanced multicen-tric dynamic prototype strategy for source-free domain adap-tation. In European conference on computer vision , pages 165–182. Springer, 2022. 1 [47] Sanqing Qu, Yingwei Pan, Guang Chen, Ting Yao, Changjun Jiang, and Tao Mei. Modality-agnostic debiasing for sin-gle domain generalization. In Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition ,pages 24142–24151, 2023. 5, 6 [48] Sanqing Qu, Tianpei Zou, Florian R¨ ohrbein, Cewu Lu, Guang Chen, Dacheng Tao, and Changjun Jiang. Upcycling models under domain and category shift. In Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition , pages 20019–20028, 2023. 1 [49] Alec Radford, Jong Wook Kim, Chris Hallacy, Aditya Ramesh, Gabriel Goh, Sandhini Agarwal, Girish Sastry, Amanda Askell, Pamela Mishkin, Jack Clark, et al. Learning transferable visual models from natural language supervi-sion. In International conference on machine learning , pages 8748–8763. PMLR, 2021. 4 [50] Alexandre Rame, Corentin Dancette, and Matthieu Cord. Fishr: Invariant gradient variances for out-of-distribution generalization. In International Conference on Machine Learning , pages 18347–18377. PMLR, 2022. 6 [51] Aditya Ramesh, Mikhail Pavlov, Gabriel Goh, Scott Gray, Chelsea Voss, Alec Radford, Mark Chen, and Ilya Sutskever. Zero-shot text-to-image generation. In International confer-ence on machine learning , pages 8821–8831. Pmlr, 2021. 2 [52] Robin Rombach, Andreas Blattmann, Dominik Lorenz, Patrick Esser, and Bj¨ orn Ommer. High-resolution image synthesis with latent diffusion models. In Proceedings of the IEEE/CVF conference on computer vision and pattern recognition , pages 10684–10695, 2022. 2, 3, 4 [53] Olaf Ronneberger, Philipp Fischer, and Thomas Brox. U-net: Convolutional networks for biomedical image segmen-tation. In Medical image computing and computer-assisted intervention–MICCAI 2015: 18th international conference, Munich, Germany, October 5-9, 2015, proceedings, part III 18 , pages 234–241. Springer, 2015. 4 [54] Shiori Sagawa, Pang Wei Koh, Tatsunori B Hashimoto, and Percy Liang. Distributionally robust neural networks for group shifts: On the importance of regularization for worst-case generalization. arXiv preprint arXiv:1911.08731 , 2019. 6, 7 [55] Shiv Shankar, Vihari Piratla, Soumen Chakrabarti, Sid-dhartha Chaudhuri, Preethi Jyothi, and Sunita Sarawagi. Generalizing across domains via cross-gradient training. 
+
+arXiv preprint arXiv:1804.10745 , 2018. 2 [56] Seungjae Shin, HeeSun Bae, Byeonghu Na, Yoon-Yeong Kim, and Il-chul Moon. Unknown domain inconsistency minimization for domain generalization. In The Twelfth In-ternational Conference on Learning Representations . 5, 6 [57] Baochen Sun and Kate Saenko. Deep coral: Correlation alignment for deep domain adaptation. In Computer Vision– ECCV 2016 Workshops: Amsterdam, The Netherlands, Oc-tober 8-10 and 15-16, 2016, Proceedings, Part III 14 , pages 443–450. Springer, 2016. 6, 7 [58] Zhaorui Tan, Xi Yang, and Kaizhu Huang. Rethinking multi-domain generalization with a general learning objective. In 
+
+Proceedings of the IEEE/CVF Conference on Computer Vi-sion and Pattern Recognition , pages 23512–23522, 2024. 7 [59] Vladimir Vapnik. The nature of statistical learning theory .Springer science & business media, 2013. 6, 7 [60] Hemanth Venkateswara, Jose Eusebio, Shayok Chakraborty, and Sethuraman Panchanathan. Deep hashing network for unsupervised domain adaptation. In Proceedings of the IEEE conference on computer vision and pattern recogni-tion , pages 5018–5027, 2017. 6 [61] Riccardo Volpi and Vittorio Murino. Addressing model vul-nerability to distributional shifts over image transformation sets. In Proceedings of the IEEE/CVF International Confer-ence on Computer Vision , pages 7980–7989, 2019. 2 [62] Riccardo Volpi, Hongseok Namkoong, Ozan Sener, John C Duchi, Vittorio Murino, and Silvio Savarese. Generalizing to unseen domains via adversarial data augmentation. Ad-vances in neural information processing systems , 31, 2018. 2[63] Bailin Wang, Mirella Lapata, and Ivan Titov. Meta-learning for domain generalization in semantic parsing. arXiv preprint arXiv:2010.11988 , 2020. 2 [64] Huaijie Wang, De Cheng, Guozhang Li, Zhipeng Xu, Lingfeng He, Jie Li, Nannan Wang, and Xinbo Gao. Stpr: Spatiotemporal preservation and routing for exemplar-free video class-incremental learning. In Proceedings of the Four-teenth International Conference on Learning Representa-tions , 2026. 1 [65] Jindong Wang, Cuiling Lan, Chang Liu, Yidong Ouyang, Tao Qin, Wang Lu, Yiqiang Chen, Wenjun Zeng, and S Yu Philip. Generalizing to unseen domains: A survey on do-main generalization. IEEE transactions on knowledge and data engineering , 35(8):8052–8072, 2022. 1 [66] Pengfei Wang, Zhaoxiang Zhang, Zhen Lei, and Lei Zhang. Sharpness-aware gradient matching for domain generaliza-tion. In Proceedings of the IEEE/CVF Conference on Com-puter Vision and Pattern Recognition , pages 3769–3778, 2023. 6, 7 [67] Zijian Wang, Yadan Luo, Ruihong Qiu, Zi Huang, and Mahsa Baktashmotlagh. Learning to diversify for single do-main generalization. In Proceedings of the IEEE/CVF In-ternational Conference on Computer Vision , pages 834–843, 2021. 2, 6 [68] Jiazheng Xu, Xiao Liu, Yuchen Wu, Yuxuan Tong, Qinkai Li, Ming Ding, Jie Tang, and Yuxiao Dong. Imagere-ward: Learning and evaluating human preferences for text-to-image generation. Advances in Neural Information Pro-cessing Systems , 36, 2024. 3 [69] Zhipeng Xu, Zilong Wang, Xinyang Jiang, Dongsheng Li, De Cheng, and Nannan Wang. Reasoning-driven multimodal llm for domain generalization. In The Fourteenth Interna-tional Conference on Learning Representations , 2026. 1 [70] Shen Yan, Huan Song, Nanxiang Li, Lincan Zou, and Liu Ren. Improve unsupervised domain adaptation with mixup training. arXiv preprint arXiv:2001.00677 , 2020. 6 [71] Sangdoo Yun, Dongyoon Han, Seong Joon Oh, Sanghyuk Chun, Junsuk Choe, and Youngjoon Yoo. Cutmix: Regu-larization strategy to train strong classifiers with localizable features. In Proceedings of the IEEE/CVF international con-ference on computer vision , pages 6023–6032, 2019. 6 [72] Hongyi Zhang, Moustapha Cisse, Yann N Dauphin, and David Lopez-Paz. mixup: Beyond empirical risk minimiza-tion. In International Conference on Learning Representa-tions , 2018. 6 [73] Hanlin Zhang, Yi-Fan Zhang, Weiyang Liu, Adrian Weller, Bernhard Sch¨ olkopf, and Eric P Xing. Towards principled disentanglement for domain generalization. In Proceedings of the IEEE/CVF conference on computer vision and pattern recognition , pages 8024–8034, 2022. 1 [74] Marvin Zhang, Henrik Marklund, Nikita Dhawan, Abhishek Gupta, Sergey Levine, and Chelsea Finn. Adaptive risk min-imization: Learning to adapt to domain shift. Advances in Neural Information Processing Systems , 34:23664–23678, 2021. 2, 6 [75] Yabin Zhang, Minghan Li, Ruihuang Li, Kui Jia, and Lei Zhang. Exact feature distribution matching for arbitrary style transfer and domain generalization. In Proceedings of the IEEE/CVF conference on computer vision and pattern recognition , pages 8035–8045, 2022. 6 [76] Long Zhao, Ting Liu, Xi Peng, and Dimitris Metaxas. Maximum-entropy adversarial data augmentation for im-proved generalization and robustness. Advances in Neural Information Processing Systems , 33:14435–14447, 2020. 2 [77] Kaiyang Zhou, Yongxin Yang, Yu Qiao, and Tao Xi-ang. Domain generalization with mixstyle. arXiv preprint arXiv:2104.02008 , 2021. 2, 6, 7 [78] Juntang Zhuang, Boqing Gong, Liangzhe Yuan, Yin Cui, Hartwig Adam, Nicha Dvornek, Sekhar Tatikonda, James Duncan, and Ting Liu. Surrogate gap minimization improves sharpness-aware training. arXiv preprint arXiv:2203.08065 ,2022. 6, 7

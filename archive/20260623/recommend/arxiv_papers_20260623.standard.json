@@ -1,0 +1,290 @@
+{
+  "mode": "standard",
+  "generated_at": "2026-06-23T22:17:20.354495+00:00",
+  "stats": {
+    "mode": "standard",
+    "tag_count": 1,
+    "deep_divecandidates": 6,
+    "deep_cap": 6,
+    "deep_selected": 6,
+    "quick_candidates": 1,
+    "quick_skim_target": 11,
+    "quick_selected": 1
+  },
+  "deep_dive": [
+    {
+      "id": "2606.20911v1",
+      "source": "arxiv",
+      "title": "Latent Personal Memory: Represent personal memory as dynamic soft prompts",
+      "abstract": "Personalizing large language models (LLMs) requires encoding long-term, user-specific behavioral patterns in a way that is computationally efficient, scalable, and compatible with a frozen base model. We present Latent Personal Memory (LPM), a scalable framework that represents user-specific history as a compact, persistent matrix of N latent slots, that are interpretable. A shared cross-attention projection network maps these slots into dynamic, input-conditioned soft prompts that are prepended to the input of a frozen LLM. We evaluate LPM on PersonaMem v1 and LoCOMO benchmarks across Qwen3-1.7B, 4B, and 8B backbones. Results demonstrate that LPM outperforms LoRA and Prompt Tuning by up to 8.8% and 54.4% in overall accuracy respectively on PersonaMem v1, while reducing KV-cache usage by over 64x. On LoCoMo, LPM matches LoRA accuracy with 120x fewer trainable parameters. We also show that the efficiency of LPM grows with context length and outperforms full-context at 128K context length.",
+      "authors": [
+        "Debrup Das",
+        "Avinash Amballa",
+        "Yashas Malur Saidutta",
+        "Vijay Srinivasan",
+        "Vivek Kulkarni",
+        "Srinivas Chappidi"
+      ],
+      "primary_category": "cs.CL",
+      "categories": [
+        "cs.CL",
+        "cs.AI"
+      ],
+      "published": "2026-06-18T20:08:09+00:00",
+      "link": "https://arxiv.org/pdf/2606.20911v1",
+      "tags": [
+        "keyword:prompt-learn",
+        "query:prompt-learn"
+      ],
+      "llm_score": 10.0,
+      "llm_evidence_en": "Represents user-specific history as dynamic soft prompts prepended to input",
+      "llm_evidence_cn": "将用户特定历史表示为动态软提示并添加到输入前",
+      "llm_evidence": "将用户特定历史表示为动态软提示并添加到输入前",
+      "canonical_evidence": "将用户特定历史表示为动态软提示并添加到输入前",
+      "llm_tldr_en": "LPM encodes user-specific history as latent slots mapped to dynamic soft prompts via cross-attention, prepended to frozen LLM input for personalization, outperforming LoRA and Prompt Tuning.",
+      "llm_tldr_cn": "大语言模型个性化需要高效编码用户长期行为模式，现有方法如Prompt Tuning效果有限。本文提出潜在个人记忆（LPM）框架，将用户特定历史表示为N个潜在记忆槽组成的紧凑矩阵，利用共享交叉注意力投影网络映射为动态输入条件软提示，前置到冻结LLM输入。在Qwen3系列模型和PersonaMem v1/LoCOMO基准上，LPM准确率分别超越LoRA 8.8%、超越Prompt Tuning 54.4%。该方法实现了解释性、计算效率与模型兼容性的统一，为LLM个性化提供了新途径。",
+      "llm_tldr": "大语言模型个性化需要高效编码用户长期行为模式，现有方法如Prompt Tuning效果有限。本文提出潜在个人记忆（LPM）框架，将用户特定历史表示为N个潜在记忆槽组成的紧凑矩阵，利用共享交叉注意力投影网络映射为动态输入条件软提示，前置到冻结LLM输入。在Qwen3系列模型和PersonaMem v1/LoCOMO基准上，LPM准确率分别超越LoRA 8.8%、超越Prompt Tuning 54.4%。该方法实现了解释性、计算效率与模型兼容性的统一，为LLM个性化提供了新途径。",
+      "llm_tags": [
+        "query:prompt-learn"
+      ],
+      "matched_query_tag": "query:prompt-learn",
+      "matched_query_text": "continuous vector representations used as prompts",
+      "matched_requirement_id": "req-1",
+      "selection_source": "fresh_fetch"
+    },
+    {
+      "id": "2606.22567v1",
+      "source": "arxiv",
+      "title": "Concept-Constrained Prompt Learning for Few-Shot CLIP Adaptation",
+      "abstract": "Few-shot prompt learning is an effective strategy for adapting CLIP to downstream tasks, but class-only prompt optimization can overfit base-class supervision and weaken transfer to unseen classes. We propose Concept-Constrained Prompt Learning (CCPL), a lightweight regularization framework that anchors learnable class prompts to frozen concept-level text prototypes without updating CLIP encoders. CCPL learns a set of shared context tokens, instantiates class prompts by appending class names, and constructs frozen concept prototypes from a class-level concept bank. During training, a text-space cosine consistency objective aligns learnable class-prompt embeddings with frozen concept prototypes; concept dropout provides additional regularization against over-reliance on fixed concept lists. At inference, CCPL optionally fuses class-prompt logits with concept-prototype logits using a controllable ensemble weight alpha. Our default configuration uses text-space concept regularization lambda = 0.5, concept dropout p = 0.3 and weak concept-guided fusion (alpha = 0.1), with no KL-based prediction consistency term. Experiments under identical automatically-generated fallback splits show that CCPL improves the base-to-new harmonic mean on DTD (+0.6) and EuroSAT (+2.9) compared with CoOp, while remaining near-neutral on OxfordPets (-0.1). Ablations indicate that text-space concept regularization is consistently beneficial, while the best concept-guided inference strength is dataset- and protocol-sensitive. These results suggest concept constraints are most effective when concept prototypes align naturally with dataset semantics, and identify fine-grained categories as a current boundary condition. The code is released at: https://github.com/richael-sang/concept-constrained-prompt-learning.",
+      "authors": [
+        "Na Sang",
+        "Ding Ma",
+        "Rui Sang",
+        "Yuxuan Liu"
+      ],
+      "primary_category": "cs.LG",
+      "categories": [
+        "cs.LG",
+        "cs.AI",
+        "cs.CL",
+        "cs.GR"
+      ],
+      "published": "2026-06-21T16:09:32+00:00",
+      "link": "https://arxiv.org/pdf/2606.22567v1",
+      "tags": [
+        "keyword:prompt-learn",
+        "query:prompt-learn"
+      ],
+      "llm_score": 10.0,
+      "llm_evidence_en": "Learns continuous class prompts with concept-level regularization, using gradient-based optimization to align learnable embeddings with frozen concept prototypes",
+      "llm_evidence_cn": "学习连续的类别提示，通过概念级正则化和梯度优化将可学习嵌入与冻结的概念原型对齐",
+      "llm_evidence": "学习连续的类别提示，通过概念级正则化和梯度优化将可学习嵌入与冻结的概念原型对齐",
+      "canonical_evidence": "学习连续的类别提示，通过概念级正则化和梯度优化将可学习嵌入与冻结的概念原型对齐",
+      "llm_tldr_en": "CCPL regularizes few-shot prompt learning for CLIP by anchoring learnable class prompts to frozen concept prototypes via a text-space cosine loss and concept dropout, preventing overfitting and improving unseen class transfer.",
+      "llm_tldr_cn": "CCPL 提出了一种轻量级正则化框架，通过将可学习的类别提示与冻结的概念级文本原型对齐，并利用文本空间余弦一致性损失和概念丢弃，缓解了少样本提示优化中的过拟合问题，显著提升了从基类到新类的迁移性能。",
+      "llm_tldr": "CCPL 提出了一种轻量级正则化框架，通过将可学习的类别提示与冻结的概念级文本原型对齐，并利用文本空间余弦一致性损失和概念丢弃，缓解了少样本提示优化中的过拟合问题，显著提升了从基类到新类的迁移性能。",
+      "llm_tags": [
+        "query:prompt-learn"
+      ],
+      "matched_query_tag": "query:prompt-learn",
+      "matched_query_text": "gradient-based tuning of continuous prompt embeddings",
+      "matched_requirement_id": "req-6",
+      "selection_source": "fresh_fetch"
+    },
+    {
+      "id": "2606.20978v1",
+      "source": "arxiv",
+      "title": "How Should Agents Read Demonstrations? Hierarchical Structure Beats Flat Action Logs",
+      "abstract": "Programming by Demonstration (PbD) offers a human-centered way to author procedural knowledge for LLM agents: users communicate what they want by showing rather than by writing prompts or code, making agent authoring accessible to non-programmers. The natural output of a PbD recording is a flat action log, but how this log is organized before being passed to the agent is an open design question with significant consequences for plan quality. We propose grouping recorded actions into labeled, hierarchical subgoals and evaluate the effect of this organizational structure in a controlled experiment. Across 85 web automation tasks, we compare a zero-shot baseline against four demonstration formats that share identical action sequences but differ in structure. On 43 natural-language tasks with vague descriptions, hierarchically grouped demonstrations improve pass rates from 76.7\\% to 90.7\\% (paired permutation test $p{=}0.034$; win-loss 6:0), while flat demonstrations show a smaller, non-significant improvement. On 42 tasks with precise descriptions, no format provides any benefit, confirming that the hierarchical advantage arises specifically when descriptions leave procedural details ambiguous. Ablation shows that subgoal grouping alone drives the effect: preconditions, postconditions, and parameter annotations add no measurable benefit. These results offer a concrete design recommendation for PbD pipelines and, more broadly, for any system that feeds procedural context to an LLM agent: segment action sequences into named subgoal groups rather than presenting flat step lists.",
+      "authors": [
+        "Honjar Xing",
+        "Jefferson Lin",
+        "Henry Lieberman"
+      ],
+      "primary_category": "cs.AI",
+      "categories": [
+        "cs.AI",
+        "cs.HC"
+      ],
+      "published": "2026-06-18T22:57:14+00:00",
+      "link": "https://arxiv.org/pdf/2606.20978v1",
+      "tags": [
+        "keyword:prompt-learn"
+      ],
+      "llm_score": 9.0,
+      "llm_evidence_en": "Studies how to structure demonstrations (flat vs. hierarchical) in the prompt to improve LLM agent plan quality from in-context demonstrations",
+      "llm_evidence_cn": "研究如何在提示中结构化演示（平面 vs. 层次）以提升LLM代理从上下文演示中学习的效果",
+      "llm_evidence": "研究如何在提示中结构化演示（平面 vs. 层次）以提升LLM代理从上下文演示中学习的效果",
+      "canonical_evidence": "研究如何在提示中结构化演示（平面 vs. 层次）以提升LLM代理从上下文演示中学习的效果",
+      "llm_tldr_en": "This paper shows that organizing demonstration action logs into hierarchical subgoals significantly improves LLM agent performance on web automation tasks compared to flat logs, providing guidance on demonstration formatting for in-context learning.",
+      "llm_tldr_cn": "本文探究了在提示中将动作演示组织为层次化子目标如何影响LLM代理的任务计划质量。在85个web自动化任务中，层次结构化演示显著优于平面动作日志，为上下文学习中的示范格式设计提供了原则指导。",
+      "llm_tldr": "本文探究了在提示中将动作演示组织为层次化子目标如何影响LLM代理的任务计划质量。在85个web自动化任务中，层次结构化演示显著优于平面动作日志，为上下文学习中的示范格式设计提供了原则指导。",
+      "llm_tags": [
+        "query:prompt-learn"
+      ],
+      "matched_query_tag": "query:prompt-learn",
+      "matched_query_text": "learning from demonstrations provided in the prompt context",
+      "matched_requirement_id": "req-3",
+      "selection_source": "fresh_fetch"
+    },
+    {
+      "id": "2606.21736v1",
+      "source": "arxiv",
+      "title": "Adversarial Domain Prompt Tuning and Generation for Single Domain Generalization",
+      "abstract": "Single domain generalization (SDG) aims to learn a robust model, which could perform well on many unseen domains while there is only one single domain available for training. One of the promising directions for achieving single-domain generalization is to generate out-of-domain (OOD) training data through data augmentation or image generation. Given the rapid advancements in AI-generated content (AIGC), this paper is the first to propose leveraging powerful pre-trained text-to-image (T2I) foundation models to create the training data. However, manually designing textual prompts to generate images for all possible domains is often impractical, and some domain characteristics may be too abstract to describe with words. To address these challenges, we propose a novel Progressive Adversarial Prompt Tuning (PAPT) framework for pre-trained diffusion models. Instead of relying on static textual domains, our approach learns two sets of abstract prompts as conditions for the diffusion model: one that captures domain-invariant category information and another that models domain-specific styles. This adversarial learning mechanism enables the T2I model to generate images in various domain styles while preserving key categorical features. Extensive experiments demonstrate the effectiveness of the proposed method, achieving superior performances to state-of-the-art single-domain generalization approaches.",
+      "authors": [
+        "Zhipeng Xu",
+        "De Cheng",
+        "Xinyang Jiang",
+        "Nannan Wang",
+        "Dongsheng Li",
+        "Xinbo Gao"
+      ],
+      "primary_category": "cs.CV",
+      "categories": [
+        "cs.CV"
+      ],
+      "published": "2026-06-19T20:46:24+00:00",
+      "link": "https://arxiv.org/pdf/2606.21736v1",
+      "tags": [
+        "keyword:prompt-learn",
+        "query:prompt-learn"
+      ],
+      "llm_score": 9.0,
+      "llm_evidence_en": "Learns adversarial domain prompts via gradient-based tuning to generate out-of-domain images using a text-to-image model",
+      "llm_evidence_cn": "通过基于梯度的调优学习对抗性领域提示，以生成域外图像",
+      "llm_evidence": "通过基于梯度的调优学习对抗性领域提示，以生成域外图像",
+      "canonical_evidence": "通过基于梯度的调优学习对抗性领域提示，以生成域外图像",
+      "llm_tldr_en": "This paper proposes using adversarial prompt tuning to generate out-of-domain training data from a pretrained text-to-image model for single domain generalization, automating prompt design with learnable continuous vectors.",
+      "llm_tldr_cn": "针对单域泛化中生成域外数据的需求，本文首次利用预训练文本到图像模型，提出对抗性领域提示调优方法，通过可学习的连续向量自动生成多样性图像，避免手工设计提示。实验表明该方法有效提升了模型的域泛化能力。",
+      "llm_tldr": "针对单域泛化中生成域外数据的需求，本文首次利用预训练文本到图像模型，提出对抗性领域提示调优方法，通过可学习的连续向量自动生成多样性图像，避免手工设计提示。实验表明该方法有效提升了模型的域泛化能力。",
+      "llm_tags": [
+        "query:prompt-learn"
+      ],
+      "matched_query_tag": "query:prompt-learn",
+      "matched_query_text": "gradient-based tuning of continuous prompt embeddings",
+      "matched_requirement_id": "req-6",
+      "selection_source": "fresh_fetch"
+    },
+    {
+      "id": "2606.21890v1",
+      "source": "arxiv",
+      "title": "Scaling Performance and Low-Resource Annotation with Many-Shot In-Context Learning for Named Entity Recognition",
+      "abstract": "In-context learning (ICL) with large language models (LLMs) has emerged as a powerful alternative to fine-tuning for Named Entity Recognition (NER), achieving strong performance with minimal annotation and no additional training. However, prior work has shown that despite their adaptability, LLMs still lag behind fully supervised models such as fine-tuned BERT in structured tasks like NER. While existing studies on ICL for NER have mainly explored few-shot settings, the potential of scaling to hundreds of demonstrations has not been thoroughly investigated. To address this gap, we conduct a comprehensive investigation of many-shot ICL for NER and further explore its effectiveness in annotating and refining data for low-resource NER tasks. Specifically, we evaluate various LLMs across multiple domains using hundreds of ICL examples and then assess the feasibility of using many-shot ICL as a data annotation framework. Our experiments demonstrate that: (1) scaling to hundreds of in-context examples enables LLMs to match or even surpass the performance of fully supervised BERT models; and (2) using about one hundred human-labeled examples as demonstrations, many-shot in-context annotation can generate high-quality labeled data, leading to approximately 10% absolute F1 improvement over existing state-of-the-art approaches when used to fine-tune BERT on low-resource NER.",
+      "authors": [
+        "Qi Zhang",
+        "Fangping Lan",
+        "Cornelia Caragea",
+        "Longin Jan Latecki",
+        "Eduard Dragut"
+      ],
+      "primary_category": "cs.CL",
+      "categories": [
+        "cs.CL",
+        "cs.AI"
+      ],
+      "published": "2026-06-20T05:39:59+00:00",
+      "link": "https://arxiv.org/pdf/2606.21890v1",
+      "tags": [
+        "keyword:prompt-learn",
+        "query:prompt-learn"
+      ],
+      "llm_score": 9.0,
+      "llm_evidence_en": "Many-shot in-context learning uses hundreds of demonstrations in prompt",
+      "llm_evidence_cn": "多示例上下文学习在提示中提供数百个示例",
+      "llm_evidence": "多示例上下文学习在提示中提供数百个示例",
+      "canonical_evidence": "多示例上下文学习在提示中提供数百个示例",
+      "llm_tldr_en": "Investigates scaling in-context learning to many-shot settings for NER, finding that hundreds of examples in prompts improve performance and enable low-resource data annotation and refinement.",
+      "llm_tldr_cn": "针对现有研究多关注少样本情境学习在NER中的应用，本文系统研究了将上下文示例数量扩展至数百个时的性能变化，并进一步探索了其在低资源数据标注与精炼中的有效性，证明多示例上下文学习可大幅提升模型表现并降低标注成本。",
+      "llm_tldr": "针对现有研究多关注少样本情境学习在NER中的应用，本文系统研究了将上下文示例数量扩展至数百个时的性能变化，并进一步探索了其在低资源数据标注与精炼中的有效性，证明多示例上下文学习可大幅提升模型表现并降低标注成本。",
+      "llm_tags": [
+        "query:prompt-learn"
+      ],
+      "matched_query_tag": "query:prompt-learn",
+      "matched_query_text": "learning from demonstrations provided in the prompt context",
+      "matched_requirement_id": "req-3",
+      "selection_source": "fresh_fetch"
+    },
+    {
+      "id": "2606.22803v1",
+      "source": "arxiv",
+      "title": "Towards Fast Domain Adaptation and Fine-Grained User Simulation for Evaluating Conversational Recommender Systems",
+      "abstract": "Conversational Recommender Systems (CRSs) enhance user experience through multi-turn interactions, yet evaluating their performance remains challenging. While Large Language Model (LLM) based user simulators are effective, they suffer from three key limitations: (1) Lack of Domain Adaptability: Reliance on fixed prompts and predefined action spaces hinders transfer to novel domains; (2) Limited User Modeling: Inability to accurately replicate subtle linguistic styles and dynamic preferences; (3) Insufficient Evaluation Validity: Existing simulators fail to adequately assess fundamental capabilities and system robustness. To overcome these, we propose AdaptSim, an Adaptive domain and automatic prompt tuning User Simulator. AdaptSim offers an efficient framework for evaluating CRSs by enabling realistic behavior modeling and diverse style generation. It leverages automatic prompt generation and an open action mechanism to reduce manual effort and improve cross-domain flexibility. For response generation, we employ controlled text generation with a \"think-then-respond\" strategy for fine-grained control over language style. For CRS evaluation, AdaptSim incorporates a novel Breadth-First Search (BFS)-based, turn-level pairwise comparison framework for comprehensive assessment. Extensive experiments across three domains and four LLMs demonstrate that AdaptSim generates realistic dialogues, enabling a highly effective and reliable evaluation of CRS capabilities and robustness.",
+      "authors": [
+        "Yuanzi Li",
+        "Quanyu Dai",
+        "Xueyang Feng",
+        "Zihang Tian",
+        "Junhao Wang",
+        "Xu Chen",
+        "Zhenhua Dong",
+        "Huifeng Guo"
+      ],
+      "primary_category": "cs.IR",
+      "categories": [
+        "cs.IR"
+      ],
+      "published": "2026-06-22T03:26:08+00:00",
+      "link": "https://arxiv.org/pdf/2606.22803v1",
+      "tags": [
+        "keyword:prompt-learn",
+        "query:prompt-learn"
+      ],
+      "llm_score": 8.0,
+      "llm_evidence_en": "automatic prompt tuning for domain adaptation",
+      "llm_evidence_cn": "针对领域自适应的自动提示调优",
+      "llm_evidence": "针对领域自适应的自动提示调优",
+      "canonical_evidence": "针对领域自适应的自动提示调优",
+      "llm_tldr_en": "Proposes AdaptSim, an adaptive user simulator with automatic prompt tuning to overcome domain adaptability and fine-grained user modeling limitations in conversational recommender system evaluation.",
+      "llm_tldr_cn": "对话推荐系统评估因缺乏真实的多轮交互数据而困难重重。基于大语言模型的用户模拟器成为关键解决方案，但面临领域适应性差、用户建模不精细和评估不全面的挑战。为此，本论文提出AdaptSim，一种集成了自适应领域机制和自动提示调优的用户模拟框架。其核心在于通过自动优化提示嵌入，使得模拟器能够快速迁移到新领域并生成高度真实、风格各异的用户行为。实验结果表明，AdaptSim在多个领域的评估中均能显著提升模拟的真实感和评估的全面性。该研究为提示学习技术在对话系统评估中的创新应用树立了范例，也为推荐系统的可靠评测提供了新的基准。",
+      "llm_tldr": "对话推荐系统评估因缺乏真实的多轮交互数据而困难重重。基于大语言模型的用户模拟器成为关键解决方案，但面临领域适应性差、用户建模不精细和评估不全面的挑战。为此，本论文提出AdaptSim，一种集成了自适应领域机制和自动提示调优的用户模拟框架。其核心在于通过自动优化提示嵌入，使得模拟器能够快速迁移到新领域并生成高度真实、风格各异的用户行为。实验结果表明，AdaptSim在多个领域的评估中均能显著提升模拟的真实感和评估的全面性。该研究为提示学习技术在对话系统评估中的创新应用树立了范例，也为推荐系统的可靠评测提供了新的基准。",
+      "llm_tags": [
+        "query:prompt-learn"
+      ],
+      "matched_query_tag": "query:prompt-learn",
+      "matched_query_text": "Techniques for automatic prompt generation in natural language processing",
+      "matched_requirement_id": "req-10",
+      "selection_source": "fresh_fetch"
+    }
+  ],
+  "quick_skim": [
+    {
+      "id": "2606.21979v1",
+      "source": "arxiv",
+      "title": "Toward Open-Set Speaker Attribute Prediction with Keyword-Appended LLM Embeddings",
+      "abstract": "Understanding speaker attributes is crucial for voice-related applications, yet conventional approaches rely on fixed categorical labels, lacking semantic richness and zero-shot generalizability. We propose a novel framework for open-set speaker attribute prediction leveraging Large Language Model (LLM) embeddings to represent attributes in a continuous semantic space. To bridge the cross-modal gap, we introduce a keyword-appending strategy that structures broad semantic representations into a compact, discriminative manifold. Furthermore, we employ a top-k negative loss to establish robust decision boundaries in crowded semantic regions. Experimental results on LibriTTS-P demonstrate that our method outperforms closed-set benchmarks and generalizes effectively to unseen synonyms. Geometric analysis suggests that our strategies regularize the embedding manifold, balancing semantic cohesion with predictive clarity.",
+      "authors": [
+        "Byoungjun So",
+        "Jaejun Lee",
+        "Kyogu Lee"
+      ],
+      "primary_category": "cs.SD",
+      "categories": [
+        "cs.SD"
+      ],
+      "published": "2026-06-20T10:20:24+00:00",
+      "link": "https://arxiv.org/pdf/2606.21979v1",
+      "tags": [
+        "keyword:prompt-learn",
+        "query:prompt-learn"
+      ],
+      "llm_score": 7.0,
+      "llm_evidence_en": "keyword-appending structures LLM embeddings for zero-shot attribute prediction",
+      "llm_evidence_cn": "关键词附加策略构建LLM嵌入实现零样本属性预测",
+      "llm_evidence": "关键词附加策略构建LLM嵌入实现零样本属性预测",
+      "canonical_evidence": "关键词附加策略构建LLM嵌入实现零样本属性预测",
+      "llm_tldr_en": "Proposes keyword-appending strategy to structure LLM embeddings into a discriminative manifold for open-set speaker attribute prediction, achieving strong zero-shot performance.",
+      "llm_tldr_cn": "针对开放集说话人属性预测，提出关键词附加策略将LLM嵌入构造为紧凑的判别流形。该方法通过附加关键词作为提示来指导嵌入表示，并结合top-k负损失建立决策边界。在LibriTTS-P上，该方法优于闭集基准并实现了泛化。",
+      "llm_tldr": "针对开放集说话人属性预测，提出关键词附加策略将LLM嵌入构造为紧凑的判别流形。该方法通过附加关键词作为提示来指导嵌入表示，并结合top-k负损失建立决策边界。在LibriTTS-P上，该方法优于闭集基准并实现了泛化。",
+      "llm_tags": [
+        "query:prompt-learn"
+      ],
+      "matched_query_tag": "query:prompt-learn",
+      "matched_query_text": "discrete natural language prompts for guiding models",
+      "matched_requirement_id": "req-2",
+      "selection_source": "fresh_fetch",
+      "quick_tier": "7"
+    }
+  ]
+}

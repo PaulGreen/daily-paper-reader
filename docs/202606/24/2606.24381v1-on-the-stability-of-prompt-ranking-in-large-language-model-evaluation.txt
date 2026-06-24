@@ -1,0 +1,284 @@
+Title: On the Stability of Prompt Ranking in Large Language Model Evaluation
+
+URL Source: https://arxiv.org/pdf/2606.24381v1
+
+Published Time: Wed, 24 Jun 2026 00:49:44 GMT
+
+Number of Pages: 12
+
+Markdown Content:
+# On the Stability of Prompt Ranking in Large Language Model Evaluation 
+
+Shaoshuai Du 1[0009 −0006 −4991 −3494] , Penghao Liang 2[0009 −0001 −0501 −1003] ,Yixian Shen 1[0000 −0001 −8447 −872 X], Chuanqi Shi 3[0000 −0001 −5249 −7803] , Hang Zhang 3[0009 −0007 −8455 −7373] , and Lun Wang 4[0000 −0002 −0447 −8701]  
+
+> 1
+
+University of Amsterdam, Amsterdam, Netherlands s.du@uva.nl  
+
+> 2
+
+Northeastern University, Boston, MA, USA  
+
+> 3
+
+University of California San Diego, La Jolla, CA, USA  
+
+> 4
+
+Duke University, Durham, NC, USA 
+
+Abstract. Prompt-based interaction has become a dominant paradigm for using large language models (LLMs), where multiple candidate prompts are evaluated and the top-ranked one is selected for downstream use. This workflow implicitly assumes that prompt rankings are stable under minor variations in evaluation conditions. In this paper, we systematically study prompt ranking stability under common sources of variability, including random seeds and limited evaluation subsets. Across three open-weight LLMs and two benchmark tasks, we find that while overall rank corre-lations are often moderate to high, the identity of the top-performing prompt frequently changes, leading to unreliable selection decisions. To address this issue, we propose a simple stability-aware selection strategy based on a lower confidence bound, which accounts for both performance and variance. Our results show that this approach improves robustness in unstable settings while remaining competitive in more stable regimes. These findings highlight the importance of accounting for evaluation un-certainty in prompt selection and LLM benchmarking. 
+
+Keywords: Prompt engineering · Large language models · Evaluation stability · Ranking robustness 
+
+# 1 Introduction 
+
+As AI models continue to advance, large language models (LLMs) are increas-ingly accessed through prompt-based interfaces, where task behavior is specified via natural language instructions rather than task-specific training [11,9,2]. As a result, prompt design and prompt selection have become central to both research and deployment of LLM-based systems. In many practical workflows, multiple candidate prompts are evaluated on a benchmark, ranked by performance, and a single “best” prompt is selected for downstream use. A common but often implicit assumption underlying these practices is that prompt performance rankings are stable. That is, a prompt that outperforms others under a given evaluation protocol is expected to remain superior under  
+
+> arXiv:2606.24381v1 [cs.CL] 23 Jun 2026 2Authors Suppressed Due to Excessive Length
+
+minor variations of evaluation conditions. This assumption motivates widespread practices such as selecting prompts based on average accuracy or reporting a single top-performing prompt. In practice, however, prompt evaluation is subject to multiple sources of variability. Evaluation protocols often rely on limited evaluation budgets, sub-sampling of benchmark datasets, or different random seeds. While prior work has studied output variability under stochastic decoding or sensitivity to few-shot examples, prompt evaluation itself is typically treated as deterministic. In particular, the stability of prompt rankings , rather than absolute scores, has received little systematic attention. Importantly, instability in prompt rankings has direct practical implications. When multiple prompts achieve similar average performance, even small fluctu-ations in evaluation scores can lead to changes in their relative ordering. Such ranking instability may cause prompt selection decisions to be overly sensitive to evaluation noise, resulting in brittle or non-reproducible outcomes. In this work, we challenge the assumption of stable prompt rankings. Rather than focusing on absolute performance variance, we study how the relative or-dering of prompts changes under realistic evaluation variability. Specifically, we ask the following questions: (1) How stable are prompt performance rankings across random seeds and evaluation subset sizes? (2) How does ranking insta-bility affect common prompt selection strategies? (3) Can prompt selection be made more robust using simple stability-aware criteria? To answer these questions, we conduct a systematic empirical study in which a fixed set of prompts is repeatedly evaluated under controlled variations of eval-uation conditions. Our results reveal substantial ranking instability, particularly for small evaluation subsets, and show that selecting prompts based solely on mean performance can lead to unreliable decisions. At the same time, we demon-strate that incorporating stability considerations via a simple lower confidence bound criterion can improve robustness under noisy evaluation conditions while remaining competitive in more stable settings. Our contributions are as follows: (1) We provide the first systematic study of prompt ranking stability under realistic evaluation variability, including random seeds and limited evaluation budgets. (2) We show that high rank correlation does not necessarily imply stable prompt selection, revealing a gap between global ranking agreement and decision-level consistency. (3) We propose a simple stability-aware selection method based on lower confidence bounds, which improves robustness under noisy evaluation conditions without sacrificing performance in stable regimes. On the Stability of Prompt Ranking in Large Language Model Evaluation 3
+
+# 2 Related Work 
+
+2.1 Prompt Engineering and Prompt Sensitivity 
+
+Prompt engineering has emerged as a key technique for controlling the behav-ior of large language models without additional training [12,5]. Prior work has explored instruction design, reasoning cues, output constraints, and prompt en-sembles, demonstrating that prompt formulation can significantly affect model performance. Several studies have also reported sensitivity of LLM outputs to prompt phrasing, formatting, and example selection. 
+
+2.2 Evaluation Variability and Benchmark Robustness 
+
+Evaluation variability has been studied in various contexts, including random-ness in model initialization, stochastic decoding, and dataset subsampling [3,4]. Prior work has shown that benchmark scores can be sensitive to evaluation noise, particularly under limited data or stochastic settings. Bootstrap methods and statistical significance testing have been proposed to quantify uncertainty in model evaluation. In contrast to these studies, our focus is not on estimating confidence intervals for absolute scores, but on understanding how evaluation variability affects the 
+
+relative ordering of prompts. 
+
+2.3 Ranking Stability and Model Selection 
+
+While ranking stability has been studied in areas such as information retrieval and model selection, these works typically focus on model-level comparisons [10]. In contrast, we investigate ranking stability at the prompt level, where perfor-mance differences are often subtle and evaluation noise plays a larger role. Several works have noted that rank-based decisions may be sensitive to noise, even when aggregate performance metrics appear stable [8]. Our work brings this perspective to prompt evaluation for LLMs. To our knowledge, this is the first work that systematically studies prompt ranking stability under controlled evaluation variability and connects ranking instability to prompt selection robustness. 
+
+# 3 Method 
+
+In this section, we formalize prompt evaluation as a stochastic ranking prob-lem, where evaluation variability induces randomness in prompt performance and ranking outcomes. Under this formulation, prompt ranking is no longer de-terministic but depends on the underlying sampling distribution, and prompt selection corresponds to identifying robust optima under uncertainty. 4 Authors Suppressed Due to Excessive Length                     
+
+> Candidate Prompts
+> P={p1, . . . , p M}
+> Task Dataset
+> D
+> Variability Simulation
+> Seed Sampling s∈ S
+> Subsets k∈ { 50 ,100 ,200 }
+> LLM Inference
+> (Mistral, Phi-3, Qwen2.5)
+> Score Matrix Ss(c)
+> i= perf( pi,Dc)
+> Stability Analysis
+> ρ, τ, Top -kConsistency
+> Mean-based Selection
+> p∗= arg max i¯si
+> Stability-aware (LCB)
+> p∗= arg max i
+> 
+> ¯si−zσi√K
+> 
+> Evaluation Protocol
+
+Fig. 1. Overview of the proposed prompt evaluation and selection framework. The pipeline simulates evaluation variability through multi-seed subsampling before apply-ing the stability-aware selection strategy. 
+
+3.1 Problem Formulation 
+
+Let P = {p1, p 2, . . . , p M } denote a fixed set of candidate prompts for a given task, and let D denote the evaluation dataset. Under an evaluation condition c
+
+(e.g., a specific random seed and subset of examples), each prompt pi is assigned a performance score s(c) 
+
+> i
+
+, such as accuracy. This induces a ranking over prompts: 
+
+π(c) = rank  {s(c) 
+
+> i
+
+}Mi=1 
+
+,
+
+where lower ranks in the induced permutation correspond to better-performing prompts. We consider multiple evaluation conditions C = {c1, . . . , c K }, obtained by varying random seeds and evaluation subsets. Our goal is to analyze how stable the rankings {π(c)} are across different conditions. On the Stability of Prompt Ranking in Large Language Model Evaluation 5
+
+3.2 Evaluation Variability 
+
+We model evaluation variability as arising from two sources: 
+
+Random seed variation: Different seeds induce different subsamples of the dataset. 
+
+Subset size variation: We evaluate on subsets of size k ∈ { 50 , 100 , 200 } to simulate limited evaluation budgets. For each condition c, all prompts are evaluated on the same subset to ensure fair comparison. This produces a score matrix of size |C| × M , where each row corresponds to a ranking over prompts. 
+
+3.3 Ranking Stability Metrics 
+
+To quantify the similarity between rankings, we compute pairwise correlations across evaluation conditions. 
+
+Rank Correlation. Given two rankings π(c1) and π(c2), we measure their agree-ment using Spearman’s ρ, which captures correlation between rank positions, and Kendall’s τ , which measures pairwise ordering consistency. These metrics reflect global ranking consistency across evaluation conditions. 
+
+Top-k Consistency. To evaluate decision-level stability, we further consider top-k
+
+consistency metrics. Top-1 consistency measures the fraction of evaluation con-ditions that identify the same best-performing prompt, while top-k consistency quantifies the average overlap between the sets of top-k prompts across condi-tions. These metrics capture the reliability of prompt selection decisions beyond global ranking agreement. For pairwise top-k consistency, we compute the average overlap ratio between the top-k prompt sets from two evaluation conditions: Top-k(π(c1), π (c2)) = |T (c1) 
+
+> k
+
+∩ T (c2) 
+
+> k
+
+|
+
+k ,
+
+where T (c) 
+
+> k
+
+denotes the set of top-k prompts under condition c.
+
+3.4 Prompt Selection Strategies 
+
+We consider two prompt selection strategies based on multiple evaluation runs. 
+
+Mean-based Selection. We compute the average score of each prompt across conditions: 
+
+¯si = 1
+
+K
+
+X
+
+> c∈C
+
+s(c) 
+
+> i
+
+,
+
+and select the prompt with the highest mean performance: 
+
+p∗ 
+
+> mean
+
+= arg max  
+
+> i
+
+¯si.6 Authors Suppressed Due to Excessive Length 
+
+Stability-aware Selection (LCB). To account for variability, we define a lower confidence bound (LCB) score: LCB i = ¯ si − z · σi
+
+√K ,
+
+where σi is the standard deviation of scores for prompt pi, and z controls the strength of the penalty. We select: 
+
+p∗ 
+
+> LCB
+
+= arg max  
+
+> i
+
+LCB i.
+
+This strategy favors prompts with both high mean performance and low vari-ance. We use this LCB score as a simple uncertainty-aware heuristic rather than a strict statistical confidence interval, since the number of evaluation conditions is limited. 
+
+3.5 Selection Robustness Evaluation 
+
+We evaluate selection robustness using a leave-one-seed-out (LOSO) protocol. For each held-out condition ctest , we: 1. Use the remaining conditions C \ { ctest } to select a prompt. 2. Evaluate the selected prompt on ctest .We report the average and standard deviation of test performance across all held-out conditions. This protocol measures how well a selection strategy generalizes to unseen evaluation settings. 
+
+# 4 Experiments 
+
+We conduct experiments using an open-weight instruction-tuned LLM in a zero-shot setting with greedy decoding. All experiments use a fixed model to isolate the effects of evaluation variability from model-specific factors. 
+
+4.1 Setup Models We evaluate prompt ranking stability across three representative open-weight instruction-tuned large language models with comparable parameter scales but different training recipes: Mistral-7B-Instruct-v0.3 ( Mistral ) [1], Phi-3-mini-4k-instruct ( Phi ) [6], and Qwen2.5-7B-Instruct ( Qwen ) [7]. Mistral-7B-Instruct-v0.3 is a 7B-parameter instruction-tuned model designed for strong general-purpose reasoning and instruction following. Phi-3-mini-4k-instruct is a compact instruction-tuned model with competi-tive performance across a range of reasoning and knowledge tasks. Qwen2.5-7B-Instruct is a 7B-scale instruction-tuned model that demonstrates strong multilingual and general knowledge capabilities. These models are selected to cover diverse training paradigms and capabilities while maintaining comparable model sizes, allowing us to isolate the effects of evaluation variability on prompt ranking stability. On the Stability of Prompt Ranking in Large Language Model Evaluation 7
+
+Tasks We evaluate on two benchmark tasks with automatic evaluation. GSM8K requires multi-step numerical reasoning and is sensitive to compounding errors. MMLU is a multi-disciplinary multiple-choice question answering benchmark covering a broad range of subjects. These tasks differ substantially in structure and difficulty, allowing us to examine task-dependent stability effects. 
+
+Prompts For each task, we construct a fixed set of 20 candidate prompts. The prompts vary in instruction phrasing, reasoning guidance, and output con-straints, while targeting the same underlying task. All prompts are evaluated under identical conditions within each evaluation run. The prompt pool was manually constructed by the authors to represent diverse instruction styles, rea-soning cues, and output constraints commonly used in prompt engineering. 
+
+4.2 Results 
+
+In this section, we analyze prompt ranking stability from three complemen-tary perspectives: (1) global ranking consistency, (2) decision-level consistency of top-performing prompts, and (3) robustness of prompt selection under evalu-ation variability. In particular, Table 1 reports pairwise consistency metrics that quantify agreement between pairs of evaluation conditions, whereas Table 2 re-ports global consistency metrics that quantify agreement with a modal reference ranking aggregated across all conditions. 
+
+Ranking Stability under Evaluation Variability Table 1 reports ranking stability across random seeds. Across models, prompt rankings exhibit substan-tial instability under small evaluation budgets, particularly on GSM8K. At 50 evaluation examples, Spearman correlation ranges from 0.456 to 0.763 across models, with large variance observed in some cases (e.g., ±0.310 for Qwen), in-dicating weak to moderate agreement across seeds. Although ranking stability improves as the evaluation subset size increases, correlations remain far from perfect even at 200 examples. MMLU exhibits higher overall ranking stability than GSM8K. For example, at 200 examples, Spearman correlation reaches up to 0.862 for Qwen and 0.821 for Phi. However, even in these settings, Kendall’s τ remains substantially below 1.0 (e.g., 0.703 for Qwen), suggesting that non-trivial prompt reordering persists across evaluation conditions. Notably, relatively high rank correlations do not guarantee stable prompt selection. As we show next, even when rankings appear consistent at a global level, the identity of the top-performing prompt can vary significantly across seeds. 
+
+Top-k Consistency and Prompt Selection Reliability We note that the top-k metrics reported in Table 1 are computed in a pairwise manner across seed pairs, whereas those in Table 2 are defined with respect to a global refer-ence (mode) across all seeds. For global top-1 consistency, we identify the prompt 8 Authors Suppressed Due to Excessive Length                                                                                                                                                                    
+
+> Model Task Size Spearman (ρ↑)Kendall (τ↑)Top-1 pair Top-3 pair .Mistral
+> GSM8K 50 0.672 ±0.103 0.518 ±0.076 0.300 0.467 100 0.813 ±0.046 0.648 ±0.063 0.600 0.567 200 0.876 ±0.025 0.718 ±0.033 0.200 0.800 MMLU 50 0.278 ±0.248 0.218 ±0.202 0.100 0.167 100 0.456 ±0.187 0.347 ±0.158 0.100 0.267 200 0.595 ±0.121 0.461 ±0.100 0.000 0.400
+> Phi
+> GSM8K 50 0.763 ±0.058 0.604 ±0.074 0.100 0.600 100 0.887 ±0.040 0.749 ±0.057 0.100 0.600 200 0.906 ±0.034 0.769 ±0.049 0.200 0.767 MMLU 50 0.476 ±0.159 0.368 ±0.139 0.000 0.233 100 0.684 ±0.067 0.540 ±0.062 0.200 0.233 200 0.821 ±0.038 0.675 ±0.040 0.300 0.400
+> Qwen
+> GSM8K 50 0.456 ±0.310 0.359 ±0.254 0.100 0.333 100 0.534 ±0.398 0.433 ±0.329 0.300 0.433 200 0.669 ±0.278 0.533 ±0.266 0.300 0.367 MMLU 50 0.561 ±0.133 0.444 ±0.109 0.200 0.333 100 0.775 ±0.087 0.637 ±0.094 0.200 0.467 200 0.862 ±0.041 0.703 ±0.059 0.100 0.400
+> Table 1. Ranking stability across different models ( Mistral ,Phi , and Qwen ). Metrics represent the mean ±standard deviation calculated over npairs = 10 seed pairs.
+
+that appears most frequently as the top-ranked prompt across evaluation condi-tions and report the fraction of conditions in which this modal top-1 prompt is selected. For global top-k consistency, we analogously define a modal top-k set and report the average overlap between each condition-specific top-k set and this reference set. These metrics capture complementary aspects of ranking stability. Table 2 summarizes decision-level consistency across seeds. On GSM8K with 50 evaluation examples, top-1 consistency is low across all models (around 40%), with multiple distinct prompts identified as the best-performing configuration. Even with 200 examples, top-1 consistency remains limited (typically ≤ 60% ), indicating that the identity of the best prompt is highly sensitive to evaluation variability. A similar pattern is observed on MMLU. Despite relatively high rank correla-tions, top-1 consistency remains low across most settings, and multiple prompts emerge as the top choice across different seeds. These results reveal a critical gap between ranking stability and decision reliability: stable rankings do not necessarily imply reliable prompt selection. 
+
+Robustness of Stability-aware Prompt Selection Table 3 evaluates the robustness of prompt selection under a leave-one-seed-out (LOSO) protocol. On GSM8K, the proposed stability-aware selection strategy based on a lower confi-On the Stability of Prompt Ranking in Large Language Model Evaluation 9                                                                 
+
+> Model Task Size Consistency (↑)Unique Top-1 Top-3 Top-1 Mistral
+> GSM8K 50 0.600 0.533 3100 0.800 0.667 2200 0.400 0.867 3MMLU 50 0.400 0.200 4100 0.400 0.533 4200 0.200 0.533 5
+> Phi
+> GSM8K 50 0.400 0.733 4100 0.400 0.733 4200 0.400 0.867 3MMLU 50 0.200 0.333 5100 0.400 0.400 3200 0.600 0.467 3
+> Qwen
+> GSM8K 50 0.400 0.333 4100 0.600 0.667 3200 0.600 0.467 3MMLU 50 0.400 0.333 3100 0.400 0.667 3200 0.400 0.467 4
+> Table 2. Top-1 and Top-3 ( k= 3 ) configuration consistency across models over n= 5
+> random seeds. "Unique Top-1" represents the count of distinct best-performing config-urations identified across seeds.
+
+dence bound (LCB) consistently improves or matches mean-based selection. In particular, under small evaluation budgets, LCB yields substantial gains (e.g., 0.312 vs. 0.228 at size 50 for Qwen), demonstrating improved robustness under noisy evaluation conditions. At larger subset sizes, LCB remains competitive and often achieves higher or comparable performance. On MMLU, LCB does not uniformly improve average performance. In rela-tively stable settings, such as MMLU with larger evaluation subsets, the variance penalty may lead to the selection of slightly more conservative prompts, result-ing in a modest reduction in mean accuracy. This reflects an inherent trade-off between robustness and peak performance. These results suggest that incorporating uncertainty into prompt selection is particularly beneficial in challenging or high-variance regimes, while remaining safe in more stable settings. Importantly, the LCB-based strategy requires no additional training or model modification, making it a practical drop-in replacement for standard mean-based selection. 10 Authors Suppressed Due to Excessive Length                                                                                                                         
+
+> Model Task Size Accuracy (Mean) Accuracy (LCB) Mistral
+> GSM8K 50 0.288 ±0.097 0.288 ±0.097
+> 100 0.274 ±0.035 0.274 ±0.035
+> 200 0.248 ±0.024 0.265 ±0.009
+> MMLU 50 0.572 ±0.077 0.572 ±0.077
+> 100 0.608 ±0.070 0.584 ±0.046
+> 200 0.568 ±0.050 0.573 ±0.053
+> Phi
+> GSM8K 50 0.360 ±0.032 0.360 ±0.032
+> 100 0.374 ±0.040 0.374 ±0.040
+> 200 0.365 ±0.047 0.351 ±0.048
+> MMLU 50 0.600 ±0.032 0.600 ±0.058
+> 100 0.630 ±0.066 0.630 ±0.066
+> 200 0.667 ±0.038 0.668 ±0.029
+> Qwen
+> GSM8K 50 0.228 ±0.131 0.312 ±0.125
+> 100 0.294 ±0.084 0.274 ±0.086
+> 200 0.311 ±0.158 0.350 ±0.138
+> MMLU 50 0.692 ±0.046 0.692 ±0.046
+> 100 0.702 ±0.053 0.686 ±0.061
+> 200 0.679 ±0.032 0.683 ±0.035
+> Table 3. Selection robustness via leave-one-seed-out (LOSO) evaluation across models. Results report mean ±std over n= 5 held-out seeds with parameter z= 1 .0.
+
+Discussion Our findings indicate that prompt ranking instability primarily arises among prompts with similar average performance. While clearly subop-timal prompts are consistently identified, fine-grained ordering among strong prompts is highly sensitive to evaluation variability. This explains why rank correlations can be moderately high while top-1 consistency remains low. The contrast between GSM8K and MMLU highlights the role of task char-acteristics. GSM8K requires multi-step reasoning and is more sensitive to com-pounding errors, leading to higher variability across evaluation subsets. In con-trast, MMLU exhibits higher overall ranking stability but still suffers from fre-quent changes in the top-ranked prompt, indicating that even relatively stable tasks can yield unreliable prompt selection outcomes. From a practical perspective, these results caution against over-interpreting small performance differences when selecting prompts. Rather than treating prompt evaluation as deterministic, practitioners should account for ranking stability, especially under limited evaluation budgets. Simple stability-aware cri-teria can provide a low-cost way to improve robustness without modifying the underlying model. Overall, our results suggest that prompt evaluation should be viewed as a stochastic estimation problem rather than a deterministic comparison, particu-larly in realistic low-resource evaluation settings. This perspective suggests that On the Stability of Prompt Ranking in Large Language Model Evaluation 11 
+
+future benchmarking practices should incorporate uncertainty-aware evaluation protocols rather than relying solely on point estimates. A limitation of the current study is that it focuses on two benchmark tasks and a fixed pool of 20 prompts per task. Future work should examine a broader range of tasks, prompt families, and evaluation settings, including few-shot prompting and generative evaluation. A more comprehensive sensitivity anal-ysis of z is also left for future work. To facilitate reproducibility, the code, prompts, and evaluation scripts used in this study are publicly available at: GitHub Repository. 
+
+# 5 Conclusion 
+
+In this work, we studied the stability of prompt performance rankings under com-mon sources of evaluation variability. We showed that prompt rankings can be highly unstable, especially under limited evaluation budgets, and that the iden-tity of the top-ranked prompt frequently changes across evaluation conditions. We further demonstrated that a simple stability-aware selection strategy based on a lower confidence bound (LCB) can improve robustness in high-variance settings while remaining competitive in more stable regimes. More broadly, our findings suggest that prompt evaluation should be viewed as a statistical estimation problem rather than a deterministic comparison. We hope this work encourages more reliable evaluation practices and greater aware-ness of ranking instability in prompt-based LLM systems. 
+
+# References 
+
+1. AI, M.: Mistral-7b-instruct-v0.3. https://huggingface.co/mistralai/ Mistral-7B-Instruct-v0.3 (2024), accessed: 2026-03-23 2. Brown, T.B., Mann, B., Ryder, N., Subbiah, M., Kaplan, J., Dhariwal, P., Nee-lakantan, A., Shyam, P., Sastry, G., Askell, A., Agarwal, S., Herbert-Voss, A., Krueger, G., Henighan, T., Child, R., Ramesh, A., Ziegler, D.M., Wu, J., Win-ter, C., Hesse, C., Chen, M., Sigler, E., Litwin, M., Gray, S., Chess, B., Clark, J., Berner, C., McCandlish, S., Radford, A., Sutskever, I., Amodei, D.: Language models are few-shot learners. In: Larochelle, H., Ranzato, M., Hadsell, R., Balcan, M., Lin, H. (eds.) Advances in Neural Information Processing Systems 33: An-nual Conference on Neural Information Processing Systems 2020, NeurIPS 2020, December 6-12, 2020, virtual (2020), https://proceedings.neurips.cc/paper/ 2020/hash/1457c0d6bfcb4967418bfb8ac142f64a-Abstract.html 
+
+3. Dodge, J., Gururangan, S., Card, D., Schwartz, R., Smith, N.A.: Show your work: Improved reporting of experimental results. In: Inui, K., Jiang, J., Ng, V., Wan, X. (eds.) Proceedings of the 2019 Conference on Empirical Methods in Natu-ral Language Processing and the 9th International Joint Conference on Natural Language Processing, EMNLP-IJCNLP 2019, Hong Kong, China, November 3-7, 2019. pp. 2185–2194. Association for Computational Linguistics (2019). https: //doi.org/10.18653/V1/D19-1224 , https://doi.org/10.18653/v1/D19-1224 12 Authors Suppressed Due to Excessive Length 4. Dror, R., Baumer, G., Shlomov, S., Reichart, R.: The hitchhiker’s guide to test-ing statistical significance in natural language processing. In: Gurevych, I., Miyao, Y. (eds.) Proceedings of the 56th Annual Meeting of the Association for Com-putational Linguistics, ACL 2018, Melbourne, Australia, July 15-20, 2018, Vol-ume 1: Long Papers. pp. 1383–1392. Association for Computational Linguistics (2018). https://doi.org/10.18653/V1/P18-1128 , https://aclanthology.org/ P18-1128/ 
+
+5. Kojima, T., Gu, S.S., Reid, M., Matsuo, Y., Iwasawa, Y.: Large language mod-els are zero-shot reasoners. In: Koyejo, S., Mohamed, S., Agarwal, A., Bel-grave, D., Cho, K., Oh, A. (eds.) Advances in Neural Information Process-ing Systems 35: Annual Conference on Neural Information Processing Sys-tems 2022, NeurIPS 2022, New Orleans, LA, USA, November 28 - Decem-ber 9, 2022 (2022), http://papers.nips.cc/paper_files/paper/2022/hash/ 8bb0d291acd4acf06ef112099c16f326-Abstract-Conference.html 
+
+6. Microsoft: Phi-3-mini-4k-instruct. https://huggingface.co/microsoft/ Phi-3-mini-4k-instruct (2024), accessed: 2026-03-23 7. Qwen Team, A.G.: Qwen2.5-7b-instruct. https://huggingface.co/Qwen/Qwen2. 5-7B-Instruct (2024), accessed: 2026-03-23 8. Reimers, N., Gurevych, I.: Reporting score distributions makes a difference: Per-formance study of lstm-networks for sequence tagging. In: Palmer, M., Hwa, R., Riedel, S. (eds.) Proceedings of the 2017 Conference on Empirical Methods in Natural Language Processing, EMNLP 2017, Copenhagen, Denmark, September 9-11, 2017. pp. 338–348. Association for Computational Linguistics (2017). https: //doi.org/10.18653/V1/D17-1035 , https://doi.org/10.18653/v1/d17-1035 
+
+9. Shen, Y., Wang, L., Shi, C., Du, S., Tao, Y., Shen, Y., Zhang, H.: Compara-tive analysis of listwise reranking with large language models in limited-resource language contexts. CoRR abs/2412.20061 (2024). https://doi.org/10.48550/ ARXIV.2412.20061 , https://doi.org/10.48550/arXiv.2412.20061 
+
+10. Voorhees, E.M.: Variations in relevance judgments and the measurement of re-trieval effectiveness. In: Croft, W.B., Moffat, A., van Rijsbergen, C.J., Wilkin-son, R., Zobel, J. (eds.) SIGIR ’98: Proceedings of the 21st Annual International ACM SIGIR Conference on Research and Development in Information Retrieval, August 24-28 1998, Melbourne, Australia. pp. 315–323. ACM (1998). https: //doi.org/10.1145/290941.291017 , https://doi.org/10.1145/290941.291017 
+
+11. Wang, L., Shi, C., Du, S., Tao, Y., Shen, Y., Zheng, H., Shen, Y., Qiu, X.: Per-formance review on LLM for solving leetcode problems. CoRR abs/2502.15770 
+
+(2025). https://doi.org/10.48550/ARXIV.2502.15770 , https://doi.org/10. 48550/arXiv.2502.15770 
+
+12. Wei, J., Wang, X., Schuurmans, D., Bosma, M., Ichter, B., Xia, F., Chi, E.H., Le, Q.V., Zhou, D.: Chain-of-thought prompting elicits reasoning in large language models. In: Koyejo, S., Mohamed, S., Agarwal, A., Bel-grave, D., Cho, K., Oh, A. (eds.) Advances in Neural Information Process-ing Systems 35: Annual Conference on Neural Information Processing Sys-tems 2022, NeurIPS 2022, New Orleans, LA, USA, November 28 - Decem-ber 9, 2022 (2022), http://papers.nips.cc/paper_files/paper/2022/hash/ 9d5609613524ecf4f15af0f7b31abca4-Abstract-Conference.html

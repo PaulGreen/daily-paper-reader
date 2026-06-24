@@ -1,0 +1,2284 @@
+Title: Atomistic Language Models Understand and Generate Materials
+
+URL Source: https://arxiv.org/pdf/2606.21395v1
+
+Published Time: Tue, 23 Jun 2026 00:54:36 GMT
+
+Number of Pages: 51
+
+Markdown Content:
+# Atomistic Language Models Understand and Generate Materials 
+
+Sathya Edamadaka 1, Krithik Ramesh 2, Ju Li 1, Rafael Gómez-Bombarelli 1,3∗
+
+> 1
+
+Massachusetts Institute of Technology, 2Lyra Labs, 3Lila Sciences 
+
+> ∗
+
+Correspondence to rafagb@mit.edu Strain-
+
+> Accurate
+> Doping
+
+2
+
+Atoms 
+
+Text  Property  
+
+> Prediction
+> Structure
+> Description
+> Application
+> Description
+> Materials
+> Science Q&A
+
+ALM 
+
+Edit 
+
+ALM 
+
+Gen 
+
+ALM 
+
+Core  Latent       
+
+> Guidance
+> Crystal
+> Structure
+> Prediction
+> Text-Prompted
+> Crystal
+> Optimization
+> Generating
+> Stable
+> Crystals
+> AB
+> CDEf
+> Lower-Energy
+> Polymorph
+> Generation
+> Generating
+> Crystals from
+> Natural
+> Language
+> § 2.1 § 2.2 § 2.3 § 3.1 § 2.2 § 3.3 § 3.3 § 3.2 § 3.4 § 3.3 § 3.3
+
+Figure 1: Atomistic Language Models bridge natural language and 3D atomic coordinates to 
+
+understand, generate, and optimize materials . This new paradigm allows a single autoregressive backbone to characterize the structure, properties, and applications of a material, as well as guide the discovery of new ones, all without lossy text representations. 
+
+Abstract 
+
+Atomistic structure and natural language have long been modeled separately, with language models either calling atomistic models as tools or being fine-tuned on lossy textual encodings that discard atomistic information. We introduce Atomistic Language Models (ALMs) to pursue native multimodality, in which a single language backbone understands atomistic structures, generates materials from natural language, and optimizes crystal structures as instructed by text. By unifying a pretrained atomistic encoder, large language model, and denoising diffusion model through purely continuous projectors and staged training, ALMs achieve state-of-the-art results on crystal structure prediction and de novo 
+
+generation. ALMs are enabled by a continuous bridge that maps language model embeddings directly into the steering space of atomistic diffusion ,and are assisted by Text-to-Crystal Feynman–Kac (T2C-FK) , a particle-based sampler that scores partial denoising trajectories to enforce stoichiometric targets at inference time. To evaluate the ability of ALMs to optimize and generate materials from natural-language prompts and 3D atom-coordinate inputs, we introduce ALM Bench , the first benchmark for text-conditioned crystal generation and optimization. Code, training data, and model weights will be released soon. 
+
+1 Introduction 
+
+Domain experts in materials science reason in two modes. One is continuous and geometric: atomic coordinates, a periodic unit cell, or the actual structure on which physical laws act. The other is 
+
+discrete and linguistic: a phase, a processing history, or the experimental context that determines whether and how the material can be made. An ideal model of materials would move fluently between 
+
+Preprint. 
+
+> arXiv:2606.21395v1 [cs.LG] 19 Jun 2026
+
+these modalities, parsing a structure to predict its properties, generating a structure from a natural language specification, and optimizing materials exactly as desired. The two modalities carry fundamentally different representational biases. State-of-the-art (SoTA) atomistic models [ 1, 2, 3 ] operate on graphs built from 3D coordinates and periodic boundary conditions, many having inductive priors like symmetry, locality, and stoichiometry baked into their architectures. Language models operate on discrete tokens with no native notion of geometry or periodicity. Beneath these surface incompatibilities lies a deeper one: in matter, distances in real space and distances in semantic space are decoupled. A perturbation of a few atoms can leave a crystal structure nearly unchanged geometrically while moving it across a phase boundary; different polymorphs of the same composition can differ by less than an angstrom in coordinates and by orders of magnitude in conductivity or hardness. Each modality must therefore be modeled in its own, native representation. Previous approaches bridge this gap by training on lossy textual encodings of materials, like CIF files [ 4 ], Wyckoff strings [ 5], or other custom string representations [ 6 , 7]. However, they lose crucial geometric context that determines material behavior [ 8, 9] or catastrophically forget their natural language abilities [10]. The natural next step is to compose pipelines of unimodal specialists: large language models (LLMs) call structure generators as tools [ 11 , 12 , 13 , 14 ], generative models post-process language model outputs [ 15 ], and property predictors are wrapped behind text interfaces [ 16 ]. Such pipelines inherit 
+
+three failure modes : components communicate only through discrete surface forms, discarding continuous geometric information; they train independently, so structure and language never develop a shared latent space; and generation can only be steered through what a text prompt can express, not through the latent space the model uses to reason. On the other hand, multimodal language models in literature that directly understand 3D atomic coordinates are purely property predictors, and cannot generate new materials [17, 18, 19, 20]. A different paradigm avoids these failure modes. Atomistic encoders, language models, and atomistic structure generators each excel and fail at different predictive and generative tasks. Combining them into a single, end-to-end model with shared latent spaces addresses those failure modes more naturally than any pipeline can; representations are shared [ 21 ], gradient signals flow across modality boundaries during training [ 22 ], and conditional generation can be steered through the same latent space the model uses to reason [23]. The Atomistic Language Models (ALMs) realize this paradigm, unifying a pretrained atomistic encoder [ 3], language model [ 24 ], and denoising diffusion decoder [ 14 ] through continuous, cross-modal projectors (Fig. 2). ALMs are trained in three stages: alignment of the modalities, 
+
+multi-pattern instruction tuning that instills structural reasoning over both text and structure, and 
+
+guided generation in which embeddings extracted from the language model steer the denoising trajectory. ALM Core is a language model specialized in characterizing materials structure, properties, and applications by natively taking in 3D atomic coordinates, lattice parameters, and element types. 
+
+ALM Edit is finetuned on Core , learning to strongly steer [ 25 ] a denoising diffusion decoder built for crystal structure prediction, and is capable of optimizing a crystal as instructed by natural language .
+
+ALM Gen replaces this decoder with a weakly steered diffusion model, enabling de novo generation of inorganic crystals. To bridge the gap between the instruction-following abilities of ALM Edit and the competitive stability of ALM Gen ’s generated materials, we introduce an inference-time steering method, Text-to-Crystal Feynman–Kac (T2C-FK) , to improve how closely ALM Gen follows stoichiometric targets when prompted. To evaluate the text-conditioned optimization capabilities of 
+
+ALM Edit , we introduce ALM Bench , comprising over 7,000 natural language and inorganic crystal instruction pairs for evaluating language instruction-following in materials discovery. 
+
+ALM Core matches or outperforms prior language model approaches across measured property prediction tasks while matching the performance of finetuned machine learning interatomic potential (MLIPs) [ 26 , 19 ]. ALM Edit achieves state-of-the-art crystal structure prediction performance on MP-20 [ 12 ] and MPTS-52 [ 13 ] while beating all frontier language model baselines on ALM Bench , and ALM Gen achieves competitive performance on de novo generation, using MP-20 or LeMat-GenBench [ 27 ] hulls to determine stability, while beating previous language-based approaches. 23            
+
+> Large Language
+> Model
+> Cross-attention layers
+> Token embeddings
+> Token generation
+> This
+> polymorph of
+> Li ₁₀ GeP ₂S₁₂
+> crystallizes
+> in the
+> triclinic P1
+> space group…
+> Atoms
+> Atomistic
+> Foundation Model
+> Atom
+> Adapter
+> Text Prompt
+> Give me amore
+> stable polymorph
+> of this material.
+> Calculate the
+> formation
+> energy of
+> this
+> material.
+> Stage 2
+> Instruction tuning
+
+A. 
+
+B. 
+
+> Atom Decoder
+
+ALM Core, Edit , Gen  Atoms 
+
+> Text Response
+> Stage 1
+> Atom
+> Adapter
+> Training
+> Stage 3
+> Adapter-through-decoder training for generation
+
+Figure 2: Atomistic Language Models understand atoms as soft tokens from a machine learning interatomic potential and generate inorganic crystals by steering diffusion models with classifier-free guidance. A. ALMs are comprised of an MLIP encoder, LLM, and diffusion decoder, unified by continuous projectors. B. Staged curriculum training which progressively unfreezes the model and instruction-tunes it, enabling property prediction and structure generation in the same model. 
+
+2 Methods 
+
+Atomistic Language Modeling couples three components through trained, continuous projectors (Fig. 2A): a machine-learning interatomic potential that encodes each atom of a crystal ( E, OrbV3 [ 3]), a causal language model that serves as the central backbone ( ϕ, Qwen3-8B [ 24 ]), and a denoising diffusion model that decodes the language model’s latent instructions into 3D crystal structures (D, MatterGen [ 14 ]). ALM Core (§2.1 ) is the instruction-tuned core that can take in crystals as represented by continuous unit cell parameters L, continuous fractional coordinates X of each of the atoms in the material, and a discrete atomic-number assignment A that corresponds to their element types (an exhaustive list of notation is available in Table 9). Two generative variants bridge this base to diffusion decoders: a strongly text-conditioned crystal structure prediction model ( ALM Edit ,
+
+§2.2 ) and a weakly text-conditioned de novo generator ( ALM Gen , §2.3 ). Standard cross-modal interfaces discretize each modality [ 28 , 21 , 22 ] into codebooks generated autoregressively at inference time [ 29 ]. Crystalline matter resists both ideas: TiO 2 polymorphs differ by small distances between atoms, yet have band gaps that are hundreds of meV apart, and single-atom defects in large supercells shift formation energy without moving many structural fingerprints [ 30 ]. Therefore, all latent representations are kept continuous in ALMs, with no rounding or vector quantization (Appendix A.1.3). Aligning the encoder, backbone, and decoder in this single, continuous latent space also confines all domain-specific inductive biases to the encoder E and decoder D. Therefore, although this work tackles crystalline inorganic materials, ALMs can extend to other types of matter by retraining on new structures or utilizing different encoders and decoders. 
+
+2.1 ALM Core: understanding materials using their native 3D structure ALM Core is an instruction-tuned multimodal language model that reads each material’s atomic coordinates, lattice parameters, and element types, answering in natural language and serving as the foundation for our generative variants ( Edit and Gen ). The frozen encoder E maps each material 3(L, X, A) to per-atom embeddings H ∈ RNp×dE , which a two-layer GELU MLP Pin projects into the LLM’s token space as soft tokens, a lower-parameter method than the gated attention-based bridges of prior multimodal materials models [ 19 ]. The model is trained in two stages (Fig. 2B, 1-2). 
+
+Pin is first aligned alone on deterministic structural descriptions [ 31 ] from LLM4Mat-Bench [ 26 ]. The LLM is then instruction-tuned via LoRA [ 32 ] on those descriptions, as well as narratives about applications, property prediction, and three text-only tasks that prevent catastrophic forgetting [ 33 ]. Loss functions, bucket weights, optimizer settings, and ablations are in Appendix A.1 and B.1. 
+
+2.2 ALM Edit: text-conditioned crystal generation ALM Edit finetunes ALM Core to enable inverse materials design, guided by prompts consisting of natural language and materials. This unlocks text-conditioned structural optimization, in which an inputted material is edited according to textual instructions. MatterGen serves as the denoising diffusion model D for ALMs due to its extensibility to different conditioning heads via classifier-free guidance [ 14 ] (Appendix A.2). To build ALM Edit , D was trained from scratch with one architectural modification: denoising only over atom coordinates X and unit cell parameters L.1        
+
+> P…P{…}A1…A8
+
+Producer 
+
+> Q
+
+K,V
+
+> Self-attention
+> over learnable
+> queries
+> …
+> Atomistic Token
+> Embeddings
+> Composition Token
+> Embeddings
+> Prompt Token
+> Embeddings
+> x 2 layers
+
+Consumer  
+
+> Cross-Attention
+> tf-1 tft0
+> …
+> Cross-
+> Attention
+
+L
+
+> Lattice
+
+L
+
+> Coordinates
+
+L  
+
+> Atom Type
+> Di ff usion Losses
+> {…}
+> Composition
+> sets the
+> element
+> types
+
+Figure 3: A language-to-atomistic bridge enables the steering of crystal generation. ALM Edit uses all components above. ALM Gen swaps the Q-Former-style [ 23 ] producer for a lightweight per-token MLP (no learned queries or prompt context) feeding the same consumer, and does not emit composition embeddings. The decoder D observes atomic-number assignment 
+
+A, initializing each node accordingly and never changing any atom’s element. MatterGen cannot reliably reproduce desired stoichiometries and positions provided through CFG (discussed in §2.3 and Appendix A.2.2), so this choice ensures Edit 
+
+produces the structures it was prompted to generate. Therefore, the language model autoregressively generates the composition (a JSON of element types and counts) that D observes, and the model is pretrained on MP-20, MPTS-52, and all other structures that Core was trained to understand (Appendix B.2.1). We introduce a two-piece, producer–consumer 
+
+bridge (Fig. 3, Eq. 14) to connect Core to this composition-observing decoder. To encode the textual task and structural information about the inputted material, K = 8 "atomistic" tokens ( A1
+
+through A8 in Fig. 3) are teacher-forced onto the LLM’s response and causally attend to the prompt and inputted material’s soft tokens. Their final-layer hidden states Z ∈ RK×dLM are extracted as continuous latents to guide D without passing through a discrete-vocabulary bottleneck [ 28 , 21 ,22 ]. Specifically, the producer cross-attends over the 
+
+K atomistic, outputted composition, and text token embeddings, amplifying the information needed to generate the desired crystal. The consumer 
+
+then injects the fixed-size conditioning vector C
+
+into every block of D’s score network through a cross-attention branch as part of CFG, leaving the base model frozen. During training (Stage 3 in Fig. 2B), D’s denoising diffusion losses backpropagate through the consumer, the producer, and the language model’s atomistic-token hidden states Z. Additional losses, like per-element composition-count, anchor Z to a structurally meaningful direction; without this auxiliary, the atomistic token hidden states collapse to a near-constant direction across prompts (Appendix A.2.1). ALM Edit is trained on seven buckets of tasks, including crystal structure prediction and all tasks in ALM Bench (listed in Appendix B.2.1). 42.3 ALM Gen: de novo crystal generation 
+
+While conditional models like ALM Edit generate crystals as instructed by text, de novo generative models that unconditionally generate large numbers of stable, novel crystals are essential for screening campaigns to discover new materials with desirable properties. ALM Gen unlocks de novo generation by relaxing the strong conditioning achieved by ALM Edit . The producer (Fig. 3) is replaced by a lightweight per-token MLP. Each of the K atomistic-token hidden states is projected independently into a K-token conditioning sequence, with no learned queries and no prompt-context window, feeding feeds the same consumer as Edit . In addition, the LLM no longer produces compositions when prompted to generate structures (Appendix A.2.2). This is deliberately weak conditioning, causing text prompts to bias, rather than dictate, sampled structures. ALM Gen is trained on the same data as Edit in different concentrations (Appendix B.2.1), sampling input textual prompts at inference time from the respective eval partitions to generate crystals. 
+
+2.4 T2C-FK: Steering generation with Feynman–Kac 0.0 0.2 0.4 0.6 0.8 1.0    
+
+> Time
+> 3
+> 2
+> 1
+> 0
+> 1
+> 2
+> 3
+> State
+> Particle paths Resample step Killed (low w) Duplicated (high w)
+> Collapsed,
+> wrong species
+> Mostly correct
+> Unphysical
+> positions
+> Correct
+> Atom swapped
+> 0.0
+> 0.2
+> 0.4
+> 0.6
+> 0.8
+> 1.0
+> Marginal density  ( )  (max-normalized)
+
+Figure 4: Text-to-Crystal Feynman–Kac (T2C-FK) enables ALM Gen, a de novo 
+
+model, to generate structures with desired element sets and stoichiometry ratios. A. Unphysical structures are removed throughout sampling, and any differences from the reference stoichiometry are fixed at the last step via Hungarian scoring. 
+
+ALM Edit is designed to output a material with the desired element set and stoichiometry ratio. ALM Gen , on the other hand, is designed to produce more stable structures, but not necessarily with the exact stoichiometry used to prompt the model. This dichotomy arises from MatterGen’s denoising, not the inherent ALM architecture (Appendix A.3.2). We introduce Text-to-Crystal Feynman–Kac 
+
+(T2C-FK ) to close this gap at inference time, intercepting and reweighting denoising trajectories without retraining. 
+
+T2C-FK replaces MatterGen’s single denoising trajectory with an N -particle bootstrap Sequential Monte Carlo sampler [ 34 , 35 ]: every S steps, it reweights and resamples particles by a reward on the Tweedie-estimated clean structure ˆx0, deferring scoring until the atomic-number distribution leaves its high-noise regime. The reward scores stoichiometric agreement of the score network’s per-atom element distributions to the target multiset, and a final Hungarian override snaps each atom to its assigned target element, leaving lattice and coordinates untouched. A real example of T2C-FK 
+
+is shown in Fig. 4, and the full sampler (Algorithm 1) with its posterior-correction guarantee, three reward components, potential function, and hyperparameter sweeps is given in Appendix A.3. 
+
+3 Results 
+
+By instruction tuning across several tasks, Atomistic Language Models both natively understand materials and can lift their knowledge into text-conditional materials generation. ALM Core matches or beats unimodal predictors on property prediction, ALM Edit achieves state-of-the-art at crystal structure prediction, and ALM Gen beats even atomistic models performance at de novo generation. 
+
+ALM Edit also beats all frontier model baselines on ALM Bench , designed to rigorously test text-conditioned materials optimization. 
+
+3.1 Increased property prediction performance and training token efficiency 
+
+On LLM4Mat-Bench [ 26 ], an extensive crystal property prediction benchmark, ALM Core is one of the first natural language models to outperform previously published GNN baselines on Materials Project (MP) formation energy per atom, MP bandgap, MP density, and JARVIS-DFT energy above hull (Table 18, Fig. 5A, C, D), breaking the so-called “GNN–LLM wall” [ 26 ]. The highest-performing language model baselines, in contrast to Core , are orders-of-magnitude smaller architectures finetuned on CIFs with poor reasoning and natural language skills [ 26 ]. In addition, across several properties, 54     
+
+> A. B. C. D.
+> E. F. G.
+
+Figure 5: Atomistic Language Models can accurately predict physical properties of materials. Spider performance plots for selected materials property prediction tasks from A. LLM4Mat-Bench [ 26 ] (MAD/MAE, with a performance threshold of ≥ 5) and B. MatterChat (MAE, baseline from and normalized to [ 19 ]). Parity plots are shown for formation energy per atom (Ef ) using C. Materials Project data [ 36 ] and D. GNoME data [ 37 ]. We then show how similar activations are for property prediction (tan) and natural language (dark blue) tasks for E. small and F. large structures. G. visualizes how LLM attention weights differ across tasks and across materials input sizes through the LLM transformer layers. 
+
+ALM Core improves on previously published text-LLM property predictors by 5–100 × in MAE. 
+
+ALM Core is competitive with non-MLIP graph neural networks and stronger than previous language model property predictors on the Mat2Props [38] benchmark as well (Appendix 14). MatterChat [ 19 ] is a recent method that also projects MLIP embeddings as soft tokens into LLMs for property prediction. When finetuned on 2 epochs of the MatterChat training data (after training on roughly 20 epochs’ worth of other instruction tuning data, relative to MatterChat’s reported training budget of 50 epochs), ALM Core matches MatterChat on 5/9 tasks and beats it on 2 tasks (Fig. 5B). ALM underperformance on the other two tasks reflects the low LoRA rank chosen to preserve natural language skills and the limited underlying chemical expressivity of the atomistic encoder. The language model backbone of ALM Core learns attention scores that depend on the question 
+
+and chemical structure of the inputted material. For example, ALM Core attends to an inputted oxide structure’s cations 1.5–2.5 × more for a natural language output task compared to a property-prediction prompt. This asymmetry flips for intermetallic materials. Further, Core learns Table 1: ALM retains zero-shot natural language capabilities and scientific knowledge despite multimodal finetuning. 
+
+The final, "Judge" column is an eval released with ALM Bench , measuring materials science knowledge retention as judged by GPT-4o (Appendix D).                         
+
+> Model MMLU GSM8K GPQA Judge CrystalReasoner [39] 0.375 0.020 0.289 0.053
+> Qwen2.5-3B base 0.550 0.310 0.221 0.816
+> ALM Core 0.595 0.775 0.247 0.921
+> ALM Edit 0.485 0.780 0.228 0.921
+> Qwen3-8B base 0.595 0.705 0.286 0.895
+
+similar soft token activations among property prediction tasks and separately similar activations among free-form natural language tasks, like structure description and writing narratives about a material’s properties and applications. This effect scales with input crystal size (Fig. 5E vs. F) and is exacerbated towards later transformer layers of the language model (Fig. 5G). A common failure mode of multimodal language models is catastrophically forgetting their post-trained natural language skills [ 33 ]. Many systems avoid this by training small contrastive heads on frozen LMs, paying for it with reduced cross-modal control, or accepting language degradation as a cost of integration [ 33 ]. ALM Core resists catastrophic forgetting and requires neither trade-off. ALM Core and ALM Gen improve multi-step reasoning and arithmetic multiple-choice question skills, as well as free-form materials science knowledge as evaluated by a frontier LLM judge, compared to their base language model (Table 1). This performance is driven 6by CAMEL [ 40 ] scientific question-answering and JARVIS [ 41 ] materials science arXiv abstract buckets used for training ALM Core . In comparison, CrystalReasoner [ 39 ], a language-based crystal generative model, regresses strongly on these tasks compared to its base model. Although it narrowly beats other models on GPQA [42], all models hover around the 25% random baseline. 
+
+3.2 State-of-the-art crystal structure prediction performance 
+
+Table 2: ALM Edit achieves SoTA performance at crystal structure prediction on MP-20 and MPTS-52. Match rate MR (%, ↑) and RMSE (Å, ↓) to MP-20 and MPTS-52 test sets are scored at K=1 and best-of-K=20 . Matcher, definitions, baselines, and conventions are available in Appendix D.2. Bold and underlined denote the best and second-best performance scores.                                                                                  
+
+> MP-20 MPTS-52 Model MR@1 (%) ↑RMSE@1 ↓MR@20 (%) ↑RMSE@20 ↓MR@1 (%) ↑RMSE@1 ↓MR@20 (%) ↑RMSE@20 ↓
+> CDVAE [12] 33.90 0.1045 66.95 0.1026 5.34 0.2106 20.79 0.2085 DiffCSP [13] 51.49 0.0631 77.93 0.0492 12.19 0.1786 34.02 0.1749 FlowMM [43] 61.39 0.0566 ——17.54 0.1726 ——CrystaLLM-large [4] 58.70 0.0408 73.97 0.0349 19.21 0.1110 33.75 0.1059 CrystalFlow [44] 62.02 0.0710 78.34 0.0577 21.00 0.1613 37.81 0.1584 OMatG [45] 63.75 0.0720 ——25.15 0.1931 ——MCFlow-L [46] 64.08 0.0561 76.08 0.0383 27.16 0.1401 41.45 0.1296
+> ALM Edit 45 .60.021 83 .20.034 22 .70.022 45 .70.038
+> ALM Gen + T2C-FK 22 .30.025 41 .00.012 6.00.040 10 .00.011
+
+Building on the performance and rich, aligned latent spaces of ALM Core , ALM Edit establishes a new state-of-the-art for unseen crystal structure prediction on MP-20, as well as MPTS-52, a significantly harder benchmark with structures over twice as large as MP-20 (Table 2). Although many of the target polymorphs are relatively energetically stable compared to other geometries, the exact choice defined by each dataset is somewhat arbitrarily set [ 47 ]. Therefore, models are over-penalized for generating physically realistic unit-cell doublings, global rotations, or other stable polymorphs. However, ALM Edit not only achieves SoTA RMSE, outputting geometrically similar polymorphs to dataset targets, but also high best-of-K = 20 match rates, indicating that it learns a valid distribution of polymorphs, one of which is likely to be the target polymorph set by the MP-20 and MPTS-52 evals. ALM Edit received the desired crystal’s chemical composition and symmetry space group during training, but only the chemical composition at inference, helping the model learn a relationship between crystal symmetry groups expressed as text tokens and generated symmetric polymorphs. Table 2 also reports ALM Gen with FK enabled, which trades crystal structure prediction performance for increased crystal stability and novelty, by design. 
+
+3.3 Unlocking text-guided materials optimization and inverse design with ALM Bench ALM Edit unlocks the ability to edit and generate materials as instructed by natural language .We introduce ALM Bench to evaluate this capability, testing Edit and several frontier LLMs (with thinking mode enabled) on producing valid polymorphs of the inputted material with properties adjusted in a particular direction, e.g., "increase the formation energy of this crystal" (corresponding to “ Ef ↑” below). ALM Bench also evaluates the model’s one-shot ability to generate polymorphs of a given crystal with Ehull < 0 (“Polymorph”), as well as doping tasks, where models are prompted to dope a given crystal with a new element. The structural and compositional match of the generated and true doped crystal (“Doping”), as well as the strain of each (“Strain”), score success at this task (Appendix C). Table 3: ALM Bench evaluates models on atomistic editing tasks as guided by language. 
+
+Directional editing per property ( Ef , ρ, V ) and direction ( ↑/↓) are indicated ( N = 7 × 1000 ). OpenAI models were prompted to generate CIFs.                                                                                        
+
+> Model Ef↑Ef↓ρ↑ρ↓V↑V↓Polymorph Doping Strain
+> ALM Edit 0.613 ±0.062 0.624 ±0.021 0.353 ±0.067 0.367 ±0.032 0.451 ±0.059 0.355 ±0.033 0.224 ±0.022 0.879 ±0.012 0.151 ±0.028
+> GPT-4o 0.505 ±0.043 0.469 ±0.057 0.024 ±0.022 0.127 ±0.013 0.081 ±0.030 0.018 ±0.015 0.040 ±0.007 0.007 ±0.002 0.000 ±0.000
+> GPT-4.1 0.465 ±0.032 0.496 ±0.025 0.007 ±0.009 0.239 ±0.034 0.276 ±0.035 0.040 ±0.016 0.083 ±0.013 0.003 ±0.004 0.000 ±0.000
+> GPT-5.2 0.437 ±0.073 0.414 ±0.043 0.058 ±0.026 0.244 ±0.019 0.006 ±0.005 0.032 ±0.015 0.118 ±0.023 0.002 ±0.002 0.000 ±0.000
+
+7Table 4: ALM Bench also evaluates models on crystal generation tasks. Consistency of generated materials ( N = 7 × 1000 ) to requested application area (LLM Judge-assessed), materials description, and adversarial composition input (Appendix C). 
+
+Model Application Describe (Comp.) Describe (Struct.) OOD (Comp.) OOD (Struct.) 
+
+ALM Edit 0.423 ±0.020 0.730 ±0.031 0.412 ±0.041 0.474 ±0.016 0.231 ±0.026 
+
+GPT-4o 0.131 ±0.042 0.279 ±0.019 0.121 ±0.024 0.130 ±0.020 0.025 ±0.012 
+
+GPT-4.1 0.224 ±0.032 0.254 ±0.019 0.090 ±0.018 0.168 ±0.018 0.035 ±0.007 
+
+GPT-5.2 0.252 ±0.051 0.356 ±0.014 0.162 ±0.013 0.263 ±0.019 0.075 ±0.010 
+
+As shown in Table 3, ALM Edit produces valid edits to crystal geometry and structure, as each ALM Bench metric scores structurally invalid generations, trivial lattice rescalings, and unphysical atom relabelings as failures. When prompted to complete the same task using CIFs, frontier LLMs trail 
+
+ALM Edit on every metric, also often failing to produce valid, nontrivial crystals. 
+
+ALM Bench also evaluates models on text-conditioned generation alone, including asking for a crystal that belongs to an “Application” area (e.g., “generate a perovskite”) and difficult crystal structure prediction prompts, ranging from long narratives about properties and structure (“Describe”) to adversarially designed, terse prompts (“OOD”, e.g. "generate MgO structure at 3.58 g/cm 3"). Again, ALM Edit leads frontier LLM baselines by a sizeable margin (Table 4). 
+
+3.4 Competitive de novo generation for stable crystal generation 
+
+To enable large-throughput screening campaigns of de novo generated crystals, we deliberately relax 
+
+ALM Edit ’s strong conditioning into ALM Gen (§2.3), in which prompts bias the distribution of sampled structures without dictating each sample. These prompts are drawn uniformly from the eval set of prompts for Edit . ALM Gen achieves state-of-the-art performance for simultaneously stable, unique, and novel (SUN) structures, where stability is measured by Ehull < 0.016 on the MP-20 hull [ 36 ]. Crucially, turning guidance on to g = 0 .5 and steering D using natural language improves 
+
+generation quality over the g = 0 MatterGen base (Table 5), highlighting that learned language model priors improve upon unimodal, atomistic generation. On the harder, broader-chemistry LeMat-GenBench [ 27 ] protocol (Table 6), it tops the field on metastable ( Ehull < 0.1) yield while being second to the de novo -specialist flow models at strict SUN, where strict stability is defined as 
+
+Ehull < 0. Metastable yield on MP-20 is reported in full in Appendix D.3. Table 5: De novo generation against the MP-20 hull [39 ], in which stability S is defined by 
+
+Ehull ≤ 0.016 eV/atom and structures are pre-relaxed. Evaluated on N = 10 × 1000 samples (Appendix D.3). 
+
+Method Ehull (eV) ↓ U (%) ↑ Vstruct (%) ↑ Vchem (%) ↑ SUN (%) ↑
+
+CrystalTextLLM [6] 0.61 ±0.003 47 .40 ±0.30 90 .01 ±0.21 91 .59 ±0.05 0.38 ±0.05 
+
+PLAID++ Wyckoff [5] 0.57 ±0.003 40 .70 ±0.30 89 .06 ±0.21 91 .59 ±0.04 0.50 ±0.05 
+
+CrysReas-Base (SFT only) 0.58 ±0.004 35 .25 ±0.31 84 .03 ±0.23 90 .36 ±0.10 0.57 ±0.05 
+
+CrysReas-Thinking (SFT+CoT) 0.52 ±0.003 38 .64 ±0.29 91 .29 ±0.19 91 .72 ±0.04 0.59 ±0.06 
+
+CrysReas-RL (SFT+GRPO) 0.53 ±0.003 82 .49 ±0.19 89 .85 ±0.20 91 .10 ±0.07 1.23 ±0.07 
+
+CrysReas [39] 0.45 ±0.003 87 .23 ±0.14 94 .92 ±0.15 91 .78 ±0.03 1.70 ±0.08 
+
+MatterGen (Base) 0.079 ±0.002 93 .50 ±0.90 100 .00 ±0.00 86 .50 ±2.90 5.53 ±1.17 
+
+ALM Gen 0.085 ±0.003 98 .90 ±0.70 100 .00 ±0.00 83 .20 ±2.90 7.80 ±0.44 
+
+ALM Gen + FK-stoich 0.086 ±0.005 73 .80 ±2.20 100 .00 ±0.00 84 .50 ±1.00 5.21 ±1.18 
+
+4 Discussion 
+
+Atomistic Language Models are, to our knowledge, the first natively multimodal models that support atomistic understanding and text-instructed, materials-conditioned generation through continuous latent space bridges. ALMs directly address the three failure modes named in §1. The first, that components communicate only through lossy surface forms and discard continuous geometric information, is contradicted by breaking the “GNN–LLM wall” on LLM4Mat-Bench (§3.1), where keeping the representation continuous recovers GNN-level property prediction through a language 8Table 6: De novo generation on LeMat-GenBench [ 27 ] [ 46 ] ( N = 2500 ), in which strict stability is defined by ¯Ehull < 0 eV/atom and structures are pre-relaxed. Validity is measured by charge neutrality, physical plausibility, and minimum distance checks, and metastability by Ehull < 0.1. Ef ,
+
+Ehull , and RMSD are scored by 3 MLIPs (further details and conventions in Appendix D.3).                                                                                                                       
+
+> Energy-based Strict Stability Metastab. Model Valid ↑Unique ↑Novel ↑Ef↓¯Ehull ↓RMSD ↓Stable ↑SUN ↑Meta ↑MSUN ↑
+> MatterGen [14] 95.7 95.1 70.5 −0.70 ±0.79 0.18 ±0.18 0.39 ±0.50 2.0 0.2 33.4 15.0 PLaID++ [5] 96.0 77.8 24.2 −0.50 ±0.44 0.09 ±0.16 0.13 ±0.29 12.4 1.0 60.7 7.6 WyFormer [48] 93.4 93.0 66.4 −0.43 ±0.95 0.50 ±0.51 0.81 ±0.98 0.5 0.1 15.7 1.9 WyFormer-DFT 95.2 95.0 66.4 −0.67 ±0.91 0.27 ±0.36 0.42 ±0.60 3.7 0.4 24.8 7.8 MCFlow-S [46] 97.2 96.3 52.2 −0.85 ±0.84 0.10 ±0.12 0.16 ±0.27 11.7 0.7 49.5 18.9 MCFlow-B [46] 97.7 95.5 25.4 −0.91 ±0.85 0.05 ±0.10 0.08 ±0.18 17.6 0.7 64.3 11.9 MCFlow-L [46] 98.6 95.2 18.6 −0.93 ±0.87 0.04 ±0.08 0.06 ±0.15 18.8 0.5 68.3 9.3
+> ALM Gen 92.2 91.3 61.5 −0.44 ±0.06 0.09 ±0.00 0.20 ±0.01 3.6 0.8 58.7 35.2
+
+interface. The second, that independently trained components never share a latent space, is combated by continuous latent projectors, retained natural language abilities, and the late-layer task-mode classifier (§3.1) in ALMs, which together show rich joint latent spaces. The third, that generation can be steered only through what a prompt can express and not through the latent space the model reasons in, is solved by the language-to-atomistic bridge architecture for steering materials generation (§3.3). Any single result might be matched by a stitched pipeline; the paradigm claim is that Atomistic Language Modeling delivers all three at once, reaching state-of-the-art performance on materials discovery while unlocking language-instructed inverse design. ALM Bench is released to evaluate this ability and invite new architectures. 
+
+ALM Edit demonstrates that language models can effectively guide materials generation via last-layer hidden state token embeddings. However, the architecture choices and training recipe that maximize this latent steering while keeping computational complexity low remain open. Although ablations were completed over several bridges (Appendix A.2.5), only the proposed bridge could amplify task and structural signal enough to guide generation. This signal is sensitive even to the order in which the atomistic tokens are teacher-forced (Fig. 17). The bridge-architecture difference between ALM Edit and Gen , and the need for two separate diffusion decoders, would be mitigated by a different decoder model (Appendix A.2.2). 
+
+T2C-FK , an inference-time steering method, bridges the gap between the stability of ALM Gen ’s outputs and the instruction-following capabilities of ALM Edit . As a decoder-agnostic layer, it can generalize far beyond stoichiometry for any constraint expressible as a per-step reward, including charge balance and unit cell symmetry. In particular, adapting T2C-FK to ALM Edit ’s formation-energy directional editing tasks, using MatterSim energy evaluations as an inference-time reward, improved Ef ↑ performance , generating polymorphs with increased energy successfully 
+
+72 .5% of the time, and lower energy polymorphs with 71 .3% success. A crucial driver of multi-step reasoning and language model performance is the emergence of scaling laws with larger models and datasets. Accordingly, the property predictive performance of ALMs scales with language model size . In particular, Fig. 6A shows how property prediction performance increases with parameter count (shown for several other properties in Fig. 19). This is a promising sign that further ALM capabilities may emerge with data and model scaling [49]. By learning continuous latent spaces across all modalities within a single architecture, Atomistic Language Modeling makes representational alignment quantifiable across modalities without resorting to an artificial contrastive objective. Information imbalance [ 50 ], a global representational similarity metric over sets of embeddings, quantifies the difference in information content between representations of each modality. For the same prompts passed through ALM Edit , the atomistic-to-language MLP adapter and the language-to-atomistic bridge do not meaningfully change the information content of the latent spaces they translate between (Fig. 6B). The metric further reveals that the MLIP’s predictive embeddings, the language model’s atomistic-token embeddings, and the diffusion decoder’s steering vectors share substantially more information with one another than independently trained language and atomistic models do [ 9]. However, no pair collapses into the informationally equivalent corner: each latent space stays distinct enough to carry information the others lack. Atomistic Language Modeling thus overcomes the representational gap between 9language and 3D structure, learning latent spaces that grow increasingly aligned while remaining informationally distinct enough to meaningfully contribute. Several limitations frame ALM Core, Edit, and Gen as starting points for the Atomistic Language Modeling paradigm. ALMs learn in continuous latent spaces, but many multimodal models instead discretize latent spaces into a learned codebook, like in VQ-VAE [ 29 ] or JANUS [ 22 ]. For simple inorganic crystals, quantizing a rich atomistic latent space and training the language model to emit corresponding tokens for decoding back into valid materials is an alternate design. The ALM is also trained only on inorganic, crystalline materials. However, it in principle extends to any system with an atomistic representation by swapping in a more foundational encoder, such as UMA or PET-MAD (Appendix A.1.2), or a less locally biased encoder [ 51 ]. ALMs’ continuous latent interface may be especially valuable for large, amorphous, or defect-ridden systems with large numbers of atoms, which yield more information-dense descriptions in language compared to all-atom representations. Lastly, thinking was disabled for all ALM configurations due to a lack of chain-of-thought reasoning data. Constructing datasets from tool-assisted frontier-model reasoning traces and RL-finetuning atomistic language models for improve performance is a promising future direction [39]. 4 !& $ 5 !$       
+
+>     
+> "
+> #
+> %
+> 5
+> !
+> 
+> 4
+> !&
+> $
+> 5
+> !$
+> %
+> %"3'5
+
+A.  B. 
+
+Figure 6: Strong scaling laws emerge under fixed training and evaluation for several property prediction tasks. A. For increasing Qwen3 model size, property prediction performance on several tasks, including JARVIS-QETB potential energy per atom above, improves monotonically in MAD/MAE on LLM4Mat-Bench. B. Representational analysis of embeddings extracted from each continuous latent space throughout ALM Edit for 2,000 prompts from ALM Bench . Information imbalance agrees with CKNNA, a local embedding neighborhood alignment metric [52]. 
+
+5 Conclusion 
+
+Atomistic structure and natural language carry such different representational biases that prior work models them separately and stitches them together. Atomistic Language Modeling instead unifies a pretrained atomistic encoder, language model, and denoising diffusion decoder into shared latent spaces through continuous projectors. ALM Core predicts physical properties of crystals with the performance of atomistic graph neural networks, yet without losing its natural language abilities. ALM Edit unlocks the ability to optimize given crystals according to natural language prompts using a novel language-atomistic bridge architecture, also setting a new SoTA for crystal structure prediction Match@K=20 and RMSE on MP-20 and MPTS-52. ALM Gen achieves de novo generation, producing SUN crystals at higher rates than prior atomistic and language-based models, with T2C-FK steering it toward stoichiometric targets at inference time. Atomistic Language Modeling is a promising paradigm that steers materials prediction, generation, and optimization with natural language, inheriting the strong scaling laws of underlying language model backbones. 10 6 Related Work 
+
+Unimodal atomistic models, multimodal materials models built by system-level composition, and inference-time control of diffusion denoising serve as the foundation for Atomistic Language Modeling. 
+
+6.1 Molecules 
+
+Although ALMs are trained on inorganic crystals, multimodal models of molecules supply some working recipes, but lean on near-lossless string encodings (SMILES) that are faithful only to equilibrium conformations and for which crystalline materials have few analogs. SMILES [ 53 ]and SELFIES [ 54 ] encode molecular graphs as strings with essentially no information loss for an equilibrium geometry, making molecule-to-text conversion nearly trivial and yielding a long line of working systems. MoleculeSTM [ 55 ] contrastively aligns descriptions and atomistic structures for retrieval; LLM-Fusion [ 56 ] fuses SMILES, SELFIES, text, and learned embeddings for property prediction; 3D-MoLM [ 57 ] fine-tunes a language model on 3D molecular encodings, showing that atomistic embeddings meaningfully enhance a language model, an approach similar to our atomistic encoder-soft token architecture. SMILES-based translators [ 58 , 59 , 60 ] move between language and molecular structure, and MMFRL [ 61 ] aligns SMILES with property data through spectra. Crystalline materials have no identical SMILES analog (e.g., CIF files preserve atomic coordinates but are not natural language). 
+
+6.2 Single-modality materials models 
+
+On the language side, LLM-Prop [ 62 ] predicts properties from Robocrystallographer text but discards numerical structural information; CrystalLLM [ 4 ] trains autoregressively on CIF files for de novo generation; MatSciBERT [ 8] captures domain language without structural input; and Crystal-Text-LLM [ 6] fine-tunes a pretrained LM on CIF-style generation for crystal structure prediction, reportedly with greater diversity and stability than contemporary specialized atomistic models, evidence that language model priors carry useful inductive biases for crystal generation. On the structure side, atomistic foundation models (machine learning interatomic potentials) [ 1 , 2] can be finetuned to predict properties from periodic graphs at state-of-the-art accuracy, and diffusion-based generators [ 12 , 13 , 14 ] sample structures from learned distributions over crystal lattices. Neither side alone couples text-conditioned structure generation with property reasoning; ALM combines them in one backbone, breaking the “GNN–LLM” accuracy wall on property prediction while generating crystal structures competitively with natural language steering. 
+
+6.3 Multimodal materials via system-level composition 
+
+Multimodal materials models to date compose pretrained components at the system level. MultiMat [ 17 ] aligns atomistic embeddings, numerical property data, and Robocrystallographer text with a CLIP-style contrastive loss, but supports only property prediction. CLaSP [ 18 ] aligns language with atomistic structures from paper titles and abstracts and tests only retrieval. CLICS [ 10 ]contrastively learns over atomistic embeddings and Robocrystallographer text but cannot consume free-form language. MatterChat [ 19 ] and L 2M3OF [ 20 ] consume free-form language and atomistic structure, but cannot generate atomistic structures. Against the failure modes of §1, none closes the full text-in, structure-out, structure-in, text-out loop; none places generation under cross-modal latent control to enable text-in, structure-in, structure-out generation; and their contrastive embedding spaces are aligned for retrieval, not steerable sampling. ALMs close that loop in a single model. In vision and language, analogous steps toward integrated multimodal understanding (LLaVA [ 21 ]) and generation (Janus [ 22 ]) exist, yet do not transfer to atomistic understanding or scientific reasoning [ 26 ], nor to crystal generation. Their 2D image encoders carry no periodicity or atom-permutation symmetry, and the generator in Janus [ 22 ] discretizes outputs into a learned codebook that the continuous geometry and exact stoichiometry of crystals resist. LLaVA projects features for understanding only, while Janus generates within its own token space rather than bridging a language model to an external, physics-aware decoder, backpropagating the generative loss into the language model, or emitting a structured compositional target. 11 6.4 Inference-time control of diffusion 
+
+Conditional diffusion typically injects guidance during sampling. Classifier guidance [ 63 ] and classifier-free guidance [ 25 ] steer the denoising trajectory toward conditioning information, but require differentiable score signals and do not support discrete compositional constraints. Particle-based Feynman–Kac methods [ 35 ] reweight partial trajectories by a reward, softly enforcing arbitrary objectives without touching the diffusion model. None exploits a shared latent space between a language model and the diffusion decoder; T2C-FK does, scoring trajectories with a per-atom Hungarian assignment between the LM-conditioned predicted atomic distribution and the target stoichiometric multiset to enforce natural-language compositional targets at inference time. 
+
+Acknowledgements 
+
+We would like to thank Ben Miller, Paul Liang, and Laura Ruis for their essential guidance on developing Atomistic Language Models and the framing of our work. We acknowledge the MIT Office of Research Computing and Data and Tata for providing high performance computing resources that have contributed to the research results reported within this paper. We are also grateful to Lyra Labs for providing compute for our work. We would also like to acknowledge [ 64 ] for inspiring our overview figure. 
+
+References 
+
+[1] Brandon M. Wood, Misko Dzamba, Xiang Fu, Meng Gao, Muhammed Shuaibi, Luis Barroso-Luque, Kareem Abdelmaqsoud, Vahe Gharakhanyan, John R. Kitchin, Daniel S. Levine, Kyle Michel, Anuroop Sriram, Taco Cohen, Abhishek Das, Ammar Rizvi, Sushree Jagriti Sahoo, Zachary W. Ulissi, and C. Lawrence Zitnick. Uma: A family of universal models for atoms, 2026. [2] Ilyes Batatia, Philipp Benner, Yuan Chiang, Alin M. Elena, Dávid P. Kovács, Janosh Riebesell, Xavier R. Advincula, Mark Asta, Matthew Avaylon, William J. Baldwin, Fabian Berger, Noam Bernstein, Arghya Bhowmik, Filippo Bigi, Samuel M. Blau, Vlad C˘ arare, Michele Ceriotti, Sanggyu Chong, James P. Darby, Sandip De, Flaviano Della Pia, Volker L. Deringer, Rokas Elijošius, Zakariya El-Machachi, Edvin Fako, Fabio Falcioni, Andrea C. Ferrari, John L. A. Gardner, Mikolaj J. Gawkowski, Annalena Genreith-Schriever, Janine George, Rhys E. A. Goodall, Jonas Grandel, Clare P. Grey, Petr Grigorev, Shuang Han, Will Handley, Hendrik H. Heenen, Kersti Hermansson, Cheuk Hin Ho, Stephan Hofmann, Christian Holm, Jad Jaafar, Konstantin S. Jakob, Hyunwook Jung, Venkat Kapil, Aaron D. Kaplan, Nima Karimitari, James R. Kermode, Panagiotis Kourtis, Namu Kroupa, Jolla Kullgren, Matthew C. Kuner, Domantas Kuryla, Guoda Liepuoniute, Chen Lin, Johannes T. Margraf, Ioan-Bogdan Magd˘ au, Angelos Michaelides, J. Harry Moore, Aakash A. Naik, Samuel P. Niblett, Sam Walton Norwood, Niamh O’Neill, Christoph Ortner, Kristin A. Persson, Karsten Reuter, Andrew S. Rosen, Louise A. M. Rosset, Lars L. Schaaf, Christoph Schran, Benjamin X. Shi, Eric Sivonxay, Tamás K. Stenczel, Christopher Sutton, Viktor Svahn, Thomas D. Swinburne, Jules Tilly, Cas van der Oord, Santiago Vargas, Eszter Varga-Umbrich, Tejs Vegge, Martin Vondrák, Yangshuai Wang, William C. Witt, Thomas Wolf, Fabian Zills, and Gábor Csányi. A foundation model for atomistic materials chemistry. The Journal of Chemical Physics , 163(18):184102, 2025. arXiv:2401.00096. [3] Benjamin Rhodes, Sander Vandenhaute, Vaidotas Šimkus, James Gin, Jonathan Godwin, Tim Duignan, and Mark Neumann. Orb-v3: atomistic simulation at scale, 2025. [4] Luis M. Antunes, Keith T. Butler, and Ricardo Grau-Crespo. Crystal structure generation with autoregressive large language modeling. Nature Communications , 15(1):10570, December 2024. [5] Andy Xu, Rohan Desai, Larry Wang, Ethan Ritz, and Gabriel Hope. Plaid++: A preference aligned language model for targeted inorganic materials design, 2026. [6] Nate Gruver, Anuroop Sriram, Andrea Madotto, Andrew Gordon Wilson, C. Lawrence Zitnick, and Zachary Ulissi. Fine-tuned language models generate stable inorganic materials as text. In 
+
+International Conference on Learning Representations (ICLR) , 2024. arXiv:2402.04379. 12 [7] Nawaf Alampara, Santiago Miret, and Kevin Maik Jablonka. Mattext: Do language models need more than text & scale for materials modeling?, 2024. arXiv:2406.17295; v3 (2025) retitled "Less can be more for predicting properties with large language models". [8] Tanishq Gupta, Mohd Zaki, N. M. Anoop Krishnan, and Mausam. Matscibert: A materials domain language model for text mining and information extraction. npj Computational Materials , 8(1):102, 2022. arXiv:2109.15290. [9] Sathya Edamadaka, Soojung Yang, Ju Li, and Rafael Gómez-Bombarelli. Universally converging representations of matter across scientific foundation models, 2025. [10] Keisuke Ozawa, Teppei Suzuki, Shunsuke Tonogai, and Tomoya Itakura. Graph-text contrastive learning of inorganic crystal structure toward a foundation model of inorganic materials. Science and Technology of Advanced Materials: Methods , 4(1):2406219, December 2024. [11] Chris Lu, Cong Lu, Robert Tjarko Lange, Yutaro Yamada, Shengran Hu, Jakob Foerster, David Ha, and Jeff Clune. Towards end-to-end automation of ai research. Nature , 651(8107):914–919, March 2026. [12] Tian Xie, Xiang Fu, Octavian-Eugen Ganea, Regina Barzilay, and Tommi Jaakkola. Crystal diffusion variational autoencoder for periodic material generation. In International Conference on Learning Representations (ICLR) , 2022. arXiv:2110.06197. [13] Rui Jiao, Wenbing Huang, Peijia Lin, Jiaqi Han, Pin Chen, Yutong Lu, and Yang Liu. Crystal structure prediction by joint equivariant diffusion. In Advances in Neural Information Processing Systems 36 (NeurIPS 2023) , 2023. arXiv:2309.04475. [14] Claudio Zeni, Robert Pinsler, Daniel Zügner, Andrew Fowler, Matthew Horton, Xiang Fu, Zilong Wang, Aliaksandra Shysheya, Jonathan Crabbé, Shoko Ueda, Roberto Sordillo, Lixin Sun, Jake Smith, Bichlien Nguyen, Hannes Schulz, Sarah Lewis, Chin-Wei Huang, Ziheng Lu, Yichi Zhou, Han Yang, Hongxia Hao, Jielan Li, Chunlei Yang, Wenjie Li, Ryota Tomioka, and Tian Xie. A generative model for inorganic materials design. Nature , 639(8055):624–632, March 2025. [15] Sherry Yang, Simon Batzner, Ruiqi Gao, Muratahan Aykol, Alexander L. Gaunt, Brendan McMorrow, Danilo J. Rezende, Dale Schuurmans, Igor Mordatch, and Ekin D. Cubuk. Generative hierarchical materials search. In Advances in Neural Information Processing Systems 37 (NeurIPS 2024) , 2024. arXiv:2409.06762. [16] Bowen Deng, Bohan Li, Matthew Cox, Hoje Chun, Juno Nam, Artur Lyssenko, Sathya Edamadaka, Jurgis Ruza, Xiaochen Du, Nofit Segal, Jesus Diaz Sanchez, Mingrou Xie, Ty Perez, Yu Yao, Miguel Steiner, Sauradeep Majumdar, Charles B. Musgrave III, Anirban Chandra, Abhirup Patra, Detlef Hohl, Connor W. Coley, Ju Li, and Rafael Gómez-Bombarelli. Harnessing atomisticskills for agentic atomistic research, 2026. [17] Viggo Moro, Charlotte Loh, Rumen Dangovski, Ali Ghorashi, Andrew Ma, Zhuo Chen, Samuel Kim, Peter Y. Lu, Thomas Christensen, and Marin Soljaˇ ci´ c. Multimodal foundation models for material property prediction and discovery. Newton , 1(1):100016, March 2025. [18] Yuta Suzuki, Tatsunori Taniai, Ryo Igarashi, Kotaro Saito, Naoya Chiba, Yoshitaka Ushiku, and Kanta Ono. Bridging text and crystal structures: Literature-driven contrastive learning for materials science. Machine Learning: Science and Technology , 6(3):035006, September 2025. arXiv:2501.12919. [19] Yingheng Tang, Wenbin Xu, Jie Cao, Weilu Gao, Steven Farrell, Benjamin Erichson, Michael W. Mahoney, Andy Nonaka, and Zhi Jackie Yao. A multimodal large language model for materials science. Nature Machine Intelligence , 8(4):588–601, April 2026. [20] Jiyu Cui, Fang Wu, Haokai Zhao, Minggao Feng, Xenophon Evangelopoulos, Andrew I. Cooper, and Yejin Choi. L 2m3of: A large language multimodal model for metal-organic frameworks, 2025. 13 [21] Haotian Liu, Chunyuan Li, Qingyang Wu, and Yong Jae Lee. Visual instruction tuning. In Advances in Neural Information Processing Systems 36 (NeurIPS 2023) , 2023. arXiv:2304.08485. [22] Xiaokang Chen, Zhiyu Wu, Xingchao Liu, Zizheng Pan, Wen Liu, Zhenda Xie, Xingkai Yu, and Chong Ruan. Janus-pro: Unified multimodal understanding and generation with data and model scaling, 2025. [23] Junnan Li, Dongxu Li, Silvio Savarese, and Steven C. H. Hoi. Blip-2: Bootstrapping language-image pre-training with frozen image encoders and large language models. In 
+
+International Conference on Machine Learning, ICML 2023, 23-29 July 2023, Honolulu, Hawaii, USA , volume 202 of Proceedings of Machine Learning Research , pages 19730–19742. PMLR, 2023. arXiv:2301.12597. [24] An Yang, Anfeng Li, Baosong Yang, Beichen Zhang, Binyuan Hui, Bo Zheng, Bowen Yu, Chang Gao, Chengen Huang, Chenxu Lv, Chujie Zheng, Dayiheng Liu, Fan Zhou, Fei Huang, Feng Hu, Hao Ge, Haoran Wei, Huan Lin, Jialong Tang, Jian Yang, Jianhong Tu, Jianwei Zhang, Jianxin Yang, Jiaxi Yang, Jing Zhou, Jingren Zhou, Junyang Lin, Kai Dang, Keqin Bao, Kexin Yang, Le Yu, Lianghao Deng, Mei Li, Mingfeng Xue, Mingze Li, Pei Zhang, Peng Wang, Qin Zhu, Rui Men, Ruize Gao, Shixuan Liu, Shuang Luo, Tianhao Li, Tianyi Tang, Wenbiao Yin, Xingzhang Ren, Xinyu Wang, Xinyu Zhang, Xuancheng Ren, Yang Fan, Yang Su, Yichang Zhang, Yinger Zhang, Yu Wan, Yuqiong Liu, Zekun Wang, Zeyu Cui, Zhenru Zhang, Zhipeng Zhou, and Zihan Qiu. Qwen3 technical report, 2025. [25] Jonathan Ho and Tim Salimans. Classifier-free diffusion guidance, 2022. [26] Andre Niyongabo Rubungo, Kangming Li, Jason Hattrick-Simpers, and Adji Bousso Dieng. Llm4mat-bench: benchmarking large language models for materials property prediction. 
+
+Machine Learning: Science and Technology , 6(2):020501, 2025. arXiv:2411.00177. [27] Siddharth Betala, Samuel P. Gleason, Ali Ramlaoui, Andy Xu, Georgia Channing, Daniel Levy, Clémentine Fourrier, Nikita Kazeev, Chaitanya K. Joshi, Sékou-Oumar Kaba, Félix Therrien, Alex Hernandez-Garcia, Rocío Mercado, N. M. Anoop Krishnan, and Alexandre Duval. Lemat-genbench: A unified evaluation framework for crystal generative models, 2026. [28] Jean-Baptiste Alayrac, Jeff Donahue, Pauline Luc, Antoine Miech, Iain Barr, Yana Hasson, Karel Lenc, Arthur Mensch, Katie Millican, Malcolm Reynolds, Roman Ring, Eliza Rutherford, Serkan Cabi, Tengda Han, Zhitao Gong, Sina Samangooei, Marianne Monteiro, Jacob Menick, Sebastian Borgeaud, Andrew Brock, Aida Nematzadeh, Sahand Sharifzadeh, Mikolaj Binkowski, Ricardo Barreira, Oriol Vinyals, Andrew Zisserman, and Karen Simonyan. Flamingo: a visual language model for few-shot learning. In Advances in Neural Information Processing Systems 35 (NeurIPS 2022) , 2022. arXiv:2204.14198. [29] Aäron van den Oord, Oriol Vinyals, and Koray Kavukcuoglu. Neural discrete representation learning. In Advances in Neural Information Processing Systems 30: Annual Conference on Neural Information Processing Systems 2017, December 4-9, 2017, Long Beach, CA, USA ,pages 6306–6315, 2017. arXiv:1711.00937. [30] Ralf Drautz. Atomic cluster expansion for accurate and transferable interatomic potentials. 
+
+Physical Review B , 99(1):014104, January 2019. [31] Alex M. Ganose and Anubhav Jain. Robocrystallographer: automated crystal structure text descriptions and analysis. MRS Communications , 9(3):874–881, September 2019. [32] Edward J. Hu, Yelong Shen, Phillip Wallis, Zeyuan Allen-Zhu, Yuanzhi Li, Shean Wang, Lu Wang, and Weizhu Chen. Lora: Low-rank adaptation of large language models. In The Tenth International Conference on Learning Representations, ICLR 2022, Virtual Event, April 25-29, 2022 . OpenReview.net, 2022. arXiv:2106.09685. [33] Alexander H. Liu, Andy Ehrenberg, Andy Lo, Clément Denoix, Corentin Barreau, Guillaume Lample, Jean-Malo Delignon, Khyathi Raghavi Chandu, Patrick von Platen, Pavankumar Reddy Muddireddy, Sanchit Gandhi, Soham Ghosh, Srijan Mishra, Thomas Foubert, Abhinav Rastogi, Adam Yang, Albert Q. Jiang, Alexandre Sablayrolles, Amélie Héliou, Amélie Martin, Anmol 14 Agarwal, Antoine Roux, Arthur Darcet, Arthur Mensch, Baptiste Bout, Baptiste Rozière, Baudouin De Monicault, Chris Bamford, Christian Wallenwein, Christophe Renaudin, Clémence Lanfranchi, Darius Dabert, Devendra Singh Chaplot, Devon Mizelle, Diego de las Casas, Elliot Chane-Sane, Emilien Fugier, Emma Bou Hanna, Gabrielle Berrada, Gauthier Delerce, Gauthier Guinet, Georgii Novikov, Guillaume Martin, Himanshu Jaju, Jan Ludziejewski, Jason Rute, Jean-Hadrien Chabran, Jessica Chudnovsky, Joachim Studnia, Joep Barmentlo, Jonas Amar, Josselin Somerville Roberts, Julien Denize, Karan Saxena, Karmesh Yadav, Kartik Khandelwal, Kush Jain, Lélio Renard Lavaud, Léonard Blier, Lingxiao Zhao, Louis Martin, Lucile Saulnier, Luyu Gao, Marie Pellat, Mathilde Guillaumin, Mathis Felardos, Matthieu Dinot, Maxime Darrin, Maximilian Augustin, Mickaël Seznec, Neha Gupta, Nikhil Raghuraman, Olivier Duchenne, Patricia Wang, Patryk Saffer, Paul Jacob, Paul Wambergue, Paula Kurylowicz, Philomène Chagniot, Pierre Stock, Pravesh Agrawal, Rémi Delacourt, Romain Sauvestre, Roman Soletskyi, Sagar Vaze, Sandeep Subramanian, Saurabh Garg, Shashwat Dalal, Siddharth Gandhi, Sumukh Aithal, Szymon Antoniak, Teven Le Scao, Thibault Schueller, Thibaut Lavril, Thomas Robert, Thomas Wang, Timothée Lacroix, Tom Bewley, Valeriia Nemychnikova, Victor Paltz, Virgile Richard, Wen-Ding Li, William Marshall, Xuanyu Zhang, Yihan Wan, and Yunhao Tang. Voxtral, 2025. [34] Luhuan Wu, Brian L. Trippe, Christian A. Naesseth, David M. Blei, and John P. Cunningham. Practical and asymptotically exact conditional sampling in diffusion models. In Advances in Neural Information Processing Systems 36: Annual Conference on Neural Information Processing Systems 2023, NeurIPS 2023, New Orleans, LA, USA, December 10-16, 2023 , 2023. arXiv:2306.17775. [35] Raghav Singhal, Zachary Horvitz, Ryan Teehan, Mengye Ren, Zhou Yu, Kathleen McKeown, and Rajesh Ranganath. A general framework for inference-time scaling and steering of diffusion models. In Proceedings of the 42nd International Conference on Machine Learning (ICML 2025), PMLR 267 , pages 55810–55827, 2025. arXiv:2501.06848. [36] Anubhav Jain, Shyue Ping Ong, Geoffroy Hautier, Wei Chen, William Davidson Richards, Stephen Dacek, Shreyas Cholia, Dan Gunter, David Skinner, Gerbrand Ceder, and Kristin A. Persson. Commentary: The materials project: A materials genome approach to accelerating materials innovation. APL Materials , 1(1):011002, 2013. [37] Amil Merchant, Simon Batzner, Samuel S. Schoenholz, Muratahan Aykol, Gowoon Cheon, and Ekin Dogus Cubuk. Scaling deep learning for materials discovery. Nature , 624(7990):80–85, December 2023. [38] Yang Jeong Park, Sung Eun Jerng, Sungroh Yoon, and Ju Li. 1.5 million materials narratives generated by chatbots. Scientific Data , 11(1):1060, September 2024. [39] Yuyang Wu, Stefano Falletta, Delia McGrath, and Sherry Yang. Crystalreasoner: Reasoning and rl for property-conditioned crystal structure generation, 2026. [40] Guohao Li, Hasan Hammoud, Hani Itani, Dmitrii Khizbullin, and Bernard Ghanem. Camel: Communicative agents for "mind" exploration of large language model society. In Advances in Neural Information Processing Systems 36 (NeurIPS 2023) , 2023. arXiv:2303.17760. [41] Kamal Choudhary, Kevin F. Garrity, Andrew C. E. Reid, Brian DeCost, Adam J. Biacchi, Angela R. Hight Walker, Zachary Trautt, Jason Hattrick-Simpers, A. Gilad Kusne, Andrea Centrone, Albert Davydov, Jie Jiang, Ruth Pachter, Gowoon Cheon, Evan Reed, Ankit Agrawal, Xiaofeng Qian, Vinit Sharma, Houlong Zhuang, Sergei V. Kalinin, Bobby G. Sumpter, Ghanshyam Pilania, Pinar Acar, Subhasish Mandal, Kristjan Haule, David Vanderbilt, Karin Rabe, and Francesca Tavazza. The joint automated repository for various integrated simulations (jarvis) for data-driven materials design. npj Computational Materials , 6(1):173, November 2020. [42] David Rein, Betty Li Hou, Asa Cooper Stickland, Jackson Petty, Richard Yuanzhe Pang, Julien Dirani, Julian Michael, and Samuel R. Bowman. Gpqa: A graduate-level google-proof q&a benchmark. In First Conference on Language Modeling (COLM) , 2024. arXiv:2311.12022. 15 [43] Benjamin Kurt Miller, Ricky T. Q. Chen, Anuroop Sriram, and Brandon M. Wood. Flowmm: Generating materials with riemannian flow matching. In Proceedings of the 41st International Conference on Machine Learning (ICML) , pages 35664–35686, 2024. arXiv:2406.04713. [44] Xiaoshan Luo, Zhenyu Wang, Qingchang Wang, Xuechen Shao, Jian Lv, Lei Wang, Yanchao Wang, and Yanming Ma. Crystalflow: a flow-based generative model for crystalline materials. 
+
+Nature Communications , 16(1):9267, 2025. arXiv:2412.11693. [45] Philipp Höllmer, Thomas Egg, Maya M. Martirossyan, Eric Fuemmeler, Zeren Shui, Amit Gupta, Pawan Prakash, Adrian Roitberg, Mingjie Liu, George Karypis, Mark Transtrum, Richard G. Hennig, Ellad B. Tadmor, and Stefano Martiniani. Open materials generation with stochastic interpolants. In Proceedings of the 42nd International Conference on Machine Learning (ICML) ,pages 23417–23450, 2025. arXiv:2502.02582. [46] Kiyoung Seong, Sungsoo Ahn, Sehui Han, and Changyoung Park. Multimodal crystal flow: Any-to-any modality generation for unified crystal modeling, 2026. [47] Maya M. Martirossyan, Thomas Egg, Philipp Hoellmer, George Karypis, Mark Transtrum, Adrian Roitberg, Mingjie Liu, Richard G. Hennig, Ellad B. Tadmor, and Stefano Martiniani. All that structure matches does not glitter. In Advances in Neural Information Processing Systems 39 (NeurIPS 2025) Datasets and Benchmarks Track , 2025. arXiv:2509.12178. [48] Nikita Kazeev, Wei Nong, Ignat Romanov, Ruiming Zhu, Andrey Ustyuzhanin, Shuya Yamazaki, and Kedar Hippalgaonkar. Wyckoff transformer: Generation of symmetric crystals. In 
+
+Proceedings of the 42nd International Conference on Machine Learning (ICML) , pages 29495–29526, 2025. arXiv:2503.02407. [49] Jason Wei, Yi Tay, Rishi Bommasani, Colin Raffel, Barret Zoph, Sebastian Borgeaud, Dani Yogatama, Maarten Bosma, Denny Zhou, Donald Metzler, Ed H. Chi, Tatsunori Hashimoto, Oriol Vinyals, Percy Liang, Jeff Dean, and William Fedus. Emergent abilities of large language models, 2022. [50] Aldo Glielmo, Claudio Zeni, Bingqing Cheng, Gábor Csányi, and Alessandro Laio. Ranking the information content of distance measures. PNAS Nexus , 1(2):pgac039, 05 2022. [51] Tobias Kreiman, Yutong Bai, Fadi Atieh, Elizabeth Weaver, Eric Qu, and Aditi S. Krishnapriyan. Transformers discover molecular structure without graph priors, 2025. [52] Minyoung Huh, Brian Cheung, Tongzhou Wang, and Phillip Isola. Position: The platonic representation hypothesis. In Forty-first International Conference on Machine Learning, ICML 2024, Vienna, Austria, July 21-27, 2024 , volume 235 of Proceedings of Machine Learning Research , pages 20617–20642. PMLR, 2024. arXiv:2405.07987. [53] David Weininger. Smiles, a chemical language and information system. 1. introduction to methodology and encoding rules. Journal of Chemical Information and Computer Sciences ,28(1):31–36, February 1988. [54] Mario Krenn, Florian Häse, AkshatKumar Nigam, Pascal Friederich, and Alán Aspuru-Guzik. Self-referencing embedded strings (selfies): A 100% robust molecular string representation. 
+
+Machine Learning: Science and Technology , 1(4):045024, December 2020. arXiv:1905.13741. [55] Shengchao Liu, Weili Nie, Chengpeng Wang, Jiarui Lu, Zhuoran Qiao, Ling Liu, Jian Tang, Chaowei Xiao, and Animashree Anandkumar. Multi-modal molecule structure–text model for text-based retrieval and editing. Nature Machine Intelligence , 5(12):1447–1457, 2023. arXiv:2212.10789. [56] Onur Boyar, Indra Priyadarsini, Seiji Takeda, and Lisa Hamada. Llm-fusion: A novel multimodal fusion model for accelerated material discovery, 2025. [57] Sihang Li, Zhiyuan Liu, Yanchen Luo, Xiang Wang, Xiangnan He, Kenji Kawaguchi, Tat-Seng Chua, and Qi Tian. Towards 3d molecule-text interpretation in language models. In International Conference on Learning Representations (ICLR) , 2024. arXiv:2401.13923. 16 [58] Carl Edwards, Tuan Lai, Kevin Ros, Garrett Honke, Kyunghyun Cho, and Heng Ji. Translation between molecules and natural language. In Proceedings of the 2022 Conference on Empirical Methods in Natural Language Processing (EMNLP) , pages 375–413, 2022. arXiv:2204.11817. [59] Hyunseob Kim, Jeongcheol Lee, Sunil Ahn, and Jongsuk Ruth Lee. A merged molecular representation learning for molecular properties prediction with a web-based service. Scientific Reports , 11(1):11028, May 2021. [60] Chen Qian, Huayi Tang, Zhirui Yang, Hong Liang, and Yong Liu. Can large language models empower molecular property prediction?, 2023. [61] Zhengyang Zhou, Yunrui Li, Pengyu Hong, and Hao Xu. Multimodal fusion with relational learning for molecular property prediction. Communications Chemistry , 8(1):200, July 2025. [62] Andre Niyongabo Rubungo, Craig Arnold, Barry P. Rand, and Adji Bousso Dieng. Llm-prop: predicting the properties of crystalline materials using large language models. npj Computational Materials , 11(1):186, June 2025. [63] Prafulla Dhariwal and Alexander Quinn Nichol. Diffusion models beat gans on image synthesis. In Advances in Neural Information Processing Systems 34 (NeurIPS 2021) , pages 8780–8794, 2021. arXiv:2105.05233. [64] Daniel Bolya, Po-Yao Huang, Peize Sun, Jang Hyun Cho, Andrea Madotto, Chen Wei, Tengyu Ma, Jiale Zhi, Jathushan Rajasegaran, Hanoona Rasheed, Junke Wang, Marco Monteiro, Hu Xu, Shiyu Dong, Nikhila Ravi, Daniel Li, Piotr Dollár, and Christoph Feichtenhofer. Perception encoder: The best visual embeddings are not at the output of the network. In Advances in Neural Information Processing Systems 38: Annual Conference on Neural Information Processing Systems 2025, NeurIPS 2025 , 2025. arXiv:2504.13181. [65] Haotian Liu, Chunyuan Li, Yuheng Li, and Yong Jae Lee. Improved baselines with visual instruction tuning. In Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition (CVPR) , pages 26296–26306, 2024. arXiv:2310.03744. [66] Andrew Jaegle, Sebastian Borgeaud, Jean-Baptiste Alayrac, Carl Doersch, Catalin Ionescu, David Ding, Skanda Koppula, Daniel Zoran, Andrew Brock, Evan Shelhamer, Olivier J. Hénaff, Matthew M. Botvinick, Andrew Zisserman, Oriol Vinyals, and João Carreira. Perceiver io: A general architecture for structured inputs & outputs. In International Conference on Learning Representations (ICLR) , 2022. arXiv:2107.14795. [67] Fabian Mentzer, David Minnen, Eirikur Agustsson, and Michael Tschannen. Finite scalar quantization: Vq-vae made simple. In International Conference on Learning Representations (ICLR) , 2024. arXiv:2309.15505. [68] Hu Ye, Jun Zhang, Sibo Liu, Xiao Han, and Wei Yang. Ip-adapter: Text compatible image prompt adapter for text-to-image diffusion models, 2023. [69] Jacob Austin, Daniel D. Johnson, Jonathan Ho, Daniel Tarlow, and Rianne van den Berg. Structured denoising diffusion models in discrete state-spaces. In Advances in Neural Information Processing Systems (NeurIPS) , volume 34, pages 17981–17993, 2021. arXiv:2107.03006. [70] Jing Yu Koh, Daniel Fried, and Ruslan Salakhutdinov. Generating images with multimodal language models. In Advances in Neural Information Processing Systems (NeurIPS) , volume 36, 2023. arXiv:2305.17216. [71] Xierui Wang, Siming Fu, Qihan Huang, Wanggui He, and Hao Jiang. Ms-diffusion: Multi-subject zero-shot image personalization with layout guidance. In The Thirteenth International Conference on Learning Representations, ICLR 2025, Singapore, April 24-28, 2025 . OpenReview.net, 2025. arXiv:2406.07209. [72] Lvmin Zhang, Anyi Rao, and Maneesh Agrawala. Adding conditional control to text-to-image diffusion models. In 2023 IEEE/CVF International Conference on Computer Vision (ICCV) ,pages 3813–3824, 2023. arXiv:2302.05543. 17 [73] Ethan Perez, Florian Strub, Harm De Vries, Vincent Dumoulin, and Aaron Courville. Film: Visual reasoning with a general conditioning layer. In Proceedings of the AAAI conference on artificial intelligence , volume 32, 2018. [74] Ilya Loshchilov and Frank Hutter. Decoupled weight decay regularization. In International Conference on Learning Representations (ICLR) , 2019. arXiv:1711.05101. [75] Nian Liu, Nikita Kazeev, Stephen Gregory Dale, Artem Maevskiy, Yuwei Zeng, Ryoji Kubo, Pengru Huang, Thomas Laurent, Yann LeCun, Kostya S. Novoselov, and Xavier Bresson. Crys-jepa: Accelerating crystal discovery via embedding screening and generative refinement, 2026. 18 Appendix 
+
+A Architecture design choices and ablations . . . . . . . . . . . . . . . . . . . . . . . . . . 20 
+
+A.1 Teaching language models to natively understand materials through soft tokens . . . 21         
+
+> A.1.1 Training objectives . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 21 A.1.2 Atomistic encoder ablations . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 21 A.1.3 Continuous atomistic-to-language adapter . . . . . . . . . . . . . . . . . . . . . . 22
+
+A.2 Guiding crystal denoising with language model embeddings . . . . . . . . . . . . . . 23              
+
+> A.2.1 Denoising diffusion model training and objectives . . . . . . . . . . . . . . . . . . 24 A.2.2 Separating crystal structure prediction from de-novo generation . . . . . . . . . . . 26 A.2.3 The producer–consumer bridge . . . . . . . . . . . . . . . . . . . . . . . . . . . . 28 A.2.4 Language model backbone finetuning for steering generation . . . . . . . . . . . . . 30 A.2.5 Architectural ablations over generative variants . . . . . . . . . . . . . . . . . . . . 31
+
+A.3 Text-to-Crystal Feynman-Kac algorithm details . . . . . . . . . . . . . . . . . . . . . 33              
+
+> A.3.1 Bootstrap-SMC sampler . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 33 A.3.2 Stoichiometry reward and Hungarian Z-override . . . . . . . . . . . . . . . . . . . 35 A.3.3 Additional hyperparameter sweeps and ablations . . . . . . . . . . . . . . . . . . . 36 A.3.4 Porting T2C-FK to enable ALM Edit . . . . . . . . . . . . . . . . . . . . . . . . . 36
+
+A.4 Scaling laws . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 37 
+
+B Training data . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 37 
+
+B.1 Data used to teach Atomistic Language Models to understand atoms . . . . . . . . . 37       
+
+> B.1.1 Five-bucket training mixture . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 38 B.1.2 The URL leak failure mode and mitigations . . . . . . . . . . . . . . . . . . . . . 39
+
+B.2 Data used to teach Atomistic Language Models to generate atoms . . . . . . . . . . 40      
+
+> B.2.1 Seven-bucket training mixture . . . . . . . . . . . . . . . . . . . . . . . . . . . . 40 B.2.2 Bucket-mixture ablations . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 41
+
+C ALM Bench . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 42 
+
+C.1 Task 1: directional editing (atom +text →atom) . . . . . . . . . . . . . . . . . . . . . 42 C.2 Task 2: application-consistency (text →atom) . . . . . . . . . . . . . . . . . . . . . . 43 C.3 Task 3: polymorph (atom +text →atom) . . . . . . . . . . . . . . . . . . . . . . . . . 43 C.4 Task 4: doping substitution (atom +text →atom) . . . . . . . . . . . . . . . . . . . . . 44 C.5 Task 5: strain (atom +text →atom) . . . . . . . . . . . . . . . . . . . . . . . . . . . . 44 C.6 Task 6: text →structure recovery (text →atom) . . . . . . . . . . . . . . . . . . . . . . 44 
+
+D Metrics . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 44 
+
+D.1 Property prediction metric definitions . . . . . . . . . . . . . . . . . . . . . . . . . . 45 D.2 Crystal structure prediction metric details . . . . . . . . . . . . . . . . . . . . . . . . 47 D.3 De novo generation metric details . . . . . . . . . . . . . . . . . . . . . . . . . . . . 47 D.4 Representational alignment metrics . . . . . . . . . . . . . . . . . . . . . . . . . . . 48 19 Table 7: Positioning. Capability coverage of materials science model families. Columns are seven task directions over the structure, property, and natural-language modalities; a ✓ marks a direction each family supports natively with nontrivial performance.                                                
+
+> Property Text Desc. Structure De novo Structure+Text Structure Text Model family →Structure →Structure →Property (∅→Structure) →Structure →Text →Text MLIPs [3, 1, 2] ××✓××××
+> Atomistic generative models [14, 13]
+> ✓××✓×××
+> LLMs emitting string crystal reps. [4, 6]
+> ×✓✓✓×✓×
+> ALM (this work) ✓✓✓✓✓✓✓
+
+A Architecture design choices and ablations 
+
+Atomistic Language Modeling (ALM) is designed to be the first paradigm that covers every direction of the materials structure–property–text map. Table 7 makes this concrete, contrasting ALM against the three model families that currently dominate materials science. Machine-learned interatomic potentials (MLIPs) regress properties from a fixed structure; atomistic generative models sample structures from a given composition, property, or an empty prompt; and large language models that serialize crystals as strings can read and write structures as text but carry no learned 3D geometric prior. Atomistic Language Modeling is the only paradigm that supports all seven. 
+
+Two conditional roles from one architecture. The full coverage in Table 7 is realized by two checkpoints that instantiate the same language model-to-diffusion bridge on different decoder backbones. ALM Edit is the model with the full language-to-atomistic bridge architecture and composition-observing diffusion model, accomplishing both T → S and (S, T) → S, while ALM Gen covers the quasi-unconditional, de-novo generation direction ( ∅, T → S), with a diffusion model that also denoises over element types. The structure-to-property and structure-to-text directions are served by the shared atomistic encoder, projector, and LLM forming ALM Core . The remainder of this section documents the architecture and the design choices that make this coverage possible: the atomistic encoder (§A.1.2), the input-side adapter (§A.1.3), the language model adaptation (§A.2.4), the generator and language-to-diffusion model bridge (§A.2), and the test-time T2C-FK steering method (§A.3). Table 8: Training hyperparameters for the three released models. Encoder E (OrbV3) is frozen throughout; ALM Edit/ALM Gen initialize the LM from the ALM Core understanding checkpoint. Data-mixture buckets and sampler are in Appendix B (ALM Core: Table 15; generation fine-tuning: Section B.2). “—” marks an inapplicable entry.                                                                        
+
+> ALM Core ALM Edit ALM Gen
+> Objective LLM (Eq. 1) LCSP (Eq. 7) LDNG (Eq. 8) LM adaptation LoRA r=128 ,α=256 full fine-tune LoRA r=8 ,α=16
+> Diffusion backbone —CSP-mode MatterGen DNG-mode MatterGen-Base Bridge Pin (2-layer MLP) Q-Former ( M=16 )+IP-Adapter per-token MLP +IP-Adapter LM learning rate 2e −4(LoRA) 5e −72e −4(LoRA) Projector/bridge lr 2e −5(Pin )3e −43e −4
+> Optimizer AdamW AdamW AdamW Batch / GPU 424
+> Max tokens 2048 1536 1536
+> Optimizer steps 12 ,000 30 ,000 10 ,000
+> Grad clip 1.01.0off CFG dropout pdrop —0.20.2
+> CFG Guidance strength g—0.51.0
+> Diffusion steps T—100 1000
+> Guidance g(op. pt.) —0.50.5
+> Data mixture 5-bucket (Tab. 15) 7-bucket (Tab. 17) 7-bucket (Tab. 17)
+
+20 Table 9: Symbol glossary for the generator formalism (Appendix A.2). 
+
+Symbol Definition Shape 
+
+L, Lattice vectors R3×3
+
+X 3D fractional coordinates [0 , 1) Np×3
+
+A Atomic numbers {1, ..., 100 }Np
+
+ut = ( Lt, Xt) Continuous diffusion state at time t —
+
+ˆx0 Tweedie clean-structure estimate —
+
+σ(t) SDE diffusion coefficient scalar function of tsθ (ut, At, t | C) Score network (GemNet-T) —
+
+Np Atoms per unit cell integer 
+
+T Diffusion / PC iterations 1000 
+
+g ∈ R≥0 Classifier-free guidance scale scalar 
+
+pdrop CFG conditioning-dropout probability 0.2
+
+K Output-side atomistic tokens K=8 
+
+N Producer context window 128 
+
+dLM LM hidden dim (Qwen3-8B) 4096 
+
+M Learnable producer queries M =16 
+
+dcond MatterGen conditioning dim 512 
+
+dh Per-atom hidden dim inside GemNet-T 512 
+
+Z LM hidden states at the K atomistic-token positions K × dLM 
+
+S = [ Zctx ; Z] Producer source ( N context + K atomistic states) (N +K) × dLM 
+
+QLQ Learnable producer queries M × dcond 
+
+C = fQF (QLQ ; S) Producer output (conditioning sequence) M × dcond 
+
+eC(t) Timestep-fused conditioning M × dcond 
+
+hb Per-atom hidden state at GemNet block b Np × dh
+
+γb ∈ R Learnable per-block bridge gate (init 1.0) scalar 
+
+A.1 Teaching language models to natively understand materials through soft tokens ALM Core reads each material’s 3D structure as continuous soft tokens (one per atom) and answers in natural language. It is trained with a causal language modeling loss over the assistant turn (below); the generation objectives for ALM Edit and ALM Gen , together with their auxiliary terms, are stated with the generator formalism in Appendix A.2. Notation for the whole appendix can be found above, in Table 9. 
+
+A.1.1 Training objectives ALM Core. Each training example is a ChatML-formatted token sequence w = ( w1, . . . , w L)
+
+with a supervised (assistant turn) index set S ⊆ { 1, . . . , L }. System and user prompt tokens, as well as the input atomistic soft tokens, are label-masked out. Precisely, these soft tokens are node-wise embeddings of crystals outputted by the atomistic encoder, H ∈ RNp×dE , projected into the LLM’s input token space Pin (H). The objective is the causal cross-entropy over the supervised positions, 
+
+LLM = − Ew∼D S
+
+"
+
+1
+
+|S| 
+
+X
+
+> i∈S
+
+log pϕ
+
+ wi | w<i 
+
+#
+
+, (1) where pϕ(· | w<i ) is the language model’s (LM’s) next-token distribution evaluated on the Pin -spliced input embeddings and DS is the ALM Core training dataset (Appendix B.1). Core is trained with a warm start, in which the LLM is frozen, allowing only the projector Pin to train, for 5 epochs. 
+
+A.1.2 Atomistic encoder ablations 
+
+The choice of OrbV3 as the atomistic encoder E is justified here. Four architecturally distinct backbones are swept across: OrbV3 (Direct force prediction, 20 neighbor cutoff, trained on OMat, with 256-d per-atom features), UMA-S (Version 1.1 from fairchem-core 2.20.0 with task=omat ,128-d), PET-MAD XS (v1.5.0, 640-d), and PET-MAD S (v1.5.0, 1280-d). They were ablated over by holding the Qwen3-8B base, LoRA r=64 α=128 , data mixture, and 4,608,000 total samples seen during training. Each arm had its own atomistic-to-language MLP projector (warm started with a similar number of steps) sized to the encoder feature dimension. Three benchmarks supply the 21 downstream metrics: LLM4Mat-Bench MAD/MAE (adjusted to penalize for samples in which the LLM would not output a parseable property), in which a "good model" that is useful to scientists achieves at least a 5; test set Mat2Props raw MAE on narratives, i.e. property prediction given free-form text with structure, property, and application descriptions; and GNoME formation-energy MAE. Table 10: Atomistic encoder ablation. LLM4Mat-Bench MAD/MAE is leak-adjusted as RAW ×
+
+(1 − number of unparseable failures ) (↑ better; ≥ 5 is the paper’s “good model” threshold); the Mean is over the MP slice’s four properties (formation energy, band gap, Ehull , density). Mat2Props MAEs are RAW on the MP held-out split ( ↓ better); Validity (Valid.) is the fraction of outputs that are JSON-parseable to a number. GNoME-FE columns are RAW MAE and the rate at which the LLM outputted unparseable values on the GNoME slice.                                                       
+
+> LLM4Mat ( ↑)Mat2Props MAE ( ↓)GNoME-FE Mat2Props Encoder dim Mean ≥5/9bg EfEhρMAE ( ↓)Leak ( ↓)Valid. ( ↑)
+> ORB 256 6.42 4/90.244 0.085 0.070 0.157 0.026 2.6%98 .3%
+> UMA-S 128 2.34 0/90.319 0.101 0.128 0.541 0.015 52% 47%
+> PET-XS 640 0.70 0/90.503 0.774 0.100 0.295 0.125 32% 20%
+> PET-S 1280 4.48 2/90.371 0.083 0.087 0.160 0.030 35% 71 .5%
+
+OrbV3 is the only encoder that clears the LLM4Mat-Bench “good model” threshold on a non-trivial number of configs ( 4/9 at leak-adjusted MAD/MAE ≥ 5; PET-S 2/9, the others 0/9), and the only arm whose checkpoint reaches the ≥ 98% Mat2Props validity target at effective batch 256 . UMA-S has the lowest raw GNoME formation-energy MAE ( 0.015 eV/atom on the surviving ∼ 47% ), but its 
+
+52% URL-leak rate collapses the leak-adjusted comparison; PET-XS sits below both axes. PET-S is the only non-OrbV3 arm competitive on Mat2Props (winning formation energy and density at raw MAE), but below the validity ≥ 95% floor. Richer feature dimensions ( d ≥ 640 ) do not translate into understanding alignment within the 12 k-step budget, because the chat-template training has to relearn a projector geometry that OrbV3’s 256 -d features happen to provide nearly for free. The validity problem, in which Qwen3-8B, when finetuned, starts to regress to its pretraining priors, outputting IMGUR URLs or mangled JSON instead of the valid JSON they are prompted to write (discussed further in Appendix B.1.2). On the other hand, there is recent evidence that machine-learned interatomic potentials converge in representation space as they improve. [ 9] shows across nearly sixty scientific foundation models that, on inputs similar to those seen during training, high-performing models align closely in latent space, with weaker models diverging into local sub-optima. Our four encoders are all competent MLIPs trained on overlapping bulk-crystal distributions, so on the in-distribution LLM4Mat-Bench / GPT-Narratives materials we evaluate, they expose nearly the same structural signal to the projector; the gaps in Table 10 are dominated not by representational content but by feature dimensionality (richer d slows projector alignment within a fixed step budget) and by each arm’s downstream calibration (the URL-leak and validity floors). OrbV3 was chosen, then, doubly because of its inference speed. In practice, node-wise embeddings of all train, validation, and test set structures were cached and retrieved during each phase. 
+
+A.1.3 Continuous atomistic-to-language adapter 
+
+On the input side, the frozen OrbV3 encoder emits a variable-length per-atom representation ( N
+
+tokens of 256 dimensions for an N -atom cell) that must be mapped into the language model’s 
+
+dLM = 4096 embedding space before being prepended to the prompt tokens. ALMs use the simplest possible adapter : a two-layer GELU MLP, Linear(256 → 4096) → GELU → Linear(4096 → 4096) 
+
+(≈ 21 M parameters, with full parameter counts in Appendix A.2.4). This follows the LLaVA projector convention [ 21 , 65 ], which uses the identical two-linear-with-GELU for vision language modeling. Crucially, the adapter is token-preserving : it emits one LM token per atom and leaves the encoder’s variable-resolution output intact, so the LM’s expanded sequence length scales with the structure rather than being compressed against a fixed budget. Three families of cross-modal interface that have been successful in vision-language modeling each fail here because crystalline matter does not concentrate on a small set of recurring modes the way natural images do. 22 Learned-query bottlenecks (Q-Former, Perceiver IO). Q-Former-style adapters [ 23 ] and Perceiver IO [ 66 ] compress the foreign modality through a small fixed set of cross-attended learned queries (typically, 32 to 64 ). The construction assumes the encoder’s output is well summarized by 
+
+L ≪ N tokens. For a crystal of N atoms this assumption fails in both directions: when N is small (N ≤ L) the bottleneck wastes capacity on null queries; when N is large it forces a fixed-budget compression on a representation whose information density grows with atom count. A 1000 -atom defect supercell carries information that does not exist in any smaller subset of its atoms, and a single fixed L could struggle to represent both regimes at once. The two-layer MLP sidesteps the trade-off entirely by keeping the per-atom representation variable-length on the encoder side; a fixed-length learned-query producer is reserved for the ALM Edit and Gen decoder side, where the diffusion sampler accepts a fixed-size conditioning tensor by construction (detailed in Appendix A.2.3). 
+
+Codebook quantization (VQ-VAE, FSQ, JANUS). VQ-VAE [ 29 ], FSQ [ 67 ], and JANUS [ 22 ]round the latent representation to one of V discrete entries. The resolution requirement here is severe. The TiO 2 polymorph case is illustrative, as mentioned in the main text. A codebook small enough to be trainable may struggle to resolve both regimes, and growing the codebook to that resolution simply converges to leaving the representation continuous in the limit. ALMs therefore keep the latent continuous and let the LM’s own attention scores, rather than a discrete code, decide atomic detail. Overall, a richer encoding would add more training burden and computational cost than benefit, as the real representational learning is done elsewhere: the frozen OrbV3 encoder already produces a physically grounded per-atom embedding (Appendix A.1.2), and the LM attends over those tokens. The adapter’s only job is a per-atom linear lift into the LM embedding space, for which two layers with a GELU nonlinearity are sufficient capacity. Ablations that pooled all embeddings into a single token or 3 tokens unnecessarily gated the amount of information flowing to the LM, decreasing its property prediction performance. Empirically, warm start (projector-only training) alignment loss drops sharply within the first few hundred steps and plateaus near 0.10 (Appendix B.1), producing nearly perfect structural descriptions, confirming the dimensional lift is learned cleanly with this light, low-parameter map. 
+
+A.2 Guiding crystal denoising with language model embeddings 
+
+The ALM generator pairs Qwen3-8B with a pretrained crystal diffusion decoder , MatterGen, and steers that decoder through a learned conditioning channel via CFG. This section formalizes the bridge architecture proposed in the main text, as well as validates the choice of a diffusion decoder and of MatterGen specifically. 
+
+Choice of diffusion models as decoders. Conventional materials generation takes the form of de novo discovery ( ALM Gen ) and crystal structure prediction ( ALM Edit ). Score-based diffusion over the periodic-crystal manifold held the state of the art on both at the start of this work [ 13 , 14 ], jointly denoising lattice, fractional coordinates, and atomic numbers with periodic-translation and point-group symmetries often built in. Two properties make it the natural bridge target. First, the score network factors into an unconditional backbone and a conditioning branch, so an external producer attaches without retraining the backbone. Second, classifier-free guidance (CFG) exposes a single scalar g that interpolates from the unconditional backbone ( g=0 ) to the fully conditioned model ( g> 1 extrapolates) — an inference-time dial on conditioning strength, decoupled from training, that underlies the stability tension analyzed below. Autoregressive string decoders (CrystaLLM [ 4 ], Crystal-Text-LLM [ 6]) expose no such dial, and VQ/codebook decoders quantize the latent we want kept continuous. 
+
+Choice of MatterGen as the decoder backbone. We built on MatterGen [ 14 ] because of several reasons. Firstly, its GemNet-T score network accepts an external conditioning sequence through an adapter interface exposed in the released code, so a cross-attention bridge [ 68 ] needs only new key/value/gate parameters and no backbone surgery. Second, its stability-filtered mattergen_base 
+
+checkpoint (Alex-MP-20) carries the metastability prior our training mixture lacks (quantified below), and serves as the ALM Gen backbone. Lastly, its from-scratch CSP-mode configuration, which observes atom types rather than denoising over them, was precisely what was retrained from scratch to serve as the base denoising model which ALM Edit used CFG to guide. Table 9 fixes the 23 symbols used across all of Appendix A.2. A periodic crystal is factored into a continuous lattice L,continuous fractional coordinates X, and discrete atomic numbers A; the continuous components are bundled into the diffusion state ut = ( Lt, Xt). We write the SDE diffusion coefficient as σ(t) and the GemNet consumer block index is b.
+
+A.2.1 Denoising diffusion model training and objectives 
+
+MatterGen factorizes a periodic crystal into a continuous lattice L ∈ R3×3, continuous fractional coordinates X ∈ [0 , 1) Np×3, and a discrete atomic-number assignment A ∈ { 1, . . . , 100 }Np . The continuous components u = ( L, X) evolve under a score-based forward SDE, 
+
+dut = f (ut, t ) d t + σ(t) d wt, u = ( L, X), (2) while the discrete atomic numbers diffuse under an absorbing-state D3PM [ 69 ] whose forward kernel mixes each clean type toward an absorbing MASK state with cumulative probability ¯βt,
+
+q(At | A0) = Cat  At ; (1 − ¯βt) δA0 + ¯βt δMASK 
+
+. (3) The score network sθ (ut, At, t | C) is parameterized by GemNet-T and depends on the conditioning sequence C exactly through the consumer cross-attention branch of Eq. (22) . Reverse-time generation integrates 
+
+dut = f (ut, t ) − σ(t)2 sθ (ut, At, t | C) dt + σ(t) d ¯ wt, (4) paired with the D3PM reverse step for At. The number of predictor-corrector iterations, or diffusion timesteps, is 1000 for all models; ALM Edit CSP match-rate is flat in this count (Fig. 7). 100 1000   
+
+> Predictor–corrector steps T
+> 0.70
+> 0.75
+> 0.80
+> 0.85
+> 0.90
+> 0.95
+> CSP M@K ( ↑ )
+> 0.828 0.844
+
+Figure 7: CSP M@K=64 is flat in denoising timesteps T . (ALM Edit , MP-20). The bridge is trained with classifier-free-guidance dropout: with probability pdrop =0 .2 per step the 
+
+alm_embedding conditioning is replaced by a learned zeros vector, so the network jointly learns the conditional and unconditional scores. At inference we apply the standard CFG extrapolation, 
+
+esθ (ut, At, t | C, g ) = sθ (· | ∅) + g ·  sθ (· | C) − sθ (· | ∅), (5) where g=0 recovers the unconditional MatterGen distribution exactly. 
+
+Shared diffusion objective. Both generative models train the GemNet-T score network sθ against the MatterGen denoising loss. For a conditioning signal C, with the corrupted state (ut, At) from the forward SDE (Eq. 2) and the absorbing-state D3PM (Eq. 3), 
+
+Ldiff (C) = E(u0,A0)∼D 3 
+
+> t∼U{ 1,...,T }
+
+
+
+ω(t) sθ (ut, At, t | C) − ∇ ut log pt(ut | u0) 2
+
+| {z }    
+
+> lattice L+coords X(score matching)
+
+− log pθ
+
+ A0 | At, t, C | {z }  
+
+> atom types A(absorbing D3PM)
+
+
+
+, (6) with pt(ut | u0) the per-field forward kernel ( X uses the periodic wrapped-normal kernel) and 
+
+ω(t) the standard denoising weight (we reserve λ for the Feynman-Kac log-weight and g for the CFG scale). The conditioning C is produced by LLM encoder ϕ from the text prompt paired with 
+
+(u0, A0).24 ALM Edit. Edit conditions on the Q-Former producer output C = fQF (QLQ ; S), the M =16 -token conditioning sequence (timestep-fused to eC(t) inside sθ ). It is trained with CFG conditioning dropout at rate pdrop :
+
+LCSP = Eξ∼Bern( pdrop )
+
+h
+
+Ldiff 
+
+ (1 − ξ) C + ξ ∅i
+
+, (7) i.e. with probability pdrop =0 .2, the producer sequence C is replaced by the learned null ∅, so sθ
+
+learns the conditional and unconditional scores that the CFG mixing of Eq. 5 extrapolates at g=0 .5.The score network is trained from scratch and LLM ϕ is fully fine-tuned. 
+
+ALM Gen. Gen replaces the Q-Former producer with a lightweight per-token projector Pout , which maps each of the K atomistic-token hidden states independently into the conditioning sequence 
+
+C = Pout (Z) ∈ RK×dcond with [ Pout (Z) ] k = MLP( Zk) — no learned queries, no context window, and no pooling — and feeds the resulting K-token sequence to the same IP-Adapter cross-attention consumer as Edit . Training uses an identical CFG-dropout objective: 
+
+LDNG = Eξ∼Bern( pdrop )
+
+h
+
+Ldiff 
+
+ (1 − ξ) C + ξ ∅i
+
+. (8) The objective is identical to Eq. 7. The differences from Edit are the producer (a per-token MLP emitting the K-token sequence C, versus the M =16 -query Q-Former — both consumed by the same 
+
+per-block IP-Adapter cross-attention), the LLM adaptation (LoRA r=8 , versus full fine-tuning), and the backbone (MatterGen-Base in DNG mode, versus the from-scratch CSP-mode score network). On top of the headline objectives (Eqs. 1–8), both ALM Edit and Core generation models add a per-element composition-count term ( λaux =1 .0) and a contrastive term ( λcontr =0 .02 ); ALM Edit 
+
+adds a third, directional term ( λdir =0 .1, with λdir =0 for the de-novo Core model). The full generation loss is Lgen = Ldiff 
+
+ sθ (ut, At, t | C), u0, A0
+
+
+
++ λaux Lcount 
+
+ gaux (C), c (x) + λcontr Lcontr + λdir Ldir , (9) with the per-element composition presence loss a class-balanced binary cross-entropy — 
+
+Lcount = − 1
+
+NZNZX
+
+> z=1
+
+h
+
+w+ cz (x) log σ(sz ) +  1 − cz (x) log  1 − σ(sz )i
+
+, (10) the contrastive (decorrelation) term 
+
+Lcontr = 1
+
+B(B − 1) 
+
+X
+
+> i̸=j
+
+ ¯c⊤ 
+
+> i
+
+¯cj
+
+∥¯ci∥ ∥ ¯cj ∥
+
+2
+
+, (11) and the directional term ( ALM Edit only) 
+
+Ldir = 1
+
+|F| 
+
+X
+
+> i∈F
+
+CE  Wdir ¯ci, y i
+
+, yi = ⊮[prompt i raises the target property ] . (12) Here, Z ∈ RK×dLM are the atomistic-token hidden states extracted from the language model, and 
+
+C is the producer output that conditions the score network sθ (Section A.2.3). Auxiliary heads like 
+
+gaux (a per-element atom-count regression head trained with a BCE presence objective) operate on C
+
+directly, allowing gradients to reach the producer without passing through the score network. In Lcount ,
+
+s = gaux (C) ∈ RNZ are per-element presence logits, c(x) ∈ { 0, 1}NZ is the multi-hot composition of the target structure ( cz (x)=1 iff element z is present), NZ =100 spans Z ∈ { 1, . . . , 100 }, and 
+
+w+=32 up-weights the rare present-element class. In Lcontr , ¯ci is the producer output for prompt 
+
+i averaged over its M conditioning tokens and B is the batch size, so Lcontr is the mean squared off-diagonal cosine similarity across the batch. Intuitively, this is a decorrelation penalty pushing distinct prompts toward distinct conditioning vectors. In Ldir , Wdir ∈ R2×dcond is a learned linear head, 
+
+¯ci is the same M -token-pooled producer output, and F is the subset of directional prompts, rows carrying an explicit raise/lower instruction (non-directional rows are masked out). The direction label is not a MatterGen cond_field: it never reaches the diffusion decoder and trains only the producer, forcing C to be linearly separable by direction, the targeted fix for the near-collinear “raise” and “lower” conditioning vectors of Appendix A.2.3. Finally, Ldiff is the standard SDE/D3PM loss on the lattice, fractional coordinates, and atomic numbers (L, X, A) (Section A.2.1). Equation (9) is the loss 25 actually optimized during generation training, but only Ldiff flows through the score network via CFG. The auxiliary losses are purely regularizers added to shape the latent steering vectors (producer output 
+
+C, and thus the atomistic-token states). We present systematic ablations to validate the presence of each term below. 
+
+Ablation results for auxiliary losses. To start, the composition auxiliary head is essential. Lowering the λaux =1 .0 to 0.0 degrades de-novo metastable-SUN (MSUN) by 2%, but increasing it to 3.0 decreased MSUN by 49%. This effect is not only present in latent space, but also in observable statistics on generated samples. Figure 8 shows how turning the compositional auxiliary loss off loses prompt conditioning on difficult tasks, like asking ALM Edit to “generate a perovskite” and checking if any of K = 20 generated samples are perovskites (middle bar in each group). However, as ALM Gen is weakly conditioned on the atomistic tokens, the MSUN of its generated structures doesn’t change drastically. With the atomistic token embeddings collapsing to a single, low-information vector, the model does not need to shift away from its language model priors, allowing it to stay performant on LLM judge evaluations of materials science knowledge. Composition  
+
+> (100-d BCE)
+> None
+> (aux-off)
+> 0.0
+> 0.2
+> 0.4
+> 0.6
+> 0.8
+> 1.0
+> Metric
+> 0.41 0.40
+> 0.05
+> 0.00
+> 0.80
+> 1.00
+> MSUN
+> Perovskite any-of-K
+> LLM Judge
+
+Figure 8: Auxiliary supervision target comparison. Composition BCE (the optimum) vs aux-off across MSUN, perovskite any-of-K, and the LM judge; aux-off keeps MSUN but loses prompt-following entirely. The contrastive loss over atomistic token hidden states Z is also essential; without it, the Z collapses to a cosine distance of 0.12 between different prompts. With λaux =1 , the average cosine distance between Z across all prompts in the evaluation dataset is 0.85 .
+
+A.2.2 Separating crystal structure prediction from de-novo generation 
+
+Table 11: MatterGen architectures trade off between de novo generation and crystal structure prediction performance. Metastability of generated samples versus crystal structure prediction (CSP) performance. The two denoising diffusion models are architecturally identical at g = 0 , but differ only in that MatterGen CSP does not denoise over element types, instead taking them in as input.               
+
+> Backbone Metastability ( Ehull ≤0.1)CSP M@K=128 (MP-20)
+> ALM Gen @ g= 0 (MatterGen Base) 0.750 0.370
+> ALM Edit @ g= 0 (MatterGen CSP) 0.167 0.777
+
+The architectural tension that leads to ALM Edit and ALM Gen being separate models is solely dependent on the denoising diffusion model D. A fundamental limitation of MatterGen is that it trades composition and stoichiometry obeyance with stability of generated structures. When provided with the exact element count of a desired structure through CFG, Mattergen Base tends to generate crystals with similar compositions, but that are more stable ( T2C-FK leverages the fact that denoised 26 compositions don’t stray too far to enforce composition and stoichiometry following). Mattergen CSP, which has the same architecture as Base but does not denoise over element types (instead taking them as input to directly initialize node embeddings), produces structures with far lower energy. There are two additional factors beyond architecture that help explain the disparity between each architecture in metastability and CSP: the underlying training data and guidance scale g, which also have strong interplay, as discussed below. 
+
+Underlying data carry stability and validity biases. The polymorphs in MP-20 don’t always have the lowest energy out of other geometries and are not guaranteed to be metastable. MatterGen Base, which generates structures with stabilities at similar rates to its training data, would suffer from lower stability and SUN performance after training on MP-20 CSP. MatterGen CSP, which closely learns how to predict polymorphs from given compositions in MP-20, thus also learns to produce the labeled polymorphs, thus generating structures with lower stability than a de novo model that only trains on metastable structures. Another example of this is SMACT validity, a common metric for realistic structures including charge neutrality, electronegativity, and mixed-valence checks. ALM Gen and 
+
+ALM Edit don’t produce a high proportion of SMACT-valid structures. A large, contributing factor to this is our training data, which, as shown in Fig. 9 to the right, are only 39% SMACT-valid on average. In addition, many SMACT-valid structures are high energy (Fig. 9 left and middle), while many example materials with performant band gaps and properties of interest are SMACT-invalid (OQMD Fig. 9 right). 0.0 0.5 1.0 1.5 2.0 2.5 3.0                    
+
+> MatterSim Eabove hull (eV/atom)
+> −4
+> −3
+> −2
+> −1
+> 0
+> 1
+> 2
+> 3
+> DFT formation energy (eV/atom)
+> MS line
+> SMACT-valid: 38%
+> high-Eh& invalid: 43%
+> 0.0 0.5 1.0 1.5 2.0 2.5 3.0
+> MatterSim Eabove hull (eV/atom)
+> 0.0
+> 2.5
+> 5.0
+> 7.5
+> 10.0
+> 12.5
+> 15.0
+> 17.5
+> 20.0
+> DFT density (g/cm 3)
+> SMACT-invalid
+> SMACT-valid
+> 0.0 0.1 0.2 0.3 0.4 0.5 0.6 0.7 0.8
+> SMACT charge-valid fraction
+> OQMD
+> ALM-Bench
+> AFLOW2
+> JARVIS
+> MP
+> Corpus 0.39
+> 0.36
+> 0.37
+> 0.38
+> 0.59
+> 0.65
+
+Figure 9: SMACT charge-validity of the training compositions. Left, middle: MatterSim Eh versus DFT formation energy and density, coloured by SMACT charge-validity. Most training compositions are charge-invalid and high-Eh (lower-right quadrant). Right: SMACT charge-valid fraction by training source. In addition, the aggregate distribution of materials that we post-train both models on has a large amount of volume away from the energetic hull ( Eh or Eabove hull ≤ 0), as seen in Fig. 10. Further, when the MatterGen CSP mode model was pretrained on our dataset, its Match@ K = 20 
+
+performance for MP-20 was 4% higher than the same architecture trained on MP-20-only, the same scale of difference as between ALM Edit and the second best model at CSP. Therefore, the ceiling for the stability is bounded by the pre-trained MatterGen diffusion model for de novo generation and the data that it was trained on. 
+
+The effect of guidance scale g on generation stability and crystal structure prediction. The guidance parameter g controls how much base denoising diffusion models obey the conditional priors instilled by the additional data they were finetuned on, by CFG’s design. A model trained to reproduce an unstable distribution will, when conditioned, reproduce its instability. However, g offers the possibility of a tradeoff between instruction-following and generation quality (as measured by metrics like stability). Fig. 11 shows how g has different effects for a variant of the backbone used for 
+
+ALM Edit . Raising g hurts CSP performance while helping editing tasks, as it controls the strength of the task- and input composition-encoding conditional signal from the language-to-atomistic bridge. This information is crucial for improving performance on ALM Bench tasks, but as Edit 
+
+autoregressively generates the composition for the MatterGen CSP backbone when doing crystal structure prediction, any additional conditioning may pull the model away from its already strong performance. 27 0 2 4 6 8            
+
+> MatterSim Eabove hull (eV/atom)
+> 10 0
+> 10 1
+> 10 2
+> 10 3
+> 10 4
+> 10 5
+> 10 6
+> 10 7
+> Count (log)
+> MS Eh≤ 0.10
+> SEh≤ 0.016
+> −12 −10 −8 −6 −4 −2 0
+> Energy/atom (eV/atom)
+> 0
+> 20000
+> 40000
+> Count
+> MatterSim energy/atom
+> Describe / CSP / OOD (MS=11%)
+> Directional (MS=9%)
+> Doping / strain (MS=17%)
+
+Figure 10: Right-tailed energy distribution of the generation training corpus. Main shows per-bucket MatterSim energy above hull ( Eh, eV/atom) on a log-count axis over the full range. The mass of the distribution sits far above the hull with a tail extending to ∼8 eV/atom (the 92 percentile are OQMD/AFLOW structures). The metastable ( Eh≤0.10 , dashed) and stable ( Eh≤0.016 , dotted) thresholds are marked, and the inset shows MatterSim-evaluated energy-per-atom for the same buckets. A conditioned generator would reproduce this unstable distribution. g=1.0 g=1.5  
+
+> 0.00
+> 0.05
+> 0.10
+> 0.15
+> 0.20
+> 0.25
+> M@K
+> 0.180 0.170
+
+ALM Edit (MP-20 CSP) — stronger g hurts  
+
+> g=1.0 g=1.5
+> 0.40
+> 0.45
+> 0.50
+> 0.55
+> 0.60
+> 0.65
+> 0.70
+> 0.75
+> 0.80
+> 0.85
+> Direction-correct rate
+> 0.527
+> 0.559
+> 0.590
+> 0.722
+
+ALM Edit (inverse design) — stronger g helps 
+
+> Overall
+> Volume direction
+> 0.00
+> 0.02
+> 0.04
+> 0.06
+> 0.08
+> 0.10
+> 0.12
+> Matched RMSE (\AA)
+> 0.037
+> 0.099
+
+Figure 11: ALM Edit CFG guidance scale tradeoff between CSP and inverse design. Stronger g
+
+hurts crystal structure prediction (left, Match@K and RMSE for matches) but helps ALM Bench 
+
+inverse design performance. The guidance score produces very different behavior for ALM Gen . Here, g controls how much a global conditioning vector steers Mattergen Base away from its strongly performing frozen base. There is a positive operating range for g, leading to the choice of g = 1 .0, as shown in Fig. 12. 
+
+A.2.3 The producer–consumer bridge 
+
+Our language-to-atomistic bridge architecture enables the language model ϕ to guide the crystal diffusion decoder D’s generation. Let Z ∈ RK×dLM be the final-layer hidden states of the K=8 
+
+atomistic-token positions emitted by ϕ (Table 9). These K tokens are randomly initialized and added to the model’s vocabulary before training (we ablated over K values of 4, 8, and 16, and found that K = 8 balanced performance and computational cost). The producer reads these K states together with the window of N =128 language-model hidden states immediately preceding them, forming the source sequence S = [ Zctx ; Z] ∈ R(N +K)×dLM (length N +K=136 ), with a learned type embedding marking the N context states apart from the K atomistic states; the selected window width N =128 is ablated in Figure 16. 28 0.0 0.5 1.0 1.5 2.0 2.5 3.0        
+
+> CFG guidance g
+> 0.0
+> 0.1
+> 0.2
+> 0.3
+> 0.4
+> SUN / MSUN
+> Operating
+> regime
+> MSUN ( Eh≤ 0.1)
+> SUN ( Eh≤ 0.016)
+> Stable rate S(Eh≤ 0.016) 0.100
+> 0.125
+> 0.150
+> 0.175
+> 0.200
+> 0.225
+> 0.250
+> 0.275
+> 0.300
+> Stable rate  S
+
+Figure 12: CFG guidance scale sweep for ALM Gen. SUN ( Eh ≤ 0.016 , left axis, circles) and MSUN ( Eh ≤ 0.1, right axis, squares) depend heavily on g.The producer is a shallow learnable-query transformer [ 70 , 23 ] that compresses S into a fixed-shape conditioning sequence 
+
+C = fP
+
+ QLQ ; S ∈ RM ×dcond , M =16 , d cond =512 , (13) where QLQ ∈ RM ×dcond is a set of continuous, learnable queries that cross-attend into the LM-side source S.The consumer injects C into every block of D’s GemNet-T score network as an IP-Adapter–style cross-attention head [ 68 , 71 ] — the only cross-attention in the network. MatterGen’s native property conditioning does not enter through cross-attention: it is concatenated into a per-crystal latent broadcast into the atom embedding, and is therefore already carried by the frozen backbone block. Writing Ψb for that frozen block update and hb for the per-atom hidden state at GemNet block b, the bridge adds a single gated read-out: 
+
+hb ← Ψb(hb)
+
+| {z } 
+
+> frozen backbone (native conditioning)
+
++ γb · W mix  
+
+> b
+
+Attn  Ψb(hb) W Qb , eC(t)W K, alm  
+
+> b
+
+, eC(t)W V, alm 
+
+> b
+
+| {z }
+
+> new (trained): the network’s only cross-attention
+
+. (14) The bridge contributes only {W Qb , W K, alm  
+
+> b
+
+, W V, alm  
+
+> b
+
+, W mix  
+
+> b
+
+, γ b}: the query reads the block’s atom features and the keys and values are linear projections of the timestep-fused conditioning eC(t) (the producer output C fused with the noise level; Section A.2.3), with the mixin W mix  
+
+> b
+
+∈ Rdh×dh
+
+projecting the read-out back into the GemNet stream. γb ∈ R is a learnable per-block scale (init 
+
+1.0); g ∈ R≥0 is the classifier-free guidance scale applied at sampler time. Two ControlNet-style zero-initializations [ 72 ] make the bridge a no-op at training step zero: W mix  
+
+> b
+
+≡ 0 and the final layer of the timestep-fusion MLP (Section A.2.3) is zero-initialized in weight and bias. 
+
+Producer: cross-modal block stack. The producer maps the source sequence S ∈ R(N +K)×dLM 
+
+— the N =128 context states followed by the K=8 atomistic-token states (extracted as in Appendix A.2.5) — to the conditioning sequence C = fQF (QLQ ; S) ∈ RM ×dcond (M =16 ,
+
+dcond =512 ), inspired by Q-Former [ 23 ]. Expanded, fQF is a stack of LQF =2 transformer blocks ( 8
+
+attention heads, M =16 learned queries), indexed by j (the consumer block index b is reserved for 29 the GemNet stack below): 
+
+Q(0) = QLQ , Scond = W down S + Etype (W down ∈ Rdcond ×dLM ), (15) 
+
+eQ(j) = Q(j) + MHA  Q(j), Q(j), Q(j), j = 0 , . . . , L QF −1, (16) 
+
+bQ(j) = eQ(j) + MHA   eQ(j), Scond , Scond , (17) 
+
+Q(j+1) = bQ(j) + FFN   bQ(j), (18) 
+
+C = LayerNorm  Q(LQF ), (19) with MHA( Q, K, V) = Softmax( QW Q(KW K )⊤/√d) VW V . Equation (15) is the only place dimensionality changes from dLM =4096 to dcond =512 ; the rest of the Q-Former operates in the diffusion decoder’s native conditioning space. The additive type embedding Etype (one learned vector for the N context rows, another for the K atomistic rows), W down , the per-block attention and FFN weights, and the learnable queries QLQ are the only trainable parameters in the producer. This Q-Former-style encoder generalizes a Perceiver-style resampler [ 66 ]: it compresses the variable-content (N +K)-token source into a fixed-length M -token conditioning set decoupled from the source length. 
+
+Timestep-aware conditioning fusion. The producer output C is timestep-independent, but the diffusion trajectory passes through wildly different noise regimes governed by σ(t) (Appendix A.2.1). We fuse a noise-level encoding τ (t) ∈ Rdcond (the same NoiseLevelEncoding used by MatterGen) into C via a zero-initialized residual MLP: 
+
+eC(t) = LayerNorm 
+
+
+
+C + MLP  [C ; τ (t)] 
+
+, (20) whose final linear is zero-initialized, so at training step zero eC(t) = LayerNorm( C) and the MLP is the only path through which the bridge becomes noise-aware. eC(t) replaces C in Eq. (21). 
+
+Consumer: cross-attention injection. The bridge amplifies the LLM’s conditioning signal with the Q-Former producer and injects it, at every denoising block, through a single decoupled cross-attention head. Let Ψb(hb) ∈ RNp×dh be the per-atom hidden state at the output of GemNet-T consumer block 
+
+b ∈ { 1, . . . , L D}’s message passing ( Np atoms per cell, dh=512 ). Expanding Section 2.2’s boxed Eq. (14), the injected read-out and the resulting block update are: 
+
+∆halm  
+
+> b
+
+= W mix  
+
+> b
+
+· Softmax  Ψb(hb) W Qb ( eC(t)W K, alm  
+
+> b
+
+)⊤/pdh
+
+ eC(t)W V, alm  
+
+> b
+
+, (21) 
+
+hb ← Ψb(hb) + γb · ∆halm  
+
+> b
+
+, (22) where Ψb is the frozen GemNet block (message passing plus MatterGen’s additive native-property conditioning) and eC(t) is the timestep-fused conditioning of Appendix A.2.3. The bridge introduces a single cross-attention head — the only cross-attention in the score network — whose query reads the block’s neighborhood-aggregated atom features and whose keys and values are independent linear projections of the M =16 producer tokens eC(t); the mixin W mix  
+
+> b
+
+∈ Rdh×dh projects the read-out back into the GemNet stream. Native property conditioning is not a parallel cross-attention — it is folded into Ψb via the concatenated per-crystal latent — so the score sθ of Appendix A.2.1 depends on the producer output C only through this single gated branch. The per-block gate γb is learned; classifier-free guidance g is applied at sampler time through the CFG extrapolation of Eq. (5) . The entire language-to-atomistic bridge has roughly 19M parameters. Equation (22) shares MS-Diffusion’s decoupled-K/V cross-attention topology [ 71 ] but differs in three deliberate ways — the source signal is LoRA-adapted Qwen3-8B hidden states (not CLIP image features), the queries QLQ are purely learnable (not grounding-token-initialized), and the consumer keys/values derive only from eC(t) (not concatenated with the text stream). In addition, unlike canonical IP-Adapter [68], it keeps random K/V initialization, achieving zero contribution at the beginning of training from zero-initialized W mix  
+
+> b
+
+and timestep-fusion MLP. 
+
+A.2.4 Language model backbone finetuning for steering generation LoRA and Full finetuning ablations. Full finetuning was necessary for the language model ϕ
+
+(Qwen3-8B) to produce rich enough atomistic token embeddings to steer generation in ALM Edit .30 LoRA, although at different ranks and α values, sufficed for ALM Core and Gen . We present systematic ablations to validate these choices, as well as to explain why only Edit performs well on the LLM-judged materials-knowledge retention task in ALM Bench .We found that different LoRA parameters worked best for ALM Core versus Gen . Core uses rank 
+
+r=128 , α=256 , dropout 0.05 , at effective batch size 256 , with a sweep shown in Table 12 over r.Table 12: LoRA rank ablation on the LLM4Mat-Bench MP slice.               
+
+> Config LLM4Mat MP MAD/MAE Leak Rate
+> r=8 2.5<1%
+> r=32 4.0<1%
+> r=64 5.23 <1%
+> r=128 6.42 <1%
+
+To train ALM Gen , the 224 LoRA matrices from training Core were merged into the base weights at the start of finetuning, and a new LoRA was attached at r=8 , α=16 , and a learning rate of 1e-5,decoupling generation adaptation from Core materials understanding. Raising learning rate to 2e-4
+
+collapses the cross-prompt hidden-state geometry (Fig. 13). Counter to the intuition that more adapter capacity helps, the final configuration outperforms an unmerged understanding LoRA at 
+
+r=64 , α=128 , which regressed the mixed de-novo MSUN to 0.094 . The inductive bias of the merged understanding LoRA already carries the LM-side adaptation, so the small fresh LoRA only has to translate the K=8 atomistic-token hidden states into useful conditioning. 10 −6 10 −5 10 −4 10 −3   
+
+> LoRA learning rate
+> 0.15
+> 0.20
+> 0.25
+> 0.30
+> 0.35
+> 0.40
+> 0.45
+> 0.50
+> MSUN
+> Frozen LoRA
+> (∼0.20)
+> Operating
+> regime
+> Collapse
+> 0.0
+> 0.2
+> 0.4
+> 0.6
+> 0.8
+> 1.0
+> Atomistic Token Cosine Distance
+
+Figure 13: generation LoRA learning-rate sweep. MSUN as a function of fresh-rank-8 LoRA learning rate (log scale). lr =0 leaves the atomistic tokens out-of-vocabulary; lr =2 e-4 collapses cross-prompt cosine distance to 0.12 (triangles on the right axis). lr =1 e-5 is the selected setting. An ablation over full- versus LoRA-finetuning ALM Core to develop Gen is shown in Table 13. Full finetuning achieves better metrics across all measured evaluations than LoRA r = 8 . Crucially, it also prevents the degradation of instruction following observed with LoRA, in which the model starts to output IMGUR links or loop continuously, described further in Appendix B.1.2. As a result of the further training on instruction tuning, ALM Edit and Gen are better at predicting certain properties than ALM Core . The URL leak and loop rates are also near-zero for ALM Gen ,as shown in Table 14. 
+
+A.2.5 Architectural ablations over generative variants Language-to-atomistic bridge architecture ablations. Several ablations over simpler architectures of the language-to-atomistic bridge were conducted, validating the final design, as shown in Fig. 14. These architectures were a simple MLP across the K = 8 token embeddings concatenated together; IP-Adapter [ 68 ]; a hand-constructed guidance vector consisting of a multi-hot vector to encode 31 Table 13: Full finetuning versus LoRA on ALM Edit. Full finetuning is done with PEFT. Retention judge is the LLM-judge score ( 0–2).                   
+
+> Metric LoRA r=8 Full Finetuning Retention judge ( 0–2)1.053 1.842
+> loop-rate 0.316 0.0
+> keyword-pass 0.462 0.923
+> App-consistency 0.0275 0.326
+> Direction-correct 0.608 0.621
+> CSP Match@1 0.428 0.472
+> CSP Match@ K= 64 0.881 0.896
+
+Table 14: ALM Variants evaluated on atomistic understanding and materials science knowledge tasks .                                                
+
+> LLM4Mat MAD:MAE ↑Mat2Props MAE ↓Accuracy ↑
+> Model MP EfMP gap MP ρOQMD EfEfgap MaScQA GPQA-chem Mat2MCQ GSM8K ALM Core 14 .12 3.88 10 .10 13 .23 0.087 0.275 0.643 0.247 0.417 0.775
+> ALM Gen 3.94 2.24 3.07 0.64 0.397 0.584 0.381 0.333 0.564 0.720
+> ALM Edit 15 .79 4.37 12 .33 15 .65 0.074 0.244 1.000 0.228 0.508 0.790
+
+composition and additional bits to account for directional tasks in ALM Bench (e.g., 1 for raise, 0 for lower); FiLM [ 73 ]; and lastly, one MLP per atomistic token, preserving the Seq uence information without flattening all of the embeddings upon input. Several of the architectures did not produce any valid structures for certain tasks, outputting generations that exploded upon relaxation or degenerate crystals with a single atom. However, no architecture performed as well as the consumer–producer bridge formulation used to build ALM Edit 
+
+and Gen . One reason for this is that several of these architectures don’t support growing the bridge contribution from a literal zero at step 0 (the ControlNet-style zero-init of Appendix A.2.3, [ 72 ]). In practice, this stabilizes training across a wide range of CFG guidance scale g values. FiLM, Seq, and the hand-constructed conditional vector all did not support this training dynamic; as an example, FiLM-style feature-wise linear modulation [ 73 ] is multiplicative ( γ(C) ⊙ hb + β(C)) and initializes 
+
+γ ≈ 1, so it already perturbs every block at step 0, never establishes a conditioning gradient, and every learning-rate, warmup, and data-mix intervention drives it further toward a no-op. Seq also crashes under strong conditioning, e.g. producing degenerate cells on 20 /20 when prompted for perovskites. 
+
+Fixed-length conditioning output from the producer. The producer emits a length-M condition sequence C ∈ RM ×dcond . M therefore sets the bandwidth of the signal the consumer can cross-attend to at each denoising step. The effect of sweeping over values of M on de novo generation metrics is shown in Fig. 15. M = 16 was chosen as the operating point due to strong performance across each metric. 
+
+Cross-attention context window for the producer. The second producer-bandwidth hyperparameter is the length S, the total number of token embeddings cross-attended to by the 
+
+M =16 queries. Here, S = N + K is chosen such that N =128 recent LLM context states and 
+
+K=8 atomistic token states. Widening N =128 to 512 does not help directional editing, although it marginally improves the rate at which ALM Edit generates structures that obey the prompted application area, as shown in Figure 16. We observe the collapse of direction following when the 
+
+Ef ↑ rate decreases, as the model is trained on several tasks to output polymorphs with Eh lower than the inputted material, and thus is regressing to the distribution of structures marginalized over stability. This collapse is also observed when removing the composition auxiliary head, as well as swapping the order of the atomistic token teacher forcing to before the composition JSON is outputted (Fig. 17). We also find that the conditional signal in ALM Edit is small (Fig. 18), learning a conditional head through CFG that is very close in cosine distance to the unconditional head output. However, the signal does produce slight g-dependence in the overall performance on directional tasks in ALM Bench .32 Pool IPA Hand-constructed            
+
+> conditional
+> vector
+> FiLM Seq ALM Gen
+> 0.0
+> 0.1
+> 0.2
+> 0.3
+> 0.4
+> 0.5
+> 0.6
+> 0.7
+> MSUN  0.413 0.413
+> n/a
+> 0.345 0.310
+> 0.590
+> MatterGen-Base
+> Pool IPA Hand-constructed
+> conditional
+> vector
+> FiLM Seq ALM Gen
+> 0.0
+> 0.2
+> 0.4
+> 0.6
+> 0.8
+> 1.0
+> CSP M@K
+> 0.513 0.485 0.470
+> n/a n/a
+> 0.886
+
+Figure 14: Alternate bridge architectures on DNG SUN and CSP M@K. Left: MSUN ( Ehull <
+
+0.1) at each bridge’s optimal g. Right: CSP M@K at K = 64 on the CSP-mode backbone. N = 500 
+
+rows were drawn for each task from the test set, explaining the higher-than-reported CSP and MSUN than ALMs achieve in the main text. 0.450 
+
+0.475 
+
+0.500 
+
+0.525 
+
+0.550 
+
+0.575 
+
+> Mean  Ehull  (eV/atom)
+> lower better
+
+0.12 
+
+0.13 
+
+0.14 
+
+0.15 
+
+> Metastable fraction
+
+8 16 32 64 
+
+Condition tokens M 
+
+0.992 
+
+0.994 
+
+0.996 
+
+0.998 
+
+1.000 
+
+> Uniqueness
+
+8 16 32 64 
+
+Condition tokens M 
+
+0.80 
+
+0.81 
+
+0.82 
+
+0.83 
+
+> Formula novelty
+
+Figure 15: De-novo generative metrics across condition-token count M ∈ { 8, 16 , 32 , 64 }.A.3 Text-to-Crystal Feynman-Kac algorithm details 
+
+Text-to-Crystal Feynman-Kac steering (T2C-FK; Section 2.4) is an inference-time mechanism that makes ALM Gen generate crystals with a requested element set and stoichiometry. ALM Gen is a strong but deliberately weakly-conditioned de-novo sampler: its backbone produces stable cells, but the language prompt only biases the composition towards CFG-provided element counts. T2C-FK 
+
+closes that gap by wrapping the unconditional reverse diffusion in an N -particle sequential Monte Carlo (SMC) sampler that reweights toward a stoichiometry reward, with no retraining or change to the score network. The same machinery ports to ALM Edit for composition-exact CSP decoding and for directional editing; those uses are collected as a side application in Appendix A.3.4. All diffusion notation follows the glossary of Appendix A.2. 
+
+A.3.1 Bootstrap-SMC sampler 
+
+T2C-FK replaces MatterGen’s single denoising trajectory with an N -particle bootstrap SMC sampler over the reverse diffusion [ 34 , 35 ]. All N particles are propagated in lockstep by the unconditional predictor-corrector step (shared score network sθ , condition C); every S steps the population is 33 Ef↑ Ef↓ Dir.      
+
+> overall
+> App
+> 0.0
+> 0.2
+> 0.4
+> 0.6
+> 0.8
+> Rate
+> Producer source
+> N= 128 (ALM Edit)
+> N= 512
+> N= 128 + Lin = 32
+
+Figure 16: Q-Former producer source-length (context-window) ablation (g=0 .5, honest denominator over all 768 atomtxt attempts; rest of the final recipe held fixed). Both ways of feeding the producer more source — widening the window ( N =512 ) or prepending an explicit 
+
+Lin =32 input-<atoms> segment — collapse raise-Ef direction-correctness below chance (the dashed line at 0.5) and lift lower-Ef , landing at overall direction-correct ∼ 0.51 –0.53 versus the final 
+
+N =128 recipe’s symmetric 0.62 . App-consistency is roughly unchanged across all three. The small directional residual the consumer reads is diluted by any extra source content, but coarse text →structure conditioning is not. 0.00 0.25 0.50 1.00 2.00 
+
+Guidance strength g              
+
+> 0.3
+> 0.4
+> 0.5
+> 0.6
+> 0.7
+> 0.8
+> 0.9
+> Direction-correct rate
+> Aibefore JSON · lower Efof input
+> Aibefore JSON · higher Efof input
+> ALM Edit · lower Efof input
+> ALM Edit · higher Efof input
+> ALM Edit · lower Efof input
+> ALM Edit · higher Efof input
+
+Figure 17: Output-token ordering determines whether ALM Edit follows directional instructions. 
+
+Direction-correct rate (fraction of generations that moved formation energy Ef the requested way relative to the input) versus classifier-free-guidance strength g, for two output-token orderings: the 
+
+ALM Edit ordering (composition JSON before the Ai atom tokens, blue, highlighted) and an ablation that teacher-forces the Ai tokens before the composition ( Ai before JSON, orange). reweighted by the reward on the Tweedie clean estimate ˆx0 and resampled when its effective sample size falls below ρN . The per-particle log-weight updates as 
+
+ℓ(i) 
+
+> t
+
+← clip  ℓ(i) 
+
+> t
+
++ λ r (ˆ x0(x(i) 
+
+> t
+
+, t )) , ±Lclip 
+
+, (23) where ˆx0(x(i) 
+
+> t
+
+, t ) is the Tweedie estimator and λ the steering scale. Because FK reweights and resamples whole particles outside the score evaluation, it composes additively with the language-to-atomistic bridge architecture through CFG. In addition, the absorbing-state D3PM over At is MASK-dominated for t > T / 2, where the reward on ˆx0 is uninformative, so scoring 34 ‖cond − uncond‖ ‖cond‖                
+
+> (Bridge on/off)
+> ‖cond hi − cond lo ‖‖cond‖
+> (Direction lever)
+> 1 − cos cross-dir
+> (Angular residual)
+> 10 −3
+> 10 −2
+> 10 −1
+> 10 0
+> Relative magnitude (log)
+> 0.0116
+> (∼1.2%)
+> 0.0011
+> (∼0.1%)
+> 0.0002
+> (cos 0.9998)
+> A usable lever ∼1.0
+> 0.5 1248
+> CFG guidance g(composition locked)
+> 0.45
+> 0.50
+> 0.55
+> 0.60
+> 0.65
+> 0.70
+> 0.75
+> 0.80
+> Direction-correct rate
+> Flat 0.62--0.64
+> 16 × grange
+> “Higher” subset
+> “Lower” subset
+> Overall dir-correct
+
+Figure 18: Unconditional and conditional outputs are similar for ALM Edit. Left: relative magnitudes (log scale) of setting g to be 0.5 (conditional) or 0 (unconditional). Right: 
+
+direction-correctness is flat at 0.62 –0.64 over a 16 × range of g, indicating that the ceiling is a representation-quality limit, not a magnitude limit. begins only once t < T (1 − τstart ); with τstart =0 .5 this halves the scoring compute at no measurable cost in match rate. Algorithm 1 gives the full procedure. 
+
+Algorithm 1 T2C-FK: Feynman-Kac steered structure generation. 
+
+Require: text prompt u, target multiset T , particles N , steps T , scoring period S, deferred start 
+
+τstart , scale λ, ESS threshold ρ, clip Lclip .
+
+1: S ← context + [ atoms _∗] hidden states from ϕ(tokenize( u)) ; C ← fQF (QLQ ; S).
+
+2: {x(i) 
+
+> T
+
+}Ni=1 ∼ pprior ; ℓ(i) ← 0.
+
+3: for t = T − 1, . . . , 0 do 
+
+4: {x(i) 
+
+> t
+
+} ← PCStep( {x(i)
+
+> t+1
+
+}, s θ , C).
+
+5: if t < T (1 − τstart ) then 
+
+6: ˆx(i)0 ← Tweedie( x(i) 
+
+> t
+
+, t ); ℓ(i) ← clip( ℓ(i) + λr (ˆ x(i)0 ), ±Lclip ).
+
+7: if t mod S = 0 and ESS( ℓ) < ρN then 
+
+8: {x(i) 
+
+> t
+
+} ← Multinomial( {x(i) 
+
+> t
+
+}, softmax( ℓ), N ); ℓ(i) ← 0.
+
+9: end if 
+
+10: end if 
+
+11: end for 
+
+12: Apply Hungarian Z-override on {x(i)0 }Ni=1 .
+
+13: return {x(i)0 }Ni=1 .
+
+Posterior-correction guarantee. T2C-FK accumulates the Feynman-Kac weight with the sum 
+
+rule, G(i) 
+
+> t
+
+= exp  λ r (ˆ x0(x(i) 
+
+> t
+
+, t ))  (alternate accumulation rules are ablated in Appendix A.3.3). Let p∗(x0) ∝ p(x0) exp( r(x0)/τ ) be the target posterior at t=0 , with p(x0) the unconditional MatterGen marginal and τ an effective temperature set by λ. Bootstrap-SMC with proposal p and potential Gt recovers p∗ as N → ∞ under bounded reward and standard SMC regularity [ 34 , 35 ]; the three conditions hold here: the reward is bounded above (after clipping), the proposal is the unconditional MatterGen sampler at every step (FK never alters sθ ), and multinomial resampling on 
+
+softmax -normalized log-weights is a valid SMC move. Clipping at ±Lclip introduces a controlled bias ( < 5% clip-saturation at ε=10 −4). 
+
+A.3.2 Stoichiometry reward and Hungarian Z-override 
+
+The reward is needed because providing element counts through CFG effectively enforces the element set, but MatterGen’s score network loosens the stoichiometric ratios during denoising. With the auxiliary composition loss, decoding the atomistic-token hidden states Z through the generation 35 auxiliary head recovers the target composition at > 95% top-1, yet the unsteered diffusion trajectory drifts off the exact elemental ratio. The per-particle reward scores that ratio as a sum of three components, 
+
+r(ˆ x0) = rstoich (ˆ x0) + rcount _L1 (ˆ x0) + rratio _JS (ˆ x0). (24) For predicted per-atom element distributions {pa}Np 
+
+> a=1
+
+(Np atoms in the cell) and target multiset T :
+
+rstoich = − 1
+
+Np
+
+X
+
+> a
+
+− log  pa[zπ∗(a)] + ε, (25) 
+
+rcount _L1 = − 1
+
+|S| 
+
+X
+
+> e∈S
+
+nargmax  
+
+> e
+
+− ntarget  
+
+> e
+
+, (26) 
+
+rratio _JS = −JS  ˆqargmax qtarget  , (27) where π∗ is the Hungarian (linear-sum) assignment of atoms to target elements, S the set of distinct target elements, nargmax  
+
+> e
+
+the count of element e under per-atom argmax, and JS the symmetric, 
+
+log 2 -normalized Jensen-Shannon divergence. rstoich is the negated mean Hungarian-assigned per-atom NLL (cost Caj =−log( pa[zj ]+ ε), solved at ∼ 10 μs per particle, capped at log(1 /ε ) ≈ 9.2); 
+
+rcount _L1 and rratio _JS are each bounded in [−1, 0] . The two hard-argmax components are necessary: a uniform soft distribution that averages to the target stoichiometry earns a perfect soft score even though no individual particle is valid, so rcount _L1 and rratio _JS commit each atom to a single element 
+
+before scoring, breaking it. 
+
+Hungarian Z-override. After the final denoising step, the linear-assignment problem is solved on the terminal atomic-number probabilities and each atom is set to its assigned element zπ∗(a),leaving the lattice L and fractional coordinates X untouched. SMC has already concentrated mass on target-consistent particles, so this almost always agrees with the argmax it replaces; its role is to 
+
+guarantee the composition match on the residual. The per-atom reward is informative only when Np is a multiple of the number of atoms in the requested material: otherwise, every Hungarian assignment is forced to place wrong-element atoms, the soft NLL of Eq. 25 is fixed at its log(1 /ε ) cap, and the cumulative log-weight saturates Lclip on every particle, causing SMC to degenerate to uniform resampling. T2C-FK therefore makes the number of particles Np a multiple of the total number of atoms. This fixed aspect of particles is what makes the sum potential well-behaved: with the right atom count, each per-atom NLL stays bounded away from its cap, so every step contributes a finite, discriminative increment. 
+
+A.3.3 Additional hyperparameter sweeps and ablations ALM Gen ’s T2C-FK configuration is N =8 , T =1000 , S=10 , τstart =0 .5, λ=0 .5, ρ=0 .5, Lclip =50 ,
+
+ε=10 −4, the sum potential, and the equal-weight three-component reward over the last half of a 
+
+T =1000 trajectory. The DNG-FK row of Table 5 uses these settings. A value of λ=0 .5 is selected for ALM Gen stoichiometry and λ=3 for directional editing (Appendix A.3.4), where the stronger signal is needed to overcome MatterSim’s relaxation bias toward lower energy. T2C-FK with 8
+
+particles costs ∼ 8.1× unsteered MatterGen sampling. As for reward components: rstoich gives a calibrated continuous signal early in the second half of denoising while the element distributions are still soft; rcount _L1 supplies discrete-count alignment as the absorbing-state D3PM commits to specific elements; rratio _JS is the bounded shape regularizer that keeps the SMC from collapsing onto a single dominant particle. Tolerance ε was swept over. Values of ε=10 −8 (per-atom NLL cap ∼ 18 .4) saturated Lclip =50 
+
+on every wrong-element atom and degenerated the SMC into uniform resampling because every particle’s cumulative log-weight hit the clip at once. The final version for T2C-FK uses ε=10 −4
+
+(cap ∼ 9.2), the smallest value keeping clip-saturation below 5% in our diagnostic logs. Lastly, the 
+
+sum rule (Appendix A.3.1) accumulates λ r (ˆ x0) each step. Other formulations of the rule, including a difference rule G(i) 
+
+> t
+
+= λ r(ˆ x0(x(i) 
+
+> t
+
+, t )) − r(ˆ x0(x(i)
+
+> t+1
+
+, t +1))  do not reach the same performance as the sum formulation. 
+
+A.3.4 Porting T2C-FK to enable ALM Edit 
+
+The same T2C-FK serves ALM Edit by allowing for rewards prescribed by ALM Bench directional editing tasks to steer structure generation during denoising. Specifically ALM Bench task direction 36 10 1                                           
+
+> MAD/MAE
+> 0.6B
+> 1.7B
+> 4B
+> 8B
+> 14B β= 0.50, R2= 0.98
+> A. QETB energy, MAD/MAE
+> 10 1
+> MAD/MAE
+> 0.6B
+> 1.7B
+> 4B
+> 8B
+> 14B
+> β= 0.35, R2= 0.91
+> B. QETB FENP , MAD/MAE
+> 10 0
+> MAD/MAE
+> 0.6B
+> 1.7B 4B
+> 8B
+> 14B
+> β= 0.29, R2= 0.79
+> C. QETB indirect gap, MAD/MAE
+> 0.6B 1.7B 4B 8B 14B
+> Parameters
+> 10 2
+> MAE
+> 0.6B
+> 1.7B
+> 4B
+> 8B
+> 14B β= −0.48, R2= 0.98
+> D. QETB energy, MAE
+> 0.6B 1.7B 4B 8B 14B
+> Parameters
+> MAE
+> 0.6B
+> 1.7B
+> 4B
+> 8B
+> 14B
+> β= −0.35, R2= 0.93
+> E. QETB FENP , MAE
+> 0.6B 1.7B 4B 8B 14B
+> Parameters
+> MAE
+> 0.6B
+> 1.7B 4B 8B
+> 14B
+> β= −0.33, R2= 0.74
+> F. MatText perovskites, MAE
+> 0.6B 1.7B 4B 8B 14B
+> Parameters
+> 10 −1
+> MAE
+> 0.6B
+> 1.7B 4B
+> 8B
+> 14B β= −0.22, R2= 0.79
+> G. Cantor HEA volume, MAE
+
+Figure 19: Model-size scaling across seven property-prediction metrics. Each panel uses the available Qwen3 ALM Core evaluation suite for 0.6B, 1.7B, 4B, 8B, and 14 B-sized LMs. The top row reports MAD/MAE skill ratios on LLM4Mat-Bench [ 26 ] JARVIS-QETB properties (higher is better). The bottom reports raw MAE on JARVIS-QETB, MatText, and Cantor-HEA properties (lower is better). is parsed from the prompt into the reward, a MatterSim energy reward (one MatterSim forward pass yielding potential energy E/atom). On ALM Edit at g=0 .5, this formulation of FK pushed the 
+
+ALM Bench direction-correctness rise to 0.719 . Inference-time FK reward-steering recovers both directions whenever the requested direction can be parsed from the prompt into an explicit reward. 
+
+A.4 Scaling laws 
+
+Across several regression metrics, strong scaling laws emerge for property prediction tasks, as shown in Fig. 19; as the underlying language model, Qwen3, grows in parameter count, property prediction performance improves. The cleanest series is JARVIS-QETB energy, where both the MAD/MAE skill ratio and the raw MAE follow a near-linear trend in log–log space. The trend is not universal: indirect gap and MatText perovskites improve with scale but retain task-specific curvature and noise. Cantor-HEA shows emergent scaling, where additional size does not help until a sudden jump from 4B to 8B parameters. We hypothesize that further scaling of the ALM could produce similar emergent effects. 
+
+B Training data 
+
+This appendix documents the data ALM is trained on, in the same order the model acquires its capabilities: first understanding (structure → text and structure +instruction → text/value, Section B below), then generation and editing (Section B.2). For each phase we give the exact bucket mixture, the per-bucket source datasets and sample counts, the pairing procedure, and the balance ablations that fix the mixture weights. Generation/editing buckets are deferred to Appendix B.2; the precise definitions of the evaluation metrics quoted here live in Appendix D.1. 
+
+B.1 Data used to teach Atomistic Language Models to understand atoms 
+
+ALM is taught to understand atoms in two phases. Alignment fits the input-side projector Pin 
+
+so the frozen LM can attend to atomistic features at all; instruction tuning then leverages this warm start to attach a LoRA adapter and finetune the language model on the full distribution of structure-conditioned tasks it must answer. Both phases keep the OrbV3 encoder frozen. 37 0 5000 10000 15000 20000   
+
+> Warm-start optimizer step
+> 10 −1
+> 10 0
+> Alignment loss (causal LM, log-y)
+> Plateau ∼0.10
+> Loss < 0.2 by
+> step 300
+
+Figure 20: Warm-start alignment loss trajectory ( K=8 ). Causal LM loss on ∼ 1.35 Mstructure-description pairs drops below 0.2 in ∼ 300 optimizer steps and plateaus near 0.10 .
+
+B.1.1 Five-bucket training mixture Stage 1: Alignment data and optimizer. Only Pin is trained, under the standard causal language modeling loss on nearly 1.35 M structure–description pairs drawn from LLM4Mat-Bench [ 26 ] and the four GPT-Narratives parquets ( dft_3d , mp_3d_2020 , aflow2 , oqmd ). AdamW [ 74 ] is used at learning rate 1e −3, as well as weight decay 0, betas (0 .9, 0.999) , a 3% cosine warmup capped at 
+
+2000 steps then cosine decay, gradient clip 1.0, and an effective batch of 32 . The alignment loss falls below 0.2 within ∼ 300 steps and plateaus near 0.10 across the full 23 k-step run (Figure 20). The two-linear-with-GELU projector was chosen over a single-linear map (insufficient capacity) and a three-linear map (marginal gain at extra parameters); LLaVA-1.5 [ 65 ] uses the same two-linear projector at smaller scale. The encoder-adapter design space is analyzed in Appendix A.1.3. 
+
+Stage 2: Instruction-tuning mixture. With Pin aligned, a LoRA adapter is attached to the LM, then instruction-tune on a fixed budget of 12 k optimizer steps (following the LLaVA-1.5 convention [ 65 ] of total optimizer steps, not epochs over any single bucket). Training draws from a five-bucket mixture (Table 15) spanning two structure-conditioned tasks and three text-only tasks; the per-step bucket selection is a categorical draw with probability vector π. The two structural buckets ( describe ,consisting of tasks prompting the model to describe the structure of a material or to generate a free-form narrative about its device applications, property_apps , consisting of property prediction tasks which request a JSON with only the given property as output) share the ∼ 0.80 structural budget at a 0.40 /0.40 split, while the arxiv (given a title and keywords of materials science preprints, generate a realistic abstract) supplies scientific fluency, and camel /mascqa (both scientific QA datasets) text buckets supply scientific fluency and Q&A instruction following to prevent catastrophic forgetting. Over the full run, this mixes a total of 2.82 M training samples. Figures 22 and 23 visualize representative rows of the dataset and how ALM Core responds compared to the ground truth labels. Table 15: Understanding-phase five-bucket mixture. π is the categorical probability used by the per-rank bucket sampler (Appendix B.1.2) Bucket Task type Source Rows π                                  
+
+> describe captioning (structure →prose) LLM4Mat description + GPT-Narratives ∼700 k0.40
+> property_apps VQA (structure +instruction →value/text) LLM4Mat property + GPT-Narratives EXPLAIN 1.45 M0.40
+> arxiv ChatML IT (title +categories →abstract) JARVIS arXiv abstracts 375 ,571 0.14
+> camel text Q&A CAMEL-AI chemistry + physics role-plays 37 k0.04
+> mascqa MCQ benchmark MaScQA ( 80% train split) 519 0.02
+
+Figure 21 visualizes the distributions of properties for inputted materials across the data buckets. During this stage of training, AdamW is used to optimize two groups of parameters with different learning rates: LoRA at learning rate 2e −4, projector at 2e −5, and both with weight decay 0.01 ,betas (0 .9, 0.95) , and a cosine schedule with warmup min(2000 , 0.03 Tmax ). The effective batch 38 −4 −3 −2 −1 0 1 2 3 4                         
+
+> DFT formation energy (eV/atom)
+> 0.0
+> 0.2
+> 0.4
+> 0.6
+> 0.8
+> Density
+> −0.5 0.0 0.5 1.0 1.5 2.0 2.5 3.0
+> DFT Eabove hull (eV/atom)
+> 0.00
+> 0.25
+> 0.50
+> 0.75
+> 1.00
+> 1.25
+> 1.50
+> 1.75
+> Density
+> MS
+> S
+> 0123456
+> DFT band gap (eV)
+> 0.00
+> 0.05
+> 0.10
+> 0.15
+> 0.20
+> 0.25
+> 0.30
+> 0.35
+> Density
+> Metallic Eg= 0 peak (off-scale)
+> 0.0 2.5 5.0 7.5 10.0 12.5 15.0 17.5 20.0
+> DFT density (g/cm 3)
+> 0.00
+> 0.02
+> 0.04
+> 0.06
+> 0.08
+> 0.10
+> 0.12
+> Density
+
+Figure 21: Target-property distributions over the training data (formation energy, energy above hull, band gap, density). These set the support of the values ALM is asked to read off and, in the editing phase, to move. size is 256 . Validation buckets are partitioned with the same seed via split_seed=42 : arXiv and CAMEL hold out 500 rows each, MaScQA holds out 20% stratified by topic ( 131 /650 ). 
+
+B.1.2 The URL leak failure mode and mitigations The effect of batch size on URL leak rate. The understanding phase (Stage 2 of training) requires an effective batch size of at least 64 . Below this threshold (Table 16) the LoRA receives too few gradient updates to suppress Qwen3-8B’s base-language model web prior at the given LoRA learning rate, which re-surfaces on uncertain tasks: at an effective batch size of 16 , 98 .3% of Mat2Props outputs return URL placeholders ( i.imgur.com / materialsproject.org links inside a markdown image embed) rather than structured numeric answers in JSON. Learning rate is not the cause (matching the same learning rate at low effective batch reproduces the failure), token-wise suppression at inference time did not help, and a smaller Qwen3-0.6B for an effective batch size of 16 fails identically. At an effective batch size of 256 , the URL leak rate falls below 1% and Mat2Props validity rises to 98 .3% .Table 16: Effective batch size ablation. Mat2Props validity and URL-leak rate (fraction of outputs that are URL placeholders or contain a leaked URL prior to property recovery). Leak rate is defined in Appendix D.1. 
+
+Config Mat2Props validity URL leak 
+
+ALM Core (Beff =256 , r=128 ) 98 .3% < 1%
+
+Beff =16 , lr =1 e-4/1e-5 4–7% 95% 
+
+Beff =16 , lr =2 e-4/2e-5 4% 96% 
+
+Qwen3-0.6B at Beff =16 3.4% 97% 
+
+The leak is a base model prior, not data contamination. Auditing the supervised text confirms it is essentially URL-free: the describe , property_apps , arxiv , and mascqa buckets contain zero 
+
+imgur occurrences and camel contains only two, across millions of rows. The leak is therefore a Qwen3-base pretraining prior that surfaces under fine-tuning-induced uncertainty, not a property of the training. Filtering 28 k LLM4Mat predictions per checkpoint for i.imgur.com confirms this 39 Structure description   
+
+> Bucket: describe -GPT-Narratives narrate task
+> <atoms>
+> Describe the structure of this material.
+> pairs.parquet row dft_3d-4
+> VSe2 (vanadium diselenide) sits in the trigonal crystal system with
+> space group P-3m1. It is a metal (band gap 0.0 eV) with a formation
+> energy of -0.71 eV/atom, and an energy above hull of 1.88 eV/atom,
+> making it a metastable layered dichalcogenide.
+> target: GPT-Narratives narrative (verbatim)
+
+Property prediction    
+
+> Bucket: property_apps -LLM4Mat-Bench (MP slice)
+> <atoms>
+> Property name: formation_energy_per_atom.
+> Output JSON, e.g. {"property_name": value}.
+> mp-1024051 (target -1.029 eV/atom)
+> {"formation_energy_per_atom": -1.0101}
+> ALM prediction (err 0.019 eV/atom)
+
+Stage-2 understanding: atom -> text 
+
+> User prompt on the left, ALM response on the right. Every string is verbatim from training data / recorded model predictions.
+
+Figure 22: Representative understanding-phase interactions , one per bucket type (user prompt on the left, ALM response on the right): captioning ( describe ), property and applications VQA (property_apps ), and the text-only science Q&A buckets ( arxiv /camel /mascqa ). The <atoms> 
+
+placeholder is expanded inline to OrbV3 node features for the structure-conditioned turns. (Figure 24): the base model never leaks ( 0.0% ), including the arXiv text bucket in training data but without ChatML tokens leaks 27 .7% , and dropping the arXiv bucket entirely makes the leak strictly worse ( 73 .2% ). This is because removing the scientific-text exposure removes the text-only task contributions during training that keep the prior suppressed when learning on soft tokens. By including the dataset but formatting it with ChatML tokens, the leak rate issue is fixed. 
+
+B.2 Data used to teach Atomistic Language Models to generate atoms 
+
+The final training phase seeks to train the language-to-atomistic bridge to enable ALM Edit and Gen 
+
+to steer the denoising of crystal structures. 
+
+B.2.1 Seven-bucket training mixture 
+
+The generation mixture is drawn from seven task buckets at the weights of Table 17: three unpaired text →structure buckets ( describe , a long GPT-Narrative →structure caption; csp , a (formula, space-group) crystal-structure-prediction prompt; ood , an LLM-rephrased noisy-template paraphrase of the same structures) plus an application-class bucket ( app ), and three paired structure +text →structure editing buckets ( atomtxt , directional property edits; polymorph ,polymorph →lower-hull edits; doping , single-element substitution and strain). The describe ,
+
+csp , and ood buckets share the same underlying GPT-Narrative [ 38 ] structures ( ≤ 20 atoms, K=8 
+
+40 Classification Q&A    
+
+> Bucket: property_apps -MatterChat-style multiple choice
+> <atoms>
+> Which crystal system does this material belong to? A) Cubic B)
+> Tetragonal C) Orthorhombic D) Hexagonal E) Trigonal F) Monoclinic G)
+> Triclinic.
+> mp-686607 (target: Triclinic)
+> C) Orthorhombic
+> ALM answer (recorded prediction)
+
+Materials-knowledge Q&A (text-only)   
+
+> Bucket: mascqa -no structure input
+> A Schottky defect in an ionic crystal involves: A) an extra cation B)
+> an interstitial anion C) a missing cation-anion pair D) a substituted
+> ion.
+> MaScQA G-XEC-2012-2 (Atomic structure)
+> C) a missing cation-anion pair. A Schottky defect is a stoichiometric
+> defect: a cation and an anion are absent from their lattice sites
+> together, preserving neutrality.
+> ALM answer (recorded prediction)
+
+Stage-2 understanding: atom -> text (continued) 
+
+> User prompt on the left, ALM response on the right. Every string is verbatim from training data / recorded model predictions.
+
+Figure 23: Representative understanding-phase interactions (continued). 
+
+tokens) and differ only in how the prompt is templated; the editing buckets are constructed as explicit input/output structure pairs. The atomtxt or "directional" bucket consists of ALM Bench tasks and was built as described in Appendix C.1. Table 17: Seven-bucket generation training mixture. Different bucket weightings π were found to yield the best performance for ALM Edit and Gen . The weights indicate the likelihood for a row from each bucket to be drawn during training. Bucket Task Rows π (ALM Edit) π (ALM Gen) 
+
+describe long narrative → structure 1,352 ,176 0.08 0.10 
+
+csp (formula, sg) → structure 1,352 ,176 0.15 0.20 
+
+ood noisy template → structure 1,350 ,711 0.08 0.10 
+
+app application class → structure 20 ,000 0.04 0.05 
+
+atomtxt (struct., prop. dir.) → struct. 882 ,499 0.40 0.05 ‡
+
+polymorph (struct., polymorph) → struct. 545 ,145 0.15 0.25 
+
+doping (struct., edit) → structure 1,000 ,000 0.10 0.25 
+
+B.2.2 Bucket-mixture ablations Multi-bucket versus single-bucket. Spreading weight across the seven buckets does slightly reduce the performance of certain individual tasks. In particular, adding the directional ALM Bench editing buckets at the cost of csp weight drops CSP match-rate by 44%. We nonetheless use the multi-bucket mixture throughout, because it is the mixture that enables the directional-editing capability. On the other hand, increasing the weight on the ALM Bench (atomtxt ) bucket from ALM Gen ’s 5% to 
+
+40% lifts directional-editing performance significantly. The directional ceiling on the pooled bridge 41 Base Qwen3-8B    
+
+> (no fine-tune)
+> arXiv bucket
+> dropped
+> arXiv bucket without
+> ChatML tokens
+> arXiv bucket with
+> ChatML tokens
+> 0
+> 10
+> 20
+> 30
+> 40
+> 50
+> 60
+> 70
+> 80
+> Imgur/URL leak rate (%)
+> 0.0%
+> 73.2%
+> 27.7%
+> 0.9%
+> ∼80×
+> Fix
+
+Figure 24: URL-leak rate is set by how the arXiv bucket is formatted. 
+
+is therefore structural rather than data-scale-bound; a different bridge architecture and finetuning method would lead to higher performance. 
+
+C ALM Bench 
+
+We introduce ALM Bench , a benchmark for conditional crystal generation in which the conditioning carries both a structure and a natural-language instruction. It is the first benchmark to score the 
+
+atom +text →atom and atom +text →text tasks. Here, input(s) →output(s) indicates a model capable of taking in a prompt of input modalities and generating responses in output modalities, a notation that will be used frequently in this section. In particular, ALM Bench asks a model to generate a new polymorph of the given crystal that satisfies a described intent , scoring the result against a physical predictor or an LLM judge instead of against a single reference. ALM Edit is evaluated on each task here. The benchmark comprises seven scored tasks: directional editing , CSP, application-consistency ,
+
+polymorph , doping/substitution , strain , and text →structure recovery (similar to the describe bucket in ALM Core ’s instruction tuning dataset) whose metric formulas are given in §D.1 . Every scored rate is reported as the mean ± 95% CI over 5 × N =200 held-out prompts . Fig. 25 visualizes the distributions of structure sizes across the 7 buckets. Generated structures for all tasks (besides the structure recovery task) are briefly relaxed, as detailed in Appendix C.1. 
+
+C.1 Task 1: directional editing (atom +text →atom) 
+
+The directional editing task requires paired structures (A, B ) that share a composition but differ along one property in a known direction. Our final pairing technique builds these pairs entirely within a single parent dataset so that DFT-calculated property labels have consistent levels of theory: it (i) clusters candidate structures by reduced formula, deduplicating near-identical polymorphs; (ii) attaches a MatterSim single-point energy-per-atom (and density / volume) label to every member of a cluster; and (iii) for each source structure emits both a higher-E and a lower-E target drawn from the same cluster. Emitting both directions per source auto-balances the dataset across higher /lower 
+
+prompts. The text prompt ends with “. . . with a higher / lower ⟨property ⟩,” and the input and target materials are the paired structures, accordingly. 
+
+Scoring. We MatterSim-relax both the input and the generated structure (full-cell relaxation, 
+
+fmax =0 .05 , 500 steps, as it de-games a pure lattice rescale, which would otherwise relax straight back to the input volume), then score whether or not the MatterSim-calculated properties have the direction prompted for in language. For density and volume requests, a correct edit must additionally 
+
+be valid, composition-preserving, and structurally distinct from the input under StructureMatcher 
+
+(ltol =0 .3, stol =0 .5, angle_tol =10 ). The headline metric is direction_correct_rate =
+
+42 0 5 10 15 20                              
+
+> Number of atoms
+> 0
+> 200000
+> 400000
+> 600000
+> Count
+> Describe
+> (n= 1, 352, 176, max 20)
+> 0510 15 20
+> Number of atoms
+> 0
+> 200000
+> 400000
+> 600000
+> CSP
+> (n= 1, 352, 176, max 20)
+> 0510 15 20
+> Number of atoms
+> 0
+> 200000
+> 400000
+> 600000
+> OOD
+> (n= 1, 350, 711, max 20)
+> 0510 15 20
+> Number of atoms
+> 0
+> 2000
+> 4000
+> 6000
+> 8000
+> 10000
+> App
+> (n= 20, 000, max 20)
+> 0510 15 20
+> Number of atoms
+> 0
+> 50000
+> 100000
+> 150000
+> Count
+> Directional
+> (n= 269, 608, max 20)
+> 050 100 150
+> Number of atoms
+> 0
+> 50000
+> 100000
+> 150000
+> 200000
+> 250000
+> Polymorph
+> (n= 545, 145, max 360)
+> 050 100 150
+> Number of atoms
+> 0
+> 50000
+> 100000
+> 150000
+> 200000
+> Doping
+> (n= 1, 000, 000, max 360)
+
+Figure 25: Per-dataset atom-count distributions for the structural training data. The structural buckets follow the LLM4Mat/GPT-Narratives distribution; the generation/editing pairs of Appendix B.2 are capped at ≤ 20 atoms per cell. 
+
+(# moved the requested way )/(all scored candidates ), with degenerate / NaN-property gens kept in the denominator. 
+
+Sub-categories. There are three types of directional editing tasks (within which are “higher” and “lower” subtasks): • formation energy Ef : MatterSim total energy per atom, valid at fixed composition; • density ρ: relaxed mass / volume; • volume V : relaxed cell volume per atom; The Ef “higher” prompts, in particular, push against the energy-lowering relaxation prior of the diffusion decoder, whereas a “lower” request takes advantage of the lower-energy distribution of unconditional generations. 
+
+C.2 Task 2: application-consistency (text →atom) 
+
+This task evaluates whether models can take in a generic application prompt that contains no formula and no space group (e.g. “a porous metal hydride for lightweight hydrogen storage”) and generate crystals matching the requested application class. This is a text-conditional crystal generation task. 
+
+Scoring. A GPT-4o-mini or GPT-4o judge (which were ablated across to reveal roughly similar scoring preferences) reads a (prompt, formula, space group, Np, elements, density, volume per atom, formation energy) tuple of the MatterSim-relaxed generation and returns a verdict on the {0, 1, 2} scale. An invalid raw structure is forced to score 0. The headline metric is the per-prompt mean consistency ∈ [0 , 2] , reported alongside the fraction scoring 2 and the fraction judged inconsistent. The judge was independently calibrated against 150 ground-truth (positive, negative-control) pairs across 8 application classes, producing TP 90 /90 and TN 60 /60 , confirming that a high inconsistent-verdict rate reflects the model, not a judge artifact. The dominant failure mode across application classes is that the model omits the required element entirely (a metal-hydride prompt returns a hydrogen-free structure, or a Li-ion-cathode prompt returns a lithium-free one). 
+
+C.3 Task 3: polymorph (atom +text →atom) 
+
+This task consists purely of inputting crystals and instructing the model to “Generate a lower-energy polymorph.” The generated crystal must have the same composition as the input but a different 43 geometry and a lower energy. The StructureMatcher tolerances used to verify that the input and output structures are not identical are ( ltol =0 .3, stol =0 .5, angle_tol =10 ). 
+
+Scoring. The primary metric is the fraction of generations whose MatterSim-relaxed total energy per atom is below the relaxed input’s, gated on the generation being valid, composition-preserving (reduced formula equal to the input), and structurally distinct from the input (StructureMatcher.fit(input, gen) is false). The pairs are MP-derived polymorph →lower-Ehull mappings (the polymorph training bucket of Table 17), held out for evaluation. 
+
+C.4 Task 4: doping substitution (atom +text →atom) 
+
+This task consists of “Substitute element X with element Y ” prompts, wherein the model must perform a clean single-species substitution in a known input crystal. 
+
+Scoring. A generation counts as successful only when the dopant is present, the donor is removed, the per-element ratio matches, the structure is valid , and it is distinct from a naive relabel (the same positions up to numerical precision with element types swapped). Here, the per-element ratio of the target and generated structures can differ by up to 10% .
+
+C.5 Task 5: strain (atom +text →atom) 
+
+Extending the section above (Appendix C.4), another metric to determine if a generated, doped crystal is realistic is calculating its strain compared to the original crystal. The doping edit alone (Task 4) ignores this lattice-deformation axis, so a dedicated strain task is added that shares the same parquet and prompt (“replace X with Y ”) but additionally scores whether the generated cell adjusts its volume by the correct amount. 
+
+Scoring. In addition to the validity and element ratio metrics mentioned in the section above, the strain on the generated doped crystal should be similar to that of the labeled doped crystal. After an initial, short relaxation, the equilibrium strain of the generated crystal is compared to that of the reference, achieving success if they differ by less than 5%. 
+
+C.6 Task 6: text →structure recovery (text →atom) 
+
+This task is to generate crystals from their structure descriptions, the inverse of the understanding 
+
+describe (structure →text) task. We evaluate two prompt styles over the same held-out materials: 
+
+describe (the verbose generation narrative from [ 26 ] and [ 38 ], e.g. “. . . has a tetragonal crystal system with space group P4/nmm”) and OOD (a terse, out-of-training-style spec, e.g. “Show me As, Cu, Si, Ti in 119.56 Å 3 and 8 [atoms]”). 
+
+Scoring. Each generation is scored against the ground-truth structure on how well the elemental compositions match and an ordered StructureMatcher with ltol =0 .3, stol =0 .5,
+
+angle_tol =10 to match the generation to the GT. Intuitively, this is a crystal structure prediction task with a much richer and more free-flowing language prompt. No relaxation is applied. 
+
+Qualitative examples. Figure 26 shows verbatim ALM Edit transcripts ( ALM Bench prompt on the left, model response on the right) across four representative ALM-Bench task types, including one deliberate failure case (a “higher formation energy” request, the arm that pushes against the relaxation prior) to make the scoring concrete. 
+
+D Metrics 
+
+We lay out exact descriptions of each metric used to quantify performance in our work and enable 
+
+ALM Core, Edit, and Gen to serve as comparable baselines for future work. 44 Directional editing - larger unit-cell volume     
+
+> ALM Edit -atom+text -> atom -correct
+> <atoms>
+
+Generate a version of this material with a larger unit-cell volume. 
+
+> input Br2Lu2O2, V/atom 20.98 A^3
+> Generated
+
+Generated structure: volume per atom 26.49 A^3 (+5.51 A^3). Judge: 
+
+correct_direction (score 2/2) -- the output expands the cell as 
+
+requested. 
+
+> ALM Edit - direction_correct = True
+
+Doping / substitution - Ni -> Co   
+
+> ALM Edit -atom+text -> atom
+> <atoms>
+
+Dope this material by replacing all Ni atoms with Co. 
+
+> input Li4Fe5NiO2 (mp-1177537)
+> Generated
+
+Generated Li4Fe5CoO2: the Ni sublattice is replaced by Co, host Li/Fe/O 
+
+sites preserved, cell relaxed (-10.0% volume). 
+
+> target mp-756756 (correct-substitution bucket)
+
+ALM-Bench: atom + text -> atom 
+
+> User prompt on the left, ALM response on the right. Every string is verbatim from training data / recorded model predictions.
+
+Figure 26: ALM-Bench chat examples. D.1 Property prediction metric definitions MAD / MAE. For a regression property we report the ratio of the test-set Mean Absolute Deviation to the model’s Mean Absolute Error, 
+
+MAD /MAE = 
+
+1
+
+n
+
+P
+
+i|yi − ¯y|
+
+1
+
+n
+
+P
+
+i|ˆyi − yi| , (28) where ¯y is the test-set mean. This is the scale-free skill score of LLM4Mat-Bench [ 26 ]: higher is better , MAD /MAE=1 is no better than the mean predictor, and ≥ 5 is the paper-defined “good model” threshold (ratios < 1 are reported only for completeness). Being scale-free, the single ≥ 5
+
+threshold is comparable across all 28 property slices. 
+
+Mean Absolute Error (MAE). Raw 1
+
+n
+
+P
+
+i|ˆyi − yi| in the property’s native units (eV, eV/atom, g/cm 3, Å, etc.); lower is better . MAE is the quantity reported against external regression baselines (Mat2Props, MatText, GNoME-FE, the MatterChat regression tasks) where those baselines publish MAE rather than a skill ratio. As a result, we also show MAEs for selected property prediction tasks in Table 18. 45 Directional editing - higher formation energy (failure)   
+
+> ALM Edit -the unsolved 'higher' arm
+> <atoms>
+
+Generate a metastable variant of this material with higher formation 
+
+energy. 
+
+> input N4Te2, E_f -5.26 eV/atom
+> Generated
+
+Generated structure: E_f -4.09 eV/atom (+1.17). Judge: wrong_direction 
+
+-- here the energy moved the right way, but the 'higher-E_f' arm is at-
+
+chance overall (bridge favours stabilisation). 
+
+> ALM Edit - counted in denominator (honest)
+
+Application-conditional generation (text-only)   
+
+> ALM Edit -text -> atom via planner
+
+Create a biocompatible semimetallic material with zero bandgap for 
+
+implant-based neural-interface applications. 
+
+> app_consistency (no <atoms> input)
+> Generated
+
+Planned + generated Ca2MnCl2O5 (P1, 10 atoms). Judge: inconsistent 
+
+(0/2) -- not semimetallic and not biocompatible; app prompts under-
+
+teach class -> element-set. 
+
+> ALM Edit - honest negative example
+
+ALM-Bench: atom + text -> atom (continued) 
+
+> User prompt on the left, ALM response on the right. Every string is verbatim from training data / recorded model predictions.
+
+Figure 27: ALM-Bench chat examples (continued). 
+
+Table 18: Raw MAE on LLM4Mat-Bench : ALM Core (canonical understanding r=128 +IT) vs CIF structure-input baselines, in the physical units of the unit row. Lower is better; bold marks columns ALM Core wins. These are the absolute errors behind the skill ratios of Table 18; generative-LLM baselines are omitted as there. 
+
+MP JARVIS OQMD GNoME hMOF Model Ef gap Eh ρ Ef Eh Ef gap Ef gap void LCD PLD CO 2
+
+eV/at eV eV/at g/cc eV/at eV/at eV/at eV eV/at eV – Å Å mol/kg 
+
+ALM Core 0.070 0.300 0.052 0.212 0.078 0.063 0.056 0.093 0.034 0.051 0.057 1.25 1.43 3.25 
+
+CGCNN (CIF) 0.123 0.366 0.058 0.246 0.063 0.170 0.033 0.062 0.014 0.045 0.062 1.76 2.04 1.31 
+
+MatBERT (CIF) 0.091 0.348 0.059 0.207 0.084 0.055 0.053 0.058 0.020 0.042 0.110 2.27 2.42 1.58 
+
+LLM-Prop (CIF) 0.070 0.317 0.103 0.156 0.066 0.101 0.039 0.129 0.017 0.098 0.095 2.00 2.50 1.44 
+
+Leak rate. The fraction of rows whose generation is flagged by the parser as aMarkdown/image-URL emission ( ![...] or an imgur/ materialsproject.org link), rather than a materials answer. Leaks count as property prediction failure (never excluded from the denominator). 
+
+Accuracy (multiple choice / classification). For MaScQA, Mat2MCQ, and the MatterChat classification tasks, fraction-correct accuracies are reported. For MatterChat’s five classification tasks we use weighted-F1 (w-F1) to account for class imbalance (e.g. is_metal , is_magnetic ). MaScQA’s numerical-answer items are scored by MAE. 46 MatterChat 9-task scoring. The MatterChat benchmark [ 19 ] bundles five classification tasks (including crystal system, is_magnetic , and is_metal ) scored by w-F1 ( ↑) and three regression tasks (formation energy and energy-above-hull in eV/atom, band gap in eV) scored by MAE/RMSE (↓), n=1000 test rows per task. ALM and all four MatterChat-paper variants are free-form text-generation models (cross-entropy on token probabilities, no per-task regression heads), so the comparison is output-mechanism-matched; the architectural difference is the input-side structural-encoder path and the dominant confound is per-task training exposure, not the head. 
+
+LLM judge. The LLM Judge column of Table 1 tests something the three accuracy benchmarks do not — whether crystal-specialization erodes the model’s ability to discuss materials in natural language. We pose a fixed, in-house set of 190 materials-science questions: 130 short closed-form recall probes (e.g. the general perovskite formula ABX 3; magnetite = Fe 3O4; the cubic-perovskite space group P m ¯3m; the B-site location in ABO 3) and 60 open-ended free-text questions (e.g. describe the ABO 3 perovskite structure; why B-site doping shifts the electronic structure; what makes a good thermoelectric). Each answer is decoded without thinking enabled ( 64 tokens for closed-form responses, 128 for open-ended) and graded by gpt-4o-mini (temperature 0) on a 0–2
+
+rubric: 2 = correct and coherent; 1 = partially correct, with a minor error; 0 = wrong, hallucinated, incoherent, empty, or stuck in a repetition loop. Degenerate or malformed responses are scored to 
+
+0. Alongside the mean score (normalized to [0 , 1] in Table 1) we track an independent degeneracy diagnostic, loop-rate : the fraction of answers whose most-frequent 4-gram repeats ≥ 4 times. Figures 28 and 29 demonstrate examples of the LLM judge. 
+
+D.2 Crystal structure prediction metric details 
+
+This section fixes the exact, reproducible definitions of the CSP metrics reported for ALM Edit 
+
+throughout the paper. 
+
+Matcher. A generated structure is declared a match to its reference if pymatgen’s 
+
+StructureMatcher (wrapped by MatterGen’s OrderedStructureMatcher ) returns a fit at the CDVAE/CrystaLLM tolerances [ 12 , 4], ltol =0.3, stol =0.5, angle_tol =10. The match test is matcher.fit(gen, ref) and the matched-pair RMSD is read from 
+
+matcher.get_rms_dist(gen, ref) , which returns a (rms , max _dist) pair. Following CDVAE, we report the rms component, in Å, normalized as pymatgen normalizes by  V /N p
+
+1/3 (cell volume per atom). 
+
+Per-target aggregation: Match@ 1, Match@ K, RMSE@ 1, RMSE@ K. For one reference we draw K i.i.d. generations {g1, . . . , g K } (the “ n=K generations per row” of Table 2) and compute: • Match@ 1 — indicator that the first generation g1 matches the reference. RMSE@ 1 is the matched RMSD of g1 on a successful match. • Match@ K — indicator that any of the K generations matches the reference. RMSE@ K
+
+is the minimum RMSD over the matched subset min i: gi matches rms( gi, ref) .Reported Match@ 1/Match@ K are the means of these indicators over the nrows targets; reported RMSE@ 1/RMSE@ K are means over matched rows only. CSP rows are reproduced verbatim from Table 1 of [46]. 
+
+D.3 De novo generation metric details ALM Gen is still a fundamentally conditional model, as it requires a prompt to the base language model to produce an output. However, its conditioning is deliberately weak, producing structures that are biased towards, but do not exactly follow, inputted prompts. To measure DNG performance, natural-language structural narratives are sampled from the GPT-Narratives [ 38 ] dataset ( dft_3d ,
+
+mp_3d_2020 , aflow2 , and oqmd narratives). 
+
+Matcher. Uniqueness U and novelty N are computed by the matcher against the generated set (for 
+
+U ) and against the MP-2020 reference set (for N ). To determine whether or not a generated structure matches a set of reference structures, we use MatterGen’s DefaultDisorderedStructureMatcher 
+
+47 with default tolerances ℓtol =0 .2, stol =0 .3, angle tolerance 5◦, the same matcher used by 
+
+mattergen-evaluate and by the LeMat-GenBench protocol. 
+
+Stability. The energy-above-hull Ehull used by each stability gate in Table 6 is the MP-2020-corrected hull energy from a MatterSim single-point relaxation. We report stability at three 
+
+Eh cut-offs, applied to the same generated structures: • Ehull ≤ 0.10 eV/atom: Metastable ( M S ) → MSUN. This is the gate that MatterGen [ 14 ], and Crys-JEPA [75] label “stable,” which we show in Table 19. • Ehull ≤ 0.016 eV/atom: Stable ( S) → SUN. This is the stricter CrystalReasoner [ 39 ]convention. • Ehull ≤ 0: strict Stable → strict SUN. This is the stability metric for LeMat-GenBench [27]. In addition, for LeMat-GenBench, Ehull is evaluated and averaged by a three-MLIP ensemble (MACE-MP + UMA + Orb-V3), each building a self-consistent convex hull from the broader-chemistry LeMat-Bulk reference. All generations are pre-relaxed before scoring. Table 19: De-novo generation on MP-20, metastable-M S convention (Ehull ≤ 0.10 eV/atom).                                                                                                    
+
+> Method M S (%) ↑N(%) ↑MSUN (%) ↑
+> SymmCD †34 .7±1.485 .1±1.519 .0±0.9
+> SGEquiDiff †46 .5±1.974 .8±1.223 .5±0.9
+> DiffCSP++ †39 .7±2.082 .8±1.023 .8±1.3
+> CrysLLMGen-7B †35 .1±1.987 .4±1.122 .9±0.9
+> FlowMM †40 .8±2.083 .1±1.125 .3±1.6
+> FlowLLM †36 .5±1.586 .4±1.525 .1±0.6
+> CDVAE [12] †29 .9±1.296 .5±0.627 .0±1.3
+> DiffCSP [13] †45 .9±1.883 .6±0.630 .9±1.8
+> ADiT †69 .5±1.158 .9±0.930 .3±0.8
+> MatterGen [14] ( Crys-JEPA reprod. )†47 .0±1.186 .6±1.034 .6±1.2
+> Crys-JEPA-full †76 .6±1.183 .3±1.145 .2±1.4
+> MatterGen-Base (our reprod., g=0 uncond) 71 .9±1.262 .5±0.836 .8±1.1
+> ALM Gen (g=0 .5)68 .3±2.667 .8±1.939 .0±3.5
+> ALM Gen (g=0 .5)+T2C-FK 65 .1±3.058 .9±3.923 .9±1.9
+
+D.4 Representational alignment metrics 
+
+The representational analysis of Figure 6B quantifies how information is shared across ALM Edit ’s internal latent spaces. For N =2 ,000 ALM Bench prompts passed through ALM Edit ,four representations f are extracted: the frozen OrbV3 node-wise embeddings, the output of the MLP that projects each token into the LLM embedding space (i.e., turning them into soft tokens), the language model’s K=8 atomistic token embeddings, and the language-to-atomistic producer embedding output C. Their pairwise alignment is measured with two complementary metrics, both bounded to [0 , 1] : information imbalance (global, asymmetric) [50] and CKNNA (local) [52]. 
+
+Information imbalance. This is an asymmetric measure of how much more information one representation holds than another [ 50 ], built on the premise that a representation’s nearest-neighbor ranking is more informative than per-coordinate distances. Let rfij be the nearest-neighbor rank of 
+
+f (xj ) with respect to f (xi) (rank 1 is the nearest), and let cf ≈ rf /N be the associated copula (cumulative) variable. The information imbalance from representation f to g is 
+
+∆( f → g) = 2 lim  
+
+> ϵ→0
+
+cg cf = ϵ , (29) the average g-rank of the points that are nearest neighbors in f . Because rfij ̸ = rgij , the pair 
+
+ ∆( f → g), ∆( g → f ) is asymmetric: both near 0 (bottom-left of an II plot) means the two spaces encode identical information; both near 1 (top-right) means orthogonal information; ∆( f → g) ≈ 0
+
+with ∆( g → f ) ≈ 1 (top-left) means g is contained within f ; and ∆ ≈ 0.5 on both axes means the spaces share information without subsuming one another. Ranks are computed by exact cosine 
+
+k-nearest-neighbor ordering over all N points (full-rank, ii -k=50 ). 48 Centered kernel nearest-neighbor alignment (CKNNA). This is a local latent space similarity that is high when two representations agree on which points are mutual nearest neighbors [ 52 ]. With centered inner-product kernels ¯Kij = ⟨f (xi), f (xj )⟩ − E[⟨f (xi), f (xj )⟩] and ¯Lij defined analogously for g, alignment is restricted to mutual k-nearest-neighbor pairs, 
+
+Align( K, L ) = X
+
+> i,j
+
+α(i, j ) ¯Kij ¯Lij , (30) where α(i, j )=1 iff f (xj ) is among the k nearest neighbors of f (xi) and g(yj ) is among the k nearest neighbors of g(yi), and 0 otherwise; CKNNA is the normalized form 
+
+Align( K, L ) / pAlign( K, K ) Align( L, L ), bounded to [0 , 1] . We use k=25 . II and CKNNA agree across all representation pairs (Figure 6B), so the global information-content reading is corroborated by local neighborhood structure. 49 Factual recall - chemical formula 
+
+FACTUAL probe - item 4 - ALM Edit vs ALM Gen, same question 
+
+What is the chemical formula of calcium titanate? Just the formula. 
+
+CaTiO3 
+
+ALM Edit (full-FT) 
+
+CaO 
+
+ALM Gen (bridge-LoRA) - judge: “the formula for calcium 
+
+titanate is CaTiO3” 
+
+LLM judge: 2/2 
+
+LLM judge: 0/2 
+
+Factual recall - space-group symbol 
+
+FACTUAL probe - item 8 - ALM Edit vs ALM Gen, same question 
+
+Which space group does the canonical cubic perovskite belong to? Just 
+
+the symbol. 
+
+Pm-3m 
+
+ALM Edit (full-FT) - judge: “correct, with the appropriate 
+
+space group symbol” 
+
+Pm 
+
+ALM Gen (bridge-LoRA) - judge: “incorrect space-group symbol; 
+
+incomplete response” 
+
+LLM judge: 2/2 
+
+LLM judge: 0/2 
+
+Open-ended knowledge - perovskite structure 
+
+OPEN probe - item 13 - ALM Edit (full-FT) 
+
+Describe the structure of an ABO3 cubic perovskite: what sits on the 
+
+A-site, the B-site, and the oxygen sublattice? 
+
+An ABO3 cubic perovskite is a class of materials with a general formula ABO3, where A and B are 
+
+cations and O is oxygen. The structure is a cubic unit cell with corner-sharing BO6 octahedra. 
+
+The A-site is occupied by larger, usually mono- or divalent cations, located at the centre of 
+
+the unit cell and surrounded by 12 oxygen atoms in cuboctahedral coordination. 
+
+ALM Edit (full-FT) - judge: “correct and coherent description 
+
+of ABO3 cubic perovskite structure” 
+
+LLM judge: 2/2 
+
+Language retention: gpt-4o-mini knowledge judge 
+
+User prompt on the left, ALM response on the right. Every string is verbatim from training data / recorded model predictions. Figure 28: Materials-knowledge retention judge: verbatim graded exchanges. 
+
+50 Open-ended knowledge - partial answer (1/2) 
+
+OPEN probe - item 15 - ALM Edit (full-FT) 
+
+Name two well-known perovskite-structured oxides and one application of 
+
+each. 
+
+1. Barium titanate (BaTiO3): used as a dielectric in multilayer ceramic capacitors (MLCCs) for 
+
+electronic devices, thanks to its high dielectric constant and low loss. 2. Lead zirconate 
+
+titanate (Pb(Zr,Ti)O3 or PZT): another well-known perovskite-structured oxide, lead zirconate 
+
+titanate, 
+
+ALM Edit (full-FT) - judge: “partially correct; second oxide 
+
+is incomplete and lacks an application” 
+
+LLM judge: 1/2 
+
+Repetition-loop failure mode (loop_rate diagnostic) 
+
+OPEN probe - item 15 - ALM Gen (bridge-LoRA) - loop = True 
+
+Name two well-known perovskite-structured oxides and one application of 
+
+each. 
+
+1. Barium Titanate (BaTiO3): used as a dielectric material in capacitors due to its high 
+
+permittivity. 2. Perovskite Solar Cells (e.g., MAPbI MAPbI MAPbI MAPbI MAPbI MAPbI MAPbI MAPbI 
+
+MAPb MAPb MAPb MAPb MAPb MAPb MAPb MAPb MAPb MAPb 
+
+ALM Gen (bridge-LoRA) - loop detected (4-gram repeats >= 4x); 
+
+judge: “second example is repetitive, incoherent” 
+
+LLM judge: 1/2 
+
+Preserved across both routes (sanity floor) 
+
+FACTUAL probe - items 11 & 9 - both score 2/2 
+
+What is the chemical symbol for gold? 
+
+The chemical symbol for gold is Au. 
+
+ALM Edit (full-FT) - judge: “correct and coherent” 
+
+What is 23 + 19? Just the number. 
+
+42 
+
+ALM Gen (bridge-LoRA) - judge: “correct and coherent” 
+
+LLM judge: 2/2 
+
+LLM judge: 2/2 
+
+Language retention: gpt-4o-mini knowledge judge (continued) 
+
+User prompt on the left, ALM response on the right. Every string is verbatim from training data / recorded model predictions. Figure 29: Materials-knowledge retention judge (continued). 
+
+51

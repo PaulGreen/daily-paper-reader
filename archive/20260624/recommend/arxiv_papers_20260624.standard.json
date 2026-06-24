@@ -1,0 +1,399 @@
+{
+  "mode": "standard",
+  "generated_at": "2026-06-24T21:55:07.176570+00:00",
+  "stats": {
+    "mode": "standard",
+    "tag_count": 1,
+    "deep_divecandidates": 5,
+    "deep_cap": 6,
+    "deep_selected": 5,
+    "quick_candidates": 5,
+    "quick_skim_target": 11,
+    "quick_selected": 5
+  },
+  "deep_dive": [
+    {
+      "id": "2606.22811v1",
+      "source": "arxiv",
+      "title": "Bagpiper-TTS: Natural Language Guided Universal Speech Synthesis",
+      "abstract": "Classical TTS systems typically rely on rigid input formats and predefined metadata slots, limiting their ability to fulfill flexible user requirements. This paper introduces Bagpiper-TTS, a universal speech synthesis system that deals with diverse natural language user requests. Given a natural language prompt, Bagpiper-TTS first reasons over the users' intent to derive a rich caption, i.e., a comprehensive textual blueprint encompassing both transcription and nuanced metadata. Subsequently, this caption guides the synthesis of the target speech. Our model inherently supports a broad spectrum of tasks besides classical TTS applications, including multi-talker, intent-to-speech, role-play synthesis, singing voice synthesis, and more. Experimental results demonstrate that Bagpiper-TTS achieves an 1.7% Word Error Rate (WER) on the Seed-TTS-Eval benchmark and match the performance of dedicated models in both LLM-as-a-judge and human subjective evaluations across multiple applications.",
+      "authors": [
+        "Jinchuan Tian",
+        "Haoran Wang",
+        "Siddhant Arora",
+        "Takashi Maekaku",
+        "Keita Goto",
+        "Jin Sakuma",
+        "Yusuke Shinohara",
+        "Chao-Han Huck Yang",
+        "Shinji Watanabe"
+      ],
+      "primary_category": "cs.CL",
+      "categories": [
+        "cs.CL",
+        "cs.AI"
+      ],
+      "published": "2026-06-22T03:40:28+00:00",
+      "link": "https://arxiv.org/pdf/2606.22811v1",
+      "tags": [
+        "keyword:prompt-learn",
+        "query:prompt-learn"
+      ],
+      "llm_score": 9.0,
+      "llm_evidence_en": "uses natural language prompts to guide universal speech synthesis",
+      "llm_evidence_cn": "利用自然语言提示引导通用语音合成",
+      "llm_evidence": "利用自然语言提示引导通用语音合成",
+      "canonical_evidence": "利用自然语言提示引导通用语音合成",
+      "llm_tldr_en": "Bagpiper-TTS takes a natural language prompt, infers user intent to create a rich caption, and then synthesizes speech accordingly, enabling flexible and universal speech generation.",
+      "llm_tldr_cn": "Bagpiper-TTS接收自然语言提示，首先推理用户意图生成包含转录和丰富元数据的文本蓝图，再据此合成目标语音。该系统统一支持多说话人、意图到语音、角色扮演合成、歌声合成等多种任务，突破了传统TTS需依赖刚性输入格式的限制。实验表明，自然语言提示有效引导了高性能的通用语音合成。",
+      "llm_tldr": "Bagpiper-TTS接收自然语言提示，首先推理用户意图生成包含转录和丰富元数据的文本蓝图，再据此合成目标语音。该系统统一支持多说话人、意图到语音、角色扮演合成、歌声合成等多种任务，突破了传统TTS需依赖刚性输入格式的限制。实验表明，自然语言提示有效引导了高性能的通用语音合成。",
+      "llm_tags": [
+        "query:prompt-learn"
+      ],
+      "matched_query_tag": "query:prompt-learn",
+      "matched_query_text": "discrete natural language prompts for guiding models",
+      "matched_requirement_id": "req-2",
+      "selection_source": "fresh_fetch"
+    },
+    {
+      "id": "2606.24004v1",
+      "source": "arxiv",
+      "title": "Towards Spec Learning: Inference-Time Alignment from Preference Pairs",
+      "abstract": "Steering a large language model (LLM) toward a desired behavior typically relies on an iterative process of hand-crafting a prompt based on a careful inspection of the model's responses. This is an involved, brittle, and error-prone process. Preference-based fine-tuning is a more rigorous but often prohibitively expensive solution. We propose spec learning, a framework that relies on a brief user instruction and a small set of preference judgments. These are compiled into specifications in the form of natural-language prompts for an LLM. Specifications condition LLMs at inference time, and no parameter updates to the underlying models are required. We show that the responses generated based on the compiled specifications often outperform direct preference optimization (DPO) on datasets from specialized domains whose preference signal is dense. Unlike opaque weight updates, the resulting specifications are human-readable and double as interpretable and transparent written embodiments of the preference signal that produced them.",
+      "authors": [
+        "Dhriti Krishnan",
+        "Tejas Goyal",
+        "Jaromir Savelka"
+      ],
+      "primary_category": "cs.CL",
+      "categories": [
+        "cs.CL",
+        "cs.AI"
+      ],
+      "published": "2026-06-22T23:21:55+00:00",
+      "link": "https://arxiv.org/pdf/2606.24004v1",
+      "tags": [
+        "keyword:prompt-learn",
+        "query:prompt-learn"
+      ],
+      "llm_score": 9.0,
+      "llm_evidence_en": "Compiles user instructions and preference pairs into natural-language prompts automatically",
+      "llm_evidence_cn": "将用户指令和偏好对自动编译成自然语言提示",
+      "llm_evidence": "将用户指令和偏好对自动编译成自然语言提示",
+      "canonical_evidence": "将用户指令和偏好对自动编译成自然语言提示",
+      "llm_tldr_en": "Proposes spec learning, compiling brief instructions and preference judgments into inference-time natural-language prompts that steer LLMs without fine-tuning, outperforming manual prompt engineering.",
+      "llm_tldr_cn": "本文提出规范学习（spec learning）框架，利用简短用户指令和少量偏好判断自动生成自然语言规范提示，在推理时引导LLM行为，无需参数更新；实验显示生成的响应常优于直接偏好优化等方法，为自动化提示生成提供了新途径。",
+      "llm_tldr": "本文提出规范学习（spec learning）框架，利用简短用户指令和少量偏好判断自动生成自然语言规范提示，在推理时引导LLM行为，无需参数更新；实验显示生成的响应常优于直接偏好优化等方法，为自动化提示生成提供了新途径。",
+      "llm_tags": [
+        "query:prompt-learn"
+      ],
+      "matched_query_tag": "query:prompt-learn",
+      "matched_query_text": "Techniques for automatic prompt generation in natural language processing",
+      "matched_requirement_id": "req-10",
+      "selection_source": "fresh_fetch"
+    },
+    {
+      "id": "2606.24841v1",
+      "source": "arxiv",
+      "title": "Matching Tasks to Objectives: Fine-Tuning and Prompt-Tuning Strategies for Encoder-Decoder Pre-trained Language Models",
+      "abstract": "Prompt-based learning has emerged as a dominant paradigm in natural language processing. This study explores the impact of diverse pre-training objectives on the performance of encoder-decoder pre-trained language models across generation and question answering tasks, with a focus on commonsense knowledge retrieval and completion. We highlight the benefits of incorporating multiple objectives during both pre-training and fine-tuning stages. We introduce the Match Task to Objective (MTO) framework and methods for determining the appropriate objective for a given task. This framework offers automated methods to prepare task-related data for adaptation through unsupervised training, based on the identified objective. In the fine-tuning stage, we design novel templates that align with the objectives of the pre-training and adaptation stages. When aligned with task requirements, these strategies can achieve a performance gain of over 120\\% compared to conventional methods in few-shot settings. They significantly outperform related works in few-shot settings and exceed the baseline even in full-dataset scenarios. Furthermore, we extend this approach to include prompt-tuning methodologies, providing guidance for more effective soft prompt engineering and optimization. Our strategies significantly enhance prompt-tuning performance as well. These insights hold substantial value, precisely guiding the selection and optimization of models customized for specific tasks. Code is available at https://github.com/puraminy/MTO/",
+      "authors": [
+        "Ahmad Pouramini",
+        "Hesham Faili"
+      ],
+      "primary_category": "cs.AI",
+      "categories": [
+        "cs.AI",
+        "cs.CL"
+      ],
+      "published": "2026-06-23T17:21:03+00:00",
+      "link": "https://arxiv.org/pdf/2606.24841v1",
+      "tags": [
+        "keyword:prompt-learn",
+        "query:prompt-learn"
+      ],
+      "llm_score": 9.0,
+      "llm_evidence_en": "prompt-tuning strategies for continuous prompt embeddings",
+      "llm_evidence_cn": "连续提示嵌入的提示调优策略",
+      "llm_evidence": "连续提示嵌入的提示调优策略",
+      "canonical_evidence": "连续提示嵌入的提示调优策略",
+      "llm_tldr_en": "Proposes MTO framework to match tasks to pre-training objectives for prompt-tuning encoder-decoder PLMs, showing multi-objective benefits.",
+      "llm_tldr_cn": "该研究探究编码器-解码器预训练语言模型上，不同预训练目标对生成与问答任务提示调优性能的影响，提出匹配任务到目标(MTO)框架自动选择合适目标，通过无监督训练准备任务数据，实验表明多目标融合提升提示调优效果，为提示学习方法选择提供了新思路。",
+      "llm_tldr": "该研究探究编码器-解码器预训练语言模型上，不同预训练目标对生成与问答任务提示调优性能的影响，提出匹配任务到目标(MTO)框架自动选择合适目标，通过无监督训练准备任务数据，实验表明多目标融合提升提示调优效果，为提示学习方法选择提供了新思路。",
+      "llm_tags": [
+        "query:prompt-learn"
+      ],
+      "matched_query_tag": "query:prompt-learn",
+      "matched_query_text": "gradient-based tuning of continuous prompt embeddings",
+      "matched_requirement_id": "req-6",
+      "selection_source": "fresh_fetch"
+    },
+    {
+      "id": "2606.24259v1",
+      "source": "arxiv",
+      "title": "SURGELLM: Rethinking Multi-Task Evaluation through Task-Aware Feature Gating with Class-Balanced Normalization",
+      "abstract": "Fine-tuned encoders deployed across heterogeneous NLP tasks face three compounding problems: mismatched inductive biases, class-imbalance corruption of feature statistics, and no mechanism to condition attention on external lexical knowledge. We introduce \\textbf{\\surgellm}, a unified transformer framework that addresses each with a dedicated lightweight module: a \\emph{surgical feature gate} (learned per-dimension sigmoid over curated lexical indicators and \\texttt{[CLS]}; provably degenerates to identity when features are uninformative), \\emph{task-conditioned prefix tokens} (quantized feature values and task identity prepended to every input), and \\emph{Instance-Weighted Normalization} (IWN; removes class-prior bias from gate statistics). We prove an excess-risk bound linking gate benefit to \\emph{surgical feature alignment}. Across four tasks, SST-2, multi-hop retrieval, LLM-prompt attribution, and authorship detection, covering 17,830 examples and eleven model variants over three seeds, the IWN variant achieves macro-F1 \\textbf{0.940} ($+0.036$ over the strongest non-IWN baseline; $+0.130$ on authorship detection). A random-vocabulary control ($-0.028$ avg.\\ F1) confirms gains are lexical, not parametric. Code, vocabularies, and a $99.5\\%$-recovery auto-extraction recipe are released.",
+      "authors": [
+        "Noor Islam S. Mohammad",
+        "Ulug Bayazit"
+      ],
+      "primary_category": "cs.CL",
+      "categories": [
+        "cs.CL",
+        "cs.AI"
+      ],
+      "published": "2026-06-23T07:47:21+00:00",
+      "link": "https://arxiv.org/pdf/2606.24259v1",
+      "tags": [
+        "keyword:prompt-learn",
+        "query:prompt-learn"
+      ],
+      "llm_score": 8.0,
+      "llm_evidence_en": "Uses task-conditioned prefix tokens (continuous vectors) prepended to every input.",
+      "llm_evidence_cn": "使用任务条件下的前缀令牌（连续向量）附加到每个输入。",
+      "llm_evidence": "使用任务条件下的前缀令牌（连续向量）附加到每个输入。",
+      "canonical_evidence": "使用任务条件下的前缀令牌（连续向量）附加到每个输入。",
+      "llm_tldr_en": "SURGELLM introduces task-conditioned prefix tokens as continuous prompts, along with surgical feature gating and instance-weighted normalization, to improve multi-task NLP encoder performance under class imbalance and inductive bias mismatch.",
+      "llm_tldr_cn": "本文针对多任务NLP编码器面临的归纳偏置不匹配、类别不平衡和外部知识缺失问题，提出SURGELLM框架。该框架将任务条件化的前缀令牌作为连续提示嵌入输入，并辅以手术式特征门控和实例加权归一化。实验表明，这些轻量级模块能有效提升多任务评估性能，尤其在类别不平衡场景下鲁棒性突出，为多任务模型的高效适配提供了统一解决方案。",
+      "llm_tldr": "本文针对多任务NLP编码器面临的归纳偏置不匹配、类别不平衡和外部知识缺失问题，提出SURGELLM框架。该框架将任务条件化的前缀令牌作为连续提示嵌入输入，并辅以手术式特征门控和实例加权归一化。实验表明，这些轻量级模块能有效提升多任务评估性能，尤其在类别不平衡场景下鲁棒性突出，为多任务模型的高效适配提供了统一解决方案。",
+      "llm_tags": [
+        "query:prompt-learn"
+      ],
+      "matched_query_tag": "query:prompt-learn",
+      "matched_query_text": "continuous vector representations used as prompts",
+      "matched_requirement_id": "req-1",
+      "selection_source": "fresh_fetch"
+    },
+    {
+      "id": "2606.24267v1",
+      "source": "arxiv",
+      "title": "Pigeonholing: Bad prompts hurt models to collapse and make mistakes",
+      "abstract": "While in-context learning is generally shown to be effective in Large Language Models (LLMs), bad contexts can cause performance degradation and mode collapse, a phenomenon we call \"pigeonholing.\" **Unintentionally bad** contexts can happen without malicious jailbreaking intents: For example, a user asks the model to justify an incorrect math theorem or fails to correct the model's buggy code. Specifically, we investigate ``pigeonholing\" in two scenarios: (1) when the user suggests a solution, and (2) when the conversation context includes the assistant's previous (incorrect) responses. Our experiments across 10 verifiable and open-ended tasks with 10 different models show that pigeonholing manifests in several ways: (1) repeating the incorrect answers from context (leading to 38-40% performance drop), (2) converging on a narrow set of answers in coding and text generation without exploring alternatives, and (3) flipping stance on controversial topics to align with the user or the assistant's previous claims. We find that pigeonholing worsens almost monotonically with the number of conversation turns (performance drops by additional 14+% as repeated mistakes increase from 1 to 5), and pigeonholing-induced mode collapse can happen even when the provided example is correct. As a step toward mitigation, we propose RLVR with synthetic errors which improves models by 43-60% under bad contexts compared to vanilla RLVR baselines.",
+      "authors": [
+        "Hyunji Nam",
+        "Keertana Chidambaram",
+        "Dorottya Demszky",
+        "Natasha Jaques"
+      ],
+      "primary_category": "cs.CL",
+      "categories": [
+        "cs.CL",
+        "cs.AI"
+      ],
+      "published": "2026-06-23T07:52:22+00:00",
+      "link": "https://arxiv.org/pdf/2606.24267v1",
+      "tags": [
+        "keyword:prompt-learn",
+        "query:prompt-learn"
+      ],
+      "llm_score": 8.0,
+      "llm_evidence_en": "Investigates how bad demonstrations in the prompt cause mode collapse and mistakes in LLMs",
+      "llm_evidence_cn": "研究提示中不良示例如何导致大语言模型模式崩溃和错误",
+      "llm_evidence": "研究提示中不良示例如何导致大语言模型模式崩溃和错误",
+      "canonical_evidence": "研究提示中不良示例如何导致大语言模型模式崩溃和错误",
+      "llm_tldr_en": "Shows that unintentionally bad prompts or contexts cause LLMs to collapse into repeating incorrect answers or becoming unhelpful, even in open-ended tasks, across 10 models and 10 tasks.",
+      "llm_tldr_cn": "揭示即使是非恶意的错误提示或对话上下文，也会导致大语言模型陷入“pigeonholing”状态，即重复错误答案或丧失帮助能力。在10种模型和10项验证性及开放式任务上的实验表明，这种效应在数学与代码等多种跨领域场景中普遍存在。",
+      "llm_tldr": "揭示即使是非恶意的错误提示或对话上下文，也会导致大语言模型陷入“pigeonholing”状态，即重复错误答案或丧失帮助能力。在10种模型和10项验证性及开放式任务上的实验表明，这种效应在数学与代码等多种跨领域场景中普遍存在。",
+      "llm_tags": [
+        "query:prompt-learn"
+      ],
+      "matched_query_tag": "query:prompt-learn",
+      "matched_query_text": "learning from demonstrations provided in the prompt context",
+      "matched_requirement_id": "req-3",
+      "selection_source": "fresh_fetch"
+    }
+  ],
+  "quick_skim": [
+    {
+      "id": "2606.20518v1",
+      "source": "arxiv",
+      "title": "FlowEdit: Associative Memory for Lifelong Pronunciation Adaptation in Flow-Matching TTS",
+      "abstract": "Flow-matching text-to-speech systems achieve remarkable zero-shot quality but remain static after deployment: pronunciation errors on out-of-vocabulary proper nouns persist unless the model is retrained. We introduce FlowEdit, a life-long adaptation framework for frozen flow-matching TTS that learns pronunciation corrections as latent conditioning edits rather than weight updates. When corrective feedback is provided, FlowEdit optimizes a token-level perturbation in the text embedding space, then stores the correction in a Modern Hopfield Network serving as content-addressable episodic memory. At inference, corrections are retrieved via soft attention with a similarity gate, enabling fuzzy morphological matching. On our curated benchmark of 312 multilingual proper nouns across 18 language families, FlowEdit reduces target-word Phoneme Error Rate by 92.7% relative to the zero-shot baseline while maintaining identical general-speech quality. Corrections complete in approximately 15 seconds on a single GPU.",
+      "authors": [
+        "Harshit Singh",
+        "Ayush Pratap Singh",
+        "Nityanand Mathur"
+      ],
+      "primary_category": "cs.AI",
+      "categories": [
+        "cs.AI"
+      ],
+      "published": "2026-06-18T17:36:02+00:00",
+      "link": "https://arxiv.org/pdf/2606.20518v1",
+      "tags": [
+        "keyword:prompt-learn",
+        "query:prompt-learn"
+      ],
+      "llm_score": 7.0,
+      "llm_evidence_en": "Learns latent conditioning edits as embedding perturbations, analogous to continuous prompt tuning",
+      "llm_evidence_cn": "将隐式条件编辑学习为嵌入扰动，类似于连续提示调优",
+      "llm_evidence": "将隐式条件编辑学习为嵌入扰动，类似于连续提示调优",
+      "canonical_evidence": "将隐式条件编辑学习为嵌入扰动，类似于连续提示调优",
+      "llm_tldr_en": "Proposes FlowEdit, a lifelong TTS adaptation method that optimizes token-level embedding perturbations to correct pronunciation errors without weight updates, stored in associative memory for efficient retrieval.",
+      "llm_tldr_cn": "提出FlowEdit，一种终身文本到语音自适应框架，通过在文本嵌入空间中优化Token级扰动来学习发音修正，无需更新模型权重，并将修正结果存储在联想记忆中实现快速检索。实验表明该方法能在不重新训练的情况下有效纠正专有名词的发音错误。",
+      "llm_tldr": "提出FlowEdit，一种终身文本到语音自适应框架，通过在文本嵌入空间中优化Token级扰动来学习发音修正，无需更新模型权重，并将修正结果存储在联想记忆中实现快速检索。实验表明该方法能在不重新训练的情况下有效纠正专有名词的发音错误。",
+      "llm_tags": [
+        "query:prompt-learn"
+      ],
+      "matched_query_tag": "query:prompt-learn",
+      "matched_query_text": "continuous vector representations used as prompts",
+      "matched_requirement_id": "req-1",
+      "selection_source": "fresh_fetch",
+      "quick_tier": "7"
+    },
+    {
+      "id": "2606.21395v1",
+      "source": "arxiv",
+      "title": "Atomistic Language Models Understand and Generate Materials",
+      "abstract": "Atomistic structure and natural language have long been modeled separately, with language models either calling atomistic models as tools or being fine-tuned on lossy textual encodings that discard atomistic information. We introduce Atomistic Language Models (ALMs) to pursue native multimodality, in which a single language backbone understands atomistic structures, generates materials from natural language, and optimizes crystal structures as instructed by text. By unifying a pretrained atomistic encoder, large language model, and denoising diffusion model through purely continuous projectors and staged training, ALMs achieve state-of-the-art results on crystal structure prediction and de novo generation. ALMs are enabled by a continuous bridge that maps language model embeddings directly into the steering space of atomistic diffusion, and are assisted by Text-to-Crystal Feynman-Kac (T2C-FK), a particle-based sampler that scores partial denoising trajectories to enforce stoichiometric targets at inference time. To evaluate the ability of ALMs to optimize and generate materials from natural-language prompts and 3D atom-coordinate inputs, we introduce ALM Bench, the first benchmark for text-conditioned crystal generation and optimization. Code, training data, and model weights will be released soon.",
+      "authors": [
+        "Sathya Edamadaka",
+        "Krithik Ramesh",
+        "Ju Li",
+        "Rafael Gómez-Bombarelli"
+      ],
+      "primary_category": "cs.LG",
+      "categories": [
+        "cs.LG",
+        "cond-mat.mtrl-sci"
+      ],
+      "published": "2026-06-19T13:01:45+00:00",
+      "link": "https://arxiv.org/pdf/2606.21395v1",
+      "tags": [
+        "keyword:prompt-learn"
+      ],
+      "llm_score": 7.0,
+      "llm_evidence_en": "Purely continuous projectors between LLM and other modalities act as soft prompts.",
+      "llm_evidence_cn": "LLM与其他模态之间的纯连续投影器充当软提示。",
+      "llm_evidence": "LLM与其他模态之间的纯连续投影器充当软提示。",
+      "canonical_evidence": "LLM与其他模态之间的纯连续投影器充当软提示。",
+      "llm_tldr_en": "Atomistic Language Models use continuous projectors to bridge a pretrained LLM with atomistic data, effectively using learned continuous vectors as prompts to enable material understanding, generation, and optimization in a single multimodal model.",
+      "llm_tldr_cn": "本文针对原子结构与自然语言模态融合的挑战，提出原子语言模型（ALM），通过连续投影器将预训练原子编码器、大语言模型和去噪扩散模型统一起来。这些纯连续投影器作为软提示，引导语言模型理解原子结构、从自然语言生成材料，并按文本指令优化晶体结构。实验在晶体结构预测和从头生成任务上达到最优性能，展示了连续向量作为跨模态提示的有效性，为多模态科学发现提供了通用框架。",
+      "llm_tldr": "本文针对原子结构与自然语言模态融合的挑战，提出原子语言模型（ALM），通过连续投影器将预训练原子编码器、大语言模型和去噪扩散模型统一起来。这些纯连续投影器作为软提示，引导语言模型理解原子结构、从自然语言生成材料，并按文本指令优化晶体结构。实验在晶体结构预测和从头生成任务上达到最优性能，展示了连续向量作为跨模态提示的有效性，为多模态科学发现提供了通用框架。",
+      "llm_tags": [
+        "query:prompt-learn"
+      ],
+      "matched_query_tag": "query:prompt-learn",
+      "matched_query_text": "continuous vector representations used as prompts",
+      "matched_requirement_id": "req-1",
+      "selection_source": "fresh_fetch",
+      "quick_tier": "7"
+    },
+    {
+      "id": "2606.21786v1",
+      "source": "arxiv",
+      "title": "RocketPFN: Accurate Time Series Classification via In-Context Learning",
+      "abstract": "We introduce RocketPFN, a training-free pipeline for time series classification that combines random convolutional feature extraction (Rocket) with in-context classification via a pretrained tabular foundation model (TabPFN v2.5). On 92 UCR datasets (30-resample protocol), RocketPFN matches HC2, the strongest published method on the archive, in mean accuracy (both 0.900, Wilcoxon p=0.50), with no training on the target data and a median inference time of 30 seconds per fold. It also significantly outperforms every individual classifier in the HC2 ensemble. On UEA (20 datasets) the difference is likewise not statistically significant. A separate comparison concerns TSC foundation models: when paired with the same downstream classifier, MOMENT, Mantis, and MantisV2 are all significantly outperformed by RocketPFN using fewer extracted features and no learned parameters (p<0.001 in each case). This holds even when the encoders were pretrained on corpora that include the UCR training samples. We propose this two-stage pipeline as a reference point for evaluating zero-shot TSC foundation models.",
+      "authors": [
+        "Franco Martino O'Rourke",
+        "Ana Trisovic",
+        "Dimitris Bertsimas"
+      ],
+      "primary_category": "cs.LG",
+      "categories": [
+        "cs.LG"
+      ],
+      "published": "2026-06-19T22:27:34+00:00",
+      "link": "https://arxiv.org/pdf/2606.21786v1",
+      "tags": [
+        "keyword:prompt-learn",
+        "query:prompt-learn"
+      ],
+      "llm_score": 7.0,
+      "llm_evidence_en": "Combines random convolutional features with in-context learning via a pretrained tabular model for time series classification",
+      "llm_evidence_cn": "结合随机卷积特征与预训练表格模型的上下文学习进行时间序列分类",
+      "llm_evidence": "结合随机卷积特征与预训练表格模型的上下文学习进行时间序列分类",
+      "canonical_evidence": "结合随机卷积特征与预训练表格模型的上下文学习进行时间序列分类",
+      "llm_tldr_en": "Introduces RocketPFN, a training-free pipeline that uses in-context learning with a tabular foundation model to classify time series, matching state-of-the-art accuracy with no target data training.",
+      "llm_tldr_cn": "提出RocketPFN，一种无需训练的时间序列分类流程，将随机卷积特征提取与预训练表格基础模型的上下文分类相结合。在92个UCR数据集上，平均准确率与最强方法持平，且无需目标数据训练。",
+      "llm_tldr": "提出RocketPFN，一种无需训练的时间序列分类流程，将随机卷积特征提取与预训练表格基础模型的上下文分类相结合。在92个UCR数据集上，平均准确率与最强方法持平，且无需目标数据训练。",
+      "llm_tags": [
+        "query:prompt-learn"
+      ],
+      "matched_query_tag": "query:prompt-learn",
+      "matched_query_text": "providing a few examples in the prompt to adapt model behavior",
+      "matched_requirement_id": "req-4",
+      "selection_source": "fresh_fetch",
+      "quick_tier": "7"
+    },
+    {
+      "id": "2606.21981v1",
+      "source": "arxiv",
+      "title": "Can LLMs Control Readability? A Multi-Dimensional Evaluation Framework for CEFR-Controlled Arabic Generation",
+      "abstract": "While Large Language Models (LLMs) can generate fluent Arabic text, their ability to reliably control readability levels remains unclear. We propose a multi-dimensional evaluation framework for Common European Framework of Reference for Language (CEFR)-controlled Arabic text generation, assessing whether instruction-following LLMs can serve as reliable generators for adaptive language learning. Our framework integrates controlled prompting, automatic readability prediction using a validated Taha-19 model, lexical constraint validation, and syntactic complexity profiling. Results show that structured prompting substantially improves CEFR alignment. In particular, CEFR-guided prompting with lexical constraints achieves the highest conformity to reference linguistic profiles (0.91 cosine similarity) and near-perfect agreement with predicted readability levels (0.99), while unconstrained prompting exhibits weak control. These findings establish an empirical foundation for integrating readability-aware Arabic text generation into adaptive educational systems.",
+      "authors": [
+        "Nour Rabih",
+        "Chatrine Qwaider",
+        "Ted Briscoe"
+      ],
+      "primary_category": "cs.CL",
+      "categories": [
+        "cs.CL",
+        "cs.LG"
+      ],
+      "published": "2026-06-20T10:30:33+00:00",
+      "link": "https://arxiv.org/pdf/2606.21981v1",
+      "tags": [
+        "keyword:prompt-learn",
+        "query:prompt-learn"
+      ],
+      "llm_score": 7.0,
+      "llm_evidence_en": "CEFR-guided prompting with lexical constraints",
+      "llm_evidence_cn": "CEFR引导的提示与词汇约束",
+      "llm_evidence": "CEFR引导的提示与词汇约束",
+      "canonical_evidence": "CEFR引导的提示与词汇约束",
+      "llm_tldr_en": "Evaluates LLM readability control for Arabic, showing structured prompting improves CEFR alignment via an evaluation framework.",
+      "llm_tldr_cn": "该工作评估大语言模型在控制阿拉伯语文本可读性方面的能力，通过引入包含自动可读性预测、词汇约束验证和句法复杂度分析的多维评估框架，实验表明结构化提示显著提升了生成文本与CEFR等级的对齐度，为自适应语言学习提供了可靠生成器的评估方法。",
+      "llm_tldr": "该工作评估大语言模型在控制阿拉伯语文本可读性方面的能力，通过引入包含自动可读性预测、词汇约束验证和句法复杂度分析的多维评估框架，实验表明结构化提示显著提升了生成文本与CEFR等级的对齐度，为自适应语言学习提供了可靠生成器的评估方法。",
+      "llm_tags": [
+        "query:prompt-learn"
+      ],
+      "matched_query_tag": "query:prompt-learn",
+      "matched_query_text": "discrete natural language prompts for guiding models",
+      "matched_requirement_id": "req-2",
+      "selection_source": "fresh_fetch",
+      "quick_tier": "7"
+    },
+    {
+      "id": "2606.24381v1",
+      "source": "arxiv",
+      "title": "On the Stability of Prompt Ranking in Large Language Model Evaluation",
+      "abstract": "Prompt-based interaction has become a dominant paradigm for using large language models (LLMs), where multiple candidate prompts are evaluated and the top-ranked one is selected for downstream use. This workflow implicitly assumes that prompt rankings are stable under minor variations in evaluation conditions. In this paper, we systematically study prompt ranking stability under common sources of variability, including random seeds and limited evaluation subsets. Across three open-weight LLMs and two benchmark tasks, we find that while overall rank correlations are often moderate to high, the identity of the top-performing prompt frequently changes, leading to unreliable selection decisions. To address this issue, we propose a simple stability-aware selection strategy based on a lower confidence bound, which accounts for both performance and variance. Our results show that this approach improves robustness in unstable settings while remaining competitive in more stable regimes. These findings highlight the importance of accounting for evaluation uncertainty in prompt selection and LLM benchmarking.",
+      "authors": [
+        "Shaoshuai Du",
+        "Penghao Liang",
+        "Yixian Shen",
+        "Chuanqi Shi",
+        "Hang Zhang",
+        "Lun Wang"
+      ],
+      "primary_category": "cs.CL",
+      "categories": [
+        "cs.CL",
+        "cs.AI"
+      ],
+      "published": "2026-06-23T10:13:47+00:00",
+      "link": "https://arxiv.org/pdf/2606.24381v1",
+      "tags": [
+        "keyword:prompt-learn",
+        "query:prompt-learn"
+      ],
+      "llm_score": 7.0,
+      "llm_evidence_en": "Studies stability of discrete prompt rankings for LLM evaluation",
+      "llm_evidence_cn": "研究离散提示排名在大语言模型评估中的稳定性",
+      "llm_evidence": "研究离散提示排名在大语言模型评估中的稳定性",
+      "canonical_evidence": "研究离散提示排名在大语言模型评估中的稳定性",
+      "llm_tldr_en": "Finds that top-ranked prompt identity often changes under small variations, and proposes a stability-aware selection method to improve reliability of prompt selection for LLM evaluation.",
+      "llm_tldr_cn": "本文发现LLM评估中提示的排名在随机种子和有限子集等微小变化下不稳定，顶尖提示经常变化，导致选择不可靠；提出稳定性感知的选择方法以提升提示选择的可靠性，对基于提示的LLM应用有实际意义。",
+      "llm_tldr": "本文发现LLM评估中提示的排名在随机种子和有限子集等微小变化下不稳定，顶尖提示经常变化，导致选择不可靠；提出稳定性感知的选择方法以提升提示选择的可靠性，对基于提示的LLM应用有实际意义。",
+      "llm_tags": [
+        "query:prompt-learn"
+      ],
+      "matched_query_tag": "query:prompt-learn",
+      "matched_query_text": "discrete natural language prompts for guiding models",
+      "matched_requirement_id": "req-2",
+      "selection_source": "fresh_fetch",
+      "quick_tier": "7"
+    }
+  ]
+}

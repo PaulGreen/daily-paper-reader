@@ -1,0 +1,217 @@
+{
+  "mode": "standard",
+  "generated_at": "2026-06-25T22:06:29.546462+00:00",
+  "stats": {
+    "mode": "standard",
+    "tag_count": 1,
+    "deep_divecandidates": 2,
+    "deep_cap": 6,
+    "deep_selected": 2,
+    "quick_candidates": 3,
+    "quick_skim_target": 11,
+    "quick_selected": 3
+  },
+  "deep_dive": [
+    {
+      "id": "2606.22803v2",
+      "source": "arxiv",
+      "title": "Towards Fast Domain Adaptation and Fine-Grained User Simulation for Evaluating Conversational Recommender Systems",
+      "abstract": "Conversational Recommender Systems (CRSs) enhance user experience through multi-turn interactions, yet evaluating their performance remains challenging. While Large Language Model (LLM) based user simulators are effective, they suffer from three key limitations: (1) Lack of Domain Adaptability: Reliance on fixed prompts and predefined action spaces hinders transfer to novel domains; (2) Limited User Modeling: Inability to accurately replicate subtle linguistic styles and dynamic preferences; (3) Insufficient Evaluation Validity: Existing simulators fail to adequately assess fundamental capabilities and system robustness. To overcome these, we propose AdaptSim, an Adaptive domain and automatic prompt tuning User Simulator. AdaptSim offers an efficient framework for evaluating CRSs by enabling realistic behavior modeling and diverse style generation. It leverages automatic prompt generation and an open action mechanism to reduce manual effort and improve cross-domain flexibility. For response generation, we employ controlled text generation with a \"think-then-respond\" strategy for fine-grained control over language style. For CRS evaluation, AdaptSim incorporates a novel Breadth-First Search (BFS)-based, turn-level pairwise comparison framework for comprehensive assessment. Extensive experiments across three domains and four LLMs demonstrate that AdaptSim generates realistic dialogues, enabling a highly effective and reliable evaluation of CRS capabilities and robustness.",
+      "authors": [
+        "Yuanzi Li",
+        "Quanyu Dai",
+        "Xueyang Feng",
+        "Zihang Tian",
+        "Junhao Wang",
+        "Xu Chen",
+        "Zhenhua Dong",
+        "Huifeng Guo"
+      ],
+      "primary_category": "cs.IR",
+      "categories": [
+        "cs.IR"
+      ],
+      "published": "2026-06-22T03:26:08+00:00",
+      "link": "https://arxiv.org/pdf/2606.22803v2",
+      "tags": [
+        "keyword:prompt-learn",
+        "query:prompt-learn"
+      ],
+      "llm_score": 9.0,
+      "llm_evidence_en": "proposes automatic prompt tuning for user simulation",
+      "llm_evidence_cn": "提出用于用户模拟的自动提示调优",
+      "llm_evidence": "提出用于用户模拟的自动提示调优",
+      "canonical_evidence": "提出用于用户模拟的自动提示调优",
+      "llm_tldr_en": "AdaptSim is an adaptive user simulator that uses automatic prompt tuning to overcome domain adaptability issues in conversational recommender systems.",
+      "llm_tldr_cn": "针对对话推荐系统评估中LLM模拟器域适应性差的问题，提出AdaptSim，通过自动提示调优技术使模拟器能快速适应新领域，并实现细粒度用户行为模拟，提升了评估有效性。",
+      "llm_tldr": "针对对话推荐系统评估中LLM模拟器域适应性差的问题，提出AdaptSim，通过自动提示调优技术使模拟器能快速适应新领域，并实现细粒度用户行为模拟，提升了评估有效性。",
+      "llm_tags": [
+        "query:prompt-learn"
+      ],
+      "matched_query_tag": "query:prompt-learn",
+      "matched_query_text": "gradient-based tuning of continuous prompt embeddings",
+      "matched_requirement_id": "req-6",
+      "selection_source": "fresh_fetch"
+    },
+    {
+      "id": "2606.25342v1",
+      "source": "arxiv",
+      "title": "Lifelong In-Context Learning with Transformers Requires Parametric Forms of Attention",
+      "abstract": "Lifelong continual learning remains an obstacle on the path to human-like intelligence. Modern transformers show sparks of intelligence with in-context learning. The quadratic nature of attention, however, prohibits transformers from performing this process on arbitrarily long sequences. In this work, we argue that extending in-context learning to lifelong settings is a practical solution for continual learning in AI agents. In particular, we argue that \\emph{parametric forms of attention} are needed to understand a lifetime of context with transformers on a fixed hardware budget. These attention mechanisms learn the relationship between keys and their associated values at test-time with parametric regression. Our generalization of parametric approaches (linear attention, state-space models, fast weight programmers, and test-time training layers) contrasts with nonparametric counterparts like softmax attention. They replace the ever-growing key-value cache with an online-trainable neural network, maintaining a constant memory footprint. We highlight how parametric attention currently fall short of lifelong learning due to limited memory capacity or costly online updates. To address these issues, we pose a set of open questions with novel insights to guide the field toward long-horizon agents.",
+      "authors": [
+        "Luke McDermott",
+        "Robert W. Heath",
+        "Rahul Parhi"
+      ],
+      "primary_category": "cs.LG",
+      "categories": [
+        "cs.LG"
+      ],
+      "published": "2026-06-24T03:14:20+00:00",
+      "link": "https://arxiv.org/pdf/2606.25342v1",
+      "tags": [
+        "keyword:prompt-learn",
+        "query:prompt-learn"
+      ],
+      "llm_score": 9.0,
+      "llm_evidence_en": "Extends in-context learning to lifelong settings with parametric attention",
+      "llm_evidence_cn": "将上下文学习扩展到终身设置，采用参数化注意力",
+      "llm_evidence": "将上下文学习扩展到终身设置，采用参数化注意力",
+      "canonical_evidence": "将上下文学习扩展到终身设置，采用参数化注意力",
+      "llm_tldr_en": "This paper argues that lifelong in-context learning with transformers requires parametric forms of attention to handle unlimited context, generalizing standard attention with test-time regression.",
+      "llm_tldr_cn": "该论文针对终身持续学习问题，提出将上下文学习扩展到终身场景需要参数化注意力机制，通过在测试时学习键值关系来克服固定预算下长序列处理的局限，从而支持AI代理的持续学习。",
+      "llm_tldr": "该论文针对终身持续学习问题，提出将上下文学习扩展到终身场景需要参数化注意力机制，通过在测试时学习键值关系来克服固定预算下长序列处理的局限，从而支持AI代理的持续学习。",
+      "llm_tags": [
+        "query:prompt-learn"
+      ],
+      "matched_query_tag": "query:prompt-learn",
+      "matched_query_text": "learning from demonstrations provided in the prompt context",
+      "matched_requirement_id": "req-3",
+      "selection_source": "fresh_fetch"
+    }
+  ],
+  "quick_skim": [
+    {
+      "id": "2606.25193v1",
+      "source": "arxiv",
+      "title": "LLM4MTLs: Automated Generation and Empirical Evaluation of Model Transformation Languages",
+      "abstract": "Model transformation languages (MTLs) are domain-specific languages for transforming models conforming to a given metamodel into other models, including textual models such as source code. Developing correct model transformations is challenging, requiring both language-specific and domain knowledge, and motivating the use of large language models (LLMs) for MTL code generation. However, due to limited training data and executable examples, LLM-generated MTL code is often not syntactically valid or semantically usable out of the box. This paper presents LLM4MTLs, an automated workflow for constructing and comparing prompting strategies for LLM-generated MTL code, together with an evaluation suite and an empirical evaluation. The workflow systematically explores prompt constructions combining few-shot prompting, grammar prompting, and helper method inclusion, and evaluates them using syntactic and semantic metrics. We construct an evaluation suite spanning four MTLs (ATL, ETL, QVTo, and the Reactions language) with executable reference scripts and manually written test suites, and evaluate across three LLMs. We find that few-shot prompting consistently improves syntactic quality across all four MTLs while gains in semantic correctness are uneven and language-dependent. For ATL, Pass@1 remains unchanged across all strategies and models, indicating that few-shot prompting improves surface-level syntax more readily than deep transformation semantics. Grammar prompting stabilizes code generation when combined with few-shot examples, but in isolation it can be ineffective or even counterproductive for certain model-language combinations. Including helper methods as a complementary amplifier can also be beneficial. Finally, LLM choice influences syntactic correctness and similarity for certain MTLs, particularly ETL and QVTo, while its influence on semantic correctness remains limited.",
+      "authors": [
+        "Bowen Jiang",
+        "Nathan Hagel",
+        "Haowei Cheng",
+        "Benedikt Jutz",
+        "Arne Lange",
+        "Weixing Zhang",
+        "Rahul Sharma",
+        "Ralf Reussner",
+        "Anne Koziolek"
+      ],
+      "primary_category": "cs.SE",
+      "categories": [
+        "cs.SE"
+      ],
+      "published": "2026-06-23T21:36:42+00:00",
+      "link": "https://arxiv.org/pdf/2606.25193v1",
+      "tags": [
+        "keyword:prompt-learn",
+        "query:prompt-learn"
+      ],
+      "llm_score": 7.0,
+      "llm_evidence_en": "automated workflow for constructing and comparing prompting strategies for code generation",
+      "llm_evidence_cn": "自动化构建和比较代码生成提示策略的工作流",
+      "llm_evidence": "自动化构建和比较代码生成提示策略的工作流",
+      "canonical_evidence": "自动化构建和比较代码生成提示策略的工作流",
+      "llm_tldr_en": "LLM4MTLs provides an automated framework to design and evaluate prompting strategies for generating model transformation code using LLMs.",
+      "llm_tldr_cn": "针对LLM生成模型转换代码质量不佳的问题，提出LLM4MTLs自动化工作流，通过构建和比较多种提示策略，提升代码生成的有效性和语法正确性，并提供了评估套件。",
+      "llm_tldr": "针对LLM生成模型转换代码质量不佳的问题，提出LLM4MTLs自动化工作流，通过构建和比较多种提示策略，提升代码生成的有效性和语法正确性，并提供了评估套件。",
+      "llm_tags": [
+        "query:prompt-learn"
+      ],
+      "matched_query_tag": "query:prompt-learn",
+      "matched_query_text": "How to optimize discrete prompts for few shot classification?",
+      "matched_requirement_id": "req-8",
+      "selection_source": "fresh_fetch",
+      "quick_tier": "7"
+    },
+    {
+      "id": "2606.19157v2",
+      "source": "arxiv",
+      "title": "IndicContextEval: A Benchmark for Evaluating Context Utilisation in Audio Large Language Models Across 8 Indic Languages",
+      "abstract": "AudioLLMs enable speech recognition conditioned on textual prompts such as domain descriptions or entity lists. However, it remains unclear whether these models genuinely utilise such context or rely on parametric knowledge learned during pretraining. Existing benchmarks cannot answer this question because they evaluate transcription under fixed prompting conditions and rarely include explicit contextual inputs. We introduce IndicContextEval, a 56-hour multilingual benchmark of natural speech from 555 speakers across 8 Indian languages and 23 professional domains. We design a 7-level prompting framework that progressively introduces contextual signals, including metadata, natural-language descriptions, entity lists in English and native script, and adversarial prompts with incorrect entities. Evaluating five models reveals substantial differences in context utilisation behaviour, highlighting the need for explicit evaluation of contextual grounding in AudioLLMs.",
+      "authors": [
+        "Sakshi Joshi",
+        "Dhruv Subhash Rathi",
+        "Sanskar Singh",
+        "Eldho Ittan George",
+        "R J Hari",
+        "Kaushal Bhogale",
+        "Mitesh M. Khapra"
+      ],
+      "primary_category": "eess.AS",
+      "categories": [
+        "eess.AS",
+        "cs.CL"
+      ],
+      "published": "2026-06-17T14:59:37+00:00",
+      "link": "https://arxiv.org/pdf/2606.19157v2",
+      "tags": [
+        "keyword:prompt-learn",
+        "query:prompt-learn"
+      ],
+      "llm_score": 6.0,
+      "llm_evidence_en": "designs a 7-level prompting framework with textual context to guide speech recognition",
+      "llm_evidence_cn": "设计了包含文本上下文的7级提示框架来引导语音识别",
+      "llm_evidence": "设计了包含文本上下文的7级提示框架来引导语音识别",
+      "canonical_evidence": "设计了包含文本上下文的7级提示框架来引导语音识别",
+      "llm_tldr_en": "IndicContextEval is a benchmark that evaluates how well AudioLLMs use textual prompts for speech recognition across multiple languages.",
+      "llm_tldr_cn": "构建了一个多语言基准，通过设计7级提示框架逐步引入上下文信号，评估音频大语言模型在语音识别任务中对文本提示的实际利用程度，揭示模型是依赖上下文还是参数知识。",
+      "llm_tldr": "构建了一个多语言基准，通过设计7级提示框架逐步引入上下文信号，评估音频大语言模型在语音识别任务中对文本提示的实际利用程度，揭示模型是依赖上下文还是参数知识。",
+      "llm_tags": [
+        "query:prompt-learn"
+      ],
+      "matched_query_tag": "query:prompt-learn",
+      "matched_query_text": "discrete natural language prompts for guiding models",
+      "matched_requirement_id": "req-2",
+      "selection_source": "fresh_fetch",
+      "quick_tier": "6"
+    },
+    {
+      "id": "2606.25552v1",
+      "source": "arxiv",
+      "title": "SFL-MTSC: Leveraging Semantic Frame-Level Multi-Task Self-Consistency for Robust Multi-Intent Spoken Language Understanding",
+      "abstract": "Prompt-based spoken language understanding (SLU) with large language models (LLMs) often suffers from inconsistent intent--slot structures due to decoding stochasticity, particularly in multi-intent scenarios. In view of this, we propose Semantic Frame-Level Multi-Task Self-Consistency (SFL-MTSC), a novel structured aggregation framework operating at the semantic frame level. Instead of output-level majority voting, SFL-MTSC decomposes predictions into intent-specific frames, applies domain--intent grouping and slot-level clustering, and evaluates cluster reliability using path support scoring. Reliable frames are retained and re-integrated to form the final prediction. Zero-shot experiments on the MAC-SLU benchmark dataset show improved slot F1 and overall accuracy over single-path inference, while intent accuracy remains largely stable across most settings.",
+      "authors": [
+        "Po-Yen Chen",
+        "Berlin Chen"
+      ],
+      "primary_category": "cs.CL",
+      "categories": [
+        "cs.CL",
+        "cs.AI"
+      ],
+      "published": "2026-06-24T08:28:56+00:00",
+      "link": "https://arxiv.org/pdf/2606.25552v1",
+      "tags": [
+        "keyword:prompt-learn",
+        "query:prompt-learn"
+      ],
+      "llm_score": 6.0,
+      "llm_evidence_en": "prompt-based spoken language understanding with LLMs",
+      "llm_evidence_cn": "基于提示的大语言模型口语理解",
+      "llm_evidence": "基于提示的大语言模型口语理解",
+      "canonical_evidence": "基于提示的大语言模型口语理解",
+      "llm_tldr_en": "Addresses inconsistency in prompt-based SLU caused by decoding stochasticity, proposing semantic frame-level multi-task self-consistency to aggregate predictions for robust multi-intent understanding, with zero-shot experiments on M. dataset.",
+      "llm_tldr_cn": "基于提示的大语言模型口语理解常因解码随机性导致意图-槽结构不一致，尤其多意图场景。本文提出语义帧级多任务自一致性框架，将预测分解为意图特定帧，进行领域-意图分组和槽级聚类，并通过路径支持评分保留可靠帧，重新整合形成最终预测。零样本实验表明该方法提升了多意图口语理解的鲁棒性，为提示驱动的对话系统提供了有效的一致性增强技术。",
+      "llm_tldr": "基于提示的大语言模型口语理解常因解码随机性导致意图-槽结构不一致，尤其多意图场景。本文提出语义帧级多任务自一致性框架，将预测分解为意图特定帧，进行领域-意图分组和槽级聚类，并通过路径支持评分保留可靠帧，重新整合形成最终预测。零样本实验表明该方法提升了多意图口语理解的鲁棒性，为提示驱动的对话系统提供了有效的一致性增强技术。",
+      "llm_tags": [
+        "query:prompt-learn"
+      ],
+      "matched_query_tag": "query:prompt-learn",
+      "matched_query_text": "discrete natural language prompts for guiding models",
+      "matched_requirement_id": "req-2",
+      "selection_source": "fresh_fetch",
+      "quick_tier": "6"
+    }
+  ]
+}

@@ -6,52 +6,37 @@
 </div>
 
 ## 每次日报
-- 最新运行日期：2026-06-24
-- 运行时间：2026-06-24 22:03:45 UTC
+- 最新运行日期：2026-06-25
+- 运行时间：2026-06-25 22:10:31 UTC
 - 运行状态：成功
-- 本次总论文数：10
-- 精读区：5
-- 速读区：5
+- 本次总论文数：5
+- 精读区：2
+- 速读区：3
 
 ### 今日简报（AI）
-今日精读2篇9分研究，聚焦语音合成新范式与推理时对齐方法，速读覆盖材料生成与时间序列分类。
-Bagpiper-TTS实现自然语言跨风格语音合成，Spec Learning用偏好对实现推理时对齐，两者均具高实用价值。
-若你对语音技术或大模型对齐感兴趣，可优先阅读这两篇9分论文；速读中FlowEdit的终身发音自适应也值得关注。
-- 详情：[/202606/24/README](/202606/24/README)
+今日聚焦推荐与语言模型前沿：看会话推荐如何靠细粒度用户模拟快速适应新领域，也看Transformers想实现终身上下文学习必须带上参数化的注意力。  
+最值得关注的两点：推荐系统评估依赖更真实、细粒度的用户行为模拟；终身学习场景中，普通注意力不够用，需要可训练的参数形式来持续注入上下文。  
+对普通读者，可以尝试把你的个人偏好或任务需求写成更详细的“用户画像”，这正是模拟里让系统变聪明的关键一步。
+- 详情：[/202606/25/README](/202606/25/README)
 
 ### 精读区论文标签
-1. [Bagpiper-TTS: Natural Language Guided Universal Speech Synthesis](/202606/24/2606.22811v1-bagpiper-tts-natural-language-guided-universal-speech-synthesis)  
+1. [Towards Fast Domain Adaptation and Fine-Grained User Simulation for Evaluating Conversational Recommender Systems](/202606/25/2606.22803v2-towards-fast-domain-adaptation-and-fine-grained-user-simulation-for-evaluating-conversational-recommender-systems)  
    标签：评分：9.0/10、query:prompt-learn
-   evidence：利用自然语言提示引导通用语音合成
-2. [Towards Spec Learning: Inference-Time Alignment from Preference Pairs](/202606/24/2606.24004v1-towards-spec-learning-inference-time-alignment-from-preference-pairs)  
+   evidence：提出用于用户模拟的自动提示调优
+2. [Lifelong In-Context Learning with Transformers Requires Parametric Forms of Attention](/202606/25/2606.25342v1-lifelong-in-context-learning-with-transformers-requires-parametric-forms-of-attention)  
    标签：评分：9.0/10、query:prompt-learn
-   evidence：将用户指令和偏好对自动编译成自然语言提示
-3. [Matching Tasks to Objectives: Fine-Tuning and Prompt-Tuning Strategies for Encoder-Decoder Pre-trained Language Models](/202606/24/2606.24841v1-matching-tasks-to-objectives-fine-tuning-and-prompt-tuning-strategies-for-encoder-decoder-pre-trained-language-models)  
-   标签：评分：9.0/10、query:prompt-learn
-   evidence：连续提示嵌入的提示调优策略
-4. [SURGELLM: Rethinking Multi-Task Evaluation through Task-Aware Feature Gating with Class-Balanced Normalization](/202606/24/2606.24259v1-surgellm-rethinking-multi-task-evaluation-through-task-aware-feature-gating-with-class-balanced-normalization)  
-   标签：评分：8.0/10、query:prompt-learn
-   evidence：使用任务条件下的前缀令牌（连续向量）附加到每个输入。
-5. [Pigeonholing: Bad prompts hurt models to collapse and make mistakes](/202606/24/2606.24267v1-pigeonholing-bad-prompts-hurt-models-to-collapse-and-make-mistakes)  
-   标签：评分：8.0/10、query:prompt-learn
-   evidence：研究提示中不良示例如何导致大语言模型模式崩溃和错误
+   evidence：将上下文学习扩展到终身设置，采用参数化注意力
 
 ### 速读区论文标签
-1. [FlowEdit: Associative Memory for Lifelong Pronunciation Adaptation in Flow-Matching TTS](/202606/24/2606.20518v1-flowedit-associative-memory-for-lifelong-pronunciation-adaptation-in-flow-matching-tts)  
+1. [LLM4MTLs: Automated Generation and Empirical Evaluation of Model Transformation Languages](/202606/25/2606.25193v1-llm4mtls-automated-generation-and-empirical-evaluation-of-model-transformation-languages)  
    标签：评分：7.0/10、query:prompt-learn
-   evidence：将隐式条件编辑学习为嵌入扰动，类似于连续提示调优
-2. [Atomistic Language Models Understand and Generate Materials](/202606/24/2606.21395v1-atomistic-language-models-understand-and-generate-materials)  
-   标签：评分：7.0/10、query:prompt-learn
-   evidence：LLM与其他模态之间的纯连续投影器充当软提示。
-3. [RocketPFN: Accurate Time Series Classification via In-Context Learning](/202606/24/2606.21786v1-rocketpfn-accurate-time-series-classification-via-in-context-learning)  
-   标签：评分：7.0/10、query:prompt-learn
-   evidence：结合随机卷积特征与预训练表格模型的上下文学习进行时间序列分类
-4. [Can LLMs Control Readability? A Multi-Dimensional Evaluation Framework for CEFR-Controlled Arabic Generation](/202606/24/2606.21981v1-can-llms-control-readability-a-multi-dimensional-evaluation-framework-for-cefr-controlled-arabic-generation)  
-   标签：评分：7.0/10、query:prompt-learn
-   evidence：CEFR引导的提示与词汇约束
-5. [On the Stability of Prompt Ranking in Large Language Model Evaluation](/202606/24/2606.24381v1-on-the-stability-of-prompt-ranking-in-large-language-model-evaluation)  
-   标签：评分：7.0/10、query:prompt-learn
-   evidence：研究离散提示排名在大语言模型评估中的稳定性
+   evidence：自动化构建和比较代码生成提示策略的工作流
+2. [IndicContextEval: A Benchmark for Evaluating Context Utilisation in Audio Large Language Models Across 8 Indic Languages](/202606/25/2606.19157v2-indiccontexteval-a-benchmark-for-evaluating-context-utilisation-in-audio-large-language-models-across-8-indic-languages)  
+   标签：评分：6.0/10、query:prompt-learn
+   evidence：设计了包含文本上下文的7级提示框架来引导语音识别
+3. [SFL-MTSC: Leveraging Semantic Frame-Level Multi-Task Self-Consistency for Robust Multi-Intent Spoken Language Understanding](/202606/25/2606.25552v1-sfl-mtsc-leveraging-semantic-frame-level-multi-task-self-consistency-for-robust-multi-intent-spoken-language-understanding)  
+   标签：评分：6.0/10、query:prompt-learn
+   evidence：基于提示的大语言模型口语理解
 
 
 <div class="dpr-home-promo-card">

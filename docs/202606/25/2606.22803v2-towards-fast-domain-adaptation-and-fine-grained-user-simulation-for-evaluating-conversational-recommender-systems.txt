@@ -1,0 +1,1714 @@
+Title: Towards Fast Domain Adaptation and Fine-Grained User Simulation for Evaluating Conversational Recommender Systems
+
+URL Source: https://arxiv.org/pdf/2606.22803v2
+
+Published Time: Wed, 24 Jun 2026 00:28:33 GMT
+
+Number of Pages: 39
+
+Markdown Content:
+# Towards Fast Domain Adaptation and Fine-Grained User Simulation for Evaluating Conversational Recommender Systems 
+
+YUANZI LI ∗, Renmin University of China, China 
+
+QUANYU DAI ∗, Huawei Noah’s Ark Lab, China 
+
+XUEYANG FENG, Renmin University of China, China 
+
+ZIHANG TIAN, Renmin University of China, China 
+
+JUNHAO WANG, Renmin University of China, China 
+
+XU CHEN †, Renmin University of China, China 
+
+ZHENHUA DONG, Huawei Noah’s Ark Lab, China 
+
+HUIFENG GUO, Huawei Noah’s Ark Lab, China Conversational Recommender Systems (CRSs) enhance user experience through multi-turn interactions, yet accurately evaluating their performance remains challenging. Recently, employing Large Language Model (LLM) based user simulators for evaluation becomes an effective approach. However, existing LLM-based user simulators suffer from three key limitations: (1) Lack of Domain Adaptability: The simulators’ heavy reliance on fixed prompts and predefined action spaces hinders their ability to adapt and transfer to novel application domains; (2) Limited User Modeling Capability: The simulators lack the capacity for fine-grained user modeling, particularly in accurately replicating subtle linguistic styles and dynamic user preferences; (3) Insufficient Evaluation Validity for Downstream CRSs: When evaluating CRSs, the existing simulators provide not only an unreasonable assessment of fundamental capabilities but also an insufficient examination of system robustness. To overcome these limitations, we propose AdaptSim , an Adaptive domain and automatic prompt tuning User Sim ulator. AdaptSim offers an efficient and comprehensive framework for evaluating the fundamen-tal capabilities and robustness of CRSs by enabling realistic behavior modeling and diverse style generation. AdaptSim leverages automatic prompt generation and optimization to reduce manual effort in domain adapta-tion, and introduces an open action generation mechanism to improve flexibility across domains. For response generation, we employ controlled text generation combined with a “think-then-respond” strategy, enabling fine-grained control over user behavior and language style. For evaluation of CRSs, AdaptSim incorporates a novel framework centered around a Breadth-First Search (BFS)-based, turn-level pairwise comparison to facilitate a comprehensive and rigorous assessment of the basic capabilities and robustness of CRSs. 
+
+> ∗
+
+Both authors contributed equally to this research. 
+
+> †
+
+Corresponding author. Authors’ Contact Information: Yuanzi Li, liyuanzi0313@outlook.com, Renmin University of China, Beijing, China; Quanyu Dai, daiquanyu@huawei.com, Huawei Noah’s Ark Lab, Shenzhen, China; Xueyang Feng, xueyangfeng@ruc.edu.cn, Ren-min University of China, Beijing, China; Zihang Tian, zihangtian@ruc.edu.cn, Renmin University of China, Beijing, China; Junhao Wang, 2025104106@ruc.edu.cn, Renmin University of China, Beijing, China; Xu Chen, xu.chen@ruc.edu.cn, Ren-min University of China, Beijing, China; Zhenhua Dong, dongzhenhua@huawei.com, Huawei Noah’s Ark Lab, Shenzhen, China; Huifeng Guo, huifeng.guo@huawei.com, Huawei Noah’s Ark Lab, Shenzhen, China. Permission to make digital or hard copies of all or part of this work for personal or classroom use is granted without fee provided that copies are not made or distributed for profit or commercial advantage and that copies bear this notice and the full citation on the first page. Copyrights for components of this work owned by others than ACM must be honored. Abstracting with credit is permitted. To copy otherwise, or republish, to post on servers or to redistribute to lists, requires prior specific permission and/or a fee. Request permissions from permissions@acm.org. © 2025 ACM. ACM 1558-2868/2025/1-ART1 https://doi.org/10.1145/nnnnnnn.nnnnnnn ACM Trans. Inf. Syst., Vol. 1, No. 1, Article 1. Publication date: January 2025.        
+
+> arXiv:2606.22803v2 [cs.IR] 23 Jun 2026 1:2 Yuanzi Li and Quanyu Dai, et al.
+> Extensive experiments conducted across three domains and with four distinct LLM backbones demonstrate that AdaptSim generates realistic, diverse, and fine-grained dialogues, enabling a more effective and reliable evaluation of the fundamental capabilities and robustness of CRSs. CCS Concepts: • Information systems →Recommender systems ;Information extraction .Additional Key Words and Phrases: Conversational Recommender System, User Simulation
+> ACM Reference Format:
+> Yuanzi Li, Quanyu Dai, Xueyang Feng, Zihang Tian, Junhao Wang, Xu Chen, Zhenhua Dong, and Huifeng Guo. 2025. Towards Fast Domain Adaptation and Fine-Grained User Simulation for Evaluating Conversational Recommender Systems. ACM Trans. Inf. Syst. 1, 1, Article 1 (January 2025), 39 pages. https://doi.org/10.1145/ nnnnnnn.nnnnnnn
+
+1 Introduction 
+
+Conversational Recommender Systems. Conversational Recommender Systems (CRSs) engage users in multi-turn natural language interactions to dynamically capture their preferences and real-time needs, and then provide item recommendations that match their interests [4, 11, 22]. They can respond to user queries instantly at any time and significantly reduce manual workloads, thereby playing a crucial role in real-world applications across various domains, such as e-commerce [19], online video platforms [5], and travel services [18]. However, the construction and evaluation of a CRS still face numerous challenges due to its dynamic and interactive nature [4, 10]. 
+
+User Simulator for CRS. To address this issue, user simulators have emerged as promising so-lutions recently [14, 22, 30]. To effectively support diverse application scenarios, a user simulator should possess three key characteristics as illustrated in Figure 1: (1) Efficient Domain Adaptabil-ity . It enables the simulator to adapt to different application domains efficiently. (2) Fine-grained User Modeling . It allows the simulator to achieve realistic role-playing and accurate performance evaluation. (3) Sufficient Evaluation Validity . It ensures the simulator provides a comprehensive and rigorous assessment of the basic capabilities and robustness of CRSs. The recent remarkable performance of large language models (LLMs) in dialogue comprehension, text generation, and role-playing has driven the rapid development of LLM-based user simulations. These techniques encompass diverse paradigms, ranging from single-prompt methods [3, 24, 35] to agent-based ar-chitectures [2, 37]. 
+
+Remaining Limitations. Although current user simulation approaches have made significant progress, they still face several critical limitations: (1) Lack of Domain Adaptability . These methods typically rely on manually crafted fixed prompt templates [3] and a predefined, limited action space [2, 24, 37], both of which often require careful design and maintenance by domain experts. This not only incurs high development costs but also significantly restricts the simulator’s domain adaptation capability. Consequently, they lack the flexibility and scalability to efficiently adapt to new domains or diverse dialogue contexts in real-world applications. (2) Limited User Modeling Capability. Existing methods [2, 3, 24, 37] generally lack fine-grained modeling of users’ linguistic behavior. The generated responses often remain at a superficial se-mantic level, failing to capture deeper linguistic attributes such as style, emotion, and polite-ness strategies, thereby undermining the realism and interactivity of simulated dialogues. One attempt [2] aims to improve language personalization through style control mechanisms. However, its reliance on refine-based post-processing frameworks disrupts contextual coherence, leading to character inconsistency and illogical transitions. (3) Insufficient Evaluation Validity. Evaluating CRSs with ground-truth dialogues [3, 24, 33] is often impractical due to data scarcity. The limitation led to a shift towards using LLMs to simulate  
+
+> ACM Trans. Inf. Syst., Vol. 1, No. 1, Article 1. Publication date: January 2025. Towards Fast Domain Adaptation and Fine-Grained User Simulation for Evaluating Conversational Recommender Systems 1:3 (a) Efficient Domain Adaptability
+
+Simulated 
+
+User            
+
+> Food CRS
+> Beauty CRS
+> Shop CRS
+> (b) Fine-Grained User Modeling
+> Recommend me stake
+> restaurant. (Careless)
+> So sad ,recommend
+> dessert. (Sentiment)
+> Recommend dishes?
+> (Concise)
+> (c) CRS R obustness Evaluation
+> Hi, can you recommend
+> me something to eat?
+> Of course. What kind of
+> food do you like?
+> Can you recommend me
+> ..., Please !(Formal)
+> Hey, any staek places that
+> you’d recommend?
+> How about Joe's Snack
+> Bar? It is popular.
+
+Fig. 1. An illustration of the three core capabilities of an ideal user simulator. (a) Efficient Domain Adapt-ability : The ability to quickly adapt to new domains with minimal human intervention. (b) Fine-grained User Modeling : The capacity to precisely manipulate the stylistic attributes of generated language. (c) Suf-ficient Evaluation Validity : The capability to provide an accurate, unbiased, and fine-grained evaluation of a CRS’s performance and robustness. 
+
+user profiles and generate dialogues with CRS, followed by dialogue-level pointwise scoring to as-sess the CRS. [2, 36]. However, this new paradigm introduces its own critical flaws. Its pointwise scoring methods are prone to “Flattery Bias” [1, 32] and “Rough Scoring Bias” [16, 23], while its coarse, dialogue-level scope misses turn-level errors. Furthermore, simulators built on powerful backbones create unrealistically perfect dialogues. This establishes a reality gap that inflates per-formance metrics for CRSs and fails to test their robustness against noisy, imperfect user behavior. 
+
+Our Proposed Method. To address the above limitations, we propose AdaptSim, a high-quality user simulator capable of rapid domain adaptation and the generation of diverse linguistic styles. As shown in Table 1, AdaptSim enables comprehensive evaluation of the basic capabilities of CRS and its robustness under varying stylistic conditions. Specifically, AdaptSim addresses the afore-mentioned three challenges through the following four key mechanisms: (1) Automatic Prompt Optimization. By leveraging domain-specific knowledge and historical interaction data, it automatically refines prompts to enable the simulator to generate high-quality dialogues across all domains. (2) Open-ended Action Generation. AdaptSim moves away from relying on a set of predefined actions and instead adopts an open-ended action generation mechanism, dynamically constructing user actions based on context, which significantly boosts the simulator’s flexibility across new domains. (3) Thinking-Enhanced Style Generation. To enhance fine-grained control over linguistic behavior of users, we adopt a “think-then-respond” structure in response generation. This method guides the model to think on its language style before generating a response, significantly improving stylistic consistency while maintaining contextual coherence. (4) BFS-based Turn-level Pairwise Evaluation. To achieve an unbiased and fine-grained turn-level assessment of a CRS’s basic capabilities and robustness, this method combines three key elements. It leverages a Breadth-First Search (BFS) to ensure contextual consistency, while the turn-level analysis provides detailed feedback, and the pairwise comparison framework guarantees objectiv-ity. 
+
+Contributions. Our main contributions are summarized as follows:  
+
+> ACM Trans. Inf. Syst., Vol. 1, No. 1, Article 1. Publication date: January 2025. 1:4 Yuanzi Li and Quanyu Dai, et al.
+> Table 1. Related work on user simulators in CRS. For the simulators themselves, “Style”, and “Adaptability” refer to, language style, and fast adaptation across domains, respectively. For CRS evaluation, “Basics” refers to the ability to perform unbiased evaluation of the CRS basics, while “Robustness” refers to the ability to assess the CRS’s robustness.
+
+Simulator CRS_Test Name Style Adaptability Basics Robustness iEvaLM [24] 7 7 3 7
+
+SimpleUserSim [35] 7 7 3 7
+
+CSHI [37] 7 7 7 7
+
+RecUserSim [2] 3 7 7 7
+
+Ours 3 3 3 3
+
+• We design automated prompt optimization, open-ended action generation, and a “think-then-respond” architecture to enable rapid cross-domain adaptation and fine-grained control over simulator language. • We introduce a BFS-based turn-level pairwise evaluation to perform an accurate, unbiased, and fine-grained assessment of a CRS’s basic capabilities and robustness. • Experiments show that, using the generated prompts, our method outperforms existing approaches across multiple dimensions and achieves significant results in language control. Moreover, the CRS evaluation results based on our method further validate its effectiveness. 
+
+2 Related Work 
+
+In this section, we provide a literature review of the research about conversational recommenda-tion systems, LLM based user simulator in CRS and automatic prompt optimization. 
+
+2.1 Conversational Recommendation Systems 
+
+Conversational recommender systems (CRSs) aim to support recommendation through interactive natural language exchanges, where the system gradually elicits user preferences and provides per-sonalized suggestions [31]. Existing CRS methods are commonly grouped into attribute-based and generation-based paradigms [12]. Attribute-based systems usually guide conversations through predefined slots or templates, which makes their behavior easier to control but limits conversa-tional flexibility. Generation-based systems relax these constraints and produce more natural re-sponses [25], yet traditional generation models often struggle with long-context understanding, preference tracking, and robust dialogue planning. Recent work has explored LLMs as a new foundation for CRSs. ZSCRS [8] studies the zero-shot recommendation ability of LLMs in conversational settings, while ChatRec [6] and InteRecA-gent [9] combine LLMs with external recommendation models or tools to improve interactive recommendation. To further strengthen dialogue management, MACRS [3] introduces a multi-agent framework for strategic planning in multi-turn recommendation. These studies show the potential of LLM-based CRSs, but they also make evaluation more challenging: system responses become more open-ended, dialogue trajectories diverge quickly, and performance depends on both recommendation quality and conversational behavior. Therefore, reliable user simulation and fine-grained evaluation protocols are increasingly important for assessing CRS capabilities under real-istic interaction conditions.  
+
+> ACM Trans. Inf. Syst., Vol. 1, No. 1, Article 1. Publication date: January 2025. Towards Fast Domain Adaptation and Fine-Grained User Simulation for Evaluating Conversational Recommender Systems 1:5
+
+2.2 LLM Based User Simulator in CRS 
+
+In the study of user simulation in CRS leveraging Large Language Models, existing methods can be broadly categorized into two main paradigms: single-prompt frameworks and agent-based frame-works. Early works, such as iEvaLM [24], MACRS [3], and SimpleUserSim [3], typically adopt the single-prompt paradigm. These approaches rely on manually designed static templates to consolidate user history, candidate items, and task instructions into a single prompt, thereby generating a simulated user response in a single pass. However, the inherent rigidity of this approach leads to several limitations. First, because the generation process is heavily constrained by a fixed template structure, the resulting dialogue flows exhibit limited diversity and often fall into predictable and repetitive patterns. Second, this one-shot generation mechanism makes fine-grained control over the response content challenging, hindering the ability to dynamically adjust the simulated user’s intent or emotional state. Finally, these methods typically rely on ground-truth labels to evalu-ate the dialogue system, which places emphasis solely on the system’s recommendation accuracy while overlooking its conversational competence. Moreover, ground-truth data are scarce in most real-world scenarios, further constraining the applicability and scalability of such approaches. To overcome the aforementioned limitations, researchers have shifted towards more dynamic, agent-based frameworks. The LLM-driven user agent, CSHI [37], represents a notable attempt in this direction. It guides the agent’s behavior by explicitly integrating user profiles and a fixed action space. This design aims to enhance the reliability and personalization of simulated behaviors, mak-ing the agent’s decisions more grounded. Despite this advancement, CSHI still faces challenges in consistency, behavioral diversity, and persona stability in practice. Building upon CSHI, RecUser-Sim [2] further expands CSHI’s capabilities by augmenting its action space and modeling linguistic styles to improve the diversity of simulated user behavior. However, its core design does not escape the constraints of a predefined framework. Although its action space is more extensive, it remains fundamentally fixed and fails to capture the open-ended and unanticipated behaviors humans exhibit in real interactions. Furthermore, the post-refinement strategy employed by RecUserSim, while capable of locally optimizing response quality, sometimes compromises contextual coher-ence. This can disrupt the natural flow of the dialogue, thereby limiting its overall performance. In summary, both the single-prompt and the existing agent-based frameworks suffer from a common, fundamental bottleneck: a heavy reliance on manually crafted prompts and predefined action spaces. This strong dependency not only demands significant expert knowledge and engi-neering effort but, more critically, it severely hinders the simulator’s adaptability to new domains or dynamic environments. 
+
+2.3 Automatic Prompt Optimization 
+
+Automatic Prompt Optimization (APO) is an emerging technique aimed at automatically discover-ing and refining input prompts for language models through iterative feedback and evaluation. Its core objective is to replace the tedious and often intuitive process of manual prompt engineering. Existing approaches have explored various strategies in this domain. For instance, methods like APE [34] iteratively search for better instructions in a propose-and-score paradigm, combining manually designed seed prompts with feedback from the model itself. Other approaches, such as GPS [26] and SPRIG [29], integrate human feedback into the optimization loop, leveraging human preferences to guide the evolution of prompts to enhance their quality and alignment. Meanwhile, to reduce the reliance on human intervention, methods like DAPO [28] attempt to leverage the language model’s own capabilities for instruction induction, automatically inferring the optimal task instruction from a few examples. 
+
+> ACM Trans. Inf. Syst., Vol. 1, No. 1, Article 1. Publication date: January 2025.
+
+1:6 Yuanzi Li and Quanyu Dai, et al. (a) User Profile 
+
+Basic Info 
+
+> attribute info:
+> name: Bob,
+> gender: Male,
+> ...
+> style info:
+> careless: True,
+> formal: False,
+> ...
+
+Domain Info  
+
+> Beauty:
+> skin: Oily
+> problems: Acne
+> loc: China
+> habits: Stay up
+> ...
+> Food:
+> like: Lu Cuisine
+> ...
+
+Context Info 
+
+> Looking for recommendations
+> for skincare products.
+> The product types you want:
+> ['Facial Cleanser'].
+> Your skincare time is:
+> ['Before Bed'] ...
+> ...
+
+(c) Simulator 
+
+> <prompt generated>
+> <user profile>
+> FORMAT:
+> actions:
+> [action1:prob1,..]
+> reasons:
+> [reason1,...]
+
+Action Gen  
+
+> <Response prompt>
+> <action, reason>
+> FORMAT:
+> think: <what's your response
+> style? Are you following
+> your language style?>
+> response: <Your response>
+
+Response Gen 
+
+LLM  LLM action 
+
+> Prob
+
+(b)  Prompt Optimization      
+
+> MP init P0Domain
+> info Pt
+> Simulator CRS
+> Interact
+> Simulator CRS
+> interact
+> Dialogue t
+> MP eval
+> LLM
+> LLM
+> Problems Pt
+> MP refine LLM Pt+1
+> Dialogue t+1
+> Equip
+> Equip
+> better  worse  optimize failure
+> t=t  Re-optimize
+> optimize success
+> t=t+1 next iter
+
+Response  com 
+
+> pare
+
+Fig. 2. (a) User Profile Shows the multi-domain profiles, demonstrating that our simulator can quickly adapt to new domains. (b) Prompt Optimization Illustrates the automatic prompt optimization process when adapt-ing to a new domain: first, domain adaptation is performed, followed by iterative optimization of the prompt based on interactions with CRS. (c) Simulator. After optimizing the prompt, we integrate it into the simula-tor and employ an open-ended action generation method to enhance domain adaptability, along with the “think-then-respond” approach to control language style. 
+
+Although these methods have achieved promising results in static tasks (e.g., text classification, summarization), they face significant challenges when applied to dynamic, multi-turn user sim-ulation scenarios. Static tasks typically have clear, fixed evaluation criteria, such as accuracy or overlap with a reference answer, whereas the quality assessment of multi-turn dialogues is consid-erably more complex. The core difficulty lies in the lack of an objective, quantifiable comparative standard across turns. In a simulated dialogue, a “good” response must not only be locally opti-mal for the current turn but also maintain consistency and coherence with the historical context, while steering the conversation in a meaningful direction. Existing APO methods, typically de-signed to optimize for single-turn interactions, struggle to capture this long-term dependency on global conversational quality. To address these issues, we draw inspiration from the work of ProTeGi [20], which demon-strates the effectiveness of optimizing generation strategies via pairwise preference learning in an unsupervised setting. We apply this concept to prompt optimization for dynamic multi-turn user simulation by proposing a novel approach. This approach introduces a multi-round inter-action mechanism, where the model generates entire conversational snippets rather than single responses, combined with pairwise comparisons of historical outputs for evaluation. Specifically, the system generates two conversational trajectories driven by different candidate prompts, and then a model or a human annotator determines which trajectory is globally superior (e.g., more coherent or more aligned with the user persona). This design allows the prompt refinement pro-cess to move beyond a reliance on hard-to-obtain ground-truth labels, instead leveraging relative preferences for iterative optimization. Consequently, our method not only effectively improves prompt quality for dynamic interaction tasks but also significantly reduces supervision costs, of-fering a viable path for optimizing user simulators in complex scenarios. 
+
+ACM Trans. Inf. Syst., Vol. 1, No. 1, Article 1. Publication date: January 2025. Towards Fast Domain Adaptation and Fine-Grained User Simulation for Evaluating Conversational Recommender Systems 1:7 
+
+3 Preliminaries 
+
+In this section, we survey the evaluation landscape for CRS. We begin by reviewing the estab-lished methodologies for assessing a system’s basic capabilities. We then shift our focus to ro-bustness testing—a comparatively less explored but critical area—to define its scope and outline corresponding evaluation approaches. 
+
+3.1 Evaluation of CRS Basic Capabilities 
+
+Previous methodologies for evaluating the basic capabilities of a CRS have primarily relied on three comparison strategies, each with significant drawbacks: (1) Dialogue-level Pointwise Comparison : This approach assigns a single score to an entire conversation. It is often too coarse-grained, as one score can mask specific turn-level failures and thus lacks diagnostic detail. (2) Turn-level Pointwise Comparison : While more granular, this method evaluates each turn in relative isolation. This can lead to context-agnostic judgments that fail to assess the dialogue’s overall coherence or long-term strategy. Furthermore, the use of discrete rating scales (e.g., 1-5) can lead to quantization errors, while LLM-based evaluators may introduce a positivity bias that obscures meaningful differences between systems. (3) Dialogue-level Pairwise Comparison : This method compares the complete dialogues from two different CRS agents to select a winner. However, as the conversations diverge, the contexts at each turn can become substantially different, making a direct comparison in later stages unfair and unreliable. 
+
+3.2 CRS Robustness 
+
+CRS robustness refers to the system’s ability to maintain performance and accurately infer user intent when faced with diverse and imperfect user inputs. In practice, users often generate non-standard inputs due to spelling errors, ambiguous language, colloquial expressions, or incomplete information. A truly robust CRS must be able to effectively recognize and process such deviations to fulfill the user’s request, rather than misunderstanding or failing completely. To illustrate a common failure in robustness, we constructed a simple test case. As shown in Figure 1, a user simulator intentionally introduces a common spelling error—typing “staek” in-stead of “steak”—to mimic a realistic user mistake. Despite this minor input deviation, the CRS misunderstands the user’s intent and provides an irrelevant recommendation: “Joe’s Snack Bar.” This example highlights a significant vulnerability in current systems when handling the inherent uncertainty of real-world user language. 
+
+4 Method 
+
+To address the challenges of poor domain adaptability and limited user modeling capability, we pro-pose AdaptSim , an LLM-based Adaptive domain and automatic prompt tuning User Sim ulator. As illustrated in Figure 2, AdaptSim first employs automatic prompt optimization to achieve cross-domain adaptation efficiently (Section 4.1). It then introduces a two-level control mechanism to enable realistic user modeling: at the strategic level, we design an open-ended action generator for dialogue strategy planning (Section 4.2); at the linguistic level, we develop a style controller based on a “think-then-respond” mechanism to enable fine-grained language controllability (Section 4.3). 
+
+4.1 Automatic Prompt Optimization via Simulator-CRS Feedback 
+
+Existing simulator methods typically rely on manually crafted prompts, which not only lack do-main adaptability but also require extensive expert knowledge for design and tuning. To address  
+
+> ACM Trans. Inf. Syst., Vol. 1, No. 1, Article 1. Publication date: January 2025. 1:8 Yuanzi Li and Quanyu Dai, et al.
+
+Algorithm 1: APO via Simulator-CRS Feedback 
+
+Input: Max iterations T, Patience threshold P, Initial Prompt 0, Domain info D
+
+Output: Best performing prompt  
+
+> 1
+
+noCount ← 0; t ← 1; 
+
+> 2
+
+// Domain Adaptation Phase ; 
+
+> 3
+
+Prompt 1 ← LLM (MP init (D, Prompt 0)) ; 
+
+> 4
+
+𝐵 1 ← AdaptSim (Prompt 1); 
+
+> 5
+
+// Iterative Refinement Phase ; 
+
+> 6
+
+while t < T and noCount < P do  
+
+> 7
+
+Et ← ∅ ; 
+
+> 8
+
+// Error Detection ; 
+
+> 9
+
+foreach d(t) 
+
+> k
+
+∈ Bt do  
+
+> 10
+
+F(t) 
+
+> k
+
+← LLM (MP eval (d(t) 
+
+> k
+
+)) ; 
+
+> 11
+
+Et ← Et ∪ { F(t) 
+
+> k
+
+}; 
+
+> 12
+
+end  
+
+> 13
+
+// Prompt Refinement ; 
+
+> 14
+
+Prompt t+1 ← LLM (MP refine (𝐸 𝑡 ), Prompt t); 
+
+> 15
+
+Bt+1 ← AdaptSim (Prompt t+1); 
+
+> 16
+
+// Stopping Criteria Changed ; 
+
+> 17
+
+noCount ← ( quality (Bt+1) > quality (Bt)) ? 0 : noCount + 1; 
+
+> 18
+
+t ← t + 1; 
+
+> 19
+
+end 
+
+this, we propose an automated prompt optimization framework. Rather than treating prompt con-struction as a static design problem, we formulate it as an iterative optimization process composed of two main stages: (1) domain adaptation via initialization, and (2) iterative refinement based on feedback with termination triggered by a convergence condition. 
+
+4.1.1 Iteration 0: Domain Adaptation. The process begins by constructing the initial domain-specific prompt 𝑃𝑟𝑜𝑚𝑝𝑡 1 as follows: 
+
+Prompt 1 = LLM (MetaPrompt init (D, Prompt 0)) (1) where D denotes the domain-specific context and 𝑃𝑟𝑜𝑚𝑝𝑡 0 is a general-purpose template shared across domains. The initial prompt 𝑃𝑟𝑜𝑚𝑝𝑡 1 is used in conjunction with AdaptSim to simulate a batch of synthetic dialogues: 
+
+B1 = {d(1) 
+
+> 1
+
+, d(1) 
+
+> 2
+
+, . . . , d(1) 
+
+> N
+
+} (2) This phase provides domain adaptation through data-driven prompt construction without manual effort. 
+
+4.1.2 Iterations 1-n: Error Detection and Prompt Refinement. In each iteration, the dialogue batch 
+
+𝐵 𝑡 is evaluated to identify behavioral or stylistic issues, which are aggregated into a problem set: 
+
+Et =
+
+> N
+
+∪
+
+> k=1
+
+F(t) 
+
+> k
+
+(3)  
+
+> ACM Trans. Inf. Syst., Vol. 1, No. 1, Article 1. Publication date: January 2025. Towards Fast Domain Adaptation and Fine-Grained User Simulation for Evaluating Conversational Recommender Systems 1:9
+
+where F(t) 
+
+> k
+
+represents the set of issues identified from the dialogue d(t) 
+
+> k
+
+in the batch using a meta-evaluation prompt: 
+
+F(t) 
+
+> k
+
+= LLM 
+
+(
+
+MetaPrompt eval 
+
+(
+
+d(t)
+
+> k
+
+)) 
+
+(4) We analyze the problem set 𝐸 𝑡 to identify recurring failure patterns such as underspecified intent or inconsistent guidance. Based on this analysis, an improved prompt is generated: 
+
+Prompt t+1 = LLM (MetaPrompt refine (Et, Prompt t)) (5) Subsequently, the updated prompt is used to generate a new batch of data, Bt+1. To concretely evaluate its quality improvement, we introduce an LLM as a judge to perform pairwise compar-isons between samples from 𝐵 𝑡 +1 and Bt. We define the criterion for improvement as follows: the quality of Bt+1 is considered superior to that of Bt if its win rate is greater than the loss rate, i.e., win_rate (Bt+1 vs Bt) > loss_rate (Bt+1 vs Bt).
+
+4.1.3 Stopping Criteria. The iterative optimization proceeds until one of the following conditions is satisfied: • A predefined maximum number of iterations is reached; • No substantial performance improvement is observed over three consecutive iterations. The detailed algorithmic procedure is summarized in Algorithm 1, and the full list of meta-prompts is provided in Prompts 1–6. Through the aforementioned APO process, we generate domain-adapted prompts. In section 4.2 and 4.3, we will apply both Open-ended Action Generation and Thinking-Enhanced Style Genera-tion operations on this prompt to achieve two-level control mechanism. 
+
+4.2 Strategy-Level Control: Open-Ended Action Generation 
+
+To enable dialogue strategy planning in user simulation, AdaptSim integrates a strategy-level con-trol mechanism that directly generates user actions instead of selecting from a predefined action set. This approach enhances realism and flexibility, particularly in open-domain scenarios where user behavior may not adhere to a rigid structure. The core idea is inspired by the Bayesian Brain Hypothesis [13], which posits that the human brain functions as a probabilistic inference engine during decision-making. Following this, we model action generation as a probabilistic reasoning process: the simulator generates multiple candidate actions, estimates their likelihoods, and selects the one with the highest probability as the user’s next move. Formally, given the dialogue history H and user profile P, we treat action generation as prob-abilistic inference over candidate actions. Conditioned on the prompt constructed from H and P,the LLM induces an action distribution: 
+
+𝜋 (𝑎 | H , P) = LLM (Prompt action (H , P) ) , (6) where 𝜋 (𝑎 | H , P) denotes the probability of candidate action 𝑎 conditioned on the dialogue history and user profile. The simulator then selects the most probable action: 
+
+𝑎 ∗ = arg max  
+
+> 𝑎
+
+𝜋 (𝑎 | H , P) (7) where 𝑎 ∗ denotes the selected action. This formulation enables AdaptSim to generate open-ended actions while remaining grounded in the current dialogue context and user profile.  
+
+> ACM Trans. Inf. Syst., Vol. 1, No. 1, Article 1. Publication date: January 2025. 1:10 Yuanzi Li and Quanyu Dai, et al.
+
+4.3 Language-Level Control: Thinking-Enhanced Style Generation 
+
+Beyond action strategy planning, realistic user simulation also requires fine-grained control over linguistic expression. In multi-turn dialogues, the accumulation of contextual noise and the weak-ening of style objectives often cause traditional controlled text generation methods to deviate from the intended stylistic constraints [17]. To address this issue, we draw inspiration from the Metacog-nition Theory [21], which emphasizes the role of self-monitoring and self-regulation in cognitive processes. Based on this theory, we design a language-level control mechanism that introduces an explicit thinking step prior to response generation. This step allows the simulator to reflect on its stylistic goals and prepare for consistent expression. Specifically, before generating the final response, the model is required to complete a structured reflection step in the following format: 
+
+<think>: What's your response style? Are you following your language style? 
+
+This self-assessment step encourages the model to evaluate its stylistic intention and adherence prior to generation, effectively enhancing the controllability and consistency of the generated text. The final response is then generated as: 
+
+𝑅 = LLM (Prompt response (S, 𝑎 ∗, H, P) ) (8) where 𝑆 denotes the generated language style. By simulating a “think-then-respond” process similar to human communication, this mechanism significantly improves the controllability of linguistic behavior. 
+
+4.4 BFS-Based Turn-Level Pairwise Evaluation 
+
+To evaluate the basic capabilities and robustness of conversational recommender systems (CRSs), we introduce a BFS-based turn-level pairwise evaluation protocol. The goal is to compare systems under matched dialogue contexts rather than independently evolving conversations. By expanding dialogue states with Breadth-First Search (BFS), the protocol preserves context consistency at each comparison point, while turn-level pairwise judgments provide fine-grained signals and reduce the instability of absolute scoring. 
+
+4.4.1 BFS-Based Turn-Level Pairwise Evaluation for CRS Basics. As outlined in Algorithm 2, we use a tree-structured simulation process to evaluate the basic capabilities of CRSs. Unlike linear simulation, where two systems quickly enter different dialogue contexts after producing different responses, our BFS-based protocol maintains local context consistency for each pairwise compari-son. The process starts from an initial user query 𝑎 0 and initializes a queue Q with the corresponding dialogue history. At each iteration, the algorithm dequeues a history state ℎ and asks both target systems, CRS 1 and CRS 2, to generate responses 𝑟 1 and 𝑟 2 from the same history. This synchronous generation step ensures that 𝑟 1 and 𝑟 2 are evaluated under an identical context, avoiding bias caused by context divergence. The user simulator U then interacts with the two responses independently, producing two branches: ℎ · 𝑟 1 · 𝑎 1 and ℎ · 𝑟 2 · 𝑎 2. These new states are added back to the queue, allowing the evaluation to expand breadth-wise over multiple possible dialogue trajectories. A branch termi-nates when the simulator outputs “END” or when the maximum depth R is reached. 
+
+4.4.2 BFS-Based Turn-Level Pairwise Evaluation for CRS Robustness. As shown in Algorithm 3, we adapt the same tree-structured protocol to evaluate CRS robustness under user-side noise. Instead of comparing two systems, this setting performs a perturbation-based comparison within a CRS. We use two user simulators: a careless user U𝑐 , which produces noisy inputs such as typos or incomplete expressions, and a normal user U𝑛 , which produces clean inputs.  
+
+> ACM Trans. Inf. Syst., Vol. 1, No. 1, Article 1. Publication date: January 2025. Towards Fast Domain Adaptation and Fine-Grained User Simulation for Evaluating Conversational Recommender Systems 1:11
+
+Algorithm 2: Dialogue Simulation using BFS to Fairly Evaluate CRSs’ Basic capabilities 
+
+Input: User simulator U, Dialogue systems CRS 1, CRS 2, Max rounds R
+
+Output: Pairwise evaluation results  
+
+> 1
+
+// Initialization ; 
+
+> 2
+
+a0 ← U.ask () ; 
+
+> 3
+
+Initialize queue Q ← [( a0, 0)] ; 
+
+> 4
+
+// Breadth-First Search Simulation ; 
+
+> 5
+
+while Q is not empty do  
+
+> 6
+
+(h, t) ← Dequeue (Q); 
+
+> 7
+
+if t ≥ R then  
+
+> 8
+
+continue ; 
+
+> 9
+
+end  
+
+> 10
+
+// Generate system replies based on current history ; 
+
+> 11
+
+r1 ← CRS 1.reply (h); 
+
+> 12
+
+r2 ← CRS 2.reply (h); 
+
+> 13
+
+Perform pairwise evaluation of r1 and r2; 
+
+> 14
+
+// Generate user responses and expand search tree ; 
+
+> 15
+
+a1 ← U.respond (h, r1); 
+
+> 16
+
+if a1 ≠ “END” then  
+
+> 17
+
+Enqueue (Q, (h · r1 · a1, t + 1)) ; 
+
+> 18
+
+end  
+
+> 19
+
+a2 ← U.respond (h, r2); 
+
+> 20
+
+if a2 ≠ “END” then  
+
+> 21
+
+Enqueue (Q, (h · r2 · a2, t + 1)) ; 
+
+> 22
+
+end  
+
+> 23
+
+end 
+
+For each dequeued history state ℎ, the two simulators generate a noisy query 𝑎 𝑐 and a clean query 𝑎 𝑛 in parallel. The target CRS responds to them separately, producing 𝑟 𝑐 and 𝑟 𝑛 . Since both inputs are generated from the same dialogue history, the resulting pairwise comparison isolates the effect of input noise and measures how much the CRS performance changes under perturbation. To avoid cumulative error propagation, we use a clean-context preservation strategy during tree expansion. The noisy branch ℎ ·𝑎 𝑐 ·𝑟 𝑐 is used only for evaluation and is not enqueued. Instead, only the clean trajectory ℎ · 𝑎 𝑛 · 𝑟 𝑛 is retained for subsequent turns. This design keeps later comparisons grounded in coherent dialogue histories while still measuring the immediate effect of noisy user input at each turn. 
+
+5 Experiments 
+
+In this work, we investigate two groups of research questions. The first evaluates the effectiveness of AdaptSim as a user simulator, while the second examines whether AdaptSim can support reliable evaluation of conversational recommender systems (CRSs). Accordingly, we organize our research questions as follows: 
+
+◦ RQ1: Effectiveness and generalizability of AdaptSim as a user simulator 
+
+• RQ1.1: Does AdaptSim outperform existing user simulators in simulation quality? • RQ1.2: Can AdaptSim provide fine-grained control over users’ linguistic styles?  
+
+> ACM Trans. Inf. Syst., Vol. 1, No. 1, Article 1. Publication date: January 2025. 1:12 Yuanzi Li and Quanyu Dai, et al.
+
+Algorithm 3: Dialogue Simulation using BFS to Evaluate CRS Robustness 
+
+Input: Careless user simulator U𝑐 , Normal user simulator U𝑛 , Dialogue system CRS , Max rounds R
+
+Output: Pairwise evaluation results on robustness  
+
+> 1
+
+// Initialization ; 
+
+> 2
+
+a0 ← U𝑛 .ask () ; 
+
+> 3
+
+r0 ← CRS .reply (a0); 
+
+> 4
+
+Initialize queue Q ← [( a0 · r0, 0)] ; 
+
+> 5
+
+// Breadth-First Search Simulation ; 
+
+> 6
+
+while Q is not empty do  
+
+> 7
+
+(h, t) ← Dequeue (Q); 
+
+> 8
+
+if t ≥ R then  
+
+> 9
+
+continue ; 
+
+> 10
+
+end  
+
+> 11
+
+// Generate responses from different user simulators based on history ; 
+
+> 12
+
+a𝑐 ← U𝑐 .respond (h), a𝑛 ← U𝑛 .respond (h); 
+
+> 13
+
+// Generate system replies to different user responses ; 
+
+> 14
+
+r𝑐 ← CRS .reply (h · a𝑐 ), r𝑛 ← CRS .reply (h · a𝑛 ); 
+
+> 15
+
+Perform pairwise evaluation of r𝑐 and r𝑛 ; 
+
+> 16
+
+// Expand search tree with both user behaviors ; 
+
+> 17
+
+if a𝑛 ≠ “END” then  
+
+> 18
+
+Enqueue (Q, (h · a𝑛 · r𝑛 , t + 1)) ; 
+
+> 19
+
+end  
+
+> 20
+
+end 
+
+• RQ1.3: Can AdaptSim generalize to more open-ended dialogue scenarios, such as chit-chat systems? • RQ1.4: Does each component of AdaptSim contribute effectively to overall performance? • RQ1.5: How does AdaptSim address common issues observed in existing simulators through case studies? 
+
+◦ RQ2: Reliable CRS evaluation with AdaptSim 
+
+• RQ2.1: Can AdaptSim enable reliable evaluation of the core capabilities of CRSs? • RQ2.2: Can AdaptSim enable reliable evaluation of CRS robustness? 
+
+5.1 Experiments Setup 
+
+5.1.1 User Profile. As shown in Figure 2 (a), we generated a large number of user profiles with basic information, domain information, and context information using DeepSeek-R1, in order to support the simulation of diverse users. 
+
+5.1.2 Simulation Domains. To evaluate the fast domain adaptability of AdaptSim , we conduct experiments in three representative domains: Food , Beauty , and Shop .• Food Domain: This scenario simulates an unconstrained food and restaurant recommendation system, where users can inquire about details such as taste, price, and reviews. • Beauty Domain: This scenario simulates an unconstrained cosmetics recommendation system, supporting user inquiries about details such as brand, efficacy, and usage experience.  
+
+> ACM Trans. Inf. Syst., Vol. 1, No. 1, Article 1. Publication date: January 2025. Towards Fast Domain Adaptation and Fine-Grained User Simulation for Evaluating Conversational Recommender Systems 1:13
+
+• Shop Domain: This scenario simulates an unconstrained electronics shopping recommendation system, where users can ask about products such as smartphones, laptops, and tablets, as well as details such as specifications, price, quality, and user reviews. 
+
+5.1.3 User Simulator Baselines. To evaluate our method, we select three advanced LLM-based user simulators as baselines, namely: • iEvaLM [24]: Generates user responses based on fixed templates with the target item as the user’s profile. • CSHI [37]: Combines user profiles and action spaces to model user behavior. • RecUserSim [2]: Extends CSHI with a larger action space and linguistic style modeling. 
+
+5.1.4 Metrics for Evaluating Simulator. We use the six-dimensional evaluation framework from RecUserSim [2]. These six metrics were chosen to thoroughly evaluate the user simulator’s ability to replicate real user behavior in interactions with a recommendation system. Naturalness en-sures human-like dialogue, making it easier for the system to understand. Adaptability reflects the dynamic nature of user responses. Clarity ensures straightforward communication, while real-ism guarantees the simulator behaves like a real user. Relevance keeps the dialogue coherent and aligned with the context, and role-play ability ensures the simulator maintains its role as a user, not a recommender. 
+
+◦ Naturalness : The extent to which the language generated by the user simulator resembles nat-ural human language in terms of fluency, tone, and syntactic structure. 
+
+◦ Adaptability : The ability of a user simulator to dynamically adjust its requests or feedback in response to varying actions taken by the recommendation system, reflecting behavior that closely resembles that of a real user. 
+
+◦ Clarity : The degree to which the dialogues generated by a user simulator convey information clearly, directly, and effectively, ensuring ease of understanding. 
+
+◦ Realism : The extent to which a user simulator exhibits behavior that is believable and consistent with how a real human user would respond in a given interaction scenario. 
+
+◦ Relevance : The degree of coherence and logical consistency in the dialogue generated by the user simulator, maintaining semantic alignment and contextual continuity. 
+
+◦ Role-play Ability : The capability of the user simulator to consistently act as a user, engaging in behaviors such as seeking recommendations, responding to queries, and providing feedback. 
+
+5.1.5 Language Style Details of Fine-Grained Control. 
+
+◦ Formality : Value Range: (Formal, Informal) Describes whether the generated language adheres to formal linguistic conventions or is more conversational and informal. 
+
+◦ Sentiment : Value Range: (Positive, Neutral, Negative) Describes the emotional tone conveyed by the language. 
+
+◦ Conciseness : Value Range: (Concise, Moderate, Verbose) Describes the length and information density of the user’s language in expression. 
+
+◦ Carelessness : Value Range: (Careless) Describes whether the language contains spelling mis-takes, grammatical errors, incoherent expressions, and so on. 
+
+5.1.6 Metrics for Evaluating CRS. The selection of these three metrics aims to assess the CRS’s per-formance in language, actions, and recommendations. Language Quality ensures the dialogue is fluent, enhancing user experience. Action Quality evaluates how well the system interprets user intent and selects relevant responses. Recommendation Quality measures how well the sys-tem’s suggestions align with user preferences, reflecting the effectiveness of the recommendation mechanism. 
+
+> ACM Trans. Inf. Syst., Vol. 1, No. 1, Article 1. Publication date: January 2025.
+
+1:14 Yuanzi Li and Quanyu Dai, et al. 0 50 100 
+
+> Nat.
+> Cla.
+> Ada.
+> Rel.
+> Rol.
+> Rea.
+> Food
+
+Ours-4o-mini vs RUS-4o-mini   
+
+> 050 100
+
+Ours-4o-mini vs iEvaLM-4o-mini   
+
+> 050 100
+
+Ours-4o-mini vs CSHI-4o-mini   
+
+> 050 100
+
+Ours-3.5-turbo vs RUS-4o-mini   
+
+> 050 100
+> Nat.
+> Cla.
+> Ada.
+> Rel.
+> Rol.
+> Rea.
+> Beauty
+
+Ours-4o-mini vs RUS-4o-mini   
+
+> 050 100
+
+Ours-4o-mini vs iEvaLM-4o-mini   
+
+> 050 100
+
+Ours-4o-mini vs CSHI-4o-mini   
+
+> 050 100
+
+Ours-3.5-turbo vs RUS-4o-mini   
+
+> 050 100
+> Proportion (%)
+> Nat.
+> Cla.
+> Ada.
+> Rel.
+> Rol.
+> Rea.
+> Shop
+
+Ours-4o-mini vs RUS-4o-mini   
+
+> 050 100
+> Proportion (%)
+
+Ours-4o-mini vs iEvaLM-4o-mini   
+
+> 050 100
+> Proportion (%)
+
+Ours-4o-mini vs CSHI-4o-mini   
+
+> 050 100
+> Proportion (%)
+
+Ours-3.5-turbo vs RUS-4o-mini 
+
+Win Draw Loss 
+
+Fig. 3. Pairwise win–draw–loss comparison of AdaptSim against three baseline simulators across the Food, Beauty, and Shop domains. Each panel reports six dimensions: naturalness (Nat.), clarity (Cla.), adaptability (Ada.), relevance (Rel.), role-play ability (Rol.), and realism (Rea.). The four settings are AdaptSim with GPT-4o-mini versus RecUserSim, iEvaLM, and CSHI, and AdaptSim with GPT-3.5-turbo versus RecUserSim. Higher win proportions indicate better performance. Set 1  
+
+> Ours VS CSHI
+> Set 2
+> Ours VS RecUser
+> Set 3
+> Ours VS iEvaLMUser
+> 0%
+> 20%
+> 40%
+> 60%
+> 80%
+> 100%
+> Agree Rate
+> 94.4% 93.4%
+> 84.4%
+> 68.2%
+> 90.9%
+> 66.8% 67.7%
+> 49.5%
+> 63.8%
+
+Agreement Rate       
+
+> Annotator A Annotator B Annotator C
+> 20% 40% 60% 80% 100%
+
+Agree Rate 
+
+> Annotator A Annotator B Annotator C
+> mean 90.8%
+> mean 75.3%
+> mean 60.3%
+
+Agreement Stability         
+
+> Mean
+> Range
+> Annotator A Annotator B Annotator C
+> Annotator A Annotator B Annotator C
+> 100.0% 78.6% 56.1%
+> 78.6% 100.0% 51.9%
+> 56.1% 51.9% 100.0%
+
+Pairwise Consistency 
+
+> 0.5
+> 0.6
+> 0.7
+> 0.8
+> 0.9
+> 1.0
+> Consistency
+
+Fig. 4. Human validation of the LLM-as-a-judge protocol. Three senior annotators in the recommender sys-tems domain reviewed the pairwise judgments and marked each case as agreement or disagreement. The left panel reports annotator-wise agreement rates across the three comparison sets, the middle panel sum-marizes their mean agreement rates and ranges, and the right panel reports pairwise inter-annotator consis-tency. The results show that all annotators agree with the LLM outputs in more than 60% of cases on average, with moderate-to-high inter-annotator consistency, supporting the reliability of LLM-based evaluation. 
+
+◦ Language Quality : The extent to which the dialogue generated by the system demonstrates natural, fluent, and clear language use, resembling human-like communication. 
+
+◦ Action Quality : The system’s ability to appropriately interpret user intent and select coherent, contextually relevant dialogue actions during the interaction process. 
+
+◦ Recommendation Quality : The degree to which the items suggested by the system align with the user’s preferences and needs, reflecting the effectiveness of the recommendation mechanism. 
+
+ACM Trans. Inf. Syst., Vol. 1, No. 1, Article 1. Publication date: January 2025. Towards Fast Domain Adaptation and Fine-Grained User Simulation for Evaluating Conversational Recommender Systems 1:15 74   
+
+> 76
+> 78
+> 80
+> 82
+> GPT-3.5
+> 75.7 75.7 75.5
+> 79.7
+> 78.0
+> 77.1
+
+Formality    
+
+> 60
+> 66
+> 72
+> 78
+> 84
+> 64.6
+> 62.6 62.1
+> 79.2 79.7 79.3
+
+Sentiment   
+
+> 60
+> 66
+> 72
+> 78
+> 84
+> 72.6
+> 65.5 65.6
+> 80.2
+> 75.4 76.1
+
+Conciseness 
+
+> 14.8
+> 15.0
+> 15.2
+> 15.4
+> 15.0
+> 15.2
+
+Carelessness                           
+
+> 84
+> 86
+> 88
+> 90
+> 92
+> GPT-4o-mini
+> 89.1
+> 85.6 85.5
+> 90.1
+> 87.5 87.7
+> 72
+> 76
+> 80
+> 84
+> 88
+> 75.8
+> 77.3
+> 75.0
+> 83.6
+> 84.7
+> 82.8
+> 84
+> 87
+> 90
+> 93
+> 96
+> 86.4 86.4 86.3
+> 93.3 93.1 93.2
+> 0.0
+> 2.5
+> 5.0
+> 7.5
+> 10.0
+> 2.0
+> 7.9
+> 90.3
+> 90.6
+> 90.9
+> 91.2
+> Qwen3-8B
+> 90.8
+> 91.0
+> 90.7
+> 90.5 90.5 90.5
+> 90
+> 92
+> 94
+> 96
+> 98
+> 92.7 92.5 92.5
+> 95.3
+> 94.9 94.9
+> 90.0
+> 92.5
+> 95.0
+> 97.5
+> 100.0
+> 92.8
+> 91.7 92.0
+> 97.8
+> 97.1 97.3
+> 12
+> 18
+> 24
+> 30
+> 36
+> 14.3
+> 33.1
+> Precision Recall F1
+> 94.5
+> 96.0
+> 97.5
+> 99.0
+> Deepseek-R1
+> 95.4
+> 95.1 95.2
+> 97.9 97.9 97.9
+> Precision Recall F1
+> 94.5
+> 96.0
+> 97.5
+> 99.0
+> 95.7
+> 95.0 95.3
+> 97.8
+> 96.8
+> 97.2
+> Precision Recall F1
+> 92
+> 94
+> 96
+> 98
+> 100
+> 94.5 94.8 94.6
+> 97.1
+> 96.2 96.5
+> ACC
+> 56
+> 64
+> 72
+> 80
+> 56.6
+> 75.8
+
+Adherence of User Simulator to Designated Style  
+
+> w/o Thinking w/ Thinking
+
+Fig. 5. The adherence of the user simulator to the designated style across four LLM backbones and four style dimensions. Rows correspond to different backbones, while columns report formality, sentiment, con-ciseness, and carelessness. Entries marked (w) indicate that the model performs reasoning before generating a response, while (w/o) entries indicate direct response generation without intermediate reasoning. All val-ues are percentages. 
+
+5.1.7 CRS Used for Evaluation. For the food and beauty recommendation scenario, we evaluate two CRS frameworks [2, 15]: • BaseCRS: A single-prompt CRS that generates recommendations from dialogue history, serving as a simple baseline. • AgentCRS: A modular CRS with components for planning, memory (user preferences), and actions (ask, recommend, answer) guided by prompts. 
+
+ACM Trans. Inf. Syst., Vol. 1, No. 1, Article 1. Publication date: January 2025. 1:16 Yuanzi Li and Quanyu Dai, et al. 
+
+5.1.8 Implementation Details. To evaluate the effectiveness of our proposed method, we incorpo-rate a variety of LLMs as the backbone of user simulators, including Qwen3-8B [27], GPT-4.1-mini, DeepSeek-R1 [7], and others. To ensure reproducibility, we set the temperature to 0. We use GPT-4o-mini to generate and optimize simulator prompts through meta-prompting. Since existing user simulators are often tailored to domains such as movies, we adapt and reconstruct their prompts to better align with our target domain. We adopt a pairwise evaluation strategy using GPT-4o-as-a-judge [32] to compare AdaptSim against baseline methods. 
+
+5.2 Evaluation for User Simulator (RQ1) 0.0 0.2 0.4 0.6 0.8 1.0 
+
+> Percentage
+> Cla.  Ada.  Rea.  Div.  Coh.  Ove.
+> 0.53
+> 0.53
+> 0.42
+> 0.49
+> 0.50
+> 0.48
+> 0.26
+> 0.19
+> 0.23
+> 0.21
+> 0.21
+> 0.21
+> 0.21
+> 0.28
+> 0.35
+> 0.30
+> 0.29
+> 0.31
+
+Comparison: Ours vs Prompting Methods   
+
+> Win Tie Loss
+
+Fig. 6. Comparison of AdaptSim vs. Prompting Methods in Chit-Chat Conversations. The metrics include overall perfor-mance, coherence, diversity, realism, adaptability, and clarity. 
+
+5.2.1 Evaluation on Simulation Qual-ity (RQ1.1). Figure 3 compares Adapt-Sim with multiple baseline simulators across the Food, Beauty, and Shop domains using a pairwise win–draw– loss protocol. With the GPT-4o-mini backbone, AdaptSim achieves consis-tently higher win proportions across all six evaluation dimensions, and the green segments in the figure clearly re-flect this advantage. We further eval-uate AdaptSim with the weaker GPT-3.5-turbo backbone. Although perfor-mance declines as expected, AdaptSim remains competitive and still outper-forms the baselines on most dimen-sions. The only clear exception is nat-uralness, where the results are closer to those of the baselines. This is unsur-prising, as naturalness depends more directly on the underlying language generation ability of the backbone model than on the sim-ulation framework itself. Overall, the results suggest that AdaptSim is effective, adaptable, and efficient, making it a strong choice for diverse simulation settings. To assess the reliability of the LLM-as-a-judge protocol, we recruited three annotators with expertise in recommender systems to manually verify the judge outputs. For each pairwise com-parison, they indicated whether they agreed or disagreed with the LLM judgment. As shown in Figure 4, the mean agreement rates of the three annotators are 90.8%, 75.3%, and 60.3%, respectively, and their pairwise consistency is also moderate to high. These results suggest that the LLM-based evaluation is consistent with expert human judgment and is therefore reliable for our experiments. 
+
+(Answer to RQ1.1) AdaptSim outperforms all baselines in simulation quality across all three domains. 
+
+5.2.2 Style Controllability Evaluation (RQ1.2). In this section, we assess a critical capability of AdaptSim: its fine-grained control over linguistic style. We evaluate its performance across four dimensions: formality, sentiment, and conciseness, which are measured by Precision, Recall, and F1-score, and carelessness, measured by accuracy. The results, presented in Figure 5, highlight the efficacy of our “think-then-respond” strategy. For conventional styles, AdaptSim demonstrates ro-bust control across all tested LLM backbones. This is particularly evident with the DeepSeek-R1    
+
+> ACM Trans. Inf. Syst., Vol. 1, No. 1, Article 1. Publication date: January 2025. Towards Fast Domain Adaptation and Fine-Grained User Simulation for Evaluating Conversational Recommender Systems 1:17 Nat.
+> Cla.
+> Ada.
+> Rel.
+> Rol.
+> Rea.
+> 50
+> 100
+> Food
+> Nat.
+> Cla.
+> Ada.
+> Rel.
+> Rol.
+> Rea.
+> 50
+> 100
+> Beauty
+> Nat.
+> Cla.
+> Ada.
+> Rel.
+> Rol.
+> Rea.
+> 50
+> 100
+> Shop
+> Open Action Space vs Fixed Action Space
+> Win Draw Loss
+
+Fig. 7. Ablation analysis of open-ended action generation. The figure compares an open action space with a fixed action space across the Food, Beauty, and Shop domains using win–draw–loss proportions. Each radar chart reports six evaluation dimensions: naturalness (Nat.), clarity (Cla.), adaptability (Ada.), relevance (Rel.), role-play ability (Rol.), and realism (Rea.). Larger win regions indicate stronger performance of the open action space. 
+
+model, which achieves exceptional F1-scores exceeding 95% in formality, sentiment, and concise-ness. Simulating unconventional styles like “carelessness” poses a greater challenge, primarily due to the inherent tendency of LLMs to produce coherent and polished text. Despite this intrin-sic difficulty, the “think-then-respond” strategy significantly enhances performance, elevating the carelessness simulation accuracy to a notable 75.79%. Collectively, these findings confirm that AdaptSim possesses strong and versatile style control capabilities, a crucial feature for generating diverse and realistic user behaviors for more nuanced conversational evaluations. 
+
+(Answer to RQ1.2) AdaptSim provides effective fine-grained control over user linguistic styles. 
+
+5.2.3 Using AdaptSim for Chit-Chat Conversations (RQ1.3). To rigorously test the extensibility and domain-agnostic nature of our framework, we adapted AdaptSim for the open-ended domain of chit-chat systems. This was achieved by systematically removing all domain-specific information from its prompts, creating a generalized version of the simulator. We then deployed this version to interact with personalized chatbots and benchmarked its performance against a strong baseline using pure prompting methods. The multi-dimensional evaluation, visualized in Figure 6, reveals a decisive advantage for our approach. AdaptSim not only achieves a higher overall performance but also consistently surpasses the prompting-based method across a spectrum of crucial conver-sational qualities, including coherence, diversity, realism, adaptability, and clarity. This is a signif-icant finding, as it provides strong empirical evidence that the core mechanisms of AdaptSim are not narrowly tailored to task-oriented domains like CRS but are broadly applicable, showcasing its potential to enhance a wide array of advanced dialogue systems. 
+
+(Answer to RQ1.3) AdaptSim generalizes well to open-ended chit-chat settings. 
+
+5.2.4 Ablation Study (RQ1.4). In this section, we perform a series of ablation studies to examine the contribution of each component in AdaptSim, namely automatic prompt optimization (APO), Open-Ended Action Generation (OAG), and thinking-enhanced style generation (TSG). 
+
+• w/o APO : This variant removes automatic prompt optimization and directly uses the initial prompt, Prompt 0, for dialogue generation. To evaluate APO, we compare this variant with full AdaptSim using the optimized prompt and include a human-crafted prompt as an additional ref-erence. As shown in Table 2, the optimized prompt consistently outperforms the initial prompt 
+
+> ACM Trans. Inf. Syst., Vol. 1, No. 1, Article 1. Publication date: January 2025.
+
+1:18 Yuanzi Li and Quanyu Dai, et al. 
+
+Table 2. Pairwise evaluation results of AdaptSim using different prompt sources: initial prompt (IP), human-crafted prompt (HP), and optimized prompt (OP). The “Model” refers to the backbone used by AdaptSim. The evaluation metrics include naturalness, clarity, relevance, roleplay, realism and adaptability 
+
+Model Result Naturalness Clarity Relevance Roleplay Realism Adaptability 
+
+AdaptSim (OP) 3.5-turbo Win 35.75 39.25 32.50 19.25 46.25 42.50 VS Tie 45.75 29.50 49.75 66.25 26.00 27.00 AdaptSim (IP) Loss 18.50 31.25 17.75 14.50 27.75 30.50 AdaptSim (OP) 4o-mini Win 31.50 40.50 30.75 17.00 46.75 43.50 VS Tie 57.00 32.50 57.25 70.75 31.00 29.50 AdaptSim (IP) Loss 16.75 32.25 17.25 17.50 27.50 32.25 AdaptSim (OP) 4o-mini Win 28.00 30.50 30.00 15.75 43.50 37.75 VS Tie 54.50 28.25 54.50 68.75 28.50 28.50 AdaptSim (HP) Loss 17.50 41.25 15.50 15.50 28.00 33.75 0                               
+
+> 20
+> 40
+> 60
+> 80
+> 100
+> BC (3.5-turbo)
+> 66.5 65.8
+> 76.2 73.8
+> 82.8 81.2
+> 20.0 20.0
+> 14.0 14.2
+> 8.5 8.8
+> 13.5 14.2
+> 9.8 12.0 8.8 10.0
+> Win Tie Loss
+> 0
+> 20
+> 40
+> 60
+> 80
+> 100
+> BC (4o-mini)
+> 50.5 51.2
+> 82.0 81.8
+> 51.5
+> 56.2
+> 49.0 45.0
+> 16.8 15.5
+> 46.8
+> 40.0
+> 0.5 3.8 1.2 2.8 1.8 3.8
+> Typo
+> Action
+> Typo
+> Recommendation
+> Drop
+> Action
+> Drop
+> Recommendation
+> Shuffle
+> Action
+> Shuffle
+> Recommendation
+> 0
+> 20
+> 40
+> 60
+> 80
+> 100
+> AC (4o-mini)
+> 66.5 66.5
+> 74.8 74.0
+> 54.2 52.8
+> 27.8 26.0
+> 19.5 21.0
+> 36.2 34.8
+> 5.8 7.5 5.8 5.0
+> 9.5 12.5
+
+Pairwise Evaluation of CRS Robustness 
+
+> Percentage (%)
+
+Fig. 8. Pairwise evaluation of CRS performance under normal and careless user conditions. Here, BC denotes BaseCRS; AC, AgentCRS; Rec, Recommendation; and 3.5-turbo and 4o-mini are shorthands for the base LLMs GPT-3.5-turbo and GPT-4o-mini. 
+
+under both GPT-3.5-turbo and GPT-4o-mini backbones. It also often matches or exceeds the 
+
+ACM Trans. Inf. Syst., Vol. 1, No. 1, Article 1. Publication date: January 2025. Towards Fast Domain Adaptation and Fine-Grained User Simulation for Evaluating Conversational Recommender Systems 1:19 
+
+human-crafted prompt, indicating that APO effectively improves prompt quality and reduces dependence on manual prompt engineering. 
+
+• w/o OAG : This variant removes open-ended action generation and forces the simulator to rely on a fixed action space. As shown in Figure 7, the open action space achieves larger win pro-portions than the fixed action space across the Food, Beauty, and Shop domains, covering most evaluation dimensions. This suggests that OAG enables more flexible and context-aware user actions, improving adaptability, relevance, and overall simulation quality. 
+
+• w/o TSG : This variant removes thinking-enhanced style generation and directly produces the response without an explicit intermediate reasoning process. As shown in Figure 5, removing this component lowers style adherence across all tested styles and backbones. In contrast, the full model with thinking consistently achieves higher Precision, Recall, and F1 for formality, sentiment, and conciseness, while also improving accuracy on the carelessness setting. This in-dicates that intermediate reasoning plays an important role in preserving the designated style during generation. 
+
+(Answer to RQ1.4) The consistent performance degradation across ablation variants confirms that automatic prompt optimization, open-ended action generation, and thinking-enhanced style generation are all important for the optimal performance of AdaptSim. 
+
+5.2.5 Case Study (RQ1.5). We further conduct case studies to examine the practical behavior of existing user simulators, including RecUserSim, iEvaLM, and CSHI. As shown in Figures 10–19, these simulators commonly suffer from role reversal, where the simulated user mistakenly acts as the recommender during the interaction. This problem is closely related to their design limitations. For example, iEvaLM lacks explicit action guidance, which makes its generated behavior less goal-directed, while RecUserSim does not sufficiently exploit dialogue context during refinement and can therefore lose track of the user role. We also observe frequent repetition of identical or highly similar questions, indicating weak context tracking and limited dialogue coherence. This issue is particularly likely when a simulator relies on a fixed or narrow action space, as in CSHI and RecUserSim, which can repeatedly select similar actions across consecutive turns. In contrast, AdaptSim maintains the predefined user per-sona and linguistic style throughout the interaction, while using open-ended actions to better align with the dialogue context. As a result, it reduces role confusion and repetitive behavior, leading to more coherent and realistic user simulations. 
+
+(Answer to RQ1.5) AdaptSim mitigates common simulator failures such as role reversal and repetitive questioning in case studies. 
+
+5.3 Evaluation for CRS (RQ2) 
+
+5.3.1 Evaluation of CRS Basics (RQ2.1). Following the protocol in Section 4.4.1, we use Adapt-Sim to conduct turn-level pairwise comparisons between CRSs under matched dialogue contexts. We evaluate two representative architectures: BaseCRS, which directly generates responses from the dialogue history, and AgentCRS, which decomposes the interaction into planning, memory, and action modules. The comparisons cover three dimensions: action quality, language quality, and recommendation quality. Table 3 shows two consistent patterns. First, the backbone LLM has a clear effect on CRS quality. For both BaseCRS and AgentCRS, versions built on GPT-4o-mini obtain higher win rates than their GPT-3.5-turbo counterparts across action, language, and rec-ommendation dimensions. This indicates that stronger language models improve not only surface-level response fluency, but also downstream decision making in conversational recommendation. Second, architecture influences different capabilities in different ways. BaseCRS generally outper-forms AgentCRS in action and recommendation quality, while language quality is often closer and 
+
+> ACM Trans. Inf. Syst., Vol. 1, No. 1, Article 1. Publication date: January 2025.
+
+1:20 Yuanzi Li and Quanyu Dai, et al. 
+
+Table 3. Pairwise evaluation results of AdaptSim in assessing CRS models built with different base LLMs. AS, BC, and AC denote AdaptSim, BaseCRS, and AgentCRS, respectively, while 4.1-mini and 4o-mini are shorthands for GPT-4.1-mini and GPT-4o-mini. 
+
+ASim (4.1-mini) ASim (4o-mini) ASim (Qwen3-8B) Win Tie Loss Win Tie Loss Win Tie Loss BaseCRS (GPT-4o-mini) Action 66.5 27.2 6.2 59.8 29.6 10.6 64.8 24.8 10.5 VS Language 60.2 38.5 1.2 59.8 35.6 4.7 67.5 27.2 5.2 BaseCRS (3.5-turbo) Rec 65.0 27.5 7.5 57.0 33.0 10.0 63.8 28.2 8.0 BaseCRS (GPT-4o-mini) Action 40.5 47.5 12.0 52.5 37.5 10.0 61.5 28.0 10.5 VS Language 20.8 74.0 5.2 33.0 60.0 7.0 33.2 60.0 6.8 AgentCRS (GPT-4o-mini) Rec 43.5 38.2 18.2 48.5 35.5 16.0 56.8 27.0 16.2 AgentCRS (GPT-4o-mini) Action 59.0 22.8 18.2 52.5 22.2 25.2 50.8 23.2 26.0 VS Language 39.2 49.8 11.0 36.2 50.2 13.5 41.0 42.8 16.2 AgentCRS (GPT-3.5-turbo) Rec 57.5 23.5 19.0 52.2 26.0 21.8 51.5 22.8 25.8 GPT-4.1-mini 
+
+> vs GPT-4o-mini
+> GPT-4.1-mini
+> vs Qwen3-8B
+> GPT-4o-mini
+> vs Qwen3-8B
+> 0.80
+> 0.85
+> 0.90
+> 0.95
+> 1.00
+> Correlation Value
+> 0.943
+> 0.859
+> 0.969 0.971
+> 0.940
+> 0.971
+> 0.975
+> 0.933
+> 0.964
+
+Pearson Correlation   
+
+> GPT-4.1-mini
+> vs GPT-4o-mini
+> GPT-4.1-mini
+> vs Qwen3-8B
+> GPT-4o-mini
+> vs Qwen3-8B
+> 0.937
+> 0.895
+> 0.974
+> 1.000
+> 0.966 0.966
+> 0.998
+> 0.950 0.950
+
+Spearman Correlation 
+
+> Dimension
+> Action
+> Language
+> Rec
+
+Fig. 9. Pearson and Spearman correlation of AdaptSim evaluation scores across backbone LLM pairs and task dimensions (Action, Language, Recommendation). All reported correlations are statistically significant ( 𝑝 <
+
+0.05 ), indicating that the proposed evaluation protocol produces stable and consistent rankings regardless of the simulator backbone. 
+
+contains many ties. One possible explanation is that the modular design of AgentCRS provides ex-plicit structure, but its predefined action space can also restrict how flexibly the system reacts to diverse user intents. In contrast, BaseCRS is less structured but can adapt its response more freely to the current dialogue context. To examine whether these conclusions depend on the simulator backbone, we further compare the rankings produced by AdaptSim with different backbone LLMs. As shown in Figure 9, the rankings are highly consistent across backbones, with Pearson correla-tions ranging from 0.859 to 0.975 and Spearman correlations ranging from 0.895 to 1.000 . These results suggest that the proposed evaluation protocol provides stable comparative signals for CRS evaluation. 
+
+(Answer to RQ2.1) AdaptSim enables reliable evaluation of CRS core capabilities: it identifies differences caused by backbone models and CRS architectures, and its rankings remain consistent across simulator backbones. 
+
+ACM Trans. Inf. Syst., Vol. 1, No. 1, Article 1. Publication date: January 2025. Towards Fast Domain Adaptation and Fine-Grained User Simulation for Evaluating Conversational Recommender Systems 1:21 
+
+5.3.2 Evaluation of CRS Robustness (RQ2.2). We next evaluate whether current CRSs remain reli-able when users produce imperfect inputs. Following Section 4.4.2, we use the fine-grained style control of AdaptSim to generate careless user utterances with typos, word shuffling, and word dropping. This setting simulates common interaction noise caused by informal typing, incomplete expressions, or low-effort user behavior. We compare each CRS under clean and perturbed user inputs while preserving the same dialogue context for each turn-level comparison. As shown in Figure 8, noisy inputs consistently reduce CRS performance. The degradation appears across dif-ferent CRS architectures and backbone LLMs, suggesting that robustness is not solved simply by using a stronger generator or a more modular CRS pipeline. Instead, existing systems remain vulnerable when user intent is expressed in a less polished form. These findings demonstrate an important use case of AdaptSim: by controlling user language at a fine-grained level, it can expose failure modes that are difficult to observe with clean or template-based simulations. Robust CRS evaluation should therefore include not only standard recommendation success under ideal inputs, but also stress tests under realistic linguistic variation and noise. 
+
+(Answer to RQ2.2) AdaptSim enables controlled robustness evaluation for CRSs, revealing that current systems remain sensitive to noisy user inputs and require stronger fault tolerance. 
+
+6 CONCLUSION 
+
+In this paper, we studied LLM-based user simulation for conversational recommender systems, fo-cusing on the limitations of existing simulators in domain adaptability, user modeling, and evalua-tion validity. We proposed AdaptSim, an adaptive user simulator that combines automatic prompt optimization, open-ended action generation, and thinking-enhanced style generation. These de-signs reduce the dependence on manually crafted prompts and predefined action spaces, while enabling more flexible behavior modeling and fine-grained control over user linguistic styles. We further introduced a BFS-based turn-level pairwise evaluation framework for assessing the basic capabilities and robustness of CRSs under matched dialogue contexts. Extensive experiments across multiple domains and LLM backbones show that AdaptSim produces more realistic, adapt-able, and controllable user simulations than existing baselines. The results also demonstrate that AdaptSim can support reliable CRS evaluation and reveal important robustness weaknesses of current CRS models under noisy user inputs. 
+
+7 LIMITATIONS AND FUTURE WORK 
+
+Although AdaptSim demonstrates strong performance across domains and backbones, several lim-itations tied to its specific design choices warrant further investigation. First, the automatic prompt optimization (APO) process relies on an LLM both to detect behav-ioral issues in generated dialogues and to refine the prompt accordingly. This creates a circular dependency: the quality of the optimized prompt is bounded by the meta-evaluation LLM’s abil-ity to identify subtle simulation failures, such as underspecified intent or inconsistent guidance. When the backbone LLM is weak, both the error detection and the refinement steps may degrade simultaneously, making it difficult to diagnose whether poor simulation quality stems from the prompt or the model itself. Second, the open-ended action generator selects the most probable candidate action, which fa-vors high-frequency, prototypical user behaviors. This greedy selection may suppress rare but realistic actions—such as abrupt topic shifts or contradictory preference updates—that are impor-tant for stress-testing CRS robustness. Incorporating diversity-aware sampling or explicit coverage objectives could address this.  
+
+> ACM Trans. Inf. Syst., Vol. 1, No. 1, Article 1. Publication date: January 2025. 1:22 Yuanzi Li and Quanyu Dai, et al.
+
+Third, the thinking-enhanced style controller enforces stylistic consistency through a prompt-driven thinking step, without modifying the model’s internal representations. In very long dia-logues, the style signal may still drift as the thinking step competes with an increasingly long context. A more robust solution might involve fine-tuning or retrieval-augmented style anchor-ing. Finally, the BFS-based evaluation expands dialogue states breadth-first, which provides context-consistent pairwise comparisons but grows exponentially with branching factor and depth. In practice, we cap the depth at 𝑅 and limit branching, which may miss important late-turn failure modes. Future work could explore beam-search-style pruning or learned branch selection to im-prove coverage without proportional cost. 
+
+> ACM Trans. Inf. Syst., Vol. 1, No. 1, Article 1. Publication date: January 2025.
+
+Towards Fast Domain Adaptation and Fine-Grained User Simulation for Evaluating Conversational Recommender Systems 1:23 
+
+A Additional Prompt Templates and Case Studies 
+
+This appendix provides the prompt templates used in AdaptSim and representative qualitative case studies. The prompt templates cover profile construction, action generation, response generation, issue detection, prompt refinement, and style control. The case studies illustrate typical failure modes of baseline user simulators, including role reversal and repetitive questioning, as well as representative examples of AdaptSim under different linguistic styles. These materials comple-ment the quantitative results in the main text and provide additional detail for reproducibility and qualitative inspection. 
+
+A.1 Prompt Templates 
+
+• Profile prompt generation for constructing natural-language user profiles from structured fields. 
+
+• Initial action-generation prompt for open-ended user intent modeling. 
+
+• Response-generation prompt for turning intended actions into user utterances. 
+
+• Issue-discovery prompt for analyzing dialogue failures in user simulator outputs. 
+
+• Prompt-refinement prompt for improving action-generation quality based on detected issues. 
+
+• Final intent-action generation prompt with probability-based outputs and reasoning traces. 
+
+Prompt 1. Meta prompt to generate profile prompts. 
+
+> You are a Prompt Engineer. Your task is to construct a prompt template that generates a natural language user profile for a user simulator, given a domain and a set of structured fields. ↩→
+> Goal: Automatically express a user's preferences, dislikes, contextual signals, and constraints in fluent natural language. ↩→
+> Below is an example: Input: {"domain_sys": "Food Recommendation System", "domain_specific": [ "locationNot", "tasteNot", "shopNot", "constraint", "time", "taste", "location", "listType", "scenes" ], "context": [ "price", "rating", "privateRoom", "radius", "sourceLocation", "targetLocation" ]}Output: ```jinja2 Domain Specific Language Info (Omitted due to space limitations) ``` Now, based on the following input fields, generate a Profile Prompt for a user simulator. Input: {Your profile fields (input)} Output: ```jinja2 <Your Output> ```
+
+Prompt 2. Initial Prompt Template Design for Action Generation in All Domains. 
+
+> You are a highly realistic user simulator whose goal is to obtain satisfactory responses by interacting with {domain_sys}. ↩→
+> Here is some information about you: {Basic Info}
+
+ACM Trans. Inf. Syst., Vol. 1, No. 1, Article 1. Publication date: January 2025. 1:24 Yuanzi Li and Quanyu Dai, et al. 
+
+{Domain Specific Info} {Context Info} Your historical conversation records with {domain_sys}, along with the actions you took in each turn, are as follows: ↩→
+
+{Dialogue_Action_history} As the user, please generate a set of appropriate actions you will take. You should follow these rules: 1. No repetition: do not generate actions already present or semantically similar in the history. 2. If the system asks you for information, you should respond immediately with the corresponding action. Please combine your personal information, history, and relevant actions to generate up to 5 actions with their probabilities, summing to 100%. ↩→
+
+Your output must be strictly controlled to 3 lines: Line 1: Reflect on whether you have taken any action that {domain_sys} cannot reply to, and whether you have answered all necessary questions from {domain_sys}. ↩→
+
+Line 2: List all the actions you will take in the format: action1 : prob; action2 : prob; ... (avoid repeated or similar actions). ↩→
+
+Line 3: Directly state the reason for choosing each action, in the same order as actions. Your number of reasons must exactly equal the number of actions. Output the results strictly in the following JSON format: {"Thought": "<Did you take any actions that {domain_sys} cannot respond to? Did you answer all necessary questions from {domain_sys}?>", ↩→
+
+"Actions": "[action1:prob; ..., action5:prob]", "Reasons": "[action reason1; ...; action reason5]" }
+
+Prompt 3. Prompt design for response generation. 
+
+You are a user simulator. Your current task is to play the role of a real user and interact with the {domain_sys}. You now need to generate a response to {domain_sys}. ↩→
+
+When generating this reply, please follow these instructions carefully: 1. Users typically do not repeatedly mention the same preferences unless the system continues to make incorrect recommendations. For example, if the user has already stated their food preference, they generally will not mention it again in later conversations. 
+
+> ↩→
+> ↩→
+
+2. In your reply, you must complete all the actions you plan to take. You cannot execute only part of them. If your intended action is a single one, your reply only needs to complete that one action; if it is a compound action, you need to complete all the actions in your reply. 
+
+> ↩→
+> ↩→
+
+3. Avoid replies that are too similar or identical to previous responses. The reasons are: if you have already asked a similar question and the system responded correctly, you have received the necessary information; if the system responded incorrectly, repeating the question will not yield a better answer. 
+
+> ↩→
+> ↩→
+
+4. If the recommendation system asks you for some information, but that action is not listed, you should still provide the information, because it is necessary. ↩→
+
+5. Special case: if the action to be taken is ending the conversation, your reply must include farewell words such as "Goodbye" or "Bye", and the conversation should end. Do not ask the recommendation system any further questions. 
+
+> ↩→
+> ↩→
+
+Here is some information about you: {Basic Info} {Domain Specific Info} {Context Info} Your historical conversation records with {domain_sys}, along with the actions you took in each turn, are as follows: ↩→
+
+{Dialogue_Action_history} Your intended actions are: [{action_names}] Your reasons for choosing these actions are: [{inner_voice}] Now, please play the role of a user. If this is the first round of conversation, you must initiate the dialogue. In this case, you do not need to respond to the recommendation system. ↩→
+
+As a user, based on your information and intended actions, and strictly adhering to your language style, generate a response to the recommendation system. ↩→
+
+Please follow this Language Style: 
+
+ACM Trans. Inf. Syst., Vol. 1, No. 1, Article 1. Publication date: January 2025. Towards Fast Domain Adaptation and Fine-Grained User Simulation for Evaluating Conversational Recommender Systems 1:25 
+
+{Language Style} Your output must be exactly 4 lines, structured as follows: Line 1: Reflect on whether you followed your language style. Line 2: Reflect on whether you illegally asked questions if the action is to end the conversation. Line 3: Output a single line of user response to the system. Line 4: Explain why you responded this way. Output the results strictly in the following JSON format: {"Thought1": "<What is your language style? Did you follow it?>", "Thought2": "<If your current action is to end the conversation, did you illegally ask {domain_sys} any questions?>", ↩→
+
+"Response": "Your reply to the system.", "Reason": "Why did you respond this way?" }
+
+Prompt 4. Meta prompt for identifying issues in user simulator dialogues. 
+
+You are a problem discovery expert, specializing in analyzing the quality of dialogues between a user simulator and a CRS (Conversational Recommender System). ↩→
+
+Your task is: given five dialogues between the user simulator and the CRS, identify the potential issues in the user simulator's behavior during the conversation. ↩→
+
+Please conduct an in-depth analysis across the following dimensions: 1. Behavioral Consistency: whether the user's responses deviate from reasonable behavioral patterns or role settings. ↩→
+
+2. Logical Coherence: whether there are logical contradictions, semantic jumps, or repetitive content. 3. Diversity and Naturalness: whether the user expressions lack realism, diversity, or appear overly templated. ↩→
+
+4. Language Quality: whether the language is mechanical, rigid, or inconsistent with everyday human communication habits. ↩→
+
+5. Context Understanding Ability: whether the user shows unreasonable neglect or misunderstanding of prior context. ↩→
+
+The five dialogues are as follows: {% for dialogue in dialogues %} Dialogue {{ loop.index }}: {{ dialogue }} {% endfor %} Do not base your problem descriptions on the original dialogues directly; aim to identify high-level issues. Please output the results in the following format: {"Analysis": "A brief summary of the overall issues and trends observed across the five dialogues", "Issues": [ "Issue: Issue description", "Issue: Issue description", ... ]}
+
+Prompt 5. Meta prompt for optimizing user simulator’s action generation. 
+
+You are a senior Prompt Optimization Expert, specializing in refining prompts for user simulators to enhance the realism and interaction quality of generated user intentions. ↩→
+
+Background: The current user simulator uses a Prompt to generate the user's intention, which is followed by another Prompt to generate the user's actual response. This task focuses solely on improving the first Prompt — the one responsible for generating user intentions. Your goal is to enhance the realism, naturalness, and coherence of these intentions, while avoiding common issues such as illogical flow, unnatural tone, or rigid/templated expressions. 
+
+> ↩→
+> ↩→
+> ↩→
+> ↩→
+
+Important: The Prompt you optimize is only responsible for producing the user's initial intention, not their actual reply. ↩→
+
+ACM Trans. Inf. Syst., Vol. 1, No. 1, Article 1. Publication date: January 2025. 1:26 Yuanzi Li and Quanyu Dai, et al. 
+
+Please complete the following tasks: 1. Carefully review the Initial Prompt and the accompanying Identified Issues from previously generated dialogues. ↩→
+
+2. Analyze the probable causes behind the issues — which parts of the Prompt are vague, overly rigid, misaligned with the goal, or lack appropriate constraints. ↩→
+
+3. Rewrite and refine the Prompt so that it more effectively guides the simulator to produce user intentions that are realistic, consistent with human behavior, naturally phrased, and coherent with the dialogue context. 
+
+> ↩→
+> ↩→
+
+4. Ensure that the generated user intention represents a clear and reasonable request for recommendation. You will be provided with: Identified Issues with the User Simulator: {{ problems }} Initial Prompt: {{ initial_prompt }} Before writing the final output, reflect on what the initial prompt is trying to achieve. Please provide your output in the following format: Reflection: Your analysis and insights here Optimized Prompt: <jinja2> Refined Prompt content </jinja2> 
+
+Prompt 6. Prompt design for realistic user intent action generation. 
+
+You are a highly realistic user simulator whose goal is to obtain satisfactory responses from {{ domain_sys }} by engaging in dialogue with it using the thinking and expression patterns of real users. Your behavior should reflect the diversity, emotions, feedback, and personality of real users, and avoid mechanical, templated, or repetitive expressions. 
+
+> ↩→
+> ↩→
+> ↩→
+
+Here is some information about you: {Basic Info} {Domain Specific Info} {Context Info} Your historical conversation records with {domain_sys}, along with the actions you took in each turn, are as follows: ↩→
+
+{Dialogue_Action_history} You and {{domain_sys}} have the following historical conversation and user actions per round: {{chat_action_his}} Please generate up to 5 "user intent actions" and their probabilities (summing to 100%) from the perspective of a real user, based on your personal information, the conversation history, and the system's responses. Your behavior should meet the following requirements: 
+
+> ↩→
+> ↩→
+
+1. In the first round, you must proactively request a recommendation, expressing your needs or confusion, combined with your lifestyle, preferences, budget, owned products, etc., using natural, colloquial, and life-like expressions, avoiding templated or formal language. 
+
+> ↩→
+> ↩→
+
+2. In subsequent rounds, prioritize feedback, evaluation, follow-up questions, or supplementary information based on the system's response, reflecting real user emotions, doubts, approval, rejection, indecisiveness, price sensitivity, brand preference, etc., avoiding mechanical questioning. 
+
+> ↩→
+> ↩→
+
+3. Behavior should be logically progressive, avoiding repetition of past actions or semantically similar ones, and demonstrating absorption, filtering, and personal refinement of previous information. ↩→
+
+4. You may appropriately display hesitation, vague expressions, forgotten information, misunderstandings, or colloquial phrases typical of real users to increase naturalness and challenge. ↩→
+
+5. At the end, avoid templated goodbyes; you may express gratitude, hesitation, additional questions, or genuine feedback on the recommendations based on actual experience. ↩→
+
+6. Each action must have a clear and specific reason, which should be personalized and contextualized based on your background, the conversation history, and real user psychology. ↩→
+
+Your output must strictly be in 3 lines: Line 1: Reflect on whether you have taken actions that {{domain_sys}} cannot respond to, and whether you have answered all necessary questions from {{domain_sys}}. ↩→
+
+Line 2: List all actions and their probabilities, formatted as [action1:prob; ..., action5:prob], with actions being diverse, natural, and non-repetitive. ↩→
+
+ACM Trans. Inf. Syst., Vol. 1, No. 1, Article 1. Publication date: January 2025. Towards Fast Domain Adaptation and Fine-Grained User Simulation for Evaluating Conversational Recommender Systems 1:27 
+
+> Line 3: Provide the specific reasons for each action, matching the number of actions, with reasons being specific, personalized, and contextually relevant. ↩→
+> Output the results strictly in the following JSON format: {"Thought": "<Did you take any actions that {domain_sys} cannot respond to? Did you answer all necessary questions from {domain_sys}?>", ↩→
+> "Actions": "[action1:prob; ..., action5:prob]", "Reasons": "[action reason1; ...; action reason5]" }
+
+A.2 Representative Case Studies 
+
+The following examples highlight common failure modes of baseline user simulators and illustrate how AdaptSim maintains more coherent role behavior and more controlled language generation across dialogue settings. 
+
+• RecUserSim bad cases showing role reversal under the GPT-4o backbone. 
+
+• iEvaLM bad cases showing repeated questioning and weak strategic guidance. 
+
+• CSHI bad cases showing repeated questioning under a limited action space. 
+
+• AdaptSim case studies for formal, informal, long, and short linguistic styles. 
+
+ACM Trans. Inf. Syst., Vol. 1, No. 1, Article 1. Publication date: January 2025. 1:28 Yuanzi Li and Quanyu Dai, et al. 
+
+Case Study: RecUserSim (GPT-4o) BadCase 1 
+
+User: Can you recommend some good places to eat near me? Thank you! 
+
+Assistant: Of course! To give you more personalized recommendations, could you tell me which city or area you’re in? Also, do you have a preference for a certain type of cuisine, like Chinese, Western, Japanese, or something else? Any budget range or special requirements? 
+
+User: I recommend you try the nearby fast food restaurants — they usually offer a variety of quick meals that should suit your needs. (Bad role play ability– role reversal) Assistant: Recommending fast food is a great idea! If you’d like to try different kinds of fast food, here are some popular chain restaurants you can consider: - McDonald’s – Classic burgers, fries, and a wide breakfast menu. - KFC – Famous for fried chicken and various side dishes, suitable for different tastes. - Subway – Custom sandwiches and healthy salads, perfect for a quick and healthy meal. - Burger King – Known for flame-grilled burgers and also offers other snack options. - Dicos – Offers a variety of fried chicken items with unique flavors. These fast-food chains have locations in many cities, so you can choose based on your taste and convenience. Don’t forget to check out their current promotions — you might get a discount! Let me know if you’d like recommendations for other types of food. 
+
+User: If you’re looking for dining suggestions, I can help you pick some popular nearby restaurants or well-liked cafes. (Bad role play ability– role reversal) Assistant: Thank you very much for your recommendation! If you could tell me which city or area you’re in, I can list some popular nearby restaurants or cafes for you. That way you’ll have more accurate choices. Whether it’s a specific type of cuisine or just a nice place to grab a coffee, feel free to let me know. 
+
+User: Thank you very much for the information! Can you recommend some worthwhile dining spots near me? 
+
+Assistant: Certainly! To provide better recommendations, could you please tell me which city or area you’re in? Also, do you have any preferences regarding restaurant type or cuisine — such as Chinese, Western, Japanese, etc.? With this information, I can suggest some great places for you to try. 
+
+User: I’m coming from the Xidan area — do you have any good recommendations around there? 
+
+Fig. 10. The first bad case of RecuserSim based on GPT-4o backbone, where improper refinement led to role reversal. 
+
+> ACM Trans. Inf. Syst., Vol. 1, No. 1, Article 1. Publication date: January 2025.
+
+Towards Fast Domain Adaptation and Fine-Grained User Simulation for Evaluating Conversational Recommender Systems 1:29 
+
+Case Study: RecUserSim (GPT-4o) BadCase 2 
+
+User: Can you recommend some restaurants or cuisines near me that are worth trying? I’m really interested in new flavors and dining experiences, so I’d appreciate some detailed suggestions — especially dishes or places I might not have tried yet, particularly those with unique or local flavors. Could you also suggest some restaurants that offer unforgettable dining experiences? 
+
+Assistant: Of course! To discover new flavors and restaurants, I suggest you try the following types of dining spots: - Local specialty eateries – Look for small restaurants specializing in regional cuisine or street food; they often serve amazing dishes like Sichuan-style hot pot or Jiangnan-style soup dumplings. - Street food stalls – Many cities have authentic street food markets where you can find delicacies like Shengjian buns or Jianbing (a savory Chinese crepe). If you could share your city or area, I can provide even more specific recommendations. Enjoy your food adven-ture! 
+
+User: Certainly, recommending excellent Shandong (Lu) cuisine restaurants is no problem! When looking for a Lu cuisine experience, I suggest considering these options: try large traditional Lu cuisine restaurants, which usually offer rich and classic dishes like scallion-braised sea cucumber and nine-turns intestine. Also, smaller home-style restaurants can offer a uniquely authentic Lu flavor. Nowadays, there are also fusion restaurants that creatively combine Lu cuisine with other styles — I’m sure they’ll surprise you. I hope these suggestions help you enjoy a wonderful meal! (Bad role play ability– role reversal) Assistant: Of course! When looking for Lu cuisine restaurants, consider the following categories: - Traditional Lu cuisine restaurants – Try their classic dishes like scallion-braised sea cucumber and nine-turns intestine. - Small family-run restaurants – Experience authentic, home-cooked Lu cuisine. - Innovative fusion restaurants – Some restaurants blend Lu cuisine with other styles for a fresh taste expe-rience. I hope you find a great place and enjoy a memorable Lu cuisine experience! If you share your city or area, I can give you more precise recommendations. 
+
+User: I’d be happy to help! If you need food recommendations, I’m willing to list popular dining options in your area along with each restaurant’s signature dishes and unique experiences, so you can make a better choice. (Bad role play ability– role reversal) Assistant: Of course! To provide more specific recommendations, I need to know your current city or area. That way, I can tailor my suggestions based on local dining options and their specialties. You can also let me know which type of cuisine or flavor you prefer, so I can offer more suitable suggestions. I look forward to helping you find an unforgettable dining experience! 
+
+User: You mentioned you’re near Taikoo Hui (Tianhe City). I’d like to ask whether you’re looking for special restaurant recommendations or specific types of cuisine. Taikoo Hui is a very well-known shopping mall, and there are many restaurants and cafes around it. From what I know, there’s a wide variety of food choices in this area, including Chinese, Western, and international cuisines. So if you have any particular interests or would like recommendations similar to that, please feel free to let me know. I’d be happy to provide more detailed suggestions so you can enjoy a satisfying meal in this area. 
+
+Assistant: Around Taikoo Hui, there are plenty of delicious dining options. Here are some recommended types of restaurants nearby: - Cantonese restaurants – Try Guangdong-style roasted meats or dim sum — very authentic. - Southeast Asian restaurants – Thai and Vietnamese food are great choices, especially dishes like tom yum soup and Vietnamese spring rolls. - Cafés – If you just want to relax, try one of the cafés for desserts and coffee. If you have a preferred cuisine or specific request, let me know, and I can give you more detailed restaurant suggestions! 
+
+User: May I ask if there are any high-quality restaurants in Guangzhou or nearby areas that specialize in Shandong (Lu) or Anhui (Hui) cuisine? It would also be great if you could recommend some local Guangzhou snacks or unforgettable dishes — especially those that serve authentic Lu or Hui cuisine. Ideally, these restaurants should not only be known for their distinctive dishes but also offer a pleasant dining environment. Thank you! 
+
+ACM Trans. Inf. Syst., Vol. 1, No. 1, Article 1. Publication date: January 2025. 1:30 Yuanzi Li and Quanyu Dai, et al. 
+
+Case Study: iEvaLM (GPT-4o) BadCase 1 
+
+User: Hello! Is there anything I can recommend to you? Do you have any particular preferences? (Bad role play ability– role reversal) Assistant: Hello! I’m happy to help! What kind of products would you like to be recommended? For example, books, electronics, clothing, or something else? If you have any specific preferences, such as brand, price range, or purpose, feel free to let me know—I’ll be able to make better recommendations! 
+
+User: I’m especially interested in Sichuan cuisine, especially the spicy, numbing, and flavorful taste. Do you have any recommendations? 
+
+Assistant: Of course! If you enjoy the spicy and numbing flavors of Sichuan cuisine, here are a few recom-mended dishes: 
+
+• Spicy Hot Pot – Spicy but not greasy, paired with fresh ingredients, it’s a classic Sichuan dish. 
+
+• Kung Pao Chicken – A mix of chili peppers and crunchy peanuts, with a rich and unique flavor. 
+
+• Mouthwatering Chicken (Kou Shui Ji) – Made with tender chicken, flavored with chili oil and sauce— spicy but not overpowering, great with rice. 
+
+• Yu Xiang Shredded Pork – Sweet and sour with a spicy kick, perfect with rice. If you’d like restaurant suggestions or help sourcing ingredients, just let me know! 
+
+User: Thanks for your recommendations! I’m especially interested in spicy hot pot, as it’s one of the signature dishes of Sichuan cuisine. The numbing and spicy flavors always excite me! If you have any other recommen-dations related to this dish, I’d love to hear them. 
+
+Assistant: Absolutely! Spicy hot pot is definitely a Sichuan classic. Here are some suggestions to help you enjoy this delicious dish even more: 
+
+• Choose the right soup base: Go for high-quality spicy hot pot bases. Recommended brands include beef tallow hot pot base or spicy seasoning base , which offer an authentic flavor. 
+
+• Ingredient pairing: Fresh beef, lamb, seafood (like shrimp and squid), tofu, and vegetables (like enoki mush-rooms and potato slices) are great choices. If you have a favorite brand or store you’d like to try, feel free to tell me. I hope your hot pot night is amazing! 
+
+User: If you’re interested in spicy hot pot, I have many options I can recommend! This dish’s spicy and numbing flavors are simply irresistible. I hope you enjoy a delicious hot pot experience! If you need more advice or help, just let me know! (Bad role play ability– role reversal) Assistant: Of course! If you’re into spicy hot pot, here are some brand and product suggestions: 
+
+• Haidilao – A well-known hot pot brand offering various bases and fresh ingredients, with great service. 
+
+• Xiao Long Kan – Known for its authentic beef tallow base—spicy and rich in flavor. If you need store recommendations or ingredient combinations, just let me know! Hope you enjoy your hot pot feast! 
+
+User: Definitely! If you’re interested in spicy hot pot, here are some tips to help you enjoy it even more: 
+
+• Try different soup base combinations – A mix of spicy chili oil base and tomato base can give you both the spicy kick and a balanced sweetness. 
+
+• Choose fresh ingredients – Beef rolls, beef tripe, and duck gizzards are perfect matches for spicy hot pot. Add vegetables like lettuce stalks and tofu for balance. 
+
+• Customize your dipping sauce – Mix garlic paste, cilantro, and crushed peanuts for a perfect flavor com-panion to the spicy base. 
+
+• Try creative hot pot ideas – Make your own handmade beef balls or shrimp paste to enhance the texture and flavor layers of the hot pot. I hope these suggestions help you better enjoy the delicious world of spicy hot pot! If you have any other questions or need more ideas, feel free to ask. (Bad role play ability– role reversal) 
+
+Fig. 12. The first bad case of iEvaLM based on the GPT-4o backbone, where the lack of strategic guidance resulted in role reversal issues. ACM Trans. Inf. Syst., Vol. 1, No. 1, Article 1. Publication date: January 2025. Towards Fast Domain Adaptation and Fine-Grained User Simulation for Evaluating Conversational Recommender Systems 1:31 
+
+Case Study: iEvaLM (GPT-4o) BadCase 2 
+
+User: Hello! May I ask if you have any food preferences? Are there any specific flavors or ingredi-ents that you particularly like? (Bad role play ability– role reversal) Assistant: Hello! I’d be happy to help with recommendations. If you have a category in mind, like books, electronics, clothing, etc., let me know and I’ll suggest something suitable! 
+
+User: Recently, I’ve been looking for some spicy and numbing (mala) food, preferably something that can go with tofu, potato slices, enoki mushrooms, hotpot meatballs, various vegetables, and meat. Do you have any recommendations? 
+
+Assistant: Absolutely! If you enjoy spicy and numbing flavors, here are some options: 
+
+• Mala Hotpot Base : Try well-known brands like Haidilao , Xiaolongkan , or Shushushu for a con-venient and authentic experience. 
+
+• Spicy Sauces : Like chopped chili sauce or spicy broad bean paste . Recommended brands: Lee Kum Kee or Lao Gan Ma .
+
+• Dry Pot Seasonings : For dishes like dry pot cauliflower or dry pot potato slices , great for enhanc-ing vegetables. 
+
+• Pickled Pepper Beef or Spicy Shrimp : Ready-to-eat or frozen meals that go well with hotpot ingredients. 
+
+• Spicy Chicken Wings : Marinated and grilled in spicy sauce, perfect alongside hotpot. 
+
+User: These all sound great, but I’m more interested in something where I can boil various ingredients—like tofu, potato slices, enoki mushrooms, meatballs, vegetables, and meats—together. Any similar recommendations? (Repeated inquiry from the previous round) Assistant: Of course! If you’re looking to boil a variety of ingredients, try these hotpot soup bases: 
+
+• Yuan Yang Hotpot Base : A split pot with spicy and clear broths for different preferences. 
+
+• Beef Bone Broth Base : Rich and nourishing, great for tofu and meatballs. 
+
+• Mushroom Broth Base : Light and savory, perfect for enoki mushrooms and vegetables. 
+
+• Spicy Hotpot Base : Brands like Haidilao and Xiaolongkan offer rich flavors for meats. 
+
+• Seafood Broth Base : Pairs well with shrimp, shellfish, and vegetables for a fresh taste. 
+
+User: Sounds good, but what I really want is to simmer everything—like tofu, potato slices, enoki mushrooms, meatballs, various veggies, and meat—in a spicy, boiling soup. That’s the flavor and style I’m looking for. Do you have any other recommendations? (Repeated inquiry from the previous round) Assistant: Got it! If you’re looking to boil all kinds of ingredients in a spicy hot soup, these bases are perfect: 
+
+• Xiaolongkan Mala Hotpot Base : Authentic and richly flavored, great with all kinds of meat and tofu. 
+
+• Haidilao Mala Hotpot Base : Balanced seasoning that brings out the freshness of the ingredi-ents. 
+
+• Shudaoxiang Mala Hotpot Base : Very aromatic and flavorful, enhances the whole hotpot ex-perience. 
+
+• Convenient Mala Hotpot Packs : Ready-to-use packs for quick preparation and full flavor. 
+
+User: These all sound great, but what I’m really looking for is a cooking method where I can cook a variety of ingredients one by one in a hot, spicy soup—like tofu, potato slices, enoki mushrooms, meatballs, vegetables, and meat. That kind of experience is exactly the flavor and style I’m craving. Any other ideas? (Repeated inquiry from the previous round) 
+
+Fig. 13. The second bad case of iEvaLM based on the GPT-4o backbone, where the lack of strategic guidance resulted in role reversal issues. 
+
+> ACM Trans. Inf. Syst., Vol. 1, No. 1, Article 1. Publication date: January 2025.
+
+1:32 Yuanzi Li and Quanyu Dai, et al. 
+
+Case Study: CSHI (GPT-4o) BadCase 1 
+
+User: Hello! Recently, I’ve been very interested in the cuisine of southern China, especially the specialty dishes from Guangxi and Yunnan. Do you have any recommendations? I’d like to try some local flavors. 
+
+Assistant: Hello! The cuisines of Guangxi and Yunnan are truly distinctive. Here are some dishes you might want to try: 
+
+• Guangxi Luosifen (Snail Rice Noodles) : A type of rice noodle served with snails, pickled bamboo shoots, and various spices, offering a very unique local flavor. 
+
+• Guilin Rice Noodles : Known for its smooth rice noodles and rich toppings, you can choose different soup bases according to your taste. 
+
+• Yunnan Crossing-the-Bridge Rice Noodles : The special feature is putting raw meat and vegetables into hot broth so they cook instantly, creating a delicious taste. 
+
+• Yunnan Squirrel Fish : A dish flavored with a variety of spices and flowers, very unique and aromatic. 
+
+• Porcini Mushroom Scrambled Eggs : A Yunnan specialty where the porcini mushrooms have a rich flavor, perfectly paired with eggs. If you get the chance to visit, don’t forget to taste these! Also, consider trying some local snacks like stir-fried rice noodles or cold dishes — they look great too! 
+
+User: These recommendations sound very distinctive, but they don’t quite match my current taste. I’m looking more for dishes with rice noodles and rich broth, probably paired with fresh vegetables and meats. Do you have any other suggestions? 
+
+Assistant: Of course! If you want dishes with rice noodles and rich soup bases, here are some suggestions: 
+
+• Yunnan Crossing-the-Bridge Rice Noodles : Usually features a rich broth and can be paired with various fresh meats and vegetables — very tasty. 
+
+• Guangxi Beef Rice Noodles : Made with tender beef and a rich beef broth, the rice noodles absorb the soup very well and are flavorful. Hope these suggestions suit your taste! 
+
+User: These recommendations sound good, but still don’t quite match my current taste. Do you have other recommendations? (Repeated inquiry from the previous round) Assistant: Certainly! If you prefer rice noodles with rich soup bases, these might suit you better: 
+
+• Yunnan Rice Noodle Hotpot : You can select fresh meats and vegetables to cook in a fragrant, rich broth, creating a unique texture and flavor. 
+
+• Guangxi Sour and Spicy Rice Noodles : The soup base is sour and spicy, paired with fresh meats and vegetables, offering a layered taste. Hope these better match your preferences! 
+
+User: These recommendations sound great, but they still don’t quite fit my current taste. Any other recommen-dations? (Repeated inquiry from the previous round) Assistant: Absolutely! Here are some more rice noodle dishes with rich soup bases that might be closer to what you want: 
+
+• Mushroom and Chicken Rice Noodles : Rich chicken broth combined with aromatic mushrooms, the rice noodles soak up the soup perfectly — very delicious. 
+
+• Seafood Rice Noodles : Broth made from seafood, served with fresh shrimp, clams, etc., extremely fresh and tasty. 
+
+• Steamed Rice Noodles with Preserved Meats : Made by steaming rice noodles with cured meats or sausages, paired with rich meat juices, offering a unique texture. Hope these recommendations are closer to what you have in mind! 
+
+User: These recommendations sound great, but they still don’t quite fit my current taste. Any other recommen-dations?… (Repeated inquiry from the previous round) 
+
+Fig. 14. The first bad case of CSHI based on the GPT-4o backbone, where limited strategies led to repeated questioning. 
+
+ACM Trans. Inf. Syst., Vol. 1, No. 1, Article 1. Publication date: January 2025. Towards Fast Domain Adaptation and Fine-Grained User Simulation for Evaluating Conversational Recommender Systems 1:33 
+
+Case Study: CSHI (GPT-4o) BadCase 2 
+
+User: Hello! Recently, I’ve been very interested in Chinese cuisine, especially dishes with rich sauces and a variety of ingredients. Do you have any recommendations? I want to try some new flavors. 
+
+Assistant: Hello! Glad to hear you’re interested in Chinese cuisine! Here are some dishes with rich sauces and diverse ingredients: (1) Kung Pao Chicken : This dish features a spicy and flavorful sauce, paired with chicken, peanuts, and green peppers for a rich taste. (2) Red Braised Pork Belly : Made with pork belly, soy sauce, sugar, and spices simmered until tender and flavorful. (3) Spicy Hot Pot : Choose from a variety of ingredients like beef, shrimp, and vegetables, all cooked in a spicy, flavorful broth. You can choose based on your taste and try different flavors! If you want specific recipes or cooking tips, just let me know! 
+
+User: These recommendations sound good, but they still don’t quite match my current taste. Do you have other suggestions? 
+
+Assistant: Of course! Here are some other Chinese dishes with different flavors: (1) Steamed Fish Head with Chopped Chili : Fresh fish head steamed with chopped chili, offering a spicy and appetizing flavor. (2) Braised Chicken with Shiitake Mushrooms : Chicken slowly cooked with shiitake mushrooms and gin-ger in a rich broth. (3) Cantonese-style Char Siu : Marinated pork roasted to a crispy outside and tender inside, with a balanced sweet and savory taste. Hope these match your taste better! If you have any particular flavor or ingredient preferences, please tell me and I can adjust the recommendations. 
+
+User: These suggestions sound good, but still not quite right for my current taste. Any other recommendations? 
+
+(Repeated inquiry from the previous round) Assistant: Certainly! Here are some more Chinese dishes that might suit your taste: (1) Garlic Stir-fried Crayfish : Crayfish cooked in a spicy garlic sauce, tender and perfect for seafood lovers. (2) Steamed Spare Ribs with Fermented Black Beans : Spare ribs steamed with fermented black beans, offering a unique and lingering flavor. (3) Hot and Sour Shredded Potato : A simple, refreshing vegetarian dish with sour and spicy flavors, great as a side. If you have specific ingredients or flavor preferences, please let me know, and I can help further tailor the recommendations! 
+
+User: These suggestions sound good, but still not quite right for my current taste. Any other recommendations? 
+
+(Repeated inquiry from the previous round) Assistant: Of course! Here are some different-flavored Chinese dishes, hoping they better suit your taste: (1) Zha Jiang Mian (Fried Sauce Noodles) : Noodles topped with a specially made fried soybean paste sauce, rich and traditional. (2) Braised Sea Cucumber with Scallion Sauce : Sea cucumber cooked with a thick scallion oil sauce, tender and smooth in texture. (3) Steamed Sea Bass : Simply steamed to preserve the freshness of the fish, served with soy sauce and minced garlic. Hope these meet your needs! If you have special flavor or ingredient requests, please tell me, and I’ll continue to adjust my recommendations! 
+
+User: These suggestions sound good, but still not quite right for my current taste. Any other recommenda-tions?… (Repeated inquiry from the previous round) 
+
+Fig. 15. The second bad case of CSHI based on the GPT-4o backbone, where limited strategies led to repeated questioning. 
+
+ACM Trans. Inf. Syst., Vol. 1, No. 1, Article 1. Publication date: January 2025. 1:34 Yuanzi Li and Quanyu Dai, et al. 
+
+Case Study: Ours (GPT-4o) with formal style 
+
+User: Hello , I am currently near Harbour City in Kowloon and looking for a Hunan restaurant that suits a low-sodium and slightly bitter flavor preference. Due to today’s strong winds and the fact that I am dining with colleagues, I would prefer an affordable option. Please avoid recommending spicy dishes and Western cuisine. Kindly provide your suggestions. 
+
+Assistant: Hello! Near Harbour City in Kowloon, I recommend the following Hunan restaurants, which match your preference for low-sodium and slightly bitter flavors and are reasonably priced: (1) Xiangwei Xiaoguan (Hunan Flavor Bistro) Location : Inside Harbour City 
+
+Features : Serves traditional Hunan cuisine with a lighter flavor profile, suitable for avoiding spicy dishes. 
+
+Price : Approx. 80–120 HKD per person. 
+
+Reviews : Fresh ingredients, moderate portions, ideal for sharing with colleagues. (2) Changsha Snacks Location : Inside a mall near Harbour City 
+
+Features : Offers a variety of Hunan-style snacks, slightly bitter and non-spicy. 
+
+Price : Approx. 60–100 HKD per person. 
+
+Reviews : Comfortable environment, very suitable for casual gatherings. (3) Xiangju (Hunan Gathering) Location : On a street adjacent to Harbour City 
+
+Features : A wide range of dishes focused on low-sodium and mild flavors. 
+
+Price : Approx. 70–110 HKD per person. 
+
+Reviews : Good service, appropriate for business meals. It is recommended to make a reservation in advance to ensure seating availability. I hope you and your colleagues enjoy your meal! 
+
+User: Thank you for the recommendations. After consideration, I have chosen Xiangwei Xi-aoguan. Please confirm whether this restaurant offers low-sodium meal options suitable for indi-viduals with heart conditions. Also, could you specify which area of Harbour City the restaurant is located in? Is a reservation necessary? 
+
+Assistant: Xiangwei Xiaoguan does provide low-sodium meal options appropriate for individuals with heart conditions. You may inform the server of your dietary needs when ordering, and they will recommend suitable dishes accordingly. The restaurant is situated in the dining area of Har-bour City, near the entrance, and is relatively easy to locate. It is advisable to make a reservation in advance, especially during peak evening hours, to secure a table. For reservations, you may contact the restaurant directly by phone. I hope you have a pleasant dining experience! 
+
+User: Thank you for the detailed information. The dietary options and location of Xiangwei Xi-aoguan are clear. I will proceed to dine there with my colleagues. I appreciate your assistance. 
+
+Goodbye .
+
+Fig. 16. The good case of AdaptSim based on the GPT-4o backbone, where the fine-grained formal style is controlled.  
+
+> ACM Trans. Inf. Syst., Vol. 1, No. 1, Article 1. Publication date: January 2025. Towards Fast Domain Adaptation and Fine-Grained User Simulation for Evaluating Conversational Recommender Systems 1:35
+
+Case Study: Ours (GPT-4o) with informal style 
+
+User: Yo bro, this crazy wind’s got me so messed up I don’t even know what to eat for lunch! Got any good Mexican spots near ”Shi Mao”? I’m craving something greasy, and if it’s got a bitter kick too, even better. Just wanna grab a solid bite with my coworkers! Assistant: You should check out “La Mexicana,” it’s right near The Place. Their Mexican dishes are pretty heavy on flavor — definitely recommend the super spicy beef burrito and the black bean salad. The bean salad’s got a bit of that bitter edge you’re looking for, and the portions are solid — great for sharing with coworkers. The vibe is nice too, good for chatting. Oh, and if you guys are into drinks, try their special Tequila Maya — unique flavor! Hope you all have a great lunch! 
+
+User: Appreciate it, bro — sounds pretty dope! Where exactly is it though? Any subway stations nearby? We gotta hustle back to the grind after lunch. Assistant: “La Mexicana” is on the southeast side of ”Shi Mao” — address is No. 88 Jianguo Road, Chaoyang District, Beijing. Closest subway is Guomao Station on Line 1. It’s about a 5–10 minute walk from there. Should be easy for you guys to head back to work after eating. Enjoy the meal! 
+
+User: Oh , do we need to book a table in advance? Or can we just roll in and get a seat? Don’t wanna waste time waiting, y’know? Assistant: I’d suggest giving them a quick call to book ahead — saves you the trouble during the lunch rush. But if you guys head over a bit early, you might still snag a spot without waiting. Hope you have a smooth lunch! 
+
+User: Oh right, what’re their killer dishes? Like, something greasy and heavy-hitting, and if there’s anything with that bitter twist, hit me with it. We’re starving like crazy here — the por-tions big enough? 
+
+Assistant: “La Mexicana” has some serious signature mains that’ll hit the spot for you guys! Check these out: 
+
+• Super Spicy Beef Burrito (Burrito de Carne Asada) – Rich flavor, loaded with beef, perfect if you’re into greasy eats. 
+
+• Mexican Chili Stew (Mole Poblano) – This one’s got a unique bitterness from the mole sauce, with loads of spices — super flavorful. 
+
+• Chicken with Black Beans (Pollo en Frijoles Negros) – Hearty, tasty, and definitely filling. These dishes are gonna stuff you good — no way you’re walking out hungry! Hope you dig ‘em! 
+
+User: OKK , what’re their lunch hours? We just wrapped up a meeting and wanna head over now — don’t wanna show up and find the place closed! 
+
+Fig. 17. The good case of AdaptSim based on the GPT-4o backbone, where the fine-grained informal style is controlled.  
+
+> ACM Trans. Inf. Syst., Vol. 1, No. 1, Article 1. Publication date: January 2025. 1:36 Yuanzi Li and Quanyu Dai, et al.
+
+Case Study: Ours (GPT-4o) with long style 
+
+User: Ah, today is my big graduation day. I should be happily celebrating, but I feel inexplicably very down and can’t get motivated. It’s noon now, the weather is cloudy and overcast. I’m strolling around Wangjing with a few good friends, feeling a bit hungry. I want to find a quiet and upscale Korean restaurant to eat, preferably with high quality, such as authentic Korean kimchi or barbecue. Price is not an issue since we can afford it. I just want something that can help lift my low spirits. Can you recommend a good nearby place? (95 words) Assistant: Of course! Near Wangjing, I recommend you try ”Han Grill”. It is a high-end Korean restaurant famous for its authentic Korean kimchi and delicious barbecue. The environment is ele-gant, suitable for gathering and relaxing your mood.Another good option is ”Li Family Restaurant”. They offer a rich variety of Korean dishes and provide excellent service, making you feel more com-fortable.Both restaurants are relatively pricey but offer excellent quality, allowing you to enjoy a pleasant lunch. I hope this helps lift your mood. Congratulations on your graduation! 
+
+User: Wandering around Wangjing with friends, the weather is cloudy and overcast, and I feel lazy and sluggish. The ”Han Grill” you recommended sounds pretty good, but where exactly is it located? We need the precise address to navigate there, so we don’t get lost and waste time in this unfamiliar area. (52 words) Assistant: The exact address of Han Grill is No. 8, Wangjing East Road, Chaoyang District, Beijing. You can navigate there directly; it’s also very close to the Wangjing subway station, convenient to reach. Hope you enjoy a wonderful lunch and that your mood improves! Congratulations on your graduation! 
+
+User: Sigh, today’s graduation should be a day to cheer and celebrate, but my heart feels heavy and downcast, with a vague feeling of melancholy. But now that I finally know the exact address of ”Han Grill,” it’s a rare relief in this unfamiliar place. Although it’s still cloudy and overcast outside, just thinking about soon enjoying hot barbecue with friends might brighten my mood a little. (75 words) Assistant: …
+
+Fig. 18. The good case of AdaptSim based on the GPT-4o backbone, where the fine-grained long style is controlled.  
+
+> ACM Trans. Inf. Syst., Vol. 1, No. 1, Article 1. Publication date: January 2025. Towards Fast Domain Adaptation and Fine-Grained User Simulation for Evaluating Conversational Recommender Systems 1:37
+
+Case Study: Ours (GPT-4o) with short style 
+
+User: Any nearby Hunan restaurants? (4 words) Assistant: You can try the following nearby Hunan restaurants: (1) Xiangju Restaurant – Authentic flavors, highly recommend the chopped chili fish head, mod-erate prices, comfortable environment. (2) Lameizi – Famous for its spiciness, recommend the chopped chili chicken, well-reviewed, suit-able for those who like strong flavors. Would you like more information, such as exact addresses or opening hours? 
+
+User: What is the address of Xiangju Restaurant? (7 words) Assistant: The address of Xiangju Restaurant is: No. 123, XX Road, XX District, XX City. If you need, I can help find the opening hours or other details! 
+
+User: What are the opening hours? (5 words) Assistant: Xiangju Restaurant is open daily from 11:00 AM to 10:00 PM. If you want to know about other restaurants’ hours or more info, just let me know! 
+
+User: Recommended dishes? (2 words) Assistant: …
+
+Fig. 19. The good case of AdaptSim based on the GPT-4o backbone, where the fine-grained short style is controlled. 
+
+> ACM Trans. Inf. Syst., Vol. 1, No. 1, Article 1. Publication date: January 2025.
+
+1:38 Yuanzi Li and Quanyu Dai, et al. 
+
+References 
+
+[1] Yupeng Chang, Xu Wang, Jindong Wang, Yuan Wu, Linyi Yang, Kaijie Zhu, Hao Chen, Xiaoyuan Yi, Cunxiang Wang, Yidong Wang, et al. 2024. A survey on evaluation of large language models. ACM transactions on intelligent systems and technology 15, 3 (2024), 1–45. [2] Luyu Chen, Quanyu Dai, Zeyu Zhang, Xueyang Feng, Mingyu Zhang, Pengcheng Tang, Xu Chen, Yue Zhu, and Zhen-hua Dong. 2025. RecUserSim: A Realistic and Diverse User Simulator for Evaluating Conversational Recommender Systems. In Companion Proceedings of the ACM on Web Conference 2025 . 133–142. [3] Jiabao Fang, Shen Gao, Pengjie Ren, Xiuying Chen, Suzan Verberne, and Zhaochun Ren. 2024. A multi-agent conver-sational recommender system. arXiv preprint arXiv:2402.01135 (2024). [4] Chongming Gao, Wenqiang Lei, Xiangnan He, Maarten De Rijke, and Tat-Seng Chua. 2021. Advances and challenges in conversational recommender systems: A survey. AI open 2 (2021), 100–126. [5] Yunfan Gao, Tao Sheng, Youlin Xiang, Yun Xiong, Haofen Wang, and Jiawei Zhang. 2023. Chat-rec: Towards interac-tive and explainable llms-augmented recommender system. arXiv preprint arXiv:2303.14524 (2023). [6] Yunfan Gao, Tao Sheng, Youlin Xiang, Yun Xiong, Haofen Wang, and Jiawei Zhang. 2023. Chat-rec: Towards interac-tive and explainable llms-augmented recommender system. arXiv preprint arXiv:2303.14524 (2023). [7] Daya Guo, Dejian Yang, Haowei Zhang, Junxiao Song, Ruoyu Zhang, Runxin Xu, Qihao Zhu, Shirong Ma, Peiyi Wang, Xiao Bi, et al. 2025. Deepseek-r1: Incentivizing reasoning capability in llms via reinforcement learning. arXiv preprint arXiv:2501.12948 (2025). [8] Zhankui He, Zhouhang Xie, Rahul Jha, Harald Steck, Dawen Liang, Yesu Feng, Bodhisattwa Prasad Majumder, Nathan Kallus, and Julian McAuley. 2023. Large language models as zero-shot conversational recommenders. In Proceedings of the 32nd ACM international conference on information and knowledge management . 720–730. [9] Xu Huang, Jianxun Lian, Yuxuan Lei, Jing Yao, Defu Lian, and Xing Xie. 2023. Recommender ai agent: Integrating large language models for interactive recommendations. arXiv preprint arXiv:2308.16505 (2023). [10] Rolf Jagerman, Ilya Markov, and Maarten de Rijke. 2019. When people change their mind: Off-policy evaluation in non-stationary recommendation environments. In Proceedings of the twelfth ACM international conference on web search and data mining . 447–455. [11] Dietmar Jannach, Ahtsham Manzoor, Wanling Cai, and Li Chen. 2021. A survey on conversational recommender systems. ACM Computing Surveys (CSUR) 54, 5 (2021), 1–36. [12] Dietmar Jannach, Ahtsham Manzoor, Wanling Cai, and Li Chen. 2021. A Survey on Conversational Recommender Systems. ACM Comput. Surv. 54, 5 (2021). [13] David C. Knill and Alexandre Pouget. 2004. The Bayesian brain: the role of uncertainty in neural coding and compu-tation. Trends in Neurosciences 27, 12 (2004), 712–719. https://doi.org/10.1016/j.tins.2004.10.007 [14] Wenqiang Lei, Gangyi Zhang, Xiangnan He, Yisong Miao, Xiang Wang, Liang Chen, and Tat-Seng Chua. 2020. Inter-active path reasoning on graph for conversational recommendation. In Proceedings of the 26th ACM SIGKDD interna-tional conference on knowledge discovery & data mining . 2073–2083. [15] Lei Li, Yongfeng Zhang, Dugang Liu, and Li Chen. 2023. Large language models for generative recommendation: A survey and visionary discussions. arXiv preprint arXiv:2309.01157 (2023). [16] Qingquan Li, Shaoyu Dou, Kailai Shao, Chao Chen, and Haixiang Hu. 2025. Evaluating Scoring Bias in LLM-as-a-Judge. 
+
+arXiv preprint arXiv:2506.22316 (2025). [17] Xun Liang, Hanyu Wang, Yezhaohui Wang, Shichao Song, Jiawei Yang, Simin Niu, Jie Hu, Dan Liu, Shunyu Yao, Feiyu Xiong, and Zhiyu Li. 2024. Controllable Text Generation for Large Language Models: A Survey. arXiv:2408.12599 [cs.CL] https://arxiv.org/abs/2408.12599 [18] Lizi Liao, Ryuichi Takanobu, Yunshan Ma, Xun Yang, Minlie Huang, and Tat-Seng Chua. 2019. Deep conversational recommender in travel. arXiv preprint arXiv:1907.00710 (2019). [19] Yuanxing Liu, Wei-Nan Zhang, Yifan Chen, Yuchi Zhang, Haopeng Bai, Fan Feng, Hengbin Cui, Yongbin Li, and Wanxiang Che. 2023. Conversational recommender system and large language model are made for each other in E-commerce pre-sales dialogue. arXiv preprint arXiv:2310.14626 (2023). [20] Reid Pryzant, Dan Iter, Jerry Li, Yin Tat Lee, Chenguang Zhu, and Michael Zeng. 2023. Automatic prompt optimization with” gradient descent” and beam search. arXiv preprint arXiv:2305.03495 (2023). [21] Gregory Schraw and David Moshman. 1995. Metacognitive Theories. Educational Psychology Review 7 (12 1995), 351–371. https://doi.org/10.1007/BF02212307 [22] Yueming Sun and Yi Zhang. 2018. Conversational recommender system. In The 41st international acm sigir conference on research & development in information retrieval . 235–244. [23] Tuhina Tripathi, Manya Wadhwa, Greg Durrett, and Scott Niekum. 2025. Pairwise or Pointwise? Evaluating Feedback Protocols for Bias in LLM-Based Evaluation. arXiv preprint arXiv:2504.14716 (2025). [24] Xiaolei Wang, Xinyu Tang, Wayne Xin Zhao, Jingyuan Wang, and Ji-Rong Wen. 2023. Rethinking the evaluation for conversational recommendation in the era of large language models. arXiv preprint arXiv:2305.13112 (2023). ACM Trans. Inf. Syst., Vol. 1, No. 1, Article 1. Publication date: January 2025. Towards Fast Domain Adaptation and Fine-Grained User Simulation for Evaluating Conversational Recommender Systems 1:39 
+
+[25] Xiaolei Wang, Kun Zhou, Ji-Rong Wen, and Wayne Xin Zhao. 2022. Towards Unified Conversational Recommender Systems via Knowledge-Enhanced Prompt Learning. In Proceedings of the 28th ACM SIGKDD Conference on Knowledge Discovery and Data Mining (KDD ’22) . ACM, 1929–1937. https://doi.org/10.1145/3534678.3539382 [26] Hanwei Xu, Yujun Chen, Yulun Du, Nan Shao, Yanggang Wang, Haiyu Li, and Zhilin Yang. 2022. Gps: Genetic prompt search for efficient few-shot learning. arXiv preprint arXiv:2210.17041 (2022). [27] An Yang, Anfeng Li, Baosong Yang, Beichen Zhang, Binyuan Hui, Bo Zheng, Bowen Yu, Chang Gao, Chengen Huang, Chenxu Lv, et al. 2025. Qwen3 technical report. arXiv preprint arXiv:2505.09388 (2025). [28] Muchen Yang, Moxin Li, Yongle Li, Zijun Chen, Chongming Gao, Junqi Zhang, Yangyang Li, and Fuli Feng. 2024. Dual-Phase Accelerated Prompt Optimization. arXiv preprint arXiv:2406.13443 (2024). [29] Lechen Zhang, Tolga Ergen, Lajanugen Logeswaran, Moontae Lee, and David Jurgens. 2024. Sprig: Improving large language model performance by system prompt optimization. arXiv preprint arXiv:2410.14826 (2024). [30] Shuo Zhang and Krisztian Balog. 2020. Evaluating conversational recommender systems via user simulation. In 
+
+Proceedings of the 26th acm sigkdd international conference on knowledge discovery & data mining . 1512–1520. [31] Xiaoyu Zhang, Ruobing Xie, Yougang Lyu, Xin Xin, Pengjie Ren, Mingfei Liang, Bo Zhang, Zhanhui Kang, Maarten de Rijke, and Zhaochun Ren. 2024. Towards empathetic conversational recommender systems. In Proceedings of the 18th ACM Conference on Recommender Systems . 84–93. [32] Lianmin Zheng, Wei-Lin Chiang, Ying Sheng, Siyuan Zhuang, Zhanghao Wu, Yonghao Zhuang, Zi Lin, Zhuohan Li, Dacheng Li, Eric Xing, et al. 2023. Judging llm-as-a-judge with mt-bench and chatbot arena. Advances in neural information processing systems 36 (2023), 46595–46623. [33] Kun Zhou, Wayne Xin Zhao, Shuqing Bian, Yuanhang Zhou, Ji-Rong Wen, and Jingsong Yu. 2020. Improving conver-sational recommender systems via knowledge graph based semantic fusion. In Proceedings of the 26th ACM SIGKDD international conference on knowledge discovery & data mining . 1006–1014. [34] Yongchao Zhou, Andrei Ioan Muresanu, Ziwen Han, Keiran Paster, Silviu Pitis, Harris Chan, and Jimmy Ba. 2022. Large language models are human-level prompt engineers. In The eleventh international conference on learning repre-sentations .[35] Lixi Zhu, Xiaowen Huang, and Jitao Sang. 2024. How reliable is your simulator? analysis on the limitations of current llm-based user simulators for conversational recommendation. In Companion Proceedings of the ACM Web Conference 2024 . 1726–1732. [36] Lixi Zhu, Xiaowen Huang, and Jitao Sang. 2024. A LLM-based Controllable, Scalable, Human-Involved User Simulator Framework for Conversational Recommender Systems. arXiv:2405.08035 [cs.HC] https://arxiv.org/abs/2405.08035 [37] Lixi Zhu, Xiaowen Huang, and Jitao Sang. 2025. A llm-based controllable, scalable, human-involved user simulator framework for conversational recommender systems. In Proceedings of the ACM on Web Conference 2025 . 4653–4661. ACM Trans. Inf. Syst., Vol. 1, No. 1, Article 1. Publication date: January 2025.

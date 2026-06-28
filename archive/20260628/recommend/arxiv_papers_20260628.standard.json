@@ -1,0 +1,139 @@
+{
+  "mode": "standard",
+  "generated_at": "2026-06-28T21:17:36.209230+00:00",
+  "stats": {
+    "mode": "standard",
+    "tag_count": 1,
+    "deep_divecandidates": 2,
+    "deep_cap": 6,
+    "deep_selected": 2,
+    "quick_candidates": 1,
+    "quick_skim_target": 11,
+    "quick_selected": 1
+  },
+  "deep_dive": [
+    {
+      "id": "2606.26379v1",
+      "source": "arxiv",
+      "title": "Layer-Specific Prompt Fusion Discovery via Differentiable Search in Vision Foundation Models",
+      "abstract": "Visual prompt tuning has emerged as a parameter-efficient fine-tuning approach for adapting large-scale Vision Transformers (ViTs) to downstream tasks. As its learnable prompts are applied in input and feature spaces, prior to jointly going through attention in transformer layers, the most commonly used scheme for fusing image and prompt tokens is concatenation or addition. In this paper, we aim to study a fundamental yet essential problem in visual prompt tuning: whether a single fusion scheme tends to yield better results, and whether that would be beneficial to develop a hybrid fusion scheme. To this end, we formulate the task as a bi-level optimization problem, and solve it leveraging differentiable architecture search. In this context, the learnable prompts and their fusion schemes are jointly optimized. To enrich the search space in the architecture search, we propose two additional fusion schemes, namely, affine transformation and cross-attention, in addition to concatenation and addition. Extensive experiments on 34 datasets spanning VTAB-1k, FGVC, and HTA show consistent gains over prompt-tuning baselines. With a frozen ViT backbone, our method delivers a favorable accuracy--latency--parameter trade-off compared with VPT-Deep and recent variants. Our findings reveal that how prompts fuse with image tokens plays a significant role in visual prompt tuning, and a hybrid fusion fashion can more effectively leverage layer semantics of ViTs, contributing a novel perspective for visual prompt-tuning research.",
+      "authors": [
+        "Xi Xiao",
+        "Xingjian Li",
+        "Yunbei Zhang",
+        "Cheng Han",
+        "Tianming Liu",
+        "Tianyang Wang",
+        "Runmin Jiang",
+        "Jihun Hamm",
+        "Xiao Wang",
+        "Min Xu"
+      ],
+      "primary_category": "cs.CV",
+      "categories": [
+        "cs.CV"
+      ],
+      "published": "2026-06-24T21:06:23+00:00",
+      "link": "https://arxiv.org/pdf/2606.26379v1",
+      "tags": [
+        "keyword:prompt-learn",
+        "query:prompt-learn"
+      ],
+      "llm_score": 9.0,
+      "llm_evidence_en": "visual prompt tuning with learnable continuous prompts",
+      "llm_evidence_cn": "可学习的连续向量作为视觉提示",
+      "llm_evidence": "可学习的连续向量作为视觉提示",
+      "canonical_evidence": "可学习的连续向量作为视觉提示",
+      "llm_tldr_en": "This paper investigates optimal fusion schemes for visual prompt tokens in vision transformers, formulating it as a bi-level optimization problem and using differentiable architecture search to discover layer-specific hybrid fusion, improving adaptation performance.",
+      "llm_tldr_cn": "针对视觉Transformer中可学习提示令牌与图像令牌融合方式选择问题，提出将融合方案搜索形式化为双层优化问题，通过可微分架构搜索自动发现每层最优的混合融合策略。实验表明，该方法能够超越传统拼接或相加等单一融合方式，在多个下游任务上提升参数高效微调性能。",
+      "llm_tldr": "针对视觉Transformer中可学习提示令牌与图像令牌融合方式选择问题，提出将融合方案搜索形式化为双层优化问题，通过可微分架构搜索自动发现每层最优的混合融合策略。实验表明，该方法能够超越传统拼接或相加等单一融合方式，在多个下游任务上提升参数高效微调性能。",
+      "llm_tags": [
+        "query:prompt-learn"
+      ],
+      "matched_query_tag": "query:prompt-learn",
+      "matched_query_text": "continuous vector representations used as prompts",
+      "matched_requirement_id": "req-1",
+      "selection_source": "fresh_fetch"
+    },
+    {
+      "id": "2606.27136v1",
+      "source": "arxiv",
+      "title": "Joint Learning of Experiential Rules and Policies for Large Language Model Agents",
+      "abstract": "For LLM agents in multi-step interactive environments, a key challenge is to make effective use of accumulated interaction experience. Existing work has typically separated two uses of such experience: keeping it outside the model as natural-language rules for later prompting, or using trajectories and feedback to update the model parameters. The former is easy to interpret but can fall out of sync with the evolving policy; the latter improves the policy more broadly but provides only limited correction for local mistakes in sparse-reward settings. We present Joint Learning of Experiential Rules and Policies for LLM Agents (JERP), which updates a long-term experiential-rule pool and the policy from the same interaction trajectories. At decision time, JERP retrieves task-relevant rules and conditions the agent on them together with the interaction history. After each episode, it uses the collected trajectories both to optimize the policy and to revise the rule pool by comparing current rollouts with reference successful trajectories. This coupling keeps the rule pool aligned with the evolving policy while allowing stable and effective behaviors to be gradually absorbed into the model itself. Experiments on AlfWorld and WebShop show that JERP yields consistent gains in decision performance for complex interactive tasks.",
+      "authors": [
+        "Shicheng Ye",
+        "Chao Yu"
+      ],
+      "primary_category": "cs.AI",
+      "categories": [
+        "cs.AI"
+      ],
+      "published": "2026-06-25T15:11:02+00:00",
+      "link": "https://arxiv.org/pdf/2606.27136v1",
+      "tags": [
+        "keyword:prompt-learn",
+        "query:prompt-learn"
+      ],
+      "llm_score": 9.0,
+      "llm_evidence_en": "uses natural-language rules as prompts from interaction experience",
+      "llm_evidence_cn": "将交互经验提炼为自然语言规则用作提示",
+      "llm_evidence": "将交互经验提炼为自然语言规则用作提示",
+      "canonical_evidence": "将交互经验提炼为自然语言规则用作提示",
+      "llm_tldr_en": "Proposes JERP, jointly learning experiential rule prompts and policy from interaction trajectories to balance interpretability and adaptability for LLM agents.",
+      "llm_tldr_cn": "针对LLM智能体如何有效利用交互经验的问题，提出JERP方法，从交互轨迹中同时学习自然语言规则提示和策略参数，既保持规则可解释性又通过策略优化提升适应性，在多步决策任务中实现了快速纠正和泛化能力。",
+      "llm_tldr": "针对LLM智能体如何有效利用交互经验的问题，提出JERP方法，从交互轨迹中同时学习自然语言规则提示和策略参数，既保持规则可解释性又通过策略优化提升适应性，在多步决策任务中实现了快速纠正和泛化能力。",
+      "llm_tags": [
+        "query:prompt-learn"
+      ],
+      "matched_query_tag": "query:prompt-learn",
+      "matched_query_text": "learning from demonstrations provided in the prompt context",
+      "matched_requirement_id": "req-3",
+      "selection_source": "fresh_fetch"
+    }
+  ],
+  "quick_skim": [
+    {
+      "id": "biorxiv-10-64898-2026-06-22-733750-v1",
+      "source": "biorxiv",
+      "title": "SPEAK: Spatial Prompting with Expert Aligned Knowledge for Tissue Domain Identification in Spatial Transcriptomics",
+      "abstract": "Spatially resolved transcriptomic (SRT) data requires spatial domain identification to enable tissue microenvironment-specific downstream analyses. Here we present SPEAK (Spatial Prompting with Expert-Aligned Knowledge), a large language model (LLM) -based method to identify spatial domains from SRT data by taking advantage of the prior knowledge from both LLM and human experts. SPEAK constructs a spatial context prompt for each cell/spot based on cell types and marker genes of its neighboring cells, enabling zero-shot inference, expert-guided fine-tuning, and prototype updating through two-stage prompting. Applications to STARmap, Visium, MERFISH and Xenium datasets showed advantages of SPEAK over existing spatial domain identification methods in domain prediction accuracy, robustness to limited prior knowledge, biological interpretability, and capacity for efficient expert-guided fine-tuning with generalizability to other tissue sections.",
+      "authors": [
+        "Wei, H.",
+        "Luo, X.",
+        "Yu, H.",
+        "Liang, J.",
+        "Yang, L.",
+        "Sauler, M.",
+        "Kaminski, N.",
+        "Popa, A.",
+        "Yan, X."
+      ],
+      "primary_category": "bioinformatics",
+      "categories": [
+        "bioinformatics"
+      ],
+      "published": "2026-06-26T00:00:00+00:00",
+      "link": "https://www.biorxiv.org/content/10.64898/2026.06.22.733750v1.full.pdf",
+      "tags": [
+        "keyword:prompt-learn",
+        "query:prompt-learn"
+      ],
+      "llm_score": 6.0,
+      "llm_evidence_en": "constructs spatial context prompts for each cell using discrete natural language",
+      "llm_evidence_cn": "为每个细胞构建基于离散自然语言的空间上下文提示",
+      "llm_evidence": "为每个细胞构建基于离散自然语言的空间上下文提示",
+      "canonical_evidence": "为每个细胞构建基于离散自然语言的空间上下文提示",
+      "llm_tldr_en": "SPEAK uses LLM with spatial context prompts from neighboring cells for tissue domain identification, enabling zero-shot and expert-guided fine-tuning.",
+      "llm_tldr_cn": "SPEAK利用大语言模型，为每个细胞基于其邻居的细胞类型和标记基因构建空间上下文提示，实现空间转录组学中的组织域识别。方法支持零样本推理、专家指导微调和原型更新，在多个数据集上验证了优势。",
+      "llm_tldr": "SPEAK利用大语言模型，为每个细胞基于其邻居的细胞类型和标记基因构建空间上下文提示，实现空间转录组学中的组织域识别。方法支持零样本推理、专家指导微调和原型更新，在多个数据集上验证了优势。",
+      "llm_tags": [
+        "query:prompt-learn"
+      ],
+      "matched_query_tag": "query:prompt-learn",
+      "matched_query_text": "discrete natural language prompts for guiding models",
+      "matched_requirement_id": "req-2",
+      "selection_source": "fresh_fetch",
+      "quick_tier": "6"
+    }
+  ]
+}

@@ -1,0 +1,54 @@
+{
+  "label": "2026-06-28",
+  "date": "2026-06-28",
+  "generated_at": "2026-06-28T21:21:01",
+  "count": 3,
+  "papers": [
+    {
+      "paper_id": "202606/28/2606.26379v1-layer-specific-prompt-fusion-discovery-via-differentiable-search-in-vision-foundation-models",
+      "section": "deep",
+      "title_en": "Layer-Specific Prompt Fusion Discovery via Differentiable Search in Vision Foundation Models",
+      "authors": "Xi Xiao, Xingjian Li, Yunbei Zhang, Cheng Han, Tianming Liu, Tianyang Wang, Runmin Jiang, Jihun Hamm, Xiao Wang, Min Xu",
+      "date": "2026-06-24",
+      "pdf": "https://arxiv.org/pdf/2606.26379v1",
+      "score": "9.0",
+      "evidence": "可学习的连续向量作为视觉提示",
+      "tldr": "在大规模视觉Transformer的提示微调中，提示与图像token的融合常固定为拼接或相加，这种单一方式无法适配不同层的语义差异。本文首次探索层特定混合融合方案，将其建模为双层优化问题，采用可微架构搜索，在冻结骨干网络的同时联合优化提示向量和每层的融合操作（含拼接、相加、仿射变换和交叉注意力）。在涵盖VTAB-1k、FGVC和HTA的34个数据集上，该方法一致超越VPT-Deep等基线，获得一致的性能增益与更优的精度-延迟-参数均衡。研究强调了融合策略的关键作用，混合融合可更有效利用ViT层级语义，为视觉提示调优开拓了新思路。",
+      "tags": "query:prompt-learn",
+      "abstract_en": "Visual prompt tuning has emerged as a parameter-efficient fine-tuning approach for adapting large-scale Vision Transformers (ViTs) to downstream tasks. As its learnable prompts are applied in input and feature spaces, prior to jointly going through attention in transformer layers, the most commonly used scheme for fusing image and prompt tokens is concatenation or addition. In this paper, we aim to study a fundamental yet essential problem in visual prompt tuning: whether a single fusion scheme tends to yield better results, and whether that would be beneficial to develop a hybrid fusion scheme. To this end, we formulate the task as a bi-level optimization problem, and solve it leveraging differentiable architecture search. In this context, the learnable prompts and their fusion schemes are jointly optimized. To enrich the search space in the architecture search, we propose two additional fusion schemes, namely, affine transformation and cross-attention, in addition to concatenation and addition. Extensive experiments on 34 datasets spanning VTAB-1k, FGVC, and HTA show consistent gains over prompt-tuning baselines. With a frozen ViT backbone, our method delivers a favorable accuracy--latency--parameter trade-off compared with VPT-Deep and recent variants. Our findings reveal that how prompts fuse with image tokens plays a significant role in visual prompt tuning, and a hybrid fusion fashion can more effectively leverage layer semantics of ViTs, contributing a novel perspective for visual prompt-tuning research.",
+      "source": "arxiv",
+      "selection_source": "fresh_fetch"
+    },
+    {
+      "paper_id": "202606/28/2606.27136v1-joint-learning-of-experiential-rules-and-policies-for-large-language-model-agents",
+      "section": "deep",
+      "title_en": "Joint Learning of Experiential Rules and Policies for Large Language Model Agents",
+      "authors": "Shicheng Ye, Chao Yu",
+      "date": "2026-06-25",
+      "pdf": "https://arxiv.org/pdf/2606.27136v1",
+      "score": "9.0",
+      "evidence": "将交互经验提炼为自然语言规则用作提示",
+      "tldr": "在LLM智能体的多步交互环境中，现有方法将经验规则与策略分离，导致规则滞后或策略提升有限。本文提出JERP，从相同交互轨迹中联合更新规则池和策略，决策时检索相关规则并条件化智能体，并在每轮优化策略、修订规则。在AlfWorld和WebShop上，JERP一致提升了决策性能，实现了规则与策略的协同进化，使模型逐步吸收稳定行为。",
+      "tags": "query:prompt-learn",
+      "abstract_en": "For LLM agents in multi-step interactive environments, a key challenge is to make effective use of accumulated interaction experience. Existing work has typically separated two uses of such experience: keeping it outside the model as natural-language rules for later prompting, or using trajectories and feedback to update the model parameters. The former is easy to interpret but can fall out of sync with the evolving policy; the latter improves the policy more broadly but provides only limited correction for local mistakes in sparse-reward settings. We present Joint Learning of Experiential Rules and Policies for LLM Agents (JERP), which updates a long-term experiential-rule pool and the policy from the same interaction trajectories. At decision time, JERP retrieves task-relevant rules and conditions the agent on them together with the interaction history. After each episode, it uses the collected trajectories both to optimize the policy and to revise the rule pool by comparing current rollouts with reference successful trajectories. This coupling keeps the rule pool aligned with the evolving policy while allowing stable and effective behaviors to be gradually absorbed into the model itself. Experiments on AlfWorld and WebShop show that JERP yields consistent gains in decision performance for complex interactive tasks.",
+      "source": "arxiv",
+      "selection_source": "fresh_fetch"
+    },
+    {
+      "paper_id": "202606/28/biorxiv-10-64898-2026-06-22-733750-v1-speak-spatial-prompting-with-expert-aligned-knowledge-for-tissue-domain-identification-in-spatial-transcriptomics",
+      "section": "quick",
+      "title_en": "SPEAK: Spatial Prompting with Expert Aligned Knowledge for Tissue Domain Identification in Spatial Transcriptomics",
+      "authors": "Wei, H., Luo, X., Yu, H., Liang, J., Yang, L., Sauler, M., Kaminski, N., Popa, A., Yan, X.",
+      "date": "2026-06-26",
+      "pdf": "https://www.biorxiv.org/content/10.64898/2026.06.22.733750v1.full.pdf",
+      "score": "6.0",
+      "evidence": "为每个细胞构建基于离散自然语言的空间上下文提示",
+      "tldr": "空间转录组学中准确识别组织域是下游分析的关键，但现有方法难以有效利用先验知识。SPEAK创新性地借助大语言模型，根据邻近细胞的类型和标志基因构建空间上下文提示，通过零样本推理和专家引导的两阶段微调实现原型更新，无缝整合跨领域知识。在STARmap、Visium、MERFISH和Xenium等多个实验数据上，SPEAK在域预测准确度、对有限先验的鲁棒性、生物学可解释性以及高效微调泛化方面均优于现有方法，为空间转录组智能分析开辟了新途径。",
+      "tags": "query:prompt-learn",
+      "abstract_en": "Spatially resolved transcriptomic (SRT) data requires spatial domain identification to enable tissue microenvironment-specific downstream analyses. Here we present SPEAK (Spatial Prompting with Expert-Aligned Knowledge), a large language model (LLM) -based method to identify spatial domains from SRT data by taking advantage of the prior knowledge from both LLM and human experts. SPEAK constructs a spatial context prompt for each cell/spot based on cell types and marker genes of its neighboring cells, enabling zero-shot inference, expert-guided fine-tuning, and prototype updating through two-stage prompting. Applications to STARmap, Visium, MERFISH and Xenium datasets showed advantages of SPEAK over existing spatial domain identification methods in domain prediction accuracy, robustness to limited prior knowledge, biological interpretability, and capacity for efficient expert-guided fine-tuning with generalizability to other tissue sections.",
+      "source": "biorxiv",
+      "selection_source": "fresh_fetch"
+    }
+  ],
+  "errors": []
+}

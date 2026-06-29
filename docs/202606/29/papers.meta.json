@@ -1,0 +1,39 @@
+{
+  "label": "2026-06-29",
+  "date": "2026-06-29",
+  "generated_at": "2026-06-29T21:47:18",
+  "count": 2,
+  "papers": [
+    {
+      "paper_id": "202606/29/2606.26534v1-voicetta-enhancing-zero-shot-text-to-speech-via-reinforcement-learning-based-test-time-adaptation",
+      "section": "deep",
+      "title_en": "VoiceTTA: Enhancing Zero-Shot Text-to-Speech via Reinforcement Learning-Based Test-Time Adaptation",
+      "authors": "Tianxin Xie, Chenxing Li, Dong Yu, Li Liu",
+      "date": "2026-06-25",
+      "pdf": "https://arxiv.org/pdf/2606.26534v1",
+      "score": "8.0",
+      "evidence": "使用强化学习优化作为连续提示词的可学习前缀以进行低数据TTS风格适应",
+      "tldr": "零样本TTS虽能合成自然语音，但面对相声、方言等不常见风格时，常无法准确模仿韵律与音色；且传统微调依赖大规模数据，难以快速个性化。VoiceTTA提出基于强化学习的测试时自适应方法，通过定义基频与能量变异系数的风格奖励，结合Whisper词错率与说话人相似度，利用GRPO在流匹配模型上优化可学习前缀，无需额外训练样本。实验证明，该方法在多个不常见语音提示上显著提升克隆相似度与可懂度，性能全面超越现有SOTA。为高效零样本TTS风格迁移提供了实用新范式。",
+      "tags": "query:prompt-learn",
+      "abstract_en": "Recently, zero-shot text-to-speech (TTS) has enabled high-fidelity and expressive speech synthesis, but it often fails to imitate unseen speaking styles from uncommon scenarios (e.g., crosstalk, dialects). Moreover, fine-tuning pretrained models requires large, high-quality datasets, limiting rapid personalization. We propose VoiceTTA, a reinforcement learning-based test-time adaptation (TTA) method that improves voice imitation of pretrained zero-shot TTS models. VoiceTTA introduces two style rewards based on coefficient-of-variation differences of F0 and energy, combined with speaker similarity and intelligibility (WER from a pretrained Whisper model), and optimizes learnable prefixes via group relative preference optimization (GRPO) in a flow matching-based model at inference time. Extensive experiments demonstrate substantial improvements on uncommon speech prompts, outperforming state-of-the-art baselines. Audio samples are available at https://voicetta.pages.dev/",
+      "source": "arxiv",
+      "selection_source": "fresh_fetch"
+    },
+    {
+      "paper_id": "202606/29/2606.26918v1-diagnosing-task-insensitivity-in-language-agents",
+      "section": "quick",
+      "title_en": "Diagnosing Task Insensitivity in Language Agents",
+      "authors": "Jingyu Liu, Xiaopeng Wu, Kehan Chen, Chuan Yu, Yong Liu",
+      "date": "2026-06-25",
+      "pdf": "https://arxiv.org/pdf/2606.26918v1",
+      "score": "7.0",
+      "evidence": "揭示LLM智能体对提示中任务描述变化不敏感，表明离散提示引导行为失效。",
+      "tldr": "大规模语言模型作为长程代理时，分布外泛化能力弱，主因是任务不敏感性，即模型忽略任务指令变化而沿用训练模式。我们发现，即使任务描述被语义破坏或替换，模型仍执行原动作，且训练时注意力从任务词漂移至局部观察词，暴露捷径优化偏差。为此，我们提出任务扰动负对数似然优化，一种对比正则化方法，显式增强动作对任务指令的依赖。在多样化评估中，该方法有效提升了任务敏感性和分布外泛化能力，同时维持对任务标记的稳定关注，为语言代理的鲁棒性改进提供了可行方案。",
+      "tags": "query:prompt-learn",
+      "abstract_en": "Large language models can serve as capable long-horizon agents, but their out-of-distribution (OOD) generalization remains weak. We identify a key source of this failure as task insensitivity: when faced with similar but distinct tasks, models might apply patterns learned during training and fail to solve the task at hand. We show that models often continue with actions aligned with the original task even when the instruction is semantically corrupted and cannot be directly answered. We further find that, when we replace the task description in a trained prompt with another similar but distinct task, the model may still output the same action. This behavior is accompanied by a consistent training-time attention drift away from task tokens and toward local observations, suggesting an optimization bias toward shortcuts. To mitigate this problem, we propose Task-Perturbed NLL Optimization, a lightweight contrastive regularizer that explicitly encourages action dependence on the task instruction. Extensive evaluations show that our intervention improves task sensitivity and OOD generalization while preserving more stable attention to task tokens.",
+      "source": "arxiv",
+      "selection_source": "fresh_fetch"
+    }
+  ],
+  "errors": []
+}

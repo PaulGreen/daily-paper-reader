@@ -6,31 +6,28 @@
 </div>
 
 ## 每次日报
-- 最新运行日期：2026-06-28
-- 运行时间：2026-06-28 21:20:49 UTC
+- 最新运行日期：2026-06-29
+- 运行时间：2026-06-29 21:47:10 UTC
 - 运行状态：成功
-- 本次总论文数：3
-- 精读区：2
+- 本次总论文数：2
+- 精读区：1
 - 速读区：1
 
 ### 今日简报（AI）
-今日精读聚焦视觉模型的自动化提示设计与大语言模型智能体的经验-策略协同学习，两篇均获9分高分。
-核心发现：可微分搜索能自动发现最适合不同层的视觉提示融合方案；LLM智能体通过联合学习经验规则与策略，显著提升长期任务表现。
-普通读者可关注这两项技术如何让AI更自主地适应复杂场景，尝试将自动化提示与经验积累结合到自己的多模态或Agent应用中。
-- 详情：[/202606/28/README](/202606/28/README)
+今日精读如何用强化学习让零样本文本转语音在测试时自我进化，速览诊断语言智能体为何对任务描述“充耳不闻”  
+最值得关注：VoiceTTA 提出 RL 驱动测试时自适应，零样本语音合成音色相似度大幅提升；另一篇系统揭示了智能体对任务指令“不敏感”的成因与检测方法  
+建议读者留意：想让语音助手说任何人的声音且越用越像，测试时自适应是关键；若智能体执行任务总忽略细节，可从提示设计与评估基准入手排查
+- 详情：[/202606/29/README](/202606/29/README)
 
 ### 精读区论文标签
-1. [Layer-Specific Prompt Fusion Discovery via Differentiable Search in Vision Foundation Models](/202606/28/2606.26379v1-layer-specific-prompt-fusion-discovery-via-differentiable-search-in-vision-foundation-models)  
-   标签：评分：9.0/10、query:prompt-learn
-   evidence：可学习的连续向量作为视觉提示
-2. [Joint Learning of Experiential Rules and Policies for Large Language Model Agents](/202606/28/2606.27136v1-joint-learning-of-experiential-rules-and-policies-for-large-language-model-agents)  
-   标签：评分：9.0/10、query:prompt-learn
-   evidence：将交互经验提炼为自然语言规则用作提示
+1. [VoiceTTA: Enhancing Zero-Shot Text-to-Speech via Reinforcement Learning-Based Test-Time Adaptation](/202606/29/2606.26534v1-voicetta-enhancing-zero-shot-text-to-speech-via-reinforcement-learning-based-test-time-adaptation)  
+   标签：评分：8.0/10、query:prompt-learn
+   evidence：使用强化学习优化作为连续提示词的可学习前缀以进行低数据TTS风格适应
 
 ### 速读区论文标签
-1. [SPEAK: Spatial Prompting with Expert Aligned Knowledge for Tissue Domain Identification in Spatial Transcriptomics](/202606/28/biorxiv-10-64898-2026-06-22-733750-v1-speak-spatial-prompting-with-expert-aligned-knowledge-for-tissue-domain-identification-in-spatial-transcriptomics)  
-   标签：评分：6.0/10、query:prompt-learn
-   evidence：为每个细胞构建基于离散自然语言的空间上下文提示
+1. [Diagnosing Task Insensitivity in Language Agents](/202606/29/2606.26918v1-diagnosing-task-insensitivity-in-language-agents)  
+   标签：评分：7.0/10、query:prompt-learn
+   evidence：揭示LLM智能体对提示中任务描述变化不敏感，表明离散提示引导行为失效。
 
 
 <div class="dpr-home-promo-card">

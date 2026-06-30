@@ -1,0 +1,943 @@
+Title: LC-ICL: Label-Guided Contrastive In-Context Learning for Robust Information Extraction
+
+URL Source: https://arxiv.org/pdf/2606.29407v1
+
+Published Time: Tue, 30 Jun 2026 01:13:59 GMT
+
+Number of Pages: 15
+
+Markdown Content:
+> 1
+
+# LC-ICL: Label-Guided Contrastive In-Context Learning for Robust Information Extraction 
+
+Xiao You 1, Tianwei Yan 2, Shan Zhao 11Hefei University of Technology, Hefei, China 
+
+2Chongqing Jiaotong University, Chongqing, China 
+
+Abstract —There has been increasing interest in exploring the capabilities of advanced large language models (LLMs) in the field of information extraction (IE), specifically focusing on tasks related to named entity recognition (NER) and relation extraction (RE). Although researchers are exploring the use of few-shot information extraction through in-context learning with LLMs, they tend to focus only on using correct or positive examples for demonstration, neglecting the potential value of incorporating incorrect or negative examples into the learning process. In this paper, we present LC-ICL, a novel few-shot technique that leverages both correct and incorrect sample constructions to create in-context learning demonstrations. This approach enhances the ability of LLMs to extract entities and relations by combining positive samples with negative samples annotated by error-cause labels. These labels expose more detailed error features in erroneous examples, enabling the model to understand why similar predictions fail and avoid repeating such errors during inference. Specifically, our proposed method taps into the inherent contextual information and valuable information in hard negative samples and the nearest positive neighbors to the test and then applies the in-context learning demonstrations based on LLMs. Our experiments on various datasets indicate that LC-ICL outperforms previous few-shot in-context learning methods, delivering substantial enhancements in performance across a broad spectrum of related tasks. These improvements are noteworthy, showcasing the versatility of our approach in diverse scenarios. 
+
+I. I NTRODUCTION 
+
+Information extraction (IE) is an important task in natural language processing, aiming to obtain structured knowledge from plain text. It can be applied across different domains, such as knowledge graph construction [1] and question an-swering systems [2]. With the rise of large language models (LLMs) [3]–[6], IE has achieved remarkable progress [7], [8]. Recent advances in few-shot IE have shifted the focus from traditional supervised fine-tuning methods to leveraging LLMs for in-context learning (ICL) demonstrations [9], [10]. Previous work [9], [11]–[13] has explored using natural lan-guage prompts or in-context learning (ICL) demonstrations to guide LLMs in annotating test data under few-shot settings, sometimes requiring additional pretraining or fine-tuning steps. To better align with the structured nature of information extraction tasks, more recent approaches [14]–[18] employ code-like or structured prompts to enhance the consistency between pretraining and inference. However, these methods have yet to fully unlock the potential of LLMs, partly because the models rely on limited positive data and cannot learn from their own errors. 
+
+Corresponding author: Shan Zhao. On the World Cup circuit this season , 
+
+> slalom has basically been a three-man
+> competition among Giorgio Rocca of
+> Italy , Benjamin Raich of Austria and
+> Ligety .
+> ["Giorgio Rocca", "from", "Italy"]
+> ["Benjamin", " nationality ", "Austria"]
+> [" Italy ", " nationality ", " Giorgio Rocca "]
+> LLM
+> ["Benjamin Raich", "nationality", "Austria"]
+> ["Giorgio Rocca", "nationality", "Italy"]
+> [Missing relation] : 2
+> [Correct entities, incorrect relation]
+> [Wrong entity boundary]
+> [Reversed entities]
+
+Fig. 1. Using the relation extraction (RE) task as an example, this figure illustrates the core mechanism of LC-ICL. When performing direct inference, large models are prone to generating a large number of errors with specific patterns. LC-ICL introduces an error labeling system that feeds back error types to the model, guiding it to refine its generation, thereby significantly reducing errors and improving inference accuracy. 
+
+To address this issue, this paper proposes a contrastive in-context learning approach that leverages both positive and negative examples to extend the learning process of LLMs, thereby exposing them to a wider range of scenarios, including typical errors. The method is designed to exploit the value of often overlooked negative data, enabling more comprehensive and robust information extraction capabilities. Assume that the model has already learned task execution and problem-solving patterns from the positive information extraction dataset, yet its predictions still contain errors. In this case, the model should reflect on the causes of these errors, categorize the error types, and attempt to avoid them in subsequent reasoning. Therefore, incorporating information related to negative samples can help address this issue. In-spired by this idea, this paper integrates both correct/positive and incorrect/negative examples into ICL demonstrations to enhance the information extraction performance of in-context learning. Specifically, we first employ a large-scale model to generate labels for the annotated data in order to select hard negative samples. Then, we select semantically similar positive samples from the training data for the current test instance, and design the most suitable in-context demonstrations using different models (natural language LLMs or code LLMs). In the module for selecting error/negative samples that contain richer knowl-edge, we adopt a semantic-similarity-aware retrieval approach for ranking. To demonstrate the advantages of the proposed method, 
+
+> arXiv:2606.29407v1 [cs.CL] 28 Jun 2026 2
+
+we conduct experiments on three named entity recognition (NER) and five relation extraction (RE) benchmark datasets, followed by a thorough analysis of the benefits brought by this approach. The main contributions of this paper are summarized as follows:  
+
+> •
+
+We propose LC-ICL, a contrastive in-context learning approach that incorporates positive demonstrations and negative samples annotated with error-cause labels. These labeled negative samples provide more detailed error features, helping LLMs recognize failure patterns and avoid similar mistakes during information extraction.  
+
+> •
+
+We design an effective retrieval strategy to select hard negative samples as part of in-context learning, lever-aging them to further strengthen information extraction capabilities.  
+
+> •
+
+We conduct extensive experiments on benchmark datasets, demonstrating the effectiveness and broad ap-plicability of the proposed method across NER and RE tasks. II. T ASK FORMULATION 
+
+Given a sentence X containing l tokens x1, x 2, · · · , x l, the goal of IE tasks is to predict a structured output Y (named entities or relations) from x. In the NER task, the target Y
+
+is entity spans with entity types E(( e, t )|xi, . . . , x j ), where e
+
+is an entity in the sequence, and t is an entity type from a predefined set of entity types T (e.g., LOC , PER , ORG ). In the RE task, the target Y is a set of relations between entities, typically expressed as triples (e1, r, e 2). This not only involves predicting the relation r ∈ R but also includes the types t1 and t2 of entities e1 and e2, where R represents relation types (e.g., Work For , Live In , Located In ). The types of entities e1 and e2 also need to be predicted, where 
+
+t ∈ T represents entity types. We formulate IE as a generation task, prompting large language models to perform inference for NER or RE. In the few-shot in-context learning setting for information extraction, the demonstrations are structured into four com-ponents: (1) negative examples, (2) positive examples, (3) instructions, and (4) test text. The output of LLMs is a list of tuples, which in the NER task is [( e1, t 1), . . . , (ej , t j )] , such as [(’Steve’, ’person’)]. III. LC-ICL 
+
+A. Model Overview 
+
+As shown in Figure 2, in the context examples, our method mainly consists of 4 parts: Instruction part, Test sentence part, Positive Samples part, and Negative Samples part. Unlike prior methods that rely exclusively on positive sam-ples for in-context learning, our approach, LC-ICL, leverages both positive examples and negative instances annotated with explicit reasoning errors. For the selection of positive samples, we employ different retrieval strategies to select samples from the training set that correspond to the test examples. For negative sample selection, we first sample a subset of data from the training dataset of each dataset to form a negative sample collection. Then, Minfer generates predictions for the data in the negative sample collection, and Mlabel compares each prediction with its gold label to assign error labels, forming the final negative sample pool. Finally, we also use different retrieval strategies to retrieve a negative sample from the negative sample pool that corresponds to the test sample. Combined with the previously selected positive samples, we use both positive and negative samples together as examples for ICL to the large model. The large model will learn correct patterns from positive examples, thereby improving accuracy, while negative samples with error labels will inform the model about similar error patterns, helping it avoid similar mistakes and reduce error rates. 
+
+B. LC-ICL Demonstrations Construction 
+
+We construct a prompt for each given test sentence, and input it into the LLM. Each prompt contains the following components: 
+
+Test Sentence Xt represents the original text of the RE/NER test sample, which is used for the final evaluation of the large model’s performance in executing RE/NER tasks under the specified method. 
+
+Instruction I We constrain the large model to different expert roles according to different tasks, and based on the task differences, provide the relation set R or entity type set T . We use brief commands to require the large model to complete RE/NER tasks, and need it to return responses in a fixed list format. The instruction further guides the model to attend to negative samples with error-cause labels, so that it can acquire fine-grained error-feature signals from erroneous examples and avoid making similar mistakes on the test sentence. 
+
+Positive Samples P Referring to previous work by [14], we use the KNN algorithm (k-nearest neighbors algorithm) to select examples from the training set that have the highest semantic similarity with the test sample Xt in the embedding space, to serve as positive examples P.
+
+Negative Samples N Let Minfer denote the inference model that produces predictions, and let Mlabel denote the label-construction model that assigns error labels by comparing each prediction with its gold label. 
+
+X ′ 
+
+> pred
+
+= Minfer (I, X ′ 
+
+> t
+
+) (1) 
+
+Nlabel = Mlabel (I, E, X ′ 
+
+> t
+
+, X ′
+
+> pred
+
+, X ′ 
+
+> g
+
+) (2) 
+
+N = {(X ′ 
+
+> t
+
+, X ′
+
+> pred
+
+, X ′ 
+
+> g
+
+, Nlabel )} (3) Following the approach in previous work [14], we first sample 2500 labeled examples from the training set and use Minfer to generate predictions for these samples, as shown in Equation 1. Here, X ′ 
+
+> t
+
+represents the sampled input examples, X ′ 
+
+> g
+
+represents their corresponding gold labels, and X ′ 
+
+> pred
+
+represents the predictions produced by Minfer . Next, we provide the input examples, predictions, and gold labels to Mlabel to annotate incorrect predictions with error labels, as shown in Equation 2. Here, E represents the set of error labels, and Nlabel represents the generated error label set. Finally, using the same method used to filter positive samples, we employ the KNN algorithm to select negative samples corresponding to the test samples, 3['Chinese', 'geographical social political'] 
+
+['Siemens', 'organization'] 
+
+Test Positive Negative 
+
+The Chinese side 
+
+holds 30 % of 
+
+the shares while 
+
+the Weir Group 
+
+holds 70 % . 
+
+Last year , US 
+
+corporations 
+
+occupied 80 % of 
+
+Tianjin City ' s 
+
+foreign ... 
+
+Retrieval 
+
+strategy 
+
+LLM 
+
+"Missing entities ": [ 
+
+["Chinese", 
+
+"geographical social political"] 
+
+]
+
+"Spurious entities ": [ 
+
+["Chinese electrical and electronic markets", 
+
+"location"] 
+
+]
+
+['Siemens', 
+
+'organization'] 
+
+['Chinese electrical 
+
+and electronic 
+
+markets', 'location'] 
+
+["Chinese", "geographical social political"] 
+
+["The Chinese side", "organization"] 
+
+["the Weir Group", "organization"] 
+
+Infer based on [['US', 'geographical social political'], 
+
+['Tianjin City', 'geographical social political'], ['US 
+
+corporations', 'organization'], ['foreign merchant', 
+
+'organization']] as reference. 
+
+By referring to the "Missing entities": [["Chinese", 
+
+"geographical social political"]] and the "Spurious 
+
+entities": [["Chinese electrical and electronic markets", 
+
+"location"]], potential reasoning errors are avoided. 
+
+LLM LLM 
+
+In the rapidly 
+
+developing 
+
+Chinese electrical 
+
+and electronic 
+
+markets ... Retrieval 
+
+> strategy
+
+Instruction 
+
+You are an 
+
+excellent Named 
+
+Entity Recognition 
+
+expert. Your task 
+
+is to ... 
+
+# ① ② ③
+
+# ④
+
+## obtaining labeled 
+
+## negative samples 
+
+Feed the samples LLM inference Feed the inference 
+
+> Obtain labels
+
+Fig. 2. The figure illustrates an overview of the LC-ICL framework for information extraction tasks, using the Named Entity Recognition (NER) task as an example. The method constructs positive and negative examples, which, along with the test samples and task instructions, are input into the large language model to generate predictions. Steps 1–4 represent the process of obtaining labeled negative samples based on retrieved examples. 4
+
+and store X ′ 
+
+> t
+
+, X ′
+
+> pred
+
+, X ′ 
+
+> g
+
+, and Nlabel together in the negative sample pool, as shown in Equation 3. 
+
+Yt = Minfer (P, N , I, X t) (4) Overall, the input and output of our proposed framework can be represented by formula 4, where Yt represents the inference result produced by Minfer for the test sample Xt.
+
+ERE = {E1, E 2, E 3, E 4, E 5, E 6} (5) 
+
+ENER = {E′
+
+> 1
+
+, E ′
+
+> 2
+
+, E ′
+
+> 3
+
+, E ′
+
+> 4
+
+, E ′
+
+> 5
+
+} (6) 
+
+ERE ∪ ENER ⊆ E (7) We carefully analyze the causes of reasoning errors and formulate detailed error labels for RE and NER tasks respec-tively. Errors in RE are categorized into 6 types, as shown in Equation 5, while errors in NER are divided into 5 types, as shown in Equation 6. In Equation 7, ERE and ENER together constitute E.The specific label types and their meanings in Equations 5 and 6 can be found in Appendix B. 
+
+C. LC-ICL Retrieval Strategy 1) KNN-Based Retrieval: In few-shot learning, selecting demonstrations that are semantically similar to the test sample is crucial [19]. Research has shown that using KNN methods to retrieve the most similar examples from the training set can improve model performance [19]–[21]. KNN relies on effective embedding spaces to encode inputs and examples; therefore, pre-trained language models or improved sentence embedding methods have been proposed to optimize sentence representations. For information extraction tasks, we also adopt a retrieval method based on sentence embeddings, utilizing the k-nearest neighbor algorithm to filter out demonstration sentences from the training set that are relevant to the target task. By cal-culating semantic similarity, we select the top k sentences containing entities or relations, and use LLMs combined with cosine similarity for matching, thereby providing higher quality demonstrations for in-context learning. 
+
+2) Error Label Retrieval: Inspired by [22], in addition to using positive examples to help large models recognize correct answers, negative examples also serve an instructive role, helping models correct similar errors. Mo et al. [23] identified hard negative examples by querying the model multiple times and selecting high-confidence erroneous outputs. However, repeatedly calling the large model to obtain hard negative samples consumes significant time and incurs expensive costs. Therefore, we propose an error label retrieval strategy. We conducted a detailed analysis of the reasons for large model inference errors on NER/RE datasets and formulated detailed error labels based on these reasons, as shown in Algorithm 1. After a single forward pass on the sampled training data using Minfer , we provide each input, its prediction, and its gold label to Mlabel to obtain error labels. The resulting negative sample pool stores the input, prediction, gold label, and error labels together. Finally, we use the kNN algorithm to 
+
+Algorithm 1 Negative Sample Generation and Retrieval Al-gorithm 
+
+Input: Test sample Xt; labeled training dataset Dtrain ; infer-ence model Minfer ; label-construction model Mlabel ; error label set E; sample size k = 2500 .
+
+Output: Retrieved negative sample N for test sample Xt 
+
+> 1:
+
+/* Phase 1: Generate negative sample pool */  
+
+> 2:
+
+X ′ ← Sample (Dtrain , k ) {Sample k labeled instances}  
+
+> 3:
+
+Initialize negative sample pool S ← ∅  
+
+> 4:
+
+for each labeled sample (x′
+
+> t
+
+, x ′ 
+
+> g
+
+) ∈ X ′ do  
+
+> 5:
+
+x′ 
+
+> pred
+
+← Minfer (I, x ′
+
+> t
+
+) {Generate prediction as in Eq. 1}  
+
+> 6:
+
+Nlabel ← Mlabel (I, E, x ′
+
+> t
+
+, x ′
+
+> pred
+
+, x ′ 
+
+> g
+
+) {Generate error labels using the gold label}  
+
+> 7:
+
+S ← S ∪ { (x′
+
+> t
+
+, x ′
+
+> pred
+
+, x ′ 
+
+> g
+
+, Nlabel )} 
+
+> 8:
+
+end for  
+
+> 9:
+
+/* Phase 2: Retrieve relevant negative sample for test instance */  
+
+> 10:
+
+Compute semantic embedding for Xt and all samples in 
+
+S 
+
+> 11:
+
+N ← KNNRetrieval (Xt, S) {Retrieve most similar nega-tive sample}  
+
+> 12:
+
+return N
+
+select semantically similar labeled error samples as negative examples for test samples. IV. E XPERIMENTS 
+
+A. Datasets 
+
+RE Datasets For relation extraction, we evaluate on datasets CoNLL04 [24], NYT10 [25],NYT11 [26] ,SciERC [27] and ADE [28]. We adopt the dataset splits from prior UIE work [29] for all these datasets. 
+
+NER Datasets We evaluate our approach on NER task with ACE04 [30] , ACE05 [31] and NCBI [32]. and we split the datasets followed by the works [14], [33]–[35]. Table III shows the dataset statistics in Appendix A. 
+
+B. Experiments Setting 
+
+We use Llama [36] as the backbone for Minfer on test sets and DeepSeek [37] as the backbone for Mlabel when constructing error labels for negative samples. For the IE task, we construct both positive and negative samples to serve as contextual prompts. For positive sample selection, we employ a KNN retrieval strategy to select the most matching positive sample from the training set for each test sample. For negative samples, we first perform inference on the sampled training instances using Minfer , then present each input, its prediction, and its gold label to Mlabel to obtain error labels, forming a negative sample pool that stores the gold label together with the prediction and error labels. Finally, using the same KNN retrieval strategy, we retrieve the most similar sample from the negative sample pool as the negative sample for each test case. Due to the large number of samples in the training datasets, constructing error labels for all training data would be costly. Following [14], we randomly sample 5            
+
+> TABLE I PERFORMANCE COMPARISON ON RE BENCHMARKS IN TERMS OF F1 SCORE (%). ICL DENOTES THE MODEL PERFORMING IN -CONTEXT LEARNING WITHOUT PARAMETER UPDATES . PE REFERS TO USING ONLY POSITIVE EXAMPLES ,WHICH IS THE TRADITIONAL ICL, WHILE LC-ICL, OUR METHOD ,
+> INCLUDES BOTH POSITIVE AND NEGATIVE EXAMPLES .
+
+Model Paradigm Backbone RE CoNLL04 NYT10 NYT11 SciERC ADE DI w/o ICL Llama-3.1-8B-Instruct 0.35 0.27 0.09 0.00 1 0.79 PE ICL Llama-3.1-8B-Instruct 15.11 15.73 8.28 2.02 13.60 
+
+LC-ICL (ours) ICL Llama-3.1-8B-Instruct 32.27 38.69 21.52 4.18 18.10 
+
+DI w/o ICL Llama-3.3-70B-Instruct 7.02 6.33 6.61 2.78 0.68 PE ICL Llama-3.3-70B-Instruct 48.42 27.77 23.01 9.35 49.62 
+
+LC-ICL (ours) ICL Llama-3.3-70B-Instruct 50.71 42.04 34.15 12.21 54.13                 
+
+> TABLE II PERFORMANCE COMPARISON ON NER BENCHMARKS IN TERMS OF F1 SCORE (%). W/OICL REPRESENTS ZERO -SHOT PERFORMANCE ,WHILE ICL
+> DENOTES IN -CONTEXT LEARNING . DI REFERS TO DIRECT INFERENCE ,CONTRASTING WITH PE, WHICH USES ONLY POSITIVE EXAMPLES AS IN TRADITIONAL ICL. O UR METHOD , LC-ICL, INCORPORATES BOTH POSITIVE AND NEGATIVE EXAMPLES .
+
+Model Paradigm Backbone NER ACE04 ACE05 NCBI DI w/o ICL Llama-3.1-8B-Instruct 11.01 16.88 39.40 
+
+PE ICL Llama-3.1-8B-Instruct 14.72 24.59 33.30 
+
+LC-ICL (ours) ICL Llama-3.1-8B-Instruct 21.36 25.76 34.36 DI w/o ICL Llama-3.3-70B-Instruct 24.66 24.07 40.44 PE ICL Llama-3.3-70B-Instruct 37.18 38.99 38.20 
+
+LC-ICL (ours) ICL Llama-3.3-70B-Instruct 44.53 44.64 56.36 
+
+2,500 examples from each training dataset to build the negative sample pool for subsequent negative sample retrieval. Detailed experimental settings are provided in Appendix A. 
+
+C. Evaluation 
+
+Following previous work by [14], [29], we employ a strict evaluation metric for both NER and RE F1 scores. In the NER datasets, a prediction is considered correct only when both the entity name and type are correct. Similarly, in the RE datasets, a prediction is counted as correct only when both the entities and their relationship are accurately identified. Additionally, we introduce an instruction-following metric, which allows us to observe whether errors in model reasoning stem from poor instruction adherence or from difficulties in the task execution itself. To ensure the reliability of our results, we conducted three rounds of experiments with three different random seeds and reported the average scores. 
+
+D. Results 
+
+We investigate the performance of our proposed method in comparison to traditional in-context learning approaches and direct inference on NER and RE tasks. In addition, we conduct experiments with two model scales, Llama-3.1-8B-Instruct and Llama-3.3-70B-Instruct, to further examine the impact of model size on performance. 
+
+RE Results Table I shows the results of the RE task. Overall, our method and the traditional method that only uses positive examples as ICL prompts (PE) both significantly outperform the direct inference method (DI), demonstrating that effective contextual examples can significantly enhance the model’s ability to complete RE tasks. On the same Llama-3.1-8B-Instruct base model, our method outperforms the PE method because our approach not only uses positive examples to guide the large model in identifying similar patterns but also informs the model about potential errors. Through error label information, it avoids the hallucination content that might be produced when merely imitating positive example patterns using only positive samples. Furthermore, as the model parameter size increases, our method remains effective. On the Llama-3.3-70B-Instruct model, our method shows improvement over the ICL method across all RE datasets, further proving that our approach is effective not only on small-parameter models but also on large-parameter models. On the Llama-3.1-8B-Instruct model, we conducted a de-tailed comparison between the PE method and our proposed LC-ICL method. On the NYT10 dataset, the traditional ICL method achieved an F1 score of only 15.73%, while our method directly improved it to 38.69% , representing a relative improvement of 146%. On the NYT11 dataset, the LC-ICL method (F1= 21.52% ) showed a 159.8% improvement compared to the PE method (F1=8.28%), demonstrating our method’s significant advantage on the NYT series datasets. On the SciERC scientific literature relation extraction task, the PE method performed extremely poorly with an F1 score of 2.02%, while our method improved it to 4.18% . Although the absolute value is not high, the improvement exceeds 6
+
+100%, indicating that our Label design remains effective even in extremely low-resource scenarios. On the ADE medical relation extraction task, the PE method achieved an F1 score of 13.60%, while our method improved it to 18.10% , demon-strating stronger relation modeling capabilities in the medical domain. On the CoNLL04 task, our method achieved an F1 score of 32.27% , a 113.7% improvement compared to PE (15.11%), fully validating the applicability and effectiveness of the LC-ICL strategy on classic small-scale RE datasets. On the Llama-3.3-70B-Instruct model, we also compared the PE method with our proposed LC-ICL method. On the NYT10 dataset, the PE method achieved an F1 score of 27.77%, while our method directly improved to 42.04% ,representing a relative improvement of 51.4%. On the NYT11 dataset, the LC-ICL method (F1= 34.15% ) showed a 48.4% improvement compared to the PE method (F1=23.01%), con-tinuing to maintain significant advantages on the NYT series datasets. On the SciERC scientific literature relation extraction task, the PE method achieved an F1 score of 9.35%, show-ing relatively weak performance, while the LC-ICL method improved to 12.21% , a relative improvement of 30.6%, indi-cating that the LC-ICL design is also effective on specialized domain texts. On the ADE medical relation extraction task, the PE method achieved an F1 score of 49.62%, while the LC-ICL method improved to 54.13% , a relative improvement of 9.1%, demonstrating stronger relation modeling capabilities in the medical domain. On the CoNLL04 task, the LC-ICL method achieved an F1 score of 50.71% , showing a 4.7% improvement compared to PE (48.42%). Although the improvement margin is relatively small, it further verifies the generalization ability of the LC-ICL strategy on large-scale models. Overall, the experimental results on the 70B model fully demonstrate that even on larger-scale models, the LC-ICL method incorporating negative examples can still bring significant performance improvements. 
+
+NER Results Table II shows the results of the NER task. Similarly, in the NER task, our method and the PE method mostly outperform direct inference approaches. Compared with PE, LC-ICL generally achieves better results, suggesting that incorporating incorrectly predicted entities and their error-type labels as negative samples can help large language models avoid similar entity recognition errors. However, the gains are not uniform across all baselines and datasets; for example, direct inference remains competitive on the NCBI dataset with Llama-3.1-8B-Instruct. Similarly, on the Llama-3.1-8B-Instruct model, we con-ducted a detailed comparison between the PE method and our approach. In the ACE04 dataset, the PE method only achieved an F1 score of 14.72%, while the LC-ICL method significantly improved to 21.36% , representing a 45.12% increase. In the ACE05 dataset, the PE method scored 24.59%, with LC-ICL improving to 25.76% . Although the improvement margin was limited, it still demonstrates the robustness of the LC-ICL strategy across different datasets. For the NCBI disease entity recognition task, the PE method reached 33.30%, while LC-ICL improved further to 34.36% . This result indicates that LC-ICL improves over PE on this medical-domain task, although direct inference remains a strong baseline on NCBI. In the Llama-3.3-70B-Instruct model, our LC-ICL method demonstrates significant performance advantages. The ex-perimental results show that our proposed LC-ICL method achieves F1 scores of 44.53% , 44.64% , and 56.36% in the three datasets, comprehensively outperforming other methods. Compared to PE, LC-ICL improves by 7.35 percentage points (a relative increase of 19.77%) on the first dataset, 5.65 percentage points (a relative increase of 14.49%) on the second dataset, and an impressive 18.16 percentage points (a relative increase of 47.54%) on the third dataset. By com-paring performance across different datasets, we find that the LC-ICL method exhibits strong robustness and adaptability, consistently maintaining its advantage on data with varying characteristics. These results convincingly demonstrate that our method’s design philosophy effectively overcomes the limitations of traditional ICL methods, providing a more efficient paradigm for applying large language models to entity recognition tasks. Particularly on large-scale models like the 70B model, the LC-ICL method shows even more pronounced performance gains, indicating its ability to better leverage potential as model scale increases. V. F URTHER ANALYSIS 
+
+A. Ablation Study 
+
+To investigate the impact of structured features in misla-beled negative samples on experimental results, we conduct a comparative study between two types of negative samples: those annotated with structured labels (denoted as Label ) and those annotated with a one-sentence explanation of the error reason generated by a large language model (denoted as Ex-planation ). Experiments are conducted on both Named Entity Recognition (NER) and Relation Extraction (RE) datasets. In our approach, we categorize and label model inference errors in detail, and reintroduce them as negative samples in In-Context Learning (ICL) demonstrations. This is intended to enhance the model’s ability to recognize and correct error pat-terns. In contrast, the baseline Explanation method provides only a single-sentence summary of the error cause, without distinguishing between specific error types. In most cases, both the Explanation and Label methods can enhance the information extraction capabilities of large language models. This can be attributed to the fact that negative samples provide certain error patterns, which help the model avoid similar mistakes and thereby reduce the overall error rate. However, on the ACE05 and NCBI datasets, the ICL method outperforms the Explanation approach. This may be because, for relatively simple NER tasks, the longer explanations generated by the Explanation method could in-crease the risk of hallucinations in large models, ultimately decreasing accuracy. Overall, the Label method consistently outperforms both the Explanation and ICL approaches, which strongly supports the effectiveness of our label design. In the following sections, we provide a detailed analysis of the Explanation and Label methods on each dataset. 
+
+a) Performance on NER Datasets: Experimental results on three named entity recognition datasets—ACE04, ACE05, and NCBI—demonstrate that incorporating fine-grained label 7
+
+(a) RE Task 
+
+(b) NER Task  
+
+> Fig. 3. Comparative experimental results based on NER and RE tasks, eval-uating the effectiveness of two negative sample identification methods: Label annotation and natural language explanation (Explanation). Here, Explanation refers to summarizing error reasons in the form of a natural language sentence, while Label refers to annotating error types in a structured label format (the method adopted in this paper).
+
+information consistently improves model inference perfor-mance to varying degrees. In the ACE04 dataset, the label-based approach yields a slight improvement (+0.28 percentage points). However, more substantial gains are observed on ACE05 and NCBI, with performance increases of +2.13 and +2.29 percentage points, respectively. These findings suggest that for NER tasks with complex structures or diverse entity types, detailed error annotations are more effective in helping large language models understand and correct their own infer-ence biases. This effect is particularly pronounced in medical-domain datasets such as NCBI. 
+
+b) Performance on RE Datasets: Except for the ADE dataset, all other RE datasets benefit significantly from the labeling approach, especially CoNLL04, NYT10, and NYT11, with F1 score improvements of +12.17, +9.42, and +7.56 percentage points, respectively. These results suggest that error types in relation extraction tasks are more diverse and complex, making it difficult for simple error summaries to effectively guide model improvements. In contrast, explicit error category labels help the model capture more fine-grained relational patterns, thereby significantly enhancing its error correction capability. It is worth noting that on the ADE dataset, the labeling approach actually led to a performance drop of 2.62 percentage points. Upon deeper analysis, we find that the relation types in ADE are relatively homogeneous, primarily consisting of a single type: Drug-Adverse Effect. The task itself exhibits a simple structure, and the sources of errors are relatively concentrated. Under such circumstances, the multi-class error labels designed in the labeling method have limited utility. In fact, due to the insufficient number of error categories, the overall information content may even be reduced, making the method less effective than the Explanation approach, which directly provides a concise summary of the error. The one-sentence explanation offered by the Explanation 
+
+method is able to guide the model’s attention toward the core mistake in a direct manner under the simple scenario of ADE, significantly reducing redundant information and thereby improving inference accuracy. This observation suggests that the effectiveness of error label design in relation extraction tasks is closely tied to the complexity of the task. For tasks with a single relation type and highly concentrated error patterns, concise and direct error explanations offer greater advantages. In contrast, for tasks involving diverse relation types and complex error patterns, fine-grained error labels are more beneficial in helping the model effectively reflect and optimize its reasoning process. 
+
+B. Analysis of Label Definition Validity 
+
+To verify the impact of error-labeled in-context learning (ICL) examples on the inference capability of large language models, we designed two strategies for comparison: Label 
+
+and Label_Def . The Label strategy marks the specific type of error for each incorrect sample, while the Label_Def strategy further provides a detailed explanation of the meaning of each label on top of the Label strategy. Experiments were conducted on both Named Entity Recog-nition (NER) and Relation Extraction (RE) tasks, with F1 score used as the evaluation metric. The experimental results are summarized as follows. Overall, both Label and Label_Def strategies consistently improve the F1 scores of large language models on information extraction tasks across most datasets. This suggests that pro-viding suitable negative samples enables large models to learn certain error patterns and avoid making the same mistakes. Detailed analysis for each dataset is presented below. 
+
+a) NER: From the results of the NER task, the La-bel method consistently outperforms the Label_Def method across all datasets, with an average F1 score improvement of over 4 percentage points, demonstrating a clear advantage. Upon analysis, this can be attributed to the fact that errors in entity boundary recognition and type classification in NER are highly categorizable. By directly using concise error labels, large language models are provided with clear correction directions. In contrast, the Label_Def method introduces label definitions that may contain redundant information, poten-tially distracting the model from focusing on the core error categories, thereby weakening the effectiveness of inference enhancement. Moreover, named entity recognition inherently emphasizes fine-grained boundary and type discrimination, where error 8
+
+(a) RE Task 
+
+(b) NER Task  
+
+> Fig. 4. Comparison of experimental results under two settings: using only labels (Label) versus using labels accompanied by definitional explanations (Label_Def). The results are evaluated on both NER and RE datasets. Here, Label_Def refers to the setting where definitional explanations are provided for each label, while Label represents the setting where only the label itself is provided (which is the approach adopted in this paper).
+
+types are relatively explicit. In this context, lengthy expla-nations offer limited benefits and may even lead the model to over-attend to irrelevant details, ultimately degrading perfor-mance. 
+
+b) RE: In the relation extraction task, the Label method also achieves better performance across all datasets, with a particularly significant improvement in F1 score. This im-provement is especially notable in complex relation scenarios such as NYT10 and NYT11, where the increase reaches +8.28 and +5.24 percentage points, respectively. This result indicates that the error patterns in relation extraction are complex and diverse. Directly providing structured error labels helps the model effectively align with error categories, enhancing the model’s error correction and inference capabilities. In contrast, the Label_Def method, which introduces label explanations, did not bring the expected benefits in complex scenarios. Instead, it may have hindered the model’s ability to focus on core error categories due to lengthy descriptions that distracted attention. Particularly in cross-domain, multi-relation datasets like the NYT series and SciERC, concise and clear error labels are more effective in helping the model extract useful patterns than lengthy explanations .The performance on the ADE dataset remained relatively stable, with the Label method bringing only a slight im- 
+
+> Fig. 5. Comparison of RE and NER task performance of various methods under random retrieval strategy. We selected the ACE04 and CoNLL04 datasets to evaluate the performance of different methods. w/o_ICL indicates that ICL is not used, and the large model performs zero-shot inference directly on the test text.
+
+provement. Considering that the ADE relation type is singular (drug-adverse reaction), errors are more concentrated, and the marginal effect of label explanations is smaller, reflecting the close relationship between label design and task complexity. 
+
+C. Validity of Negative Samples 
+
+We employed a random retrieval strategy on the ACE04 and CoNLL04 datasets to observe the comparison between our method and others under random retrieval. To further validate the robustness and generalization ability of our proposed LC-ICL method, we designed a random retrieval (Random Retrieval) scenario, where we randomly select examples from the training set as support samples to replace similarity-based retrieval methods. This was done to evaluate the performance differences of various methods without effective retrieval support. As shown in the figure, under the random retrieval strat-egy, our method still demonstrates significant advantages. In particular, the label-based method outperforms other baseline methods on both the NER and RE tasks: In the ACE04 (NER) task, the F1 score of the Label method reached 16.84%, significantly higher than Explanation (16.47%), ICL (13.69%), and w/o_ICL (11.01%). In the CoNLL04 (RE) task, the Label method performed especially well, with an F1 score of 13.39%, far surpassing Explana-tion (4.62%), ICL (2.45%), and w/o_ICL (0.56%). Moreover, 
+
+Label_Def (label with definition) showed a slight decline compared to the pure Label method, indicating that under random retrieval, adding too much explanatory information may weaken the effectiveness of the contrastive signal. From the random retrieval experiment, it can be observed that the label-based contrastive example construction strat-egy we proposed demonstrates good robustness. Even in the absence of semantic retrieval support and with poor-quality supporting sample information, the Label method still sig-nificantly improves the model’s reasoning and discrimination abilities. This phenomenon further validates the core advantage of our method, which lies in explicit error signal labeling and structured supervision, rather than relying on the retrieved "good examples." 9
+
+In summary, the random retrieval experiment fully verifies the effectiveness and generalization of the LC-ICL method, indicating that reasonably designed label information is more effective in helping large models understand task objectives and improve performance than solely relying on sample sim-ilarity. 
+
+D. Case study ###Negative example### TEXT: Akio Morita , who founded Sony in 1946 , lived for extended         
+
+> periods in New York . If the inferenced result are [['Akio Morita', 'founded', 'Sony'], ['Sony',
+> 'founded in', '1946'], ['Akio Morita', 'lived for extended periods in', 'New York']], and the golden
+> result are [['Sony', 'company founders', 'Akio Morita']], we can categorize the error as follows:
+> {"Missing relation": [ ["Sony", "company founders", "Akio Morita"] ], "Wrong entity/relation
+> types": [ ["Sony", "founded in", "1946"] ], "Undefined relation": [ ["Akio Morita", "lived for
+> extended periods in", "New York"] ], "Correct entities, incorrect relation": [ ["Akio Morita",
+> "founded", "Sony"] ] }
+> ###Positive example### TEXT: Sir Howard played to Sony 's considerable corporate pride by
+> flashing images on a screen of the company 's well-known product line the transistor radio that the
+> Sony co-founder Akio Morita pioneered , the Trinitron television and the PlayStation . The result
+> would be [['Sony', 'company founders', 'Akio Morita']]
+> ###INPUT### You are an excellent Relation Extraction expert. Your task is to perform the following
+> action:
+> 1 - Please find all the relation triples that match the associated with the relation category in the
+> given text.
+> 2 - The relation category list : ['nationality', 'country capital', 'place of death', 'children', 'location
+> contains', 'place of birth', 'place lived', 'administrative division of country', 'country of
+> administrative divisions', 'company', 'neighborhood of', 'company founders']
+> 3 - Please note that only relationships that fit within the given categories should be identified. If
+> no information is found regarding a specific category, simply omit that category from your
+> response.
+> 4 - Provide your response in the format of a list object with the relationships triplets as [(subject
+> entity,relation type, object entity), ...]
+> 5 - No more explain words except the result list.
+> ###TEXT###
+> Sony Corporation wishes to express its deepest and most heartfelt sympathy to his family , along
+> with its utmost respect and gratitude for the instrumental role he played in assisting his middle
+> school classmate and Sony founder , Akio Morita , in establishing Sony 's presence in the United
+> States in the early 1960s .
+> [inference]
+> [( 'Sony ','company founders ','Akio Morita ')]
+> ###Positive example### TEXT: Sir Howard played to Sony 's
+> considerable corporate pride by flashing images on a screen of
+> the company 's well-known product line the transistor radio that
+> the Sony co-founder Akio Morita pioneered , the Trinitron
+> television and the PlayStation . The result would be [['Sony',
+> 'company founders', 'Akio Morita']]
+> ###INPUT### You are an excellent Relation Extraction expert.
+> Your task is to perform the following action:
+> 1 - Please find all the relation triples that match the associated
+> with the relation category in the given text.
+> 2 - The relation category list : ['nationality', 'country capital',
+> 'place of death', 'children', 'location contains', 'place of birth',
+> 'place lived', 'administrative division of country', 'country of
+> administrative divisions', 'company', 'neighborhood of',
+> 'company founders']
+> 3 - Please note that only relationships that fit within the given
+> categories should be identified. If no information is found
+> regarding a specific category, simply omit that category from
+> your response.
+> 4 - Provide your response in the format of a list object with the
+> relationships triplets as [(subject entity,relation type, object
+> entity), ...]
+> 5 - No more explain words except the result list.
+> ###TEXT###
+> Sony Corporation wishes to express its deepest and most
+> heartfelt sympathy to his family , along with its utmost respect
+> and gratitude for the instrumental role he played in assisting his
+> middle school classmate and Sony founder , Akio Morita , in
+> establishing Sony 's presence in the United States in the early
+> 1960s .
+> [inference]
+> [( 'Sony Corporation', 'company', 'Sony'),
+> ('Akio Morita', 'company founders', 'Sony'),
+> ('Akio Morita', 'company founders', 'Sony')]
+
+Fig. 6. A comparison of prompts between LC-ICL and ICL methods on the same RE task. The traditional ICL approach (right) includes positive examples, instructions, and a test instance. In contrast, LC-ICL (left) augments this setup by additionally incorporating a negative example, which not only presents an instance where the large language model makes a reasoning error, but also provides a set of labels indicating the reasons behind the error. For the NER task and additional examples, please refer to the appendix. 
+
+We selected a number of representative test cases to further demonstrate the effectiveness of our proposed method, as shown in Figure 6. Taking Example 1 as an illustration, we present a contrastive set of positive and negative examples in the relation extraction (RE) task that are more similar to the test instance. In this case, using only the ICL method (right side of the figure) indeed enables the model to effectively identify the entities "Sony" and "Akio Morita", but it fails to accurately recognize their relationship. In contrast, our method (left side of the figure) allows the large language model to learn that the reasoning outcome 
+
+”AkioM orita ”, ”f ounded ”, ”Sony ”
+
+corresponds to the label "Correct entities, incorrect relation" after being exposed to negative samples. As a result, the model becomes more attentive to the correctness of the relation. By learning correct patterns from positive examples and simultaneously learning to avoid erroneous patterns from negative examples, the large model is better able to derive accurate conclusions. In addition, we also discuss typical cases in the named entity recognition (NER) task; more examples can be found in Appendix B. VI. R ELATED WORK 
+
+a) Generative Information Extraction: In recent years, a large number of representative supervised modeling methods have been proposed for sub-tasks in information extraction, such as named entity recognition (NER) and relation extraction (RE). Early works primarily focused on understanding-based architectures, such as the LSTM-CRF model [38] and RE methods based on dependency tree modeling [39], which effectively capture both local and syntactic features. [40] leveraged the mutual influence between RE and NER tasks to design a dynamic cross-task model that fur-ther enhances the model’s information extraction capabilities. However, supervised modeling methods typically require fine-tuning on specific datasets, resulting in limited generalization ability. Meanwhile, the rise of generative Transformer architectures has introduced a new paradigm for information extraction, where the task is reformulated as a text generation problem. Works such as the Crop model [41], the MCL-NER frame-work [35], and zero-shot IE methods based on ChatGPT [42] have all demonstrated the strong potential of large models in extraction tasks. Overall, although generative large language models exhibit strong potential and diverse developmental trends in informa-tion extraction tasks, their performance remains suboptimal when directly applied to extraction tasks without fine-tuning. 
+
+b) In-context Learning: In recent years, in-context learn-ing (ICL) has garnered extensive attention and application in large-scale language models. By constructing high-quality ex-emplars, ICL significantly enhances the models’ reasoning and task execution capabilities [43]–[45]. To further improve the reasoning abilities of language models, existing studies have shown that relying solely on the models’ inherent reasoning mechanisms is insufficient to fully unleash their potential. Instead, constructing detailed chains of thought can notably boost the performance of reasoning models [46], underscoring the critical role of context construction in influencing model performance. In addition, methods such as nearest-neighbor retrieval [19], task-aware retrieval strategies, and label-guided reasoning representations [18] have further optimized the process of exemplar selection. Recently, substantial progress has also been made in instruction-following tasks. [47] proposed the URIAL method, which achieves effective alignment for base language mod-els using only three stylized in-context examples. Although URIAL demonstrates notable improvements in instruction-following capabilities, [48] pointed out that it still underper-forms fine-tuned models in multi-turn interactive scenarios. Overall, in-context learning exhibits great potential in en-hancing the reasoning ability and task performance of large language models. However, its limitations have also gradually emerged, primarily due to the lack of negative feedback mech-anisms, which restricts further performance improvement. 
+
+c) Hard negative sample: Hard negative samples have a long-standing history of applications in machine learning. In the early days, [49] introduced the Word2Vec model, which employed negative sampling to train word embed-dings, enabling more efficient learning of textual features. Similarly, [50] enabled the model to predict masked tokens while treating other tokens as negative samples, significantly improving performance on a range of NLP tasks such as question answering, sentiment analysis, and text classification. 10 
+
+A current research focus is whether erroneous information generated by large language models (LLMs) during inference can be systematically categorized and utilized as negative samples to enhance model capabilities. Relevant scholars have conducted systematic analyses and discussions on this topic. For instance, [51] presented a detailed taxonomy of hallu-cinations in LLMs, distinguishing between "ignorance-based errors" caused by knowledge gaps and "knowingly wrong" errors where the model possesses the correct knowledge yet generates incorrect outputs. This distinction provides a crucial theoretical foundation for error detection and intervention. In addition, [52] proposed a prompting method that integrates chain-of-thought reasoning with error analysis. By simulat-ing human evaluation systems to conduct fine-grained error categorization in translation outputs, the method not only improves evaluation performance but also enhances model interpretability. In the fields of Named Entity Recognition (NER) and Relation Extraction (RE), [53], [54] skillfully applied similar principles, leveraging comparison-based learn-ing to further boost accuracy in information extraction tasks. Furthermore, [23] proposed a theoretical framework based on consistency learning to obtain high-quality negative samples, thereby advancing the information extraction capabilities of LLMs. Motivated by these observations, the core goal of this study is to exploit specific error patterns in LLM-generated content as learning signals. These patterns are fed back to the model in the form of hard negative samples, with the aim of improving the model’s performance on targeted tasks. VII. C ONCLUSION 
+
+In this work, we introduce LC-ICL, contrastive in-context learning for few-shot information extraction, including right/positive and wrong/negative demonstrations. In addition through type instruction demonstrations prompt mention tags in the IE task. From the contrastive samples, the LLMs could obtain effective information and indirect but positive, valuable additional knowledge for IE tasks. Besides, our method adopts semantic similarity retrieval strategies to retrieve in-context examples better suited for the current sentence and task, sig-nificantly improving IE performance. Extensive experiments prove the effectiveness of LC-ICL on various benchmarks. LIMITATIONS 
+
+Despite its contributions, this study has the following lim-itations: (1) It primarily investigates the contextual learning capabilities in few-shot Named Entity Recognition (NER) and Relation Extraction (RE) tasks, while the applicability of this paradigm to other Information Extraction (IE) tasks remains underexplored; (2) We employed a commonly used sentence embedding similarity approach to retrieve samples, yet there may exist other, more diverse strategies for selecting appropriate positive and negative samples; (3) Our evaluation was conducted using English datasets on large models trained in English, and further exploration on datasets or models in other languages, such as Chinese, was not carried out. REFERENCES [1] L. Zhong, J. Wu, Q. Li, H. Peng, and X. Wu, “A comprehensive survey on automatic knowledge graph construction,” CoRR , vol. abs/2302.05019, 2023. [Online]. Available: https://doi.org/10.48550/ arXiv.2302.05019 [2] D. M. Aliod, M. van Zaanen, and D. Smith, “Named entity recognition for question answering,” in Proceedings of the Australasian Language Technology Workshop, ALTA 2006, Sydney, Australia, November 30-December 1, 2006 , L. Cavedon and I. Zukerman, Eds. Australasian Language Technology Association, 2006, pp. 51–58. [Online]. Available: https://aclanthology.org/U06-1009/ [3] T. B. Brown, B. Mann, N. Ryder, M. Subbiah, J. Kaplan, P. Dhariwal, A. Neelakantan, P. Shyam, G. Sastry, A. Askell, S. Agarwal, A. Herbert-Voss, G. Krueger, T. Henighan, R. Child, A. Ramesh, D. M. Ziegler, J. Wu, C. Winter, C. Hesse, M. Chen, E. Sigler, M. Litwin, S. Gray, B. Chess, J. Clark, C. Berner, S. McCandlish, A. Radford, I. Sutskever, and D. Amodei, “Language models are few-shot learners,” in Advances in Neural Information Processing Systems 33: Annual Conference on Neural Information Processing Systems 2020, NeurIPS 2020, December 6-12, 2020, virtual , H. Larochelle, M. Ranzato, R. Hadsell, M. Balcan, and H. Lin, Eds., 2020. [Online]. Available: https://proceedings.neurips. cc/paper/2020/hash/1457c0d6bfcb4967418bfb8ac142f64a-Abstract.html [4] S. Min, X. Lyu, A. Holtzman, M. Artetxe, M. Lewis, H. Hajishirzi, and L. Zettlemoyer, “Rethinking the role of demonstrations: What makes in-context learning work?” in Proceedings of the 2022 Conference on Empirical Methods in Natural Language Processing, EMNLP 2022, Abu Dhabi, United Arab Emirates, December 7-11, 2022 , Y. Goldberg, Z. Kozareva, and Y. Zhang, Eds. Association for Computational Linguistics, 2022, pp. 11 048–11 064. [Online]. Available: https://doi.org/10.18653/v1/2022.emnlp-main.759 [5] H. Touvron, L. Martin, K. Stone, P. Albert, A. Almahairi, Y. Babaei, N. Bashlykov, S. Batra, P. Bhargava, S. Bhosale et al. , “Llama 2: Open foundation and fine-tuned chat models,” arXiv preprint arXiv:2307.09288 , 2023. [6] J. Achiam, S. Adler, S. Agarwal, L. Ahmad, I. Akkaya, F. L. Aleman, D. Almeida, J. Altenschmidt, S. Altman, S. Anadkat et al. , “Gpt-4 technical report,” arXiv preprint arXiv:2303.08774 , 2023. [7] B. Li, G. Fang, Y. Yang, Q. Wang, W. Ye, W. Zhao, and S. Zhang, “Evaluating chatgpt’s information extraction capabilities: An assessment of performance, explainability, calibration, and faithfulness,” CoRR ,vol. abs/2304.11633, 2023. [Online]. Available: https://doi.org/10. 48550/arXiv.2304.11633 [8] D. Xu, W. Chen, W. Peng, C. Zhang, T. Xu, X. Zhao, X. Wu, Y. Zheng, and E. Chen, “Large language models for generative information extraction: A survey,” CoRR , vol. abs/2312.17617, 2023. [Online]. Available: https://doi.org/10.48550/arXiv.2312.17617 [9] J. Chen, Y. Lu, H. Lin, J. Lou, W. Jia, D. Dai, H. Wu, B. Cao, X. Han, and L. Sun, “Learning in-context learning for named entity recognition,” in Proceedings of the 61st Annual Meeting of the Association for Computational Linguistics (Volume 1: Long Papers), ACL 2023, Toronto, Canada, July 9-14, 2023 ,A. Rogers, J. L. Boyd-Graber, and N. Okazaki, Eds. Association for Computational Linguistics, 2023, pp. 13 661–13 675. [Online]. Available: https://doi.org/10.18653/v1/2023.acl-long.764 [10] X. Lyu, S. Min, I. Beltagy, L. Zettlemoyer, and H. Hajishirzi, “Z-ICL: zero-shot in-context learning with pseudo-demonstrations,” in Proceedings of the 61st Annual Meeting of the Association for Computational Linguistics (Volume 1: Long Papers), ACL 2023, Toronto, Canada, July 9-14, 2023 , A. Rogers, J. L. Boyd-Graber, and N. Okazaki, Eds. Association for Computational Linguistics, 2023, pp. 2304–2317. [Online]. Available: https://doi.org/10.18653/v1/2023.acl-long.129 [11] X. Wei, X. Cui, N. Cheng, X. Wang, X. Zhang, S. Huang, P. Xie, J. Xu, Y. Chen, M. Zhang et al. , “Zero-shot information extraction via chatting with chatgpt,” arXiv preprint arXiv:2302.10205 , 2023. [12] X. Ma, J. Li, and M. Zhang, “Chain of thought with explicit evidence reasoning for few-shot relation extraction,” in Findings of the Association for Computational Linguistics: EMNLP 2023, Singapore, December 6-10, 2023 , H. Bouamor, J. Pino, and K. Bali, Eds. Association for Computational Linguistics, 2023, pp. 2334–2352. [Online]. Available: https://aclanthology.org/2023.findings-emnlp.153 [13] S. Wadhwa, S. Amir, and B. C. Wallace, “Revisiting relation extraction in the era of large language models,” in Proceedings of the 61st Annual Meeting of the Association for Computational Linguistics (Volume 1: Long Papers), ACL 2023, Toronto, Canada, July 9-14, 2023 ,A. Rogers, J. L. Boyd-Graber, and N. Okazaki, Eds. Association 11 
+
+for Computational Linguistics, 2023, pp. 15 566–15 589. [Online]. Available: https://doi.org/10.18653/v1/2023.acl-long.868 [14] P. Li, T. Sun, Q. Tang, H. Yan, Y. Wu, X. Huang, and X. Qiu, “Codeie: Large code generation models are better few-shot information extractors,” in Proceedings of the 61st Annual Meeting of the Association for Computational Linguistics (Volume 1: Long Papers), ACL 2023, Toronto, Canada, July 9-14, 2023 ,A. Rogers, J. L. Boyd-Graber, and N. Okazaki, Eds. Association for Computational Linguistics, 2023, pp. 15 339–15 353. [Online]. Available: https://doi.org/10.18653/v1/2023.acl-long.855 [15] O. Sainz, I. García-Ferrero, R. Agerri, O. L. de Lacalle, G. Rigau, and E. Agirre, “Gollie: Annotation guidelines improve zero-shot information-extraction,” CoRR , vol. abs/2310.03668, 2023. [Online]. Available: https://doi.org/10.48550/arXiv.2310.03668 [16] X. Wang, W. Zhou, C. Zu, H. Xia, T. Chen, Y. Zhang, R. Zheng, J. Ye, Q. Zhang, T. Gui et al. , “Instructuie: Multi-task instruction tuning for unified information extraction,” arXiv preprint arXiv:2304.08085 , 2023. [17] X. Wang, S. Li, and H. Ji, “Code4struct: Code generation for few-shot event structure prediction,” in Proceedings of the 61st Annual Meeting of the Association for Computational Linguistics (Volume 1: Long Papers), ACL 2023, Toronto, Canada, July 9-14, 2023 ,A. Rogers, J. L. Boyd-Graber, and N. Okazaki, Eds. Association for Computational Linguistics, 2023, pp. 3640–3663. [Online]. Available: https://doi.org/10.18653/v1/2023.acl-long.202 [18] Z. Wan, F. Cheng, Z. Mao, Q. Liu, H. Song, J. Li, and S. Kurohashi, “GPT-RE: in-context learning for relation extraction using large language models,” in Proceedings of the 2023 Conference on Empirical Methods in Natural Language Processing, EMNLP 2023, Singapore, December 6-10, 2023 , H. Bouamor, J. Pino, and K. Bali, Eds. Association for Computational Linguistics, 2023, pp. 3534–3547. [Online]. Available: https://aclanthology.org/2023.emnlp-main.214 [19] J. Liu, D. Shen, Y. Zhang, B. Dolan, L. Carin, and W. Chen, “What makes good in-context examples for gpt-3?” in Proceedings of Deep Learning Inside Out: The 3rd Workshop on Knowledge Extraction and Integration for Deep Learning Architectures, DeeLIO@ACL 2022, Dublin, Ireland and Online, May 27, 2022 , E. Agirre, M. Apidianaki, and I. Vulic, Eds. Association for Computational Linguistics, 2022, pp. 100– 114. [Online]. Available: https://doi.org/10.18653/v1/2022.deelio-1.10 [20] B. J. Gutierrez, N. McNeal, C. Washington, Y. Chen, L. Li, H. Sun, and Y. Su, “Thinking about GPT-3 in-context learning for biomedical ie? think again,” in Findings of the Association for Computational Linguistics: EMNLP 2022, Abu Dhabi, United Arab Emirates, December 7-11, 2022 , Y. Goldberg, Z. Kozareva, and Y. Zhang, Eds. Association for Computational Linguistics, 2022, pp. 4497–4512. [Online]. Available: https://doi.org/10.18653/v1/2022.findings-emnlp.329 [21] Y. Guo, Z. Li, X. Jin, Y. Liu, Y. Zeng, W. Liu, X. Li, P. Yang, L. Bai, J. Guo, and X. Cheng, “Retrieval-augmented code generation for universal information extraction,” CoRR , vol. abs/2311.02962, 2023. [Online]. Available: https://doi.org/10.48550/arXiv.2311.02962 [22] F. Faghri, D. J. Fleet, J. R. Kiros, and S. Fidler, “Vse++: Improv-ing visual-semantic embeddings with hard negatives,” arXiv preprint arXiv:1707.05612 , 2017. [23] Y. Mo, J. Liu, J. Yang, Q. Wang, S. Zhang, J. Wang, and Z. Li, “C-icl: contrastive in-context learning for information extraction,” arXiv preprint arXiv:2402.11254 , 2024. [24] D. Roth and W. Yih, “A linear programming formulation for global inference in natural language tasks,” in Proceedings of the Eighth Conference on Computational Natural Language Learning, CoNLL 2004, Held in cooperation with HLT-NAACL 2004, Boston, Massachusetts, USA, May 6-7, 2004 , H. T. Ng and E. Riloff, Eds. ACL, 2004, pp. 1–8. [Online]. Available: https://aclanthology.org/W04-2401/ [25] S. Riedel, L. Yao, and A. McCallum, “Modeling relations and their mentions without labeled text,” in Machine Learning and Knowledge Discovery in Databases: European Conference, ECML PKDD 2010, Barcelona, Spain, September 20-24, 2010, Proceedings, Part III 21 .Springer, 2010, pp. 148–163. [26] R. Takanobu, T. Zhang, J. Liu, and M. Huang, “A hierarchical framework for relation extraction with reinforcement learning,” in Proceedings of the AAAI conference on artificial intelligence , vol. 33, no. 01, 2019, pp. 7072–7079. [27] Y. Luan, L. He, M. Ostendorf, and H. Hajishirzi, “Multi-task identification of entities, relations, and coreference for scientific knowledge graph construction,” in Proceedings of the 2018 Conference on Empirical Methods in Natural Language Processing, Brussels, Belgium, October 31 - November 4, 2018 , E. Riloff, D. Chiang, J. Hockenmaier, and J. Tsujii, Eds. Association for Computational Linguistics, 2018, pp. 3219–3232. [Online]. Available: https://doi.org/ 10.18653/v1/d18-1360 [28] H. Gurulingappa, A. M. Rajput, A. Roberts, J. Fluck, M. Hofmann-Apitius, and L. Toldo, “Development of a benchmark corpus to support the automatic extraction of drug-related adverse effects from medical case reports,” Journal of biomedical informatics , vol. 45, no. 5, pp. 885–892, 2012. [29] Y. Lu, Q. Liu, D. Dai, X. Xiao, H. Lin, X. Han, L. Sun, and H. Wu, “Unified structure generation for universal information extraction,” in Proceedings of the 60th Annual Meeting of the Association for Computational Linguistics (Volume 1: Long Papers), ACL 2022, Dublin, Ireland, May 22-27, 2022 , S. Muresan, P. Nakov, and A. Villavicencio, Eds. Association for Computational Linguistics, 2022, pp. 5755–5772. [Online]. Available: https://doi.org/10.18653/v1/2022.acl-long.395 [30] G. R. Doddington, A. Mitchell, M. A. Przybocki, L. A. Ramshaw, S. M. Strassel, and R. M. Weischedel, “The automatic content extraction (ACE) program - tasks, data, and evaluation,” in Proceedings of the Fourth International Conference on Language Resources and Evaluation, LREC 2004, May 26-28, 2004, Lisbon, Portugal .European Language Resources Association, 2004. [Online]. Available: http://www.lrec-conf.org/proceedings/lrec2004/summaries/5.htm [31] C. Walker and L. D. Consortium, ACE 2005 Multilingual Training Corpus , ser. LDC corpora, 2005. [32] R. I. Dogan, R. Leaman, and Z. Lu, “Ncbi disease corpus: a resource for disease name recognition and concept normalization,” Journal of biomedical informatics , vol. 47, pp. 1–10, 2014. [33] X. Li, J. Feng, Y. Meng, Q. Han, F. Wu, and J. Li, “A unified MRC framework for named entity recognition,” in Proceedings of the 58th Annual Meeting of the Association for Computational Linguistics, ACL 2020, Online, July 5-10, 2020 , D. Jurafsky, J. Chai, N. Schluter, and J. R. Tetreault, Eds. Association for Computational Linguistics, 2020, pp. 5849–5859. [Online]. Available: https://doi.org/10.18653/v1/2020.acl-main.519 [34] Y. Mo, H. Tang, J. Liu, Q. Wang, Z. Xu, J. Wang, W. Wu, and Z. Li, “Multi-task transformer with relation-attention and type-attention for named entity recognition,” in IEEE International Conference on Acoustics, Speech and Signal Processing ICASSP 2023, Rhodes Island, Greece, June 4-10, 2023 . IEEE, 2023, pp. 1–5. [Online]. Available: https://doi.org/10.1109/ICASSP49357.2023.10094905 [35] Y. Mo, J. Yang, J. Liu, Q. Wang, R. Chen, J. Wang, and Z. Li, “mcl-ner: Cross-lingual named entity recognition via multi-view contrastive learning,” CoRR , vol. abs/2308.09073, 2023. [Online]. Available: https://doi.org/10.48550/arXiv.2308.09073 [36] A. Grattafiori, A. Dubey, A. Jauhri et al. , “The llama 3 herd of models,” 2024. [37] A. Liu, B. Feng, B. Xue, B. Wang, B. Wu, C. Lu, C. Zhao, C. Deng, C. Zhang, C. Ruan et al. , “Deepseek-v3 technical report,” arXiv preprint arXiv:2412.19437 , 2024. [38] G. Lample, M. Ballesteros, S. Subramanian, K. Kawakami, and C. Dyer, “Neural architectures for named entity recognition,” in NAACL HLT 2016 , 2016, pp. 260–270. [39] B. Tang, J. Hu, X. Wang, and Q. Chen, “Recognizing continuous and discontinuous adverse drug reaction mentions from social media using lstm-crf,” Wireless Communications and Mobile Computing , vol. 2018, 2018. [40] S. Zhao, M. Hu, Z. Cai, and F. Liu, “Dynamic modeling cross-modal interactions in two-phase prediction for entity-relation extraction,” IEEE Transactions on Neural Networks and Learning Systems , vol. 34, no. 3, pp. 1122–1131, 2023. [41] J. Yang, S. Huang, S. Ma, Y. Yin, L. Dong, D. Zhang, H. Guo, Z. Li, and F. Wei, “CROP: zero-shot cross-lingual named entity recognition with multilingual labeled sequence translation,” in Findings of the Association for Computational Linguistics: EMNLP 2022, Abu Dhabi, United Arab Emirates, December 7-11, 2022 , Y. Goldberg, Z. Kozareva, and Y. Zhang, Eds. Association for Computational Linguistics, 2022, pp. 486–496. [Online]. Available: https://doi.org/10. 18653/v1/2022.findings-emnlp.34 [42] X. Wei, X. Cui, N. Cheng, X. Wang, X. Zhang, S. Huang, P. Xie, J. Xu, Y. Chen, M. Zhang, Y. Jiang, and W. Han, “Zero-shot information extraction via chatting with chatgpt,” CoRR , vol. abs/2302.10205, 2023. [Online]. Available: https://doi.org/10.48550/arXiv.2302.10205 [43] J. Yang, J. Wan, S. Ma, H. Huang, D. Zhang, Y. Yu, Z. Li, and F. Wei, “Learning to select relevant knowledge for neural machine translation,” in Natural Language Processing and Chinese Computing - 10th CCF International Conference, NLPCC 2021, Qingdao, China, October 13-17, 2021, Proceedings, Part I, ser. Lecture Notes in Computer Science, L. Wang, Y. Feng, Y. Hong, and R. He, 12 
+
+Eds., vol. 13028. Springer, 2021, pp. 79–91. [Online]. Available: https://doi.org/10.1007/978-3-030-88480-2\_7 [44] O. Rubin, J. Herzig, and J. Berant, “Learning to retrieve prompts for in-context learning,” in Proceedings of the 2022 Conference of the North American Chapter of the Association for Computational Linguistics: Human Language Technologies, NAACL 2022, Seattle, WA, United States, July 10-15, 2022 , M. Carpuat, M. de Marneffe, and I. V. M. Ruíz, Eds. Association for Computational Linguistics, 2022, pp. 2655–2671. [Online]. Available: https://doi.org/10.18653/v1/2022.naacl-main.191 [45] Q. Dong, L. Li, D. Dai, C. Zheng, Z. Wu, B. Chang, X. Sun, J. Xu, L. Li, and Z. Sui, “A survey on in-context learning,” 2023. [46] Y. Ge, S. Liu, Y. Wang, L. Mei, L. Chen, B. Bi, and X. Cheng, “Innate reasoning is not enough: In-context learning enhances reasoning large language models with less overthinking,” 2025. [Online]. Available: https://arxiv.org/abs/2503.19602 [47] B. Y. Lin, A. Ravichander, X. Lu, N. Dziri, M. Sclar, K. Chandu, C. Bha-gavatula, and Y. Choi, “The unlocking spell on base llms: Rethinking alignment via in-context learning,” arXiv preprint arXiv:2312.01552 ,2023. [48] H. Zhao, M. Andriushchenko, F. Croce, and N. Flammarion, “Is in-context learning sufficient for instruction following in llms?” arXiv preprint arXiv:2405.19874 , 2024. [49] T. Mikolov, I. Sutskever, K. Chen, G. S. Corrado, and J. Dean, “Distributed representations of words and phrases and their composi-tionality,” Advances in neural information processing systems , vol. 26, 2013. [50] J. Devlin, M.-W. Chang, K. Lee, and K. Toutanova, “Bert: Pre-training of deep bidirectional transformers for language understanding,” in Pro-ceedings of the 2019 conference of the North American chapter of the association for computational linguistics: human language technologies, volume 1 (long and short papers) , 2019, pp. 4171–4186. [51] A. Simhi, J. Herzig, I. Szpektor, and Y. Belinkov, “Distinguish-ing ignorance from error in llm hallucinations,” arXiv preprint arXiv:2410.22071 , 2024. [52] Q. Lu, B. Qiu, L. Ding, K. Zhang, T. Kocmi, and D. Tao, “Error analysis prompting enables human-like translation evaluation in large language models,” arXiv preprint arXiv:2303.13809 , 2023. [53] C. Wang, S. Zhao, T. Yan, S. Song, W. Ma, K. Liu, and M. Wang, “Hierarchical label-enhanced contrastive learning for chinese ner,” IEEE Transactions on Neural Networks and Learning Systems , pp. 1–11, 2025. [54] T. Yan, S. Zhao, M. Hu, M. Wang, X. Zhang, Z. Luo, and M. Wang, “Hcl: A hierarchical contrastive learning framework for zero-shot rela-tion extraction,” IEEE Transactions on Neural Networks and Learning Systems , vol. 36, no. 3, pp. 5694–5705, 2025. 13 
+
+APPENDIX 
+
+A. Dataset Statistics 
+
+To facilitate a thorough evaluation, we incorporate a diverse collection of datasets spanning both NER and RE tasks, com-prising three widely-used NER benchmarks and five represen-tative RE benchmarks. The detailed statistics of these datasets , including the number of entity and relation types, along with the instance distributions across the training, development, and test sets , are presented in Table III. This comprehensive overview not only illustrates the characteristics of each dataset but also underscores the robustness and generalizability of our evaluation framework.                                                
+
+> TABLE III STATISTICS OF NER AND RE D ATASETS .Datasets Entity Types Relation Types Train Dev Test NER ACE04 7/6202 745 812 ACE05 7/7299 971 1060 NCBI 1/5433 924 941 RE CoNLL04 45922 231 288 NYT10 324 56196 5000 5000 NYT11 /12 62648 149 369 ADE /13417 427 428 SciERC 671861 275 551
+
+B. Implementation Experiment Details 
+
+All experiments are conducted using the PyTorch deep learning framework on NVIDIA Tesla A100 GPUs. To en-sure optimal model performance, we carefully select the experimental settings and hyperparameters. These include the maximum sequence length, number of beams for beam search, as well as the top-p and temperature values that control the randomness during generation. The parameters are detailed in Table IV. Figure 7 illustrates all label types and their    
+
+> TABLE IV THE MAIN PARAMETERS OF OUR METHOD LC-ICL BASED ON LLAMA .
+
+## Parameters Values Max Sequence Length 8192 Num_beams 1Do_sample True Top_p 0.85 Temperature 0.3 
+
+corresponding definitions used for negative samples in our method. For the Named Entity Recognition (NER) task, we categorize common sources of errors into five label types: 
+
+Wrong entity boundary , Wrong entity types , Missing entities ,
+
+Undefined entity types , and Spurious entities . For the Relation Extraction (RE) task, we classify common error sources into six label types: Missing relation , Wrong entity/relation types ,
+
+Wrong entity boundary , Undefined relation , Correct entities, incorrect relation , and Reversed entities . Each label type is im-mediately followed by an explanation of its definition. When employing the Label-Def method, as shown in experiment 4, we provide the model with all label types and their definitions as prompts, depending on whether the current task is RE or NER. In this section, we present additional examples from the NER and RE tasks, as shown in Figure 8. For each example, the left side displays the results using the LC-ICL method with injected error labels, while the right side shows the results from the traditional ICL method. In Example 2, when using only the traditional ICL method, the model fails to capture the relation ("Idle", "person"). In contrast, our method provides negative samples that similarly omit three "person" entities—["I", "person"], ["some of the local people", "person"], and ["the local people", "person"]— and labels them as Missing entities . By learning from these negative samples, the model is able to correctly recognize and avoid similar cases of entity omission, ultimately producing the correct output. In Example 3, the test sample is a relatively challenging sen-tence featuring three complex location entities: "The National Ignition Facility," "Lawrence Livermore National Laboratory," and "California." Using the traditional ICL method, the model learns some basic patterns for location relations; however, in the presence of complex location structures, it becomes more prone to hallucinations, generating a large number of incorrect relations. By incorporating negative samples, our method pro-vides the model with error label information indicating missing correct relations as well as distracting location relations. This additional supervision enables the model to better avoid hallucinations and significantly improves prediction accuracy. 14 NER RE 
+
+[Wrong entity boundary ]: The boundaries of the 
+
+entity are incorrectly identified, leading to 
+
+incomplete or excessive entity extraction. 
+
+[Wrong entity types ]: The entity is correctly 
+
+identified, but it is classified under the wrong 
+
+type. 
+
+[Missing entities ]: An entity that should be 
+
+recognized is missing in the prediction, even 
+
+though it is present in the reference. 
+
+[Undefined entity types ]: The identified entity 
+
+type does not belong to the predefined set of 
+
+valid entity types. 
+
+[Spurious entities ]: An entity that does not exist 
+
+in the answer is incorrectly identified in the 
+
+prediction. 
+
+[Missing relation ]:A relation that appears in the answer 
+
+but is missing in the prediction, indicating a failure to 
+
+extract a relationship that should have been identified. 
+
+[Wrong entity/relation types ]:The type of entity or 
+
+relation is incorrectly classified, meaning the entity or 
+
+relation does not match the expected category. 
+
+[Wrong entity boundary ]:The entity boundaries are 
+
+incorrectly identified, either by including extra entities 
+
+or excluding part of the entity. 
+
+[Undefined relation ]:The relation identified between 
+
+the entities does not belong to the predefined set of 
+
+valid relations. 
+
+[Correct entities, incorrect relation ]:The entities are 
+
+correctly identified, but the relation between them is 
+
+misclassified. 
+
+[Reversed entities ]:The entities are correctly 
+
+identified, but their order or direction is reversed, 
+
+meaning Entity 1 and Entity 2 are swapped.  
+
+> Fig. 7. Label Categorization Illustration. In the Relation Extraction (RE) task, labels are categorized into six classes, while in the Named Entity Recognition (NER) task, they are divided into five classes, each accompanied by corresponding label definitions.
+
+15 ###Negative example### 
+
+TEXT:Well , when this sort of thing happens in a small community and I guess that ' s a under 
+
+statement in this case , whether or not it all succeeds depends on how well some of the local 
+
+people can keep secrets .If the inferenced result are [['small community', 'location'], ['secrets', 
+
+'facility']], and the golden result are [['a small community', 'geographical social political'], ['I', 
+
+'person'], ['some of the local people', 'person'], ['the local people', 'person']], we can categorize 
+
+the error as follows: { "Wrong entity boundary":[["small community","location"]],"Wrong 
+
+entity types":[["small community","location"],["secrets","facility"]],"Missing entities":[["a 
+
+small community","geographical social political"],["I","person"],["some of the local 
+
+people","person"],["the local people","person"]],"Spurious entities":[["secrets","facility"]] }
+
+###Positive example### 
+
+TEXT:Schreiber also says the risk of cultural clashes between the companies is limited , because 
+
+the companies disclosed publicly where top executives would stand in the combined company 
+
+only a few weeks after the merger was announced .The result would be [['the companies', 
+
+'organization'], ['the companies', 'organization'], ['the combined company', 'organization'], 
+
+['Schreiber', 'person'], ['top executives', 'person']]. 
+
+###INPUT### 
+
+You are an excellent Named Entity Recognition expert. Your task is to perform the following 
+
+action: 
+
+1 - Please find all the entity words associated with the category in the given text. 
+
+2 - The category list : ['geographical social political', 'organization', 'person', 'location', 'facility', 
+
+'vehicle', 'weapon'] 
+
+3 - Select the category in the category list in format of [] that best matches the inferred 
+
+meaning based on the entity name. 
+
+4 - You must remember that the category of each entity is chosen only among the given 
+
+category list, and that an entity can belong to more than one category. 
+
+5 - Formar your response as a list object with [(entity_name,entity_type),...], where entity_type 
+
+is an element of the category list. 
+
+6 - No more explain words except the result list. 
+
+###TEXT### 
+
+It is unclear what will happen to Idol if Donna Karan International and Gabrielle merge . 
+
+[inference] 
+
+[('Idol', 'person'), ('Donna Karan International', 'organization'), ('Gabrielle', 'organization')] 
+
+###Positive example### 
+
+TEXT:Schreiber also says the risk of cultural clashes 
+
+between the companies is limited , because the companies 
+
+disclosed publicly where top executives would stand in the 
+
+combined company only a few weeks after the merger was 
+
+announced . 
+
+The result would be [['the companies', 'organization'], ['the 
+
+companies', 'organization'], ['the combined company', 
+
+'organization'], ['Schreiber', 'person'], ['top executives', 
+
+'person']]. 
+
+###INPUT### 
+
+You are an excellent Named Entity Recognition expert. Your 
+
+task is to perform the following action: 
+
+1 - Please find all the entity words associated with the 
+
+category in the given text. 
+
+2 - The category list : ['geographical social political', 
+
+'organization', 'person', 'location', 'facility', 'vehicle', 
+
+'weapon'] 
+
+3 - Select the category in the category list in format of [] 
+
+that best matches the inferred meaning based on the entity 
+
+name. 
+
+4 - You must remember that the category of each entity is 
+
+chosen only among the given category list, and that an entity 
+
+can belong to more than one category. 
+
+5 - Formar your response as a list object with 
+
+[(entity_name,entity_type),...], where entity_type is an 
+
+element of the category list. 
+
+6 - No more explain words except the result list. 
+
+###TEXT### 
+
+It is unclear what will happen to Idol if Donna Karan 
+
+International and Gabrielle merge . 
+
+[inference] 
+
+[( 'Donna Karan International ', 'organization '), 
+
+('Gabrielle ', 'organization ')] 
+
+(a) Example 2 ###Negative example### 
+
+TEXT: Lennar , a national home building company , has its New Jersey office in Freehold . If the 
+
+inferenced result are [['Lennar', 'is a', 'national home building company'], ['Lennar', 'has its New 
+
+Jersey office', 'in Freehold']], and the golden result are [['New Jersey', 'location contains', 
+
+'Freehold']], we can categorize the error as follows:{ 'Missing relation': [['New Jersey', 
+
+'location contains', 'Freehold']], 'Undefined relation': [['Lennar', 'is a', 'national home 
+
+building company'], ['Lennar', 'has its New Jersey office', 'in Freehold']] }. 
+
+###Positive example### 
+
+TEXT: Steve Wampler , a Livermore spokesman , said the California laboratory could say 
+
+nothing '' beyond that the work is an important element for proliferation detection . '' The result 
+
+would be [['California', 'location contains', 'Livermore']]. 
+
+###INPUT### 
+
+You are an excellent Relation Extraction expert. Your task is to perform the following action: 
+
+1 - Please find all the relation triples that match the associated with the relation category in 
+
+the given text. 
+
+2 - The relation category list : ['nationality', 'country capital', 'place of death', 'children', 
+
+'location contains', 'place of birth', 'place lived', 'administrative division of country', 'country of 
+
+administrative divisions', 'company', 'neighborhood of', 'company founders'] 
+
+3 - Please note that only relationships that fit within the given categories should be identified. 
+
+If no information is found regarding a specific category, simply omit that category from your 
+
+response. 
+
+4 - Provide your response in the format of a list object with the relationships triplets as 
+
+[(subject entity,relation type, object entity), ...] 
+
+5 - No more explain words except the result list. 
+
+###TEXT### 
+
+The National Ignition Facility at Lawrence Livermore National Laboratory in California is to start 
+
+testing that idea around 2010 . 
+
+[inference] 
+
+[('California', 'location contains', 'Lawrence Livermore National Laboratory')] 
+
+###Positive example### 
+
+TEXT: Steve Wampler , a Livermore spokesman , said the California 
+
+laboratory could say nothing '' beyond that the work is an important 
+
+element for proliferation detection . '' The result would be 
+
+[['California', 'location contains', 'Livermore']]. 
+
+###INPUT### 
+
+You are an excellent Relation Extraction expert. Your task is to 
+
+perform the following action: 
+
+1 - Please find all the relation triples that match the associated 
+
+with the relation category in the given text. 
+
+2 - The relation category list : ['nationality', 'country capital', 
+
+'place of death', 'children', 'location contains', 'place of birth', 
+
+'place lived', 'administrative division of country', 'country of 
+
+administrative divisions', 'company', 'neighborhood of', 'company 
+
+founders'] 
+
+3 - Please note that only relationships that fit within the given 
+
+categories should be identified. If no information is found regarding 
+
+a specific category, simply omit that category from your response. 
+
+4 - Provide your response in the format of a list object with the 
+
+relationships triplets as [(subject entity,relation type, object 
+
+entity), ...] 
+
+5 - No more explain words except the result list. 
+
+###TEXT### 
+
+The National Ignition Facility at Lawrence Livermore National 
+
+Laboratory in California is to start testing that idea around 2010 . 
+
+[inference] 
+
+[('Lawrence Livermore National Laboratory', 'location contains', 
+
+'National Ignition Facility'), ('Lawrence Livermore National 
+
+Laboratory', 'administrative division of country', 'California'), 
+
+('Lawrence Livermore National Laboratory', 'location contains', 
+
+'National Ignition Facility'), ('National Ignition Facility', 'location 
+
+contains', 'Lawrence Livermore National Laboratory'), ('National 
+
+Ignition Facility', 'administrative division of country', 'California'), 
+
+('California', 'country of administrative divisions', 'Lawrence 
+
+Livermore National Laboratory'), ('California', 'country of 
+
+administrative divisions', 'National Ignition Facility')] 
+
+(b) Example 3 
+
+Fig. 8. A supplementary case study on label-guided contrastive in-context learning is presented. The left side shows the results of our method, while the right side presents those of the standard ICL approach. The purple text highlights the annotated reasons for errors in negative samples. Figure 8a illustrates the results of the Named Entity Recognition (NER) task, and Figure 8b shows the results of the Relation Extraction (RE) task.

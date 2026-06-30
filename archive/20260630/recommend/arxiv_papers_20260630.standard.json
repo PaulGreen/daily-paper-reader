@@ -1,0 +1,165 @@
+{
+  "mode": "standard",
+  "generated_at": "2026-06-30T21:46:33.061690+00:00",
+  "stats": {
+    "mode": "standard",
+    "tag_count": 1,
+    "deep_divecandidates": 4,
+    "deep_cap": 6,
+    "deep_selected": 4,
+    "quick_candidates": 0,
+    "quick_skim_target": 11,
+    "quick_selected": 0
+  },
+  "deep_dive": [
+    {
+      "id": "2606.24004v2",
+      "source": "arxiv",
+      "title": "Towards Spec Learning: Inference-Time Alignment from Preference Pairs",
+      "abstract": "Steering a large language model (LLM) toward a desired behavior typically relies on an iterative process of hand-crafting a prompt based on a careful inspection of the model's responses. This is an involved, brittle, and error-prone process. Preference-based fine-tuning is a more rigorous but often prohibitively expensive solution. We propose spec learning, a framework that relies on a brief user instruction and a small set of preference judgments. These are compiled into specifications in the form of natural-language prompts for an LLM. Specifications condition LLMs at inference time, and no parameter updates to the underlying models are required. We show that the responses generated based on the compiled specifications often outperform direct preference optimization (DPO) on datasets from specialized domains whose preference signal is dense. Unlike opaque weight updates, the resulting specifications are human-readable and double as interpretable and transparent written embodiments of the preference signal that produced them.",
+      "authors": [
+        "Dhriti Krishnan",
+        "Tejas Goyal",
+        "Jaromir Savelka"
+      ],
+      "primary_category": "cs.CL",
+      "categories": [
+        "cs.CL",
+        "cs.AI"
+      ],
+      "published": "2026-06-22T23:21:55+00:00",
+      "link": "https://arxiv.org/pdf/2606.24004v2",
+      "tags": [
+        "keyword:prompt-learn",
+        "query:prompt-learn"
+      ],
+      "llm_score": 9.0,
+      "llm_evidence_en": "Compiles user instructions and preference pairs into natural language prompts to steer LLMs at inference time.",
+      "llm_evidence_cn": "将用户指令与偏好对编译为自然语言提示，在推理时引导大语言模型。",
+      "llm_evidence": "将用户指令与偏好对编译为自然语言提示，在推理时引导大语言模型。",
+      "canonical_evidence": "将用户指令与偏好对编译为自然语言提示，在推理时引导大语言模型。",
+      "llm_tldr_en": "Spec learning uses a small set of preference judgments to automatically generate natural-language specifications (prompts) that align LLM behavior without parameter updates, outperforming direct preference optimization.",
+      "llm_tldr_cn": "该论文针对手工设计提示词对齐LLM的繁琐过程，提出规范学习框架，仅需少量用户指令和偏好判断即可自动编译出自然语言提示，在推理时调控模型行为。实验表明，这种方法无需模型参数更新，其响应质量常优于传统的偏好微调，为轻量、即时的对齐提供了新途径。",
+      "llm_tldr": "该论文针对手工设计提示词对齐LLM的繁琐过程，提出规范学习框架，仅需少量用户指令和偏好判断即可自动编译出自然语言提示，在推理时调控模型行为。实验表明，这种方法无需模型参数更新，其响应质量常优于传统的偏好微调，为轻量、即时的对齐提供了新途径。",
+      "llm_tags": [
+        "query:prompt-learn"
+      ],
+      "matched_query_tag": "query:prompt-learn",
+      "matched_query_text": "Techniques for automatic prompt generation in natural language processing",
+      "matched_requirement_id": "req-10",
+      "selection_source": "fresh_fetch"
+    },
+    {
+      "id": "2606.28926v1",
+      "source": "arxiv",
+      "title": "A Theoretical Interpretation of In-Context Learning via Probabilistic Modeling",
+      "abstract": "In-context learning (ICL) is an emerging paradigm that employs the semantic information inherent in large language models (LLMs) for generating answers to user queries. While the remarkable performance of ICL has been widely known, a general modeling and a rigorous theoretical analysis of this paradigm are still lacking. This work presents a probabilistic model for ICL and derives the performance of ICL for both general parametric distributions and exponential families. Based on the derived results, the work explains the impact of multiple factors such as the number of demonstrations, the sensitivity of the probabilistic model to the variation of its parameters, as well as the similarity between the demonstrations and the query on the performance of ICL.",
+      "authors": [
+        "Zhenyu Liu",
+        "Huaze Tang",
+        "Shao-Lun Huang"
+      ],
+      "primary_category": "cs.IT",
+      "categories": [
+        "cs.IT",
+        "cs.LG"
+      ],
+      "published": "2026-06-27T14:01:48+00:00",
+      "link": "https://arxiv.org/pdf/2606.28926v1",
+      "tags": [
+        "keyword:prompt-learn",
+        "query:prompt-learn"
+      ],
+      "llm_score": 9.0,
+      "llm_evidence_en": "provides a probabilistic model for in-context learning and analyzes impact of demonstrations",
+      "llm_evidence_cn": "为上下文学习提供概率模型，分析示例的影响",
+      "llm_evidence": "为上下文学习提供概率模型，分析示例的影响",
+      "canonical_evidence": "为上下文学习提供概率模型，分析示例的影响",
+      "llm_tldr_en": "A probabilistic model for in-context learning is proposed, explaining the effects of number of demonstrations, model sensitivity, and similarity between demonstrations and query on performance.",
+      "llm_tldr_cn": "本文针对上下文学习缺乏通用建模和严格理论分析的现状，提出了一个概率模型，并针对一般参数分布和指数族推导了ICL的性能。基于推导结果，解释了示例数量、概率模型对参数变异的敏感性以及示例与查询相似性等多个因素对ICL性能的影响，为理解ICL的行为提供了理论基础。",
+      "llm_tldr": "本文针对上下文学习缺乏通用建模和严格理论分析的现状，提出了一个概率模型，并针对一般参数分布和指数族推导了ICL的性能。基于推导结果，解释了示例数量、概率模型对参数变异的敏感性以及示例与查询相似性等多个因素对ICL性能的影响，为理解ICL的行为提供了理论基础。",
+      "llm_tags": [
+        "query:prompt-learn"
+      ],
+      "matched_query_tag": "query:prompt-learn",
+      "matched_query_text": "learning from demonstrations provided in the prompt context",
+      "matched_requirement_id": "req-3",
+      "selection_source": "fresh_fetch"
+    },
+    {
+      "id": "2606.29407v1",
+      "source": "arxiv",
+      "title": "LC-ICL: Label-Guided Contrastive In-Context Learning for Robust Information Extraction",
+      "abstract": "There has been increasing interest in exploring the capabilities of advanced large language models (LLMs) in the field of information extraction (IE), specifically focusing on tasks related to named entity recognition (NER) and relation extraction (RE).Although researchers are exploring the use of few-shot information extraction through in-context learning with LLMs, they tend to focus only on using correct or positive examples for demonstration, neglecting the potential value of incorporating incorrect or negative examples into the learning process.In this paper, we present LC-ICL a novel few-shot technique that leverages both correct and incorrect sample constructions to create in-context learning demonstrations. This approach enhances the ability of LLMs to extract entities and relations by combining positive samples with negative samples annotated by error-cause labels. These labels expose more detailed error features in erroneous examples, enabling the model to understand why similar predictions fail and avoid repeating such errors during inference.Specifically, our proposed method taps into the inherent contextual information and valuable information in hard negative samples and the nearest positive neighbors to the test and then applies the in-context learning demonstrations based on LLMs. Our experiments on various datasets indicate that LC-ICL outperforms previous few-shot in-context learning methods, delivering substantial enhancements in performance across a broad spectrum of related tasks. These improvements are noteworthy, showcasing the versatility of our approach in diverse scenarios.",
+      "authors": [
+        "Xiao You",
+        "Tianwei Yan",
+        "Shan Zhao"
+      ],
+      "primary_category": "cs.CL",
+      "categories": [
+        "cs.CL",
+        "cs.AI"
+      ],
+      "published": "2026-06-28T14:01:52+00:00",
+      "link": "https://arxiv.org/pdf/2606.29407v1",
+      "tags": [
+        "keyword:prompt-learn",
+        "query:prompt-learn"
+      ],
+      "llm_score": 9.0,
+      "llm_evidence_en": "contrastive in-context learning with positive/negative demonstrations for few-shot IE",
+      "llm_evidence_cn": "利用正负例演示的对比上下文学习优化少样本信息抽取提示",
+      "llm_evidence": "利用正负例演示的对比上下文学习优化少样本信息抽取提示",
+      "canonical_evidence": "利用正负例演示的对比上下文学习优化少样本信息抽取提示",
+      "llm_tldr_en": "LC-ICL uses label-guided contrastive learning to select both positive and negative demonstrations for in-context learning, achieving robust few-shot information extraction.",
+      "llm_tldr_cn": "针对少样本信息抽取中现有上下文学习方法仅使用正例、未利用反例信息的问题，本文提出LC-ICL，利用标签引导的对比学习同时构造正负例演示作为提示。在命名实体识别和关系抽取任务上的实验表明，该方法能显著提升模型鲁棒性，为优化离散提示的示例选择提供了新思路。",
+      "llm_tldr": "针对少样本信息抽取中现有上下文学习方法仅使用正例、未利用反例信息的问题，本文提出LC-ICL，利用标签引导的对比学习同时构造正负例演示作为提示。在命名实体识别和关系抽取任务上的实验表明，该方法能显著提升模型鲁棒性，为优化离散提示的示例选择提供了新思路。",
+      "llm_tags": [
+        "query:prompt-learn"
+      ],
+      "matched_query_tag": "query:prompt-learn",
+      "matched_query_text": "How to optimize discrete prompts for few shot classification?",
+      "matched_requirement_id": "req-8",
+      "selection_source": "fresh_fetch"
+    },
+    {
+      "id": "2606.29639v1",
+      "source": "arxiv",
+      "title": "Two-Stage Prompt Optimization for Few-Shot Relation Extraction: From Reasoning-Guided Search to Gradient-Guided Refinement",
+      "abstract": "Automatic prompt optimization is still underexplored for episodic few-shot relation extraction with smaller language models. We propose a two-stage framework that combines reasoning-based prompt optimization with gradient-based prompt optimization. The first stage can use any reasoning-based optimizer to make broadprompt improvements in natural language. The second stage applies our GradPO, which uses loss and gradient signals to identify high-impact prompt spans and refine them with local edits. Experiments on FS-TACRED and FS-FewRel show that local refinement usually improves prompts found by the first stage, and GradPO is the most consistent refiner. Our framework achieves state-of-the-art performance on FS-TACRED with Qwen3-4B and remains competitive on FS-FewRel.",
+      "authors": [
+        "Aunabil Chakma",
+        "Mihai Surdeanu",
+        "Eduardo Blanco"
+      ],
+      "primary_category": "cs.CL",
+      "categories": [
+        "cs.CL",
+        "cs.AI"
+      ],
+      "published": "2026-06-28T23:12:28+00:00",
+      "link": "https://arxiv.org/pdf/2606.29639v1",
+      "tags": [
+        "keyword:prompt-learn",
+        "query:prompt-learn"
+      ],
+      "llm_score": 9.0,
+      "llm_evidence_en": "two-stage prompt optimization with reasoning-based search and gradient-guided refinement for few-shot relation extraction",
+      "llm_evidence_cn": "结合推理搜索与梯度细化的两阶段提示优化用于少样本关系抽取",
+      "llm_evidence": "结合推理搜索与梯度细化的两阶段提示优化用于少样本关系抽取",
+      "canonical_evidence": "结合推理搜索与梯度细化的两阶段提示优化用于少样本关系抽取",
+      "llm_tldr_en": "Proposes a two-stage framework that first uses reasoning-based search for broad prompt improvements and then applies gradient-based local edits (GradPO) to refine high-impact prompt spans, achieving state-of-the-art on few-shot relation extraction benchmarks.",
+      "llm_tldr_cn": "针对少样本关系抽取中提示优化的不足，提出结合推理搜索与梯度细化的两阶段框架。第一阶段用任意推理优化器进行自然语言级的提示改进，第二阶段用提出的 GradPO 通过损失和梯度定位高影响片段并局部编辑。实验在 FS-TACRED 和 FS-FewRel 上表明局部细化通常能提升提示质量，且 GradPO 是最稳定的细化器，整体达到当前最优性能。",
+      "llm_tldr": "针对少样本关系抽取中提示优化的不足，提出结合推理搜索与梯度细化的两阶段框架。第一阶段用任意推理优化器进行自然语言级的提示改进，第二阶段用提出的 GradPO 通过损失和梯度定位高影响片段并局部编辑。实验在 FS-TACRED 和 FS-FewRel 上表明局部细化通常能提升提示质量，且 GradPO 是最稳定的细化器，整体达到当前最优性能。",
+      "llm_tags": [
+        "query:prompt-learn"
+      ],
+      "matched_query_tag": "query:prompt-learn",
+      "matched_query_text": "How to optimize discrete prompts for few shot classification?",
+      "matched_requirement_id": "req-8",
+      "selection_source": "fresh_fetch"
+    }
+  ],
+  "quick_skim": []
+}

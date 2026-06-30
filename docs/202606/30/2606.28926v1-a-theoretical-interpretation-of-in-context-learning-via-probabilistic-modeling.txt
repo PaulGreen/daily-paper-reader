@@ -1,0 +1,1020 @@
+Title: A Theoretical Interpretation of In-Context Learning via Probabilistic Modeling
+
+URL Source: https://arxiv.org/pdf/2606.28926v1
+
+Published Time: Tue, 30 Jun 2026 00:39:48 GMT
+
+Number of Pages: 6
+
+Markdown Content:
+# A Theoretical Interpretation of In-Context Learning via Probabilistic Modeling 
+
+Zhenyu Liu, Huaze Tang, and Shao-Lun Huang 
+
+Abstract —In-context learning (ICL) is an emerging paradigm that employs the semantic information inherent in large language models (LLMs) for generating answers to user queries. While the remarkable performance of ICL has been widely known, a general modeling and a rigorous theoretical analysis of this paradigm are still lacking. This work presents a probabilistic model for ICL and derives the performance of ICL for both general parametric distributions and exponential families. Based on the derived results, the work explains the impact of multiple factors such as the number of demonstrations, the sensitivity of the probabilistic model to the variation of its parameters, as well as the similarity between the demonstrations and the query on the performance of ICL. 
+
+Index Terms —In-context learning, large language models, Fisher information, KL divergence, exponential family 
+
+I. I NTRODUCTION 
+
+Large language models (LLMs) has been successfully ap-plied in different research fields including communication, sensing, and optimization [1]–[3]. In-context learning (ICL) is a promising paradigm for learning built upon the capability of LLMs [4]. In ICL, an LLM generates an answer to a user query based on a few demonstrations provided beforehand via the context prompt. Specifically, ICL exploits the semantic knowledge inherent in LLMs for responding to user queries without changing the pre-trained LLM parameters. As a result, ICL can achieve desirable performance using only a few demonstrations without significant computational overhead. The remarkable performance of ICL has piqued signif-icant research interest in understanding its mechanism via theoretical analysis. In particular, recent studies have pro-posed multiple explanations for the mechanism of ICL. One prominent line of research interprets ICL through the lens of implicit meta-learning or Bayesian inference. In this view, the prompt implies a latent task, and transformers adapt by approximating Bayesian model averaging over the space of potential tasks [5]–[8]. Complementary studies emphasize an algorithmic perspective, demonstrating that transformers can simulate standard estimation algorithms. For instance, it has been shown that the attention mechanism can approximate gradient descent updates, with deeper layers effectively per-forming iterative optimization steps [9]–[12]. 
+
+The authors are with Tsinghua Shenzhen International Graduate School, Tsinghua University, Shenzhen, China. The fundamental research described in this paper was supported, in part, by National Natural Science Foundation of China under Grant 62571297, and by Shenzhen Science and Technology Program under Grant JCYJ20240813112301003. Corresponding author: Shao-Lun Huang (e-mail: 
+
+twn2gold@gmail.com )
+
+Another perspective highlights the critical role of pre-training data distribution. Research suggests that sufficiently broad task coverage and diversity during pre-training are essential for the emergence of robust in-context generaliza-tion [13], [14]. Conversely, narrow pre-training may lead to biased predictors that fail to generalize to new tasks. This connects to the practical challenge of prompt engineering, where performance is highly sensitive to the selection and ordering of demonstrations. While various retrieval-based and heuristic strategies have been proposed to select effective demonstrations [15]–[17], a rigorous theoretical understanding of why certain demonstrations are more effective than others remains limited. To address the complexity of practical LLMs and bridge the gap between theory and practice, [18] proposed a linear probabilistic model for the conditional distribution of the answer given the input text. Based on this model, the work develops a theory to explain the effects of multiple factors on the ICL performance. This theory, while providing significant interpretation of ICL, still has a gap with practice as the linear probabilistic model may not fit with existing LLMs. In this work, we propose a probabilistic model for ICL, analyze the performance of ICL based on this model, and present interpretations of the theoretical analysis. In particular, an input text and its corresponding answer are both modeled as random variables. The LLM uses the demonstrations to learn the conditional distribution of the answer given the input text. We adopt the expected excessive risk (EER), namely the expected Kullback–Leibler (KL) divergence between the ground-truth conditional distribution and the one inferred by the LLM, as the performance metric of ICL. We derive the asymptotic EER for both general parametric distributions and exponential families, and establish a non-asymptotic upper bound of EER for exponential families. Building on these results, we explain the effect of the following factors on ICL: the number of demonstrations, the sensitivity of the conditional distribution to the variation of parameters, and the similarity between the demonstrations and the query. Key contributions of this work are summarized in the following:  
+
+> •
+
+we propose a probabilistic model for ICL and derive the asymptotic EER for general parametric distributions;  
+
+> •
+
+we derive the asymptotic and non-asymptotic perfor-mance of EER for exponential families; and  
+
+> •
+
+we illustrate the effects of multiple factors on the perfor-mance of ICL. 
+
+Notation : The ℓ1 norm, Euclidean norm, and the k-th entry of a vector a are denoted by ∥a∥1, ∥a∥, and [a]k, respectively. 1 
+
+> arXiv:2606.28926v1 [cs.IT] 27 Jun 2026 ICL Workflow Parametric
+> Probabilistic Model
+> Parametric Estimation
+> and Prediction
+> Demonstration Set
+> : Answers
+> : Input text
+> Pre -trained
+> LLM
+> Query
+> Predicted Answer
+> Learn from demos
+> without training
+> Random Variables
+> : Answers
+> : Input text
+> Conditional Distribution
+> as parameter
+> Conditional Independence
+> Joint Distribution
+> Maximum
+> Log -Likelihood Estimator
+> Demonstrations:
+> Joint Distribution
+> Query Inference
+
+Fig. 1. Schematic diagram of the in-context learning (ICL) framework and its underlying probabilistic modeling pipeline. 
+
+The transpose, trace, Frobenius norm, and determinant of a matrix A are denoted by AT, tr {A}, ∥A∥F, and det( A),respectively. An identity matrix is denoted by I. For symmetric matrices A and B, relationship A ⪰ B and A ⪯ B represent that A − B is positive semi-definite (PSD) and negative semi-definite, respectively. Operators ∇f and ∇2f represent the gradient and the Hessian, respectively, of a function f .II. P ROBLEM FORMULATION 
+
+The overall procedure of ICL is described in the following. First, a set of n demonstrations {(xi, y i)}ni=1 are provided to the prompt, where xi ∈ X and yi ∈ Y represent the i-th input text and the answer for this text, respectively (see Fig. 1). Then, a query input text xQ is provided to the prompt. Using the demonstrations, the LLM predicts an answer yQ for the query xQ.The following probabilistic model is adopted for ICL. Both the input text X and the answer Y are modeled as random variables. As a result, xi and yi are realizations of random variables Xi and Yi, respectively. Given an input text X,the answer Y follows a parametric probabilistic model P (α)  
+
+> Y|X
+
+,where α is a parameter consisting of K entries and belongs to a set A ⊆ RK . Conditioned on the i-th input text Xi, the answer Yi is independent of {Xj }j̸ =i and follows the con-ditional distribution P (α)  
+
+> Y|X
+
+. Under such conditional indepen-dence, the distribution of Y n := ( Y1, Y 2, . . . Y n) conditioned on Xn := ( X1, X 2, . . . X n) factorizes as 
+
+P (α) 
+
+> Yn|Xn
+
+ yn xn =
+
+> n
+
+Y
+
+> i=1
+
+P (α)  
+
+> Y|X
+
+(yi|xi)
+
+where yn := ( y1, y 2, . . . , y n) and xn := ( x1, x 2, . . . , x n).Using the demonstrations (xn, y n), the LLM computes an estimator of α. In particular, we consider the maximum likelihood estimator (MLE) α∗ given by 
+
+α∗ := argmax α∈A log P (α) 
+
+> Yn|Xn
+
+ yn xn.
+
+Then, the LLM generates the answer yQ by sampling from the inferred conditional distribution P (α∗)  
+
+> Y|X
+
+(·| xQ). Note that the conditional distribution P (α)  
+
+> Y|X
+
+for any α ∈ A is determined via pre-training and is not affected by the demonstrations. Indeed, the demonstrations only affects the estimate of the parameter. The quality of the answer to the query is affected by the discrepancy between the inferred conditional distribution 
+
+P (α∗)  
+
+> Y|X
+
+(·| xQ) and the ground-truth P (α)  
+
+> Y|X
+
+(·| xQ). Ideally, these two distributions are equivalent so that the answer to the query is sampled from the ground-truth conditional distribution. In practice, such equivalence may not be achieved and we employ the KL divergence DKL 
+
+ P (α)  
+
+> Y|X
+
+P (α∗) 
+
+> Y|X
+
+ as a metric for the discrepancy between these two conditional distributions. In particular, such a divergence is defined as 
+
+DKL 
+
+ P (α)  
+
+> Y|X
+
+P (α∗) 
+
+> Y|X
+
+ := EP (α) 
+
+> Y|X
+
+
+
+log P (α)  
+
+> Y|X
+
+(Y |xQ)
+
+P (α∗)  
+
+> Y|X
+
+(Y |xQ) X = xQ
+
+
+
+.
+
+This quantity is a random variable as α∗ is a function of Y n.Define the EER ℓ(xQ; xn) as the conditional expectation of the KL divergence, i.e., 
+
+ℓ(xQ; xn) := EY n|Xn
+
+DKL 
+
+ P (α)  
+
+> Y|X
+
+P (α∗) 
+
+> Y|X
+
+ Xn = xn. (1) This paper investigates properties of the EER and how it is affected by the demonstrations and the query. We make a few assumptions on log P (α)  
+
+> Y|X
+
+, where α ∈ A 
+
+is a general value of the parameter. To that end, define the Fisher information matrix (FIM) J(α; x) of the parameter α
+
+for demonstration (X, Y ) conditioned on X = x as 
+
+J(α; x) := −EP (α) 
+
+> Y|X
+
+h ∂2
+
+∂α ∂α T log P (α)  
+
+> Y|X
+
+(Y |x) X = x
+
+i
+
+. (2) In particular, ∂∂α log P (α)  
+
+> Y|X
+
+is called the score function. The assumptions on log P (α)  
+
+> Y|X
+
+are listed in the following. 1. (regularity condition) log P (α)  
+
+> Y|X
+
+satisfies 
+
+EP (α) 
+
+> Y|X
+
+h ∂∂α log P (α)  
+
+> Y|X
+
+(Y |x) X = x
+
+i
+
+= 0 ,
+
+∀x ∈ X , ∀α ∈ A . (3) 2. (finite FIM) There exists a constant c1 > 0 such that 
+
+J(α; xQ) ⪯ c1I (4a) 
+
+J(α; xi) ⪯ c1I, ∀α ∈ A , i = 1 , 2, . . . , n. (4b) 3. (singular values for Hessian bounded away from zero) There exists a constant c2 > 0 such that 
+
+σmin 
+
+ 1
+
+n
+
+> n
+
+X
+
+> i=1
+
+∂2
+
+∂α ∂α T log P (α)  
+
+> Y|X
+
+(yi|xi)
+
+
+
+≥ c2, ∀α ∈ A 
+
+(5) where σmin (·) represents the minimum singular value of the argument. 4. (finite third-order derivative) There exists a constant c3
+
+such that 
+
+∂3
+
+∂[α]j ∂[α]k∂[α]l
+
+log P (α)  
+
+> Y|X
+
+(y|xQ) ≤ c3 (6a) 
+
+∂3
+
+∂[α]j ∂[α]k∂[α]l
+
+log P (α)  
+
+> Y|X
+
+(y|xi) ≤ c3, ∀y ∈ Y ∀α ∈ A , i = 1 , 2, . . . , n, j, k, l = 1 , 2, . . . , K. (6b) 25. (finite fourth moment of score function) There exists a constant c4 such that 
+
+EP (α) 
+
+> Y|X
+
+h ∂∂α log P (α)  
+
+> Y|X
+
+(Yi|xi) 4
+
+X = xi
+
+i
+
+≤ c4
+
+i = 1 , 2, . . . , n. (7) Specifically, (3) is a mild assumption and is required for establishing information inequality using FIM [19]. In addition to general parametric distributions P (α)  
+
+> Y|X
+
+, we also consider the case where P (α)  
+
+> Y|X
+
+belongs to an exponential family. In this case, P (α)  
+
+> Y|X
+
+can be written as 
+
+P (α)  
+
+> Y|X
+
+(y|x) = PY (y) exp  αTf (x,y) − b(α, x ) (8) where f (x, y ) ∈ RK represents the semantic embedding of 
+
+(x, y ) generated by the LLM; b(α, x ) ∈ R is a normalization term and satisfies b(α, x ) = log  P  
+
+> y
+
+PY (y) exp  αTf (x, y ) .In particular, f (·, ·) is determined via pre-training and is not affected by the demonstrations. III. A SYMPTOTIC PERFORMANCE OF EER We derive the asymptotic performance of ℓ(xQ; xn) as the number n of demonstrations goes to infinity for general parametric distributions P (α)  
+
+> Y|X
+
+satisfying (3) to (7). To that end, define symmetric random matrices An and Mn as 
+
+An := − 1
+
+n
+
+> n
+
+X
+
+> i=1
+
+∂2
+
+∂α∂α T log P (α)  
+
+> Y|X
+
+(Yi|xi) (9) 
+
+Mn := 1
+
+n
+
+ nX
+
+> i=1
+
+∂ log P (α)  
+
+> Y|X
+
+(Yi|xi)
+
+∂α 
+
+ nX
+
+> i=1
+
+∂ log P (α)  
+
+> Y|X
+
+(Yi|xi)
+
+∂α T
+
+
+
+.
+
+(10) We also introduce the short notation 
+
+E· xn := EP (α)
+
+> Y n|Xn
+
+· Xn = xn.
+
+The following theorem shows that ℓ(xQ; xn) decreases to zero at a rate of 1/n .
+
+Theorem 1: Under Assumptions (3)–(7), it holds that 
+
+lim  
+
+> n→∞
+
+nℓ (xQ; xn) − r(xQ; xn) = 0 (11) where r(xQ; xn) is defined as 
+
+r(xQ; xn) := 12 tr 
+
+n
+
+EA−1 
+
+> n
+
+MnA−1 
+
+> n
+
+|xn J(α; xQ)
+
+o
+
+. (12) 
+
+Proof: See Appendix. 
+
+Remark 1: Theorem 1 shows that the asymptotic EER for sufficiently large n is r(xQ; xn)/n . First, the asymptotic EER is linear with respect to r(xQ; xn), which is referred to as the EER coefficient . This coefficient is determined by both the demonstrations and the query. Second, the asymptotic EER decays at a rate of 1/n . This is because that the LLM can accurately infer the true parameter α when n is sufficiently large, as indicated by (30) in the proof. Note that Theorem 1 is different from asymptotic results for classical inference problems where the data are assumed independent and identically distributed. Instead, it is only assumed that the conditional distributions of the answers in the demonstrations are identical. In practice, the demonstration inputs {Xi}ni=1 
+
+are not necessarily independent. For example, if {Xi}ni=1 are provided to the prompt sequentially with i indicating the order, then Xi can depend on Xj for j < i .Next, we show the asymptotic performance of the EER for the case where P (α)  
+
+> Y|X
+
+belongs to an exponential family (8). In this case, both the assumptions and the EER coefficient 
+
+r(xQ; xn) can be simplified. In particular, the FIM and the Hessian of log P (α)  
+
+> Y|X
+
+reduce to 
+
+J(α; x) = − ∂2
+
+∂α ∂α T log P (α)  
+
+> Y|X
+
+(y|x) = ∇2b(α, x ). (13) Here, ∇2b(α, x ) is the Hessian matrix of b(·, x ) viewed as a function of the first argument. The EER coefficient for the exponential family is described in the following corollary. 
+
+Corollary 1: Suppose P (α)  
+
+> Y|X
+
+is given by (8). Under Assump-tions (3)–(7), equality (11) holds with r(xQ; xn) given by 
+
+r(xQ; xn) = 12 tr 
+
+n
+
+∇2b(α, x Q)
+
+ 1
+
+n
+
+> n
+
+X
+
+> i=1
+
+∇2b(α, x i)
+
+−1o
+
+= 12 tr J(α; xQ) ¯J(α; xn)−1 (14) where we define ¯J(α; xn) := 1
+
+> n
+
+Pni=1 J(α; xi) .
+
+Proof: Combining (13) with (9) and (10), we obtain 
+
+An = E[Mn|xn] = 1
+
+n
+
+> n
+
+X
+
+> i=1
+
+∇2b(α, x i).
+
+Substituting this into (12) gives (14). Corollary 1 shows that r(xQ; xn) is determined by the FIM 
+
+J(α; xQ) at the quest xQ and the average FIM ¯J(α; xn) at all demonstrations. Properties of r(xQ; xn) are described in the following corollary, followed by their interpretation. 
+
+Corollary 2: The EER coefficient r(xQ; xn) satisfies the following properties: (i) if another quest x′ 
+
+> Q
+
+satisfies J(α; x′
+
+> Q
+
+) ⪯ J(α; xQ), then 
+
+r(x′
+
+> Q
+
+; xn) ≤ r(xQ; xn);(ii) under the constraint det   ¯J(α; xn) ≤ det  J(α; xQ), it holds that r(xQ; xn) ≥ K/ 2, with equality achieved if 
+
+¯J(α; xn) = J(α; xQ).
+
+Proof: Using the PSD property of FIMs and r(xQ; xn) =  
+
+> 12
+
+tr  ¯J(α; xn)−1/2J(α; x) ¯J(α; xn)−1/2 for both x = xQ
+
+and x = x′
+
+> Q
+
+, we obtain (i). To prove (ii), we use λi(A) to denote the i-th largest eigenvalue of a symmetric matrix A. 3Von Neumann’s trace inequality gives 
+
+r(xQ; xn) ≥ 12
+
+> K
+
+X
+
+> k=1
+
+λk
+
+ J(α; xQ) λK−k+1 
+
+  ¯J(α; xn)−1
+
+= 12
+
+> K
+
+X
+
+> k=1
+
+λk
+
+ J(α; xQ)
+
+λk
+
+  ¯J(α; xn)
+
+≥ K
+
+2
+
+ KY
+
+> k=1
+
+λk
+
+ J(α; xQ)
+
+λk
+
+  ¯J(α; xn)1/K 
+
+= K
+
+2
+
+ det  J(α; xQ)
+
+det   ¯J(α; xn)1/K 
+
+≥ K
+
+2 .
+
+Equality condition can be verified via direct calculation. 
+
+Remark 2: Part (i) of Corollary 2 shows that the asymp-totic EER is positively correlated with the sensitivity of the conditional distribution P (α)  
+
+> Y|X
+
+with respect to variations of the parameter. Specifically, the FIM measures the sensitivity of 
+
+P (α)  
+
+> Y|X
+
+(·| x) with respect to variations of the parameter at α for demonstration x. If J(α; x′
+
+> Q
+
+) ⪯ J(α; xQ), then P (α)  
+
+> Y|X
+
+(·| x′
+
+> Q
+
+) is less sensitive to variations of the parameter for demonstration 
+
+x′ 
+
+> Q
+
+than for xQ. In other words, the deviation of P (α∗)  
+
+> Y|X
+
+(·| x′
+
+> Q
+
+)
+
+from P (α)  
+
+> Y|X
+
+(·| x′
+
+> Q
+
+) is less significant than the deviation of 
+
+P (α∗)  
+
+> Y|X
+
+(·| xQ) from P (α)  
+
+> Y|X
+
+(·| xQ). Consequently, the asymptotic EER for x′ 
+
+> Q
+
+is smaller than that for xQ.Part (ii) of Corollary 2 shows that under a determinant constraint, the asymptotic EER is minimized when the average FIM at all demonstrations matches the FIM at the quest. This indicates that the ICL performance can be improved if one carefully designs the demonstrations to bring the average FIM at these demonstrations close to the FIM at the quest. Note that the determinant constraint acts as a normalization condition and cannot be dropped. Otherwise the minimal asymptotic EER would be achieved when the FIM at each demonstration is maximized while meeting Assumption (4b), i.e., J(α; xi) = c1I for all i = 1 , 2, . . . , n . This is a case of little theoretical insights. Finally, we give an example for the exponential family. Con-sider the case where the conditional distribution of Y ∈ RK
+
+given X ∈ RK is Gaussian. Specifically, P (α)  
+
+> Y|X
+
+is given by 
+
+P (α)  
+
+> Y|X
+
+(y|x) = 1
+
+√2πK QKk=1 [x]k
+
+× exp 
+
+
+
+− 12 (y − α)T diag( x)−2(y − α)
+
+
+
+(15) where diag( x) ∈ RK×K is a diagonal matrix with the entry on its k-th row and k-th column being [x]k. Distribution (15) be-longs to the exponential family (8) with f (x, y ) = diag( x)−2y
+
+and b(α, x ) = 12 αT diag( x)−2α + PKk=1 log[ x]k. The FIM 
+
+J(α; x) = diag( x)−2. Assumptions (3)–(7) hold if there exist constants c1 > c 2 > 0 such that c−1/21 ≤ [x]k ≤ c−1/22 for 
+
+x = xQ and for x = xi with i = 1 , 2, . . . , n . Moreover, Corollary 1 gives r(xQ; xn) = 12n
+
+PKk=1 
+
+Pni=1 
+
+ [xi]2
+
+> k
+
+/[xQ]2
+
+> k
+
+.IV. N ON -A SYMPTOTIC BOUND OF EER The next theorem provides an upper bound on ℓ(xQ; xn)
+
+for the exponential family without assuming that n is large. 
+
+Theorem 2: Suppose P (α)  
+
+> Y|X
+
+belongs to an exponential fam-ily (8). Under Assumptions (3)–(7), it holds that 
+
+ℓ(xQ; xn) ≤r(xn) 1
+
+n + ( a1 + a2) 1
+
+n1.5 + a3
+
+1
+
+n2 (16) where a1, a2, and a3 are defined as 
+
+a1 := 12c22
+
+c3/21 c3K2
+
+(K2 + 2 K)c21 + c4
+
+n
+
+1/2
+
+(17) 
+
+a2 := 16 c3K3/2
+
+(K2 + 2 K)c21 + c4
+
+n
+
+3/4
+
+(18) 
+
+a3 := 18
+
+c1
+
+c22
+
+c23K3
+
+(K2 + 2 K)c21 + c4
+
+n
+
+
+
+. (19) 
+
+Proof: The key to the proof is to perform higher-order Taylor expansion of DKL 
+
+ P (α)  
+
+> Y|X
+
+P (α∗) 
+
+> Y|X
+
+ and l(α∗; Y n) than in (26) and (28). In particular, applying third-order Taylor expansion of g(α∗) at α and using (25), we obtain 
+
+DKL 
+
+ P (α)  
+
+> Y|X
+
+P (α∗) 
+
+> Y|X
+
+ = − 12 (α∗ − α)T ∇2g(α) ( α∗ − α) + e0
+
+(20) where e0 is the third-order term in the Tylor expansion: 
+
+e0 := X
+
+> v:∥v∥1=3
+
+1
+
+v!
+
+∂3
+
+∂ξ v b(ξ, x Q) ( ξ − α)v .
+
+Here, v = [ v1 v2 · · · vK ]T is a vector consisting of K non-negative inters, v! := QKk=1 (vk!) , vector ξ is on the line seg-ment connecting α and α∗. Moreover, ∂3 
+
+> ∂ξ v
+
+:= ∂3  
+
+> ∂ξ v11∂ξ v22··· ∂ξ vKK
+
+,and yv := QKi=1 yvk 
+
+> k
+
+for y ∈ RK . In addition, applying second-order Taylor expansion of l(α∗; Y n) at α and using the property of MLE that l(α∗; Y n) = 0 , we obtain 
+
+−l(α; Y n) = ∇Tl(α; Y n) ( α∗ − α) + u (21) where u ∈ RK with its k-th entry defined as 12 (α∗ −
+
+α)T∇2lk(α; Y n)( α∗ − α). Here, lk(α; Y n) represents the k-th component of l(α; Y n). Equation (21) gives α∗ − α =
+
+− ∇Tl(α; Y n)−1(l(α; Y n) + u). Substituting this into (20) and taking conditional expectation over P (α)  
+
+> Yn|Xn
+
+given Xn =
+
+xn, we obtain ℓ(xQ; xn) = e1 + e2 + e3 + e0, where 
+
+e1 = 12 El(α; Y n)T Gn l(α; Y n) xn
+
+e2 = EuTGnl(α; Y n) xn, e3 = 12 EuTGnu xn
+
+with Gn :=  ∇Tl(α; Y n)−1∇2b(α, x Q) ∇Tl(α; Y n)−1.Triangle inequality gives ℓ(xQ; xn) ≤ | e1| + |e2| + |e3| + |e0|.In particular, |e1| can be shown to be r(xQ; xn)/n . Moreover, 
+
+|e2|, |e3|, and |e4| can be upper bounded by a1/n 1.5, a3/n 2,and a2/n 1.5, respectively. Combining these gives (16). 4V. CONCLUSION 
+
+In this work, we propose a probabilistic model for ICL and analyze its EER. For general parametric distributions, we show that the asymptotic EER is the ratio between the EER coefficient and the number of demonstrations. For exponential families, the EER coefficient is a function of the FIM at the quest and of the FIM averaged over all the demonstra-tions. Moreover, a non-asymptotic upper bound on the EER is derived for exponential families. Based on these results, we show the effect on ICL performance of different factors including the number of demonstrations, the sensitivity of the probabilistic model to the variation of its parameters, as well as the similarity between the demonstrations and the query. This work sheds theoretical insights on ICL and provides design guidelines for model training and prompt engineering in LLM. APPENDIX 
+
+PROOF OF THEOREM 1
+
+Proof: The proof idea is described as follows. Viewing 
+
+DKL 
+
+ P (α)  
+
+> Y|X
+
+P (α∗) 
+
+> Y|X
+
+ as a function of α∗, we use Taylor expansion to transform this function to a quadratic form of 
+
+α∗ − α. Then, we show the L2 convergence of ∥α∗ − α∥ as 
+
+n → ∞ . Finally, we use such a convergence to construct an approximation ˜D(Y n, x n) of DKL 
+
+ P (α)  
+
+> Y|X
+
+P (α∗) 
+
+> Y|X
+
+ such that 
+
+lim  
+
+> n→∞
+
+nEDKL 
+
+ P (α)  
+
+> Y|X
+
+P (α∗) 
+
+> Y|X
+
+ − ˜D(Y n, x n) xn = 0 (22a) 
+
+lim  
+
+> n→∞
+
+nE ˜D(Y n, x n) xn − r(xQ; xn) = 0 . (22b) Details of the proof are provided in the following. Define function g : RK 7 → R as 
+
+g(α) := EP (α) 
+
+> Y|X
+
+log P (α)  
+
+> Y|X
+
+(Y |xQ) X = xQ
+
+. (23) Note that α does not affect the distribution in the subscript of the expectation operator. Using this definition, the KL-divergence can be written as 
+
+DKL 
+
+ P (α)  
+
+> Y|X
+
+∥ P (α∗) 
+
+> Y|X
+
+ = − g(α∗) − g(α). (24) Using Assumption (3), we obtain 
+
+∇g(α) = EP (α) 
+
+> Y|X
+
+h ∂∂α log P (α)  
+
+> Y|X
+
+(Y |xQ) X = xQ
+
+i
+
+= 0 . (25) Applying second-order Taylor expansion of g(α∗) at α and using (25), we obtain 
+
+DKL 
+
+ P (α)  
+
+> Y|X
+
+P (α∗) 
+
+> Y|X
+
+ = − 12 (α∗ − α)T ∇2g(ξ) ( α∗ − α)
+
+(26) where ξ ∈ RK is on the line segment connecting α and α∗.Next, we consider the property of α∗ −α. To that end, define the average score function l(α; Y n) as 
+
+l(α; Y n) := 1
+
+n
+
+> n
+
+X
+
+> i=1
+
+∂∂α log P (α)  
+
+> Y|X
+
+(Yi|xi). (27) The definition of MLE gives l(α∗; Y n) = 0 . Combining this with the mean-value theorem, we obtain 
+
+l(α; Y n) = ∇Tl(η; Y n) ( α − α∗). (28) where η ∈ RK is on the line segment connecting α and α∗,and ∇Tl(η; Y n) := ∂l (η;Y n) 
+
+> ∂η T
+
+represents the Jacobian matrix of l(η; Y n). Expressions (27) and (5) show that ∇Tl(η; Y n)
+
+is invertible. Consequently, 
+
+α − α∗ =  ∇Tl(η; Y n)−1 l(α; Y n). (29) Using (29) and (5), we have 
+
+E∥α − α∗∥2 xn ≤ E   ∇Tl(η; Y n)−1 2 l(α; Y n) 2 xn
+
+≤ 1
+
+c22
+
+E l(α; Y n) 2 xn
+
+= 1
+
+c22n2
+
+> n
+
+X
+
+> i=1
+
+tr {J(α; xi)} ≤ c1Kc22n (30) where (4b) is used in the last inequality. Finally, we construct ˜D(Y n, x n) and show (22). Substitut-ing (29) into (26) and using a property of trace gives 
+
+DKL 
+
+ P (α)  
+
+> Y|X
+
+∥ P (α∗) 
+
+> Y|X
+
+ = 12n tr Mn
+
+ ∇Tl(η; yn)−1∇2g(ξ)
+
+×  ∇Tl(η; yn)−1 . (31) Define ˜D(Y n, x n) by replacing η and ξ in (31) with α, i.e., 
+
+˜D(Y n, x n) := 12n tr Mn
+
+ ∇Tl(α; yn)−1
+
+× ∇ 2g(α)  ∇Tl(α; yn)−1 (32) We can show ˜D(Y n, x n) satisfies (22a). To that end, define 
+
+Ln :=  ∇Tl(η; yn)−1∇2g(ξ) ∇Tl(η; yn)−1
+
+−  ∇Tl(α; yn)−1∇2g(α)  ∇Tl(α; yn)−1. (33) Combining this definition with (31) and (32) gives 
+
+nEDKL 
+
+ P (α)  
+
+> Y|X
+
+∥ P (α∗) 
+
+> Y|X
+
+ − ˜D(Y n, x n) xn
+
+= 12 Etr {MnLn} xn
+
+≤ 12 E∥Mn∥F ∥Ln∥F xn
+
+≤ 12 E∥Mn∥2F xn E∥Ln∥2F xn (34) where Cauchy—Schwartz inequalities are used in the last two inequalities. Using (4b) and (7), we can show that sup n E∥Mn∥2F xn is finite. Moreover com-bining (30) with (4a), (5), and (6b), we can show that lim n→∞ E∥Ln∥2F xn = 0. Combining this with 
+
+sup n E∥Mn∥2F xn < ∞ gives (22a). Moreover, combin-ing (23) with (2), and combining (27) with (9), we obtain 
+
+−∇ 2g(α) = J(α; xQ) and ∇Tl(η; yn) = −An, respectively. Using these two expressions gives (22b). Using (22), we obtain the desired result. 5REFERENCES [1] M. Xu, D. Niyato, J. Kang, Z. Xiong, S. Mao, Z. Han, D. I. Kim, and K. B. Letaief, “When large language model agents meet 6G networks: Perception, grounding, and alignment,” IEEE Wireless Commun. , vol. 31, no. 6, pp. 63–71, Dec. 2024. [2] W. Zhang, C. Gao, S. Yu, R. Peng, B. Zhao, Q. Zhang, J. Cui, X. Chen, and Y. Li, “CityNavAgent: Aerial vision-and-language navigation with hierarchical semantic planning and global memory,” in Proc. ACL ,Vienna, Austria, Jul. 2025, pp. 31 292–31 309. [3] T. Liu, N. Astorga, N. Seedat, and M. v. d. Schaar, “Large language models to enhance Bayesian optimization,” in Proc. ICLR , Vienna, Austria, May 2024, pp. 1–33. [4] Q. Dong, L. Li, D. Dai, C. Zheng, J. Ma, R. Li, H. Xia, J. Xu, Z. Wu, B. Chang, X. Sun, L. Li, and Z. Sui, “A survey on in-context learning,” in Proc. EMNLP , Miami, Florida, USA, Nov. 2024, pp. 1107–1128. [5] S. M. Xie, A. Raghunathan, P. Liang, and T. Ma, “An explanation of in-context learning as implicit Bayesian inference,” in Proc. ICLR , Apr. 2022. [6] D. Dai, Y. Sun, L. Dong, Y. Hao, S. Ma, Z. Sui, and F. Wei, “Why can GPT learn in-context? Language models secretly perform gradient descent as meta-optimizers,” in Proc. ACL , Jul. 2023, pp. 4005–4019. [7] Y. Li, M. E. Ildiz, D. Papailiopoulos, and S. Oymak, “Transformers as algorithms: Generalization and stability in in-context learning,” in Proc. ICML , Jul. 2023, pp. 19 565–19 594. [8] H. Zhou, A. Bradley, E. Littwin, N. Razin, O. Saremi, J. M. Susskind, S. Bengio, and P. Nakkiran, “What algorithms can transformers learn? A study in length generalization,” in Proc. ICLR , Vienna, Austria, May 2024, pp. 1–29. [9] S. Garg, D. Tsipras, P. S. Liang, and G. Valiant, “What can transformers learn in-context? A case study of simple function classes,” in Proc. NeurIPS , New Orleans, Louisiana, USA, Dec. 2022, pp. 30 583–30 598. [10] E. Aky¨ urek, D. Schuurmans, J. Andreas, T. Ma, and D. Zhou, “What learning algorithm is in-context learning? Investigations with linear models,” in Proc. ICLR , Apr. 2023, pp. 1–29. [11] J. Von Oswald, E. Niklasson, E. Randazzo, J. Sacramento, A. Mordvint-sev, A. Zhmoginov, and M. Vladymyrov, “Transformers learn in-context by gradient descent,” in Proc. ICML , Honolulu, HI, USA, Jul. 2023, pp. 35 151–35 174. [12] J. Pan, T. Gao, H. Chen, and D. Chen, “What in-context learning “learns” in-context: Disentangling task recognition and task learning,” in Proc. ACL , Toronto, Canada, Jul. 2023, pp. 8298—-8319. [13] A. Ravent´ os, M. Paul, F. Chen, and S. Ganguli, “Pretraining task diversity and the emergence of non-Bayesian in-context learning for regression,” in Proc. NeurIPS , New Orleans, Louisiana, USA, Dec. 2023, pp. 14 228–14 246. [14] S. Chan, A. Santoro, A. Lampinen, J. Wang, A. Singh, P. Richemond, J. McClelland, and F. Hill, “Data distributional properties drive emergent in-context learning in transformers,” in Proc. NeurIPS , New Orleans, Louisiana, USA, Dec. 2022, pp. 18 878–18 891. [15] X. Wang, W. Zhu, and W. Y. Wang, “Large language models are implicitly topic models: Explaining and finding good demonstrations for in-context learning,” in Proc. ICML Workshop , Honolulu, HI, USA, Jul. 2023, pp. 1–19. [16] H. Su, J. Kasai, C. H. Wu, W. Shi, T. Wang, J. Xin, R. Zhang, M. Ostendorf, L. Zettlemoyer, N. A. Smith et al. , “Selective annotation makes language models better few-shot learners,” in Proc. ICLR , Kigali, Rwanda, May 2023, pp. 1–24. [17] C. Qin, A. Zhang, C. Chen, A. Dagar, and W. Ye, “In-context learning with iterative demonstration selection,” in Proc. EMNLP , Miami, FL, USA, Nov. 2024. [18] H. Tang, T. Peng, and S.-L. Huang, “On theoretical interpretations of concept-based in-context learning,” in Proc. ICLR , Rio de Janeiro, Brazil, Apr. 2026, pp. 1–31, accepted. [19] S. M. Kay, Fundamentals of Statistical Signal Processing: Estimation Theory . Upper Saddle River, NJ: Prentice-Hall, 1993. 
+
+6

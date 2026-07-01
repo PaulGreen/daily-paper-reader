@@ -6,32 +6,29 @@
 </div>
 
 ## 每次日报
-- 最新运行日期：2026-06-30
-- 运行时间：2026-06-30 21:50:03 UTC
+- 最新运行日期：2026-07-01
+- 运行时间：2026-07-01 22:09:35 UTC
 - 运行状态：成功
-- 本次总论文数：4
-- 精读区：4
+- 本次总论文数：3
+- 精读区：3
 - 速读区：0
 
 ### 今日简报（AI）
-今日精读两篇前沿对齐理论论文，聚焦推理时偏好优化与上下文学习新解。  
-值得关注：用偏好对驱动推理对齐的“推测式学习”，以及用概率模型统一解释上下文学习的理论框架。  
-建议读者跟紧“推理时对齐”这一方向，它或将成为下阶段模型可控性的关键技术路线。
-- 详情：[/202606/30/README](/202606/30/README)
+今日精读两篇9分高分论文，聚焦提示词优化的深度反思机制与音频-语言模型的零样本泛化。  
+最值得关注：对比反思迭代能自动纠偏并显著提升大模型推理，而熵正则化零样本提示让音频模型无需重训练即可跨域分类。  
+建议从反思驱动的提示自动迭代入手，在多模态场景中尝试复现其反馈闭环效果。
+- 详情：[/202607/01/README](/202607/01/README)
 
 ### 精读区论文标签
-1. [Towards Spec Learning: Inference-Time Alignment from Preference Pairs](/202606/30/2606.24004v2-towards-spec-learning-inference-time-alignment-from-preference-pairs)  
+1. [Contrastive Reflection for Iterative Prompt Optimization](/202607/01/2606.30840v1-contrastive-reflection-for-iterative-prompt-optimization)  
    标签：评分：9.0/10、query:prompt-learn
-   evidence：将用户指令与偏好对编译为自然语言提示，在推理时引导大语言模型。
-2. [A Theoretical Interpretation of In-Context Learning via Probabilistic Modeling](/202606/30/2606.28926v1-a-theoretical-interpretation-of-in-context-learning-via-probabilistic-modeling)  
+   evidence：面向智能体信息检索的迭代提示优化框架
+2. [ZEBRA: Zero-Shot Entropy-Regularized Prompt Learning for Base-to-Novel Generalization in Audio-Language Models](/202607/01/2606.31587v1-zebra-zero-shot-entropy-regularized-prompt-learning-for-base-to-novel-generalization-in-audio-language-models)  
    标签：评分：9.0/10、query:prompt-learn
-   evidence：为上下文学习提供概率模型，分析示例的影响
-3. [LC-ICL: Label-Guided Contrastive In-Context Learning for Robust Information Extraction](/202606/30/2606.29407v1-lc-icl-label-guided-contrastive-in-context-learning-for-robust-information-extraction)  
-   标签：评分：9.0/10、query:prompt-learn
-   evidence：利用正负例演示的对比上下文学习优化少样本信息抽取提示
-4. [Two-Stage Prompt Optimization for Few-Shot Relation Extraction: From Reasoning-Guided Search to Gradient-Guided Refinement](/202606/30/2606.29639v1-two-stage-prompt-optimization-for-few-shot-relation-extraction-from-reasoning-guided-search-to-gradient-guided-refinement)  
-   标签：评分：9.0/10、query:prompt-learn
-   evidence：结合推理搜索与梯度细化的两阶段提示优化用于少样本关系抽取
+   evidence：熵正则化提示学习以改善音频语言模型基类到新类的泛化
+3. [Single and Multi Truth Data Fusion using Large Language Models](/202607/01/2606.28062v1-single-and-multi-truth-data-fusion-using-large-language-models)  
+   标签：评分：8.0/10、query:prompt-learn
+   evidence：研究多种提示策略（零样本、单样本、领域相关）用于大型语言模型的数据融合。
 
 ### 速读区论文标签
 - 本次无速读推荐。

@@ -1,0 +1,136 @@
+{
+  "mode": "standard",
+  "generated_at": "2026-07-01T22:07:13.203180+00:00",
+  "stats": {
+    "mode": "standard",
+    "tag_count": 1,
+    "deep_divecandidates": 3,
+    "deep_cap": 6,
+    "deep_selected": 3,
+    "quick_candidates": 0,
+    "quick_skim_target": 11,
+    "quick_selected": 0
+  },
+  "deep_dive": [
+    {
+      "id": "2606.30840v1",
+      "source": "arxiv",
+      "title": "Contrastive Reflection for Iterative Prompt Optimization",
+      "abstract": "LLM agents are becoming central to information retrieval: they issue retrieval queries, synthesize answers, and increasingly serve as judges for IR evaluation. Improving the prompts that control these agents is an optimization problem, but in applied IR settings it often looks less like blind search and more like debugging. Engineers need to know which behavior failed, which nearby behavior still worked, what distinguishes the two, and whether a prompt edit improves held-out quality without introducing regressions.   We present Contrastive Reflection, an iterative prompt-optimization framework for agentic IR workflows. The framework starts from a task-centric quality definition: QA agents expose retrieval or reasoning traces, and grading agents expose dimension-level scores and rationales. These structured traces are used to identify error-anchored behavioral slices, add nearby successful examples from the same region, and ask a Teacher LLM to propose a targeted prompt edit. Candidate edits are accepted only when validation performance improves, optionally subject to regression checks. We instantiate the framework with a tree-based slice selector, but the contribution is the contrastive reflection loop rather than the tree itself.   On a public HotpotQA retrieval-augmented QA setup, one tree-selected contrastive repair improves held-out exact-match accuracy from 51.4% to 60.4%. Failure-only and random-evidence variants improve less and break more previously correct examples. A light instruction-only comparison places the method near modern prompt optimizers: MIPROv2 reaches 59.4% and GEPA 57.0%. The result is an interpretable optimization loop for IR agents, aimed at making prompt repair more inspectable and validation-driven.",
+      "authors": [
+        "Derek Koh",
+        "Jinghui Mo",
+        "Benjamin H. Le",
+        "Jiening Zhan",
+        "Baofen Zheng",
+        "Kevin Bevis",
+        "Nathaniel C. Owen",
+        "Lauren Elizabeth Charney",
+        "Wenqiong Liu",
+        "Jingwei Wu"
+      ],
+      "primary_category": "cs.AI",
+      "categories": [
+        "cs.AI"
+      ],
+      "published": "2026-06-29T19:16:07+00:00",
+      "link": "https://arxiv.org/pdf/2606.30840v1",
+      "tags": [
+        "keyword:prompt-learn",
+        "query:prompt-learn"
+      ],
+      "llm_score": 9.0,
+      "llm_evidence_en": "iterative prompt optimization framework for agentic IR workflows",
+      "llm_evidence_cn": "面向智能体信息检索的迭代提示优化框架",
+      "llm_evidence": "面向智能体信息检索的迭代提示优化框架",
+      "canonical_evidence": "面向智能体信息检索的迭代提示优化框架",
+      "llm_tldr_en": "Proposes Contrastive Reflection, an iterative prompt-optimization framework that uses contrastive analysis to debug and improve prompts for LLM agents in IR tasks.",
+      "llm_tldr_cn": "针对LLM智能体在信息检索中的提示优化问题，提出对比反思框架，通过对比成功与失败案例迭代改进提示。实验表明该方法能有效提升提示质量并避免回归。该框架为智能体IR系统的提示调试提供了系统化解决方案。",
+      "llm_tldr": "针对LLM智能体在信息检索中的提示优化问题，提出对比反思框架，通过对比成功与失败案例迭代改进提示。实验表明该方法能有效提升提示质量并避免回归。该框架为智能体IR系统的提示调试提供了系统化解决方案。",
+      "llm_tags": [
+        "query:prompt-learn"
+      ],
+      "matched_query_tag": "query:prompt-learn",
+      "matched_query_text": "Techniques for automatic prompt generation in natural language processing",
+      "matched_requirement_id": "req-10",
+      "selection_source": "fresh_fetch"
+    },
+    {
+      "id": "2606.31587v1",
+      "source": "arxiv",
+      "title": "ZEBRA: Zero-Shot Entropy-Regularized Prompt Learning for Base-to-Novel Generalization in Audio-Language Models",
+      "abstract": "Audio-Language Models (ALMs) achieve strong zero-shot performance by aligning audio with textual class descriptions. Although prompt learning improves accuracy on base classes through few-shot supervised adaptation, we observe a critical trade-off: it often degrades performance on novel classes, sometimes falling below zero-shot accuracy. This exposes a base-to-novel generalization gap in prompt learning for ALMs. To address this issue, we propose \\textbf{ZEBRA} (Zero-shot Entropy-Regularized Prompt Learning for Base-to-Novel Generalization), a plug-and-play framework that fuses zero-shot logits with prompt-learning logits, and employs self-entropy regularization to reduce overfitting to base classes. Experiments across multiple audio classification datasets show that ZEBRA consistently improves novel-class performance while maintaining strong base accuracy, significantly reducing the base-to-novel gap compared to standard prompt learning. The code is available at: https://github.com/asif-hanif/zebra.",
+      "authors": [
+        "Asif Hanif",
+        "Mohammad Yaqub"
+      ],
+      "primary_category": "cs.SD",
+      "categories": [
+        "cs.SD",
+        "cs.AI"
+      ],
+      "published": "2026-06-30T12:40:45+00:00",
+      "link": "https://arxiv.org/pdf/2606.31587v1",
+      "tags": [
+        "keyword:prompt-learn",
+        "query:prompt-learn"
+      ],
+      "llm_score": 9.0,
+      "llm_evidence_en": "Entropy-regularized prompt learning to improve base-to-novel generalization in audio-language models",
+      "llm_evidence_cn": "熵正则化提示学习以改善音频语言模型基类到新类的泛化",
+      "llm_evidence": "熵正则化提示学习以改善音频语言模型基类到新类的泛化",
+      "canonical_evidence": "熵正则化提示学习以改善音频语言模型基类到新类的泛化",
+      "llm_tldr_en": "Addresses base-to-novel generalization gap in audio-language model prompt learning by fusing zero-shot and prompt-learning logits with self-entropy regularization. Achieves strong performance on both base and novel classes.",
+      "llm_tldr_cn": "针对音频语言模型提示学习中基类到新类的泛化差距，提出零样本熵正则化提示学习框架ZEBRA。该框架融合零样本与提示学习logits，并利用自熵正则化减少对基类的过拟合。实验表明，ZEBRA在基类和新类上均取得优异性能，有效提升了提示学习的泛化能力。",
+      "llm_tldr": "针对音频语言模型提示学习中基类到新类的泛化差距，提出零样本熵正则化提示学习框架ZEBRA。该框架融合零样本与提示学习logits，并利用自熵正则化减少对基类的过拟合。实验表明，ZEBRA在基类和新类上均取得优异性能，有效提升了提示学习的泛化能力。",
+      "llm_tags": [
+        "query:prompt-learn"
+      ],
+      "matched_query_tag": "query:prompt-learn",
+      "matched_query_text": "continuous vector representations used as prompts",
+      "matched_requirement_id": "req-1",
+      "selection_source": "fresh_fetch"
+    },
+    {
+      "id": "2606.28062v1",
+      "source": "arxiv",
+      "title": "Single and Multi Truth Data Fusion using Large Language Models",
+      "abstract": "Data fusion, also known as truth discovery, is a data integration problem that aims to determine the correct value or set of values for each attribute of an object when presented with potentially conflicting values from multiple sources. Data fusion tasks belong to two main categories: single-truth scenarios, where each attribute has only one correct value, and multi-truth scenarios, where multiple values can be valid simultaneously. This paper investigates the use of Large Language Models (LLMs) in data fusion tasks for tabular data. Various prompting strategies, encompassing both single-truth and multi-truth scenarios, are investigated empirically. Domain-dependent, domain-independent, zero-shot and one-shot prompts are evaluated on three different benchmark datasets. Experimental results demonstrate that LLM-based approaches outperform traditional unsupervised truth discovery methods, such as DART and LTM, across all datasets. The codebase of this study has been made publicly available on GitHub.",
+      "authors": [
+        "Hira Beril Kucuk",
+        "Norman W Paton",
+        "Jiaoyan Chen",
+        "Zhenyu Wu"
+      ],
+      "primary_category": "cs.DB",
+      "categories": [
+        "cs.DB",
+        "cs.AI",
+        "cs.CL",
+        "cs.IR"
+      ],
+      "published": "2026-06-26T13:10:11+00:00",
+      "link": "https://arxiv.org/pdf/2606.28062v1",
+      "tags": [
+        "keyword:prompt-learn",
+        "query:prompt-learn"
+      ],
+      "llm_score": 8.0,
+      "llm_evidence_en": "Investigates various prompting strategies (zero-shot, one-shot, domain-dependent) for data fusion with LLMs.",
+      "llm_evidence_cn": "研究多种提示策略（零样本、单样本、领域相关）用于大型语言模型的数据融合。",
+      "llm_evidence": "研究多种提示策略（零样本、单样本、领域相关）用于大型语言模型的数据融合。",
+      "canonical_evidence": "研究多种提示策略（零样本、单样本、领域相关）用于大型语言模型的数据融合。",
+      "llm_tldr_en": "The paper explores using LLMs for single and multi-truth data fusion, comparing zero-shot, one-shot, and domain-specific prompts to effectively resolve data conflicts.",
+      "llm_tldr_cn": "针对数据融合中的真值发现问题，本文研究大型语言模型在表格数据单真值与多真值场景下的应用。通过实验评估零样本、单样本、领域相关和领域无关等多种提示策略，证明精心设计的提示能使LLM有效解决数据冲突，为数据集成提供了新范式。",
+      "llm_tldr": "针对数据融合中的真值发现问题，本文研究大型语言模型在表格数据单真值与多真值场景下的应用。通过实验评估零样本、单样本、领域相关和领域无关等多种提示策略，证明精心设计的提示能使LLM有效解决数据冲突，为数据集成提供了新范式。",
+      "llm_tags": [
+        "query:prompt-learn"
+      ],
+      "matched_query_tag": "query:prompt-learn",
+      "matched_query_text": "discrete natural language prompts for guiding models",
+      "matched_requirement_id": "req-2",
+      "selection_source": "fresh_fetch"
+    }
+  ],
+  "quick_skim": []
+}

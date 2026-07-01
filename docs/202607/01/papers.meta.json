@@ -1,0 +1,54 @@
+{
+  "label": "2026-07-01",
+  "date": "2026-07-01",
+  "generated_at": "2026-07-01T22:09:48",
+  "count": 3,
+  "papers": [
+    {
+      "paper_id": "202607/01/2606.30840v1-contrastive-reflection-for-iterative-prompt-optimization",
+      "section": "deep",
+      "title_en": "Contrastive Reflection for Iterative Prompt Optimization",
+      "authors": "Derek Koh, Jinghui Mo, Benjamin H. Le, Jiening Zhan, Baofen Zheng, Kevin Bevis, Nathaniel C. Owen, Lauren Elizabeth Charney, Wenqiong Liu, Jingwei Wu",
+      "date": "2026-06-29",
+      "pdf": "https://arxiv.org/pdf/2606.30840v1",
+      "score": "9.0",
+      "evidence": "面向智能体信息检索的迭代提示优化框架",
+      "tldr": "LLM智能体在信息检索中广泛应用，但提示优化更像调试而非盲目搜索，需理解失败模式。Contrastive Reflection框架通过对比反思迭代优化提示，利用错误锚定切片与附近成功案例生成针对性编辑。在HotpotQA上，精确匹配准确率从51.4%提升至60.4%，且优于仅失败变体。该方法为IR智能体提供可解释、验证驱动的优化循环，提升调试效率。",
+      "tags": "query:prompt-learn",
+      "abstract_en": "LLM agents are becoming central to information retrieval: they issue retrieval queries, synthesize answers, and increasingly serve as judges for IR evaluation. Improving the prompts that control these agents is an optimization problem, but in applied IR settings it often looks less like blind search and more like debugging. Engineers need to know which behavior failed, which nearby behavior still worked, what distinguishes the two, and whether a prompt edit improves held-out quality without introducing regressions.   We present Contrastive Reflection, an iterative prompt-optimization framework for agentic IR workflows. The framework starts from a task-centric quality definition: QA agents expose retrieval or reasoning traces, and grading agents expose dimension-level scores and rationales. These structured traces are used to identify error-anchored behavioral slices, add nearby successful examples from the same region, and ask a Teacher LLM to propose a targeted prompt edit. Candidate edits are accepted only when validation performance improves, optionally subject to regression checks. We instantiate the framework with a tree-based slice selector, but the contribution is the contrastive reflection loop rather than the tree itself.   On a public HotpotQA retrieval-augmented QA setup, one tree-selected contrastive repair improves held-out exact-match accuracy from 51.4% to 60.4%. Failure-only and random-evidence variants improve less and break more previously correct examples. A light instruction-only comparison places the method near modern prompt optimizers: MIPROv2 reaches 59.4% and GEPA 57.0%. The result is an interpretable optimization loop for IR agents, aimed at making prompt repair more inspectable and validation-driven.",
+      "source": "arxiv",
+      "selection_source": "fresh_fetch"
+    },
+    {
+      "paper_id": "202607/01/2606.31587v1-zebra-zero-shot-entropy-regularized-prompt-learning-for-base-to-novel-generalization-in-audio-language-models",
+      "section": "deep",
+      "title_en": "ZEBRA: Zero-Shot Entropy-Regularized Prompt Learning for Base-to-Novel Generalization in Audio-Language Models",
+      "authors": "Asif Hanif, Mohammad Yaqub",
+      "date": "2026-06-30",
+      "pdf": "https://arxiv.org/pdf/2606.31587v1",
+      "score": "9.0",
+      "evidence": "熵正则化提示学习以改善音频语言模型基类到新类的泛化",
+      "tldr": "音频-语言模型通过提示学习提升基类性能，却损害新类零样本能力，造成泛化困境。提出ZEBRA框架，融合零样本与提示学习logits，利用自熵正则化抑制过拟合，强化新类泛化。多个音频分类基准实验表明，ZEBRA显著提高新类准确率，保持基类精度，大幅缩小泛化差距。该方法即插即用，为音频-语言模型的实际部署提供了可靠泛化方案。",
+      "tags": "query:prompt-learn",
+      "abstract_en": "Audio-Language Models (ALMs) achieve strong zero-shot performance by aligning audio with textual class descriptions. Although prompt learning improves accuracy on base classes through few-shot supervised adaptation, we observe a critical trade-off: it often degrades performance on novel classes, sometimes falling below zero-shot accuracy. This exposes a base-to-novel generalization gap in prompt learning for ALMs. To address this issue, we propose \\textbf{ZEBRA} (Zero-shot Entropy-Regularized Prompt Learning for Base-to-Novel Generalization), a plug-and-play framework that fuses zero-shot logits with prompt-learning logits, and employs self-entropy regularization to reduce overfitting to base classes. Experiments across multiple audio classification datasets show that ZEBRA consistently improves novel-class performance while maintaining strong base accuracy, significantly reducing the base-to-novel gap compared to standard prompt learning. The code is available at: https://github.com/asif-hanif/zebra.",
+      "source": "arxiv",
+      "selection_source": "fresh_fetch"
+    },
+    {
+      "paper_id": "202607/01/2606.28062v1-single-and-multi-truth-data-fusion-using-large-language-models",
+      "section": "deep",
+      "title_en": "Single and Multi Truth Data Fusion using Large Language Models",
+      "authors": "Hira Beril Kucuk, Norman W Paton, Jiaoyan Chen, Zhenyu Wu",
+      "date": "2026-06-26",
+      "pdf": "https://arxiv.org/pdf/2606.28062v1",
+      "score": "8.0",
+      "evidence": "研究多种提示策略（零样本、单样本、领域相关）用于大型语言模型的数据融合。",
+      "tldr": "数据融合任务要求从多个数据源给出的不一致值中推断出属性的真实值，分为单真值和多真值两类问题，现有无监督方法如DART和LTM精度不足。本文系统研究了大语言模型在表格数据融合任务中的表现，针对单真值与多真值两种子任务，设计了领域知识注入、领域无关、零样本以及单样本等多元化提示策略。在三个公开数据集上的实验结果显示，LLM驱动的方法全面超越这些传统基线。该工作不仅证实了大模型在真相发现中的优势，还开源了代码，为后续研究提供了坚实基础。",
+      "tags": "query:prompt-learn",
+      "abstract_en": "Data fusion, also known as truth discovery, is a data integration problem that aims to determine the correct value or set of values for each attribute of an object when presented with potentially conflicting values from multiple sources. Data fusion tasks belong to two main categories: single-truth scenarios, where each attribute has only one correct value, and multi-truth scenarios, where multiple values can be valid simultaneously. This paper investigates the use of Large Language Models (LLMs) in data fusion tasks for tabular data. Various prompting strategies, encompassing both single-truth and multi-truth scenarios, are investigated empirically. Domain-dependent, domain-independent, zero-shot and one-shot prompts are evaluated on three different benchmark datasets. Experimental results demonstrate that LLM-based approaches outperform traditional unsupervised truth discovery methods, such as DART and LTM, across all datasets. The codebase of this study has been made publicly available on GitHub.",
+      "source": "arxiv",
+      "selection_source": "fresh_fetch"
+    }
+  ],
+  "errors": []
+}

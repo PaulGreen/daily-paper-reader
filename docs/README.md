@@ -6,32 +6,37 @@
 </div>
 
 ## 每次日报
-- 最新运行日期：2026-07-01
-- 运行时间：2026-07-01 22:09:35 UTC
+- 最新运行日期：2026-07-02
+- 运行时间：2026-07-02 21:39:19 UTC
 - 运行状态：成功
-- 本次总论文数：3
-- 精读区：3
-- 速读区：0
+- 本次总论文数：5
+- 精读区：4
+- 速读区：1
 
 ### 今日简报（AI）
-今日精读两篇9分高分论文，聚焦提示词优化的深度反思机制与音频-语言模型的零样本泛化。  
-最值得关注：对比反思迭代能自动纠偏并显著提升大模型推理，而熵正则化零样本提示让音频模型无需重训练即可跨域分类。  
-建议从反思驱动的提示自动迭代入手，在多模态场景中尝试复现其反馈闭环效果。
-- 详情：[/202607/01/README](/202607/01/README)
+今日精选多模态缺失模态识别与提示词工程前沿论文，速览了公平性修复方法的复现报告。  
+最值得看：高可靠性潜在提示词学习为缺失模态视觉识别带来突破，单轮文本提示词分类体系则系统整理了设计模式。  
+若您从事多模态AI或提示词设计，今日这两篇精华值得细读，对模型鲁棒性与交互效率提升有直接启发。
+- 详情：[/202607/02/README](/202607/02/README)
 
 ### 精读区论文标签
-1. [Contrastive Reflection for Iterative Prompt Optimization](/202607/01/2606.30840v1-contrastive-reflection-for-iterative-prompt-optimization)  
+1. [Learning from Reliable Latent Prompts for Visual Recognition with Missing Modalities](/202607/02/2606.30597v1-learning-from-reliable-latent-prompts-for-visual-recognition-with-missing-modalities)  
    标签：评分：9.0/10、query:prompt-learn
-   evidence：面向智能体信息检索的迭代提示优化框架
-2. [ZEBRA: Zero-Shot Entropy-Regularized Prompt Learning for Base-to-Novel Generalization in Audio-Language Models](/202607/01/2606.31587v1-zebra-zero-shot-entropy-regularized-prompt-learning-for-base-to-novel-generalization-in-audio-language-models)  
+   evidence：缺失模态下用于视觉识别的潜在提示学习
+2. [A Taxonomy of Single-Turn Textual Prompt Patterns](/202607/02/2607.00043v1-a-taxonomy-of-single-turn-textual-prompt-patterns)  
    标签：评分：9.0/10、query:prompt-learn
-   evidence：熵正则化提示学习以改善音频语言模型基类到新类的泛化
-3. [Single and Multi Truth Data Fusion using Large Language Models](/202607/01/2606.28062v1-single-and-multi-truth-data-fusion-using-large-language-models)  
-   标签：评分：8.0/10、query:prompt-learn
-   evidence：研究多种提示策略（零样本、单样本、领域相关）用于大型语言模型的数据融合。
+   evidence：面向大语言模型的30种单轮文本提示模式分类法
+3. [BT-APE: A Computationally Light Backtracking Approach to Automatic Prompt Engineering for Requirements Classification](/202607/02/2607.00427v1-bt-ape-a-computationally-light-backtracking-approach-to-automatic-prompt-engineering-for-requirements-classification)  
+   标签：评分：9.0/10、query:prompt-learn
+   evidence：通过迭代优化自动提示工程
+4. [AdaBoosting Text Prompts for Vision-Language Models](/202607/02/2607.00684v1-adaboosting-text-prompts-for-vision-language-models)  
+   标签：评分：9.0/10、query:prompt-learn
+   evidence：通过AdaBoost优化离散文本提示用于少样本分类
 
 ### 速读区论文标签
-- 本次无速读推荐。
+1. [Reproducing FACTER: Fairness via Conformal Thresholding and Prompt Repair](/202607/02/2606.28620v1-reproducing-facter-fairness-via-conformal-thresholding-and-prompt-repair)  
+   标签：评分：6.0/10、query:prompt-learn
+   evidence：复现使用迭代提示修复的框架，一种自动提示优化技术
 
 
 <div class="dpr-home-promo-card">

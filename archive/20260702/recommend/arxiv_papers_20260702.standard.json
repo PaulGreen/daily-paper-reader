@@ -1,0 +1,204 @@
+{
+  "mode": "standard",
+  "generated_at": "2026-07-02T21:34:07.552635+00:00",
+  "stats": {
+    "mode": "standard",
+    "tag_count": 1,
+    "deep_divecandidates": 4,
+    "deep_cap": 6,
+    "deep_selected": 4,
+    "quick_candidates": 1,
+    "quick_skim_target": 11,
+    "quick_selected": 1
+  },
+  "deep_dive": [
+    {
+      "id": "2606.30597v1",
+      "source": "arxiv",
+      "title": "Learning from Reliable Latent Prompts for Visual Recognition with Missing Modalities",
+      "abstract": "Large-scale multimodal models (LMMs) have achieved superior performance in visual recognition by synergizing information across diverse, massive-scale paired modalities. In real-world scenarios, however, missing-modality inputs are ubiquitous, causing models optimized for modality-complete data to exhibit precipitous performance degradation. Existing research has introduced prompt learning to mitigate this issue, typically by generating dynamic prompts from instance-level features, regardless of whether the input modalities are complete or partially absent. However, such input-conditioned strategies are hindered by the escalating unreliability of instance-level features; as higher missing rates increase the proportion of incomplete modalities, the resulting instability in prompt learning limits the model's performance. To address this limitation, we hypothesize that learnable latent prompts themselves encapsulate stable, modality-intrinsic priors that are decoupled from corrupted inputs. Consequently, we propose a novel paradigm: Learning from Reliable Latent Prompts. Unlike prior methods, we model input-agnostic learnable prompts as stable latent anchors that enable robust guidance and effective cross-modal knowledge compensation, even under extreme missing rates (e.g., 90%). Empirical results across three benchmark datasets demonstrate that our \"learn-from-latent-prompts\" approach achieves state-of-the-art performance across a wide range of missing-modality scenarios. Extensive experiments further confirm the effectiveness of this paradigm in providing a robust solution to the missing-modality problem.",
+      "authors": [
+        "Taixi Chen",
+        "Nancy Guo"
+      ],
+      "primary_category": "cs.CV",
+      "categories": [
+        "cs.CV"
+      ],
+      "published": "2026-06-29T17:36:47+00:00",
+      "link": "https://arxiv.org/pdf/2606.30597v1",
+      "tags": [
+        "keyword:prompt-learn",
+        "query:prompt-learn"
+      ],
+      "llm_score": 9.0,
+      "llm_evidence_en": "latent prompt learning for visual recognition with missing modalities",
+      "llm_evidence_cn": "缺失模态下用于视觉识别的潜在提示学习",
+      "llm_evidence": "缺失模态下用于视觉识别的潜在提示学习",
+      "canonical_evidence": "缺失模态下用于视觉识别的潜在提示学习",
+      "llm_tldr_en": "To mitigate performance drop in multimodal models with missing modalities, this paper proposes learning reliable latent prompts from modality-complete data to guide visual recognition, addressing unreliability of instance-level features under high missing rates.",
+      "llm_tldr_cn": "针对多模态模型在处理缺失模态输入时性能严重下降的问题，本文提出从可靠潜在提示中学习的方法。通过从模态完整数据中学习连续提示向量，条件生成高质量提示，有效缓解高缺失率下示例特征不可靠带来的影响。实验表明该方法在多种缺失模态场景下提升了视觉识别精度，为鲁棒多模态学习提供了新思路。",
+      "llm_tldr": "针对多模态模型在处理缺失模态输入时性能严重下降的问题，本文提出从可靠潜在提示中学习的方法。通过从模态完整数据中学习连续提示向量，条件生成高质量提示，有效缓解高缺失率下示例特征不可靠带来的影响。实验表明该方法在多种缺失模态场景下提升了视觉识别精度，为鲁棒多模态学习提供了新思路。",
+      "llm_tags": [
+        "query:prompt-learn"
+      ],
+      "matched_query_tag": "query:prompt-learn",
+      "matched_query_text": "continuous vector representations used as prompts",
+      "matched_requirement_id": "req-1",
+      "selection_source": "fresh_fetch"
+    },
+    {
+      "id": "2607.00043v1",
+      "source": "arxiv",
+      "title": "A Taxonomy of Single-Turn Textual Prompt Patterns",
+      "abstract": "Large language models (LLMs) are now widely employed in software development and everyday use. Interacting with LLMs requires crafting prompts, which range from simple ad hoc sentences to extensive, detailed, and structured instructions. Knowledge about prompt engineering has been documented in several surveys and catalogs in the literature. However, the term ``prompt pattern'' is defined differently across sources, and existing works have classified prompt patterns in different ways. In this report, we present a taxonomy of prompt patterns for single-turn, text-based interactions. Following a reproducible method, we identified 30 unique and canonical prompt patterns, organized along two dimensions.",
+      "authors": [
+        "Vennila Sooben",
+        "Eugene Syriani"
+      ],
+      "primary_category": "cs.SE",
+      "categories": [
+        "cs.SE"
+      ],
+      "published": "2026-06-29T18:54:23+00:00",
+      "link": "https://arxiv.org/pdf/2607.00043v1",
+      "tags": [
+        "keyword:prompt-learn",
+        "query:prompt-learn"
+      ],
+      "llm_score": 9.0,
+      "llm_evidence_en": "Taxonomy of 30 canonical single-turn textual prompt patterns for LLMs",
+      "llm_evidence_cn": "面向大语言模型的30种单轮文本提示模式分类法",
+      "llm_evidence": "面向大语言模型的30种单轮文本提示模式分类法",
+      "canonical_evidence": "面向大语言模型的30种单轮文本提示模式分类法",
+      "llm_tldr_en": "This paper presents a taxonomy of 30 canonical prompt patterns for single-turn text interactions with LLMs, organized along two dimensions, providing a structured reference for discrete prompt design and guidance.",
+      "llm_tldr_cn": "该论文提出了一个面向大型语言模型的单轮文本交互提示模式分类法，通过可复现的方法识别出30种规范提示模式，并按两个维度进行组织。这一分类体系为理解离散提示的设计与引导模型行为提供了结构化参考。",
+      "llm_tldr": "该论文提出了一个面向大型语言模型的单轮文本交互提示模式分类法，通过可复现的方法识别出30种规范提示模式，并按两个维度进行组织。这一分类体系为理解离散提示的设计与引导模型行为提供了结构化参考。",
+      "llm_tags": [
+        "query:prompt-learn"
+      ],
+      "matched_query_tag": "query:prompt-learn",
+      "matched_query_text": "discrete natural language prompts for guiding models",
+      "matched_requirement_id": "req-2",
+      "selection_source": "fresh_fetch"
+    },
+    {
+      "id": "2607.00427v1",
+      "source": "arxiv",
+      "title": "BT-APE: A Computationally Light Backtracking Approach to Automatic Prompt Engineering for Requirements Classification",
+      "abstract": "Large language models (LLMs) are increasingly applied to requirements engineering (RE) tasks, yet the prompts guiding them are typically designed manually through trial and error, yielding inconsistent and suboptimal results. Automated prompt construction remains largely unexplored in RE, leaving its effectiveness unclear. To address this, we propose a lightweight Automatic Prompt Engineering approach, Backtracking APE (BT-APE), and apply it to requirements classification. We frame prompt design as an optimization problem, iteratively refining prompts via LLM-generated candidates, backtracking search, and dynamic example selection. Evaluating BT-APE on three benchmark datasets with five instruction-tuned LLMs, we compare it against four classical prompting baselines (zero-shot, few-shot, chain-of-thought, CoT+few-shot) and a state-of-the-art but resource-intensive APE baseline (PE2). BT-APE and PE2 achieve nearly identical accuracy, both substantially outperforming the classical baselines with large effect sizes; however, BT-APE imposes a far lighter computational footprint, consuming roughly 72% fewer input tokens and 66% less wall-clock time at equivalent accuracy, making it better suited to resource-constrained deployment. Our contributions are threefold: (i) a lightweight APE framework with an open interactive tool and replication package; (ii) the first systematic comparison of APE against classical prompting for requirements classification; and (iii) insights into how class definitions and prompt evolution affect performance.",
+      "authors": [
+        "Mohammad Amin Zadenoori",
+        "Waad Alhoshan",
+        "Jacek Dąbrowski",
+        "Liping Zhao",
+        "Alessio Ferrari"
+      ],
+      "primary_category": "cs.SE",
+      "categories": [
+        "cs.SE"
+      ],
+      "published": "2026-07-01T04:36:30+00:00",
+      "link": "https://arxiv.org/pdf/2607.00427v1",
+      "tags": [
+        "keyword:prompt-learn",
+        "query:prompt-learn"
+      ],
+      "llm_score": 9.0,
+      "llm_evidence_en": "automated prompt engineering via iterative refinement",
+      "llm_evidence_cn": "通过迭代优化自动提示工程",
+      "llm_evidence": "通过迭代优化自动提示工程",
+      "canonical_evidence": "通过迭代优化自动提示工程",
+      "llm_tldr_en": "BT-APE automatically optimizes discrete prompts for requirements classification using LLM-generated candidates, backtracking search, and dynamic example selection, achieving consistent improvements over manual prompts.",
+      "llm_tldr_cn": "针对需求分类中人工提示设计不一致且次优的问题，BT-APE提出一种轻量级自动提示工程方法，将提示构建视为优化问题，利用LLM生成候选、回溯搜索和动态示例选择迭代改进。在三个数据集上的实验表明，该方法能持续提升分类性能，证明了自动提示工程在需求工程中的有效性。",
+      "llm_tldr": "针对需求分类中人工提示设计不一致且次优的问题，BT-APE提出一种轻量级自动提示工程方法，将提示构建视为优化问题，利用LLM生成候选、回溯搜索和动态示例选择迭代改进。在三个数据集上的实验表明，该方法能持续提升分类性能，证明了自动提示工程在需求工程中的有效性。",
+      "llm_tags": [
+        "query:prompt-learn"
+      ],
+      "matched_query_tag": "query:prompt-learn",
+      "matched_query_text": "Techniques for automatic prompt generation in natural language processing",
+      "matched_requirement_id": "req-10",
+      "selection_source": "fresh_fetch"
+    },
+    {
+      "id": "2607.00684v1",
+      "source": "arxiv",
+      "title": "AdaBoosting Text Prompts for Vision-Language Models",
+      "abstract": "The classification accuracy of pretrained Vision-Language Models (VLMs) relies on the quality of the text prompts. Handcrafted templates and Large Language Model (LLM)-generated descriptions not only make predictions more interpretable, but also enable reuse of the same prompts across heterogeneous VLMs. Recent works construct task-adapted text prompts with a small number of labeled images. However, existing few-shot text prompting methods do not explicitly focus on misclassified examples during prompt construction, leading to only marginal improvements even as more shots become available. To fully exploit few-shot supervision, we propose Text Prompt Boosting (TPB), an AdaBoost-inspired framework that treats each text-prompt-based classifier as a weak learner and sequentially aggregates them into a strong ensemble by explicitly targeting hard, misclassified examples. Extensive experiments show that TPB preserves task-intrinsic, model-agnostic cues in text space, enabling robust cross-model transfer. Across eleven classification benchmarks, TPB improves accuracy on the source model and preserves shot-driven gains when transferred to larger, more capable VLMs, where existing methods struggle to sustain such improvements.",
+      "authors": [
+        "Seokhee Jin",
+        "Changhwan Sung",
+        "Sunung Mun",
+        "Hoyoung Kim",
+        "Jungseul Ok"
+      ],
+      "primary_category": "cs.LG",
+      "categories": [
+        "cs.LG"
+      ],
+      "published": "2026-07-01T09:28:55+00:00",
+      "link": "https://arxiv.org/pdf/2607.00684v1",
+      "tags": [
+        "keyword:prompt-learn",
+        "query:prompt-learn"
+      ],
+      "llm_score": 9.0,
+      "llm_evidence_en": "optimizing discrete text prompts via boosting for few-shot classification",
+      "llm_evidence_cn": "通过AdaBoost优化离散文本提示用于少样本分类",
+      "llm_evidence": "通过AdaBoost优化离散文本提示用于少样本分类",
+      "canonical_evidence": "通过AdaBoost优化离散文本提示用于少样本分类",
+      "llm_tldr_en": "Proposes Text Prompt Boosting, an AdaBoost-inspired method that treats text-prompt classifiers as weak learners and iteratively refines them to focus on misclassified examples for few-shot classification.",
+      "llm_tldr_cn": "针对现有少样本文本提示方法未聚焦错误样本的局限，提出提示增强方法，将文本提示分类器视为弱学习器，通过迭代重加权逐步优化提示，提升少样本分类性能。实验表明，该方法在多个视觉-语言模型上优于固定模板和LLM生成提示。",
+      "llm_tldr": "针对现有少样本文本提示方法未聚焦错误样本的局限，提出提示增强方法，将文本提示分类器视为弱学习器，通过迭代重加权逐步优化提示，提升少样本分类性能。实验表明，该方法在多个视觉-语言模型上优于固定模板和LLM生成提示。",
+      "llm_tags": [
+        "query:prompt-learn"
+      ],
+      "matched_query_tag": "query:prompt-learn",
+      "matched_query_text": "How to optimize discrete prompts for few shot classification?",
+      "matched_requirement_id": "req-8",
+      "selection_source": "fresh_fetch"
+    }
+  ],
+  "quick_skim": [
+    {
+      "id": "2606.28620v1",
+      "source": "arxiv",
+      "title": "Reproducing FACTER: Fairness via Conformal Thresholding and Prompt Repair",
+      "abstract": "Fayyazi et al. (2025) recently proposed FACTER, a model-agnostic framework designed to jointly enforce fairness and statistical coverage in LLM-based recommendation through conformal thresholding and iterative prompt repair. In this work, we conduct a reproducibility study of the FACTER framework across diverse architectures and dataset sparsity levels, evaluating both the original open-ended generation task and a constrained re-ranking extension. Under the strict reproduction, we observe a divergence in recommendation utility, which we trace to underspecified target-set evaluation in the original study. We then use the constrained re-ranking setting to evaluate FACTER when the candidate set is fixed, and introduce a static Fair Zero-Shot baseline to isolate the contribution of the iterative prompt repair loop. Our analysis shows that FACTER consistently reduces adaptive-threshold violation counts, but that these reductions are not consistently reflected under the fixed threshold or in global fairness metrics. In the constrained ranking setting, static fairness instructions achieve comparable semantic-parity outcomes to FACTER's dynamic repair loop, suggesting that the additional online repair mechanism provides limited benefit in this formulation. All code and reproduction artifacts are available at https://github.com/oscar-omlf/facter-repr.",
+      "authors": [
+        "Oscar Miró López-Feliu",
+        "Daimy van Loo",
+        "Xanthos Kekkos",
+        "Mikel Blom",
+        "Clara Rus"
+      ],
+      "primary_category": "cs.IR",
+      "categories": [
+        "cs.IR",
+        "cs.CY",
+        "cs.LG"
+      ],
+      "published": "2026-06-26T21:37:01+00:00",
+      "link": "https://arxiv.org/pdf/2606.28620v1",
+      "tags": [
+        "keyword:prompt-learn"
+      ],
+      "llm_score": 6.0,
+      "llm_evidence_en": "reproduces framework with iterative prompt repair, an automatic prompt refinement technique",
+      "llm_evidence_cn": "复现使用迭代提示修复的框架，一种自动提示优化技术",
+      "llm_evidence": "复现使用迭代提示修复的框架，一种自动提示优化技术",
+      "canonical_evidence": "复现使用迭代提示修复的框架，一种自动提示优化技术",
+      "llm_tldr_en": "Reproduces FACTER, a framework that jointly enforces fairness and coverage via conformal thresholding and iterative prompt repair, evaluating its robustness across architectures and sparsity levels.",
+      "llm_tldr_cn": "复现了FACTER框架，该框架通过保形阈值处理和迭代提示修复来联合实现公平性和统计覆盖，评估了其在多架构和稀疏度下的表现，并引入了静态公平零样本基线。",
+      "llm_tldr": "复现了FACTER框架，该框架通过保形阈值处理和迭代提示修复来联合实现公平性和统计覆盖，评估了其在多架构和稀疏度下的表现，并引入了静态公平零样本基线。",
+      "llm_tags": [
+        "query:prompt-learn"
+      ],
+      "matched_query_tag": "query:prompt-learn",
+      "matched_query_text": "Techniques for automatic prompt generation in natural language processing",
+      "matched_requirement_id": "req-10",
+      "selection_source": "fresh_fetch",
+      "quick_tier": "6"
+    }
+  ]
+}

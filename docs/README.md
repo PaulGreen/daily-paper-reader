@@ -6,37 +6,35 @@
 </div>
 
 ## 每次日报
-- 最新运行日期：2026-07-02
-- 运行时间：2026-07-02 21:39:19 UTC
+- 最新运行日期：2026-07-03
+- 运行时间：2026-07-03 20:23:13 UTC
 - 运行状态：成功
 - 本次总论文数：5
 - 精读区：4
 - 速读区：1
 
 ### 今日简报（AI）
-今日精选多模态缺失模态识别与提示词工程前沿论文，速览了公平性修复方法的复现报告。  
-最值得看：高可靠性潜在提示词学习为缺失模态视觉识别带来突破，单轮文本提示词分类体系则系统整理了设计模式。  
-若您从事多模态AI或提示词设计，今日这两篇精华值得细读，对模型鲁棒性与交互效率提升有直接启发。
-- 详情：[/202607/02/README](/202607/02/README)
+今日研读5篇前沿论文，精读聚焦表格上下文学习的FlexTab和高效Transformer域泛化的Ghost in the Kernel两篇高分研究。最有价值的方向：FlexTab用统一编解码架构灵活处理各类表格任务，Ghost in the Kernel则证明了轻量模型也能通过域泛化获得强劲的上下文学习能力。建议关注二者结合的可能性，进一步探索高效模型在结构化数据上的少样本应用。
+- 详情：[/202607/03/README](/202607/03/README)
 
 ### 精读区论文标签
-1. [Learning from Reliable Latent Prompts for Visual Recognition with Missing Modalities](/202607/02/2606.30597v1-learning-from-reliable-latent-prompts-for-visual-recognition-with-missing-modalities)  
+1. [FlexTab: A Flexible Encoder-Decoder Architecture for In-Context Learning Across Diverse Tabular Tasks](/202607/03/2606.30336v2-flextab-a-flexible-encoder-decoder-architecture-for-in-context-learning-across-diverse-tabular-tasks)  
    标签：评分：9.0/10、query:prompt-learn
-   evidence：缺失模态下用于视觉识别的潜在提示学习
-2. [A Taxonomy of Single-Turn Textual Prompt Patterns](/202607/02/2607.00043v1-a-taxonomy-of-single-turn-textual-prompt-patterns)  
+   evidence：表格数据上的上下文学习方法（基于提示中的演示）
+2. [Ghost in the Kernel: In-Context Learning with Efficient Transformers via Domain Generalization](/202607/03/2607.00479v1-ghost-in-the-kernel-in-context-learning-with-efficient-transformers-via-domain-generalization)  
    标签：评分：9.0/10、query:prompt-learn
-   evidence：面向大语言模型的30种单轮文本提示模式分类法
-3. [BT-APE: A Computationally Light Backtracking Approach to Automatic Prompt Engineering for Requirements Classification](/202607/02/2607.00427v1-bt-ape-a-computationally-light-backtracking-approach-to-automatic-prompt-engineering-for-requirements-classification)  
-   标签：评分：9.0/10、query:prompt-learn
-   evidence：通过迭代优化自动提示工程
-4. [AdaBoosting Text Prompts for Vision-Language Models](/202607/02/2607.00684v1-adaboosting-text-prompts-for-vision-language-models)  
-   标签：评分：9.0/10、query:prompt-learn
-   evidence：通过AdaBoost优化离散文本提示用于少样本分类
+   evidence：研究线性Transformer的上下文学习以支持领域泛化
+3. [Causal Connections: Leveraging Multilingual Fine-Tuning for Financial QA@FinCausal 2026](/202607/03/2606.27446v1-causal-connections-leveraging-multilingual-fine-tuning-for-financial-qafincausal-2026)  
+   标签：评分：8.0/10、query:prompt-learn
+   evidence：使用少样本示例和提示优化进行金融问答
+4. [FlexTab: A Flexible Encoder-Decoder Architecture for In-Context Learning Across Diverse Tabular Tasks](/202607/03/2606.30336v1-flextab-a-flexible-encoder-decoder-architecture-for-in-context-learning-across-diverse-tabular-tasks)  
+   标签：评分：8.0/10、query:prompt-learn
+   evidence：提出编码器-解码器架构，在表格数据的上下文学习中利用提示中的演示
 
 ### 速读区论文标签
-1. [Reproducing FACTER: Fairness via Conformal Thresholding and Prompt Repair](/202607/02/2606.28620v1-reproducing-facter-fairness-via-conformal-thresholding-and-prompt-repair)  
+1. [PARTREP: Learning What to Repeat for Decoder-only LLMs](/202607/03/2607.01792v1-partrep-learning-what-to-repeat-for-decoder-only-llms)  
    标签：评分：6.0/10、query:prompt-learn
-   evidence：复现使用迭代提示修复的框架，一种自动提示优化技术
+   evidence：选择性提示重复以提升推理性能
 
 
 <div class="dpr-home-promo-card">

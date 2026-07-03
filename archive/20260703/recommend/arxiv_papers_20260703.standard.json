@@ -1,0 +1,205 @@
+{
+  "mode": "standard",
+  "generated_at": "2026-07-03T20:17:11.906708+00:00",
+  "stats": {
+    "mode": "standard",
+    "tag_count": 1,
+    "deep_divecandidates": 4,
+    "deep_cap": 6,
+    "deep_selected": 4,
+    "quick_candidates": 1,
+    "quick_skim_target": 11,
+    "quick_selected": 1
+  },
+  "deep_dive": [
+    {
+      "id": "2606.30336v2",
+      "source": "arxiv",
+      "title": "FlexTab: A Flexible Encoder-Decoder Architecture for In-Context Learning Across Diverse Tabular Tasks",
+      "abstract": "We introduce FlexTab, a flexible encoder-decoder architecture for in-context learning on tabular data that pairs a single, task-agnostic encoder with a suite of task-specific decoders. Unlike existing tabular in-context learners, which entangle feature representations with a specific prediction target, our design produces target-agnostic row embeddings that can be leveraged across a wide range of downstream tasks within a table-native in-context learning setup. We demonstrate this flexibility on six distinct problems: classification, regression, anomaly detection, clustering, entity matching, and entity classification in relational databases. Both the encoder and the task-specific decoders are trained on a large corpus of real-world, unlabeled tables. FlexTab achieves state-of-the-art performance on classification, regression, anomaly detection and entity matching, while remaining competitive with specialized models on entity classification in a relational setting. These results demonstrate that a single shared encoder, paired with task-specific decoders, can serve as an effective general-purpose backbone for diverse tabular prediction problems. The inference code and checkpoints will be made publicly available at https://github.com/SAP-samples/flextab.",
+      "authors": [
+        "Marek Polewczyk",
+        "Maximilian Schambach",
+        "Marco Spinaci",
+        "Sam Thelin",
+        "Johannes Höhne"
+      ],
+      "primary_category": "cs.LG",
+      "categories": [
+        "cs.LG"
+      ],
+      "published": "2026-06-29T14:14:34+00:00",
+      "link": "https://arxiv.org/pdf/2606.30336v2",
+      "tags": [
+        "keyword:prompt-learn",
+        "query:prompt-learn"
+      ],
+      "llm_score": 9.0,
+      "llm_evidence_en": "in-context learning on tabular data for demonstrations",
+      "llm_evidence_cn": "表格数据上的上下文学习方法（基于提示中的演示）",
+      "llm_evidence": "表格数据上的上下文学习方法（基于提示中的演示）",
+      "canonical_evidence": "表格数据上的上下文学习方法（基于提示中的演示）",
+      "llm_tldr_en": "FlexTab introduces a flexible encoder-decoder architecture for in-context learning on tabular data, producing task-agnostic row embeddings that can be leveraged across multiple downstream tasks, demonstrated on six diverse problems.",
+      "llm_tldr_cn": "现有表格上下文学习模型将特征表示与特定预测目标纠缠，限制了多任务灵活性。FlexTab采用任务无关编码器与任务特定解码器，生成目标无关的行嵌入，可在分类、回归、异常检测等六种任务上实现统一上下文学习。实验在大规模表格语料上训练并验证了该方法的多任务适应能力，为表格数据的上下文学习提供了灵活通用的框架。",
+      "llm_tldr": "现有表格上下文学习模型将特征表示与特定预测目标纠缠，限制了多任务灵活性。FlexTab采用任务无关编码器与任务特定解码器，生成目标无关的行嵌入，可在分类、回归、异常检测等六种任务上实现统一上下文学习。实验在大规模表格语料上训练并验证了该方法的多任务适应能力，为表格数据的上下文学习提供了灵活通用的框架。",
+      "llm_tags": [
+        "query:prompt-learn"
+      ],
+      "matched_query_tag": "query:prompt-learn",
+      "matched_query_text": "learning from demonstrations provided in the prompt context",
+      "matched_requirement_id": "req-3",
+      "selection_source": "fresh_fetch"
+    },
+    {
+      "id": "2607.00479v1",
+      "source": "arxiv",
+      "title": "Ghost in the Kernel: In-Context Learning with Efficient Transformers via Domain Generalization",
+      "abstract": "Transformer-based large models have demonstrated remarkable generalization abilities across different tasks by leveraging a context-aware attention module for in-context learning. With richer context, transformers adapt more effectively to the current use case without any parameter updates. However, the quadratic computational and memory complexity with respect to context length significantly slows data processing in softmax transformers. Linear transformers were proposed to address this issue by reducing the complexity to linear dependence on context length, but the design and understanding of the feature mapping in linear attention, from a theoretical viewpoint, remain unclear. In this paper, we investigate the approximation and generalization abilities of linear transformers under a two-staged sampling process from domain generalization. We show that linear transformers perform in-context learning as learning a mapping from context distributions to response functions. A dimension-independent convergence rate is obtained for our generalization analysis, which also exhibits the tradeoff between the regularities of data distributions and latent features. Guided by our theoretical framework, we propose a new perspective on activation and loss design for linearizing pretrained softmax large language models.",
+      "authors": [
+        "Peilin Liu",
+        "Ding-Xuan Zhou"
+      ],
+      "primary_category": "cs.LG",
+      "categories": [
+        "cs.LG",
+        "stat.ML"
+      ],
+      "published": "2026-07-01T06:03:14+00:00",
+      "link": "https://arxiv.org/pdf/2607.00479v1",
+      "tags": [
+        "keyword:prompt-learn",
+        "query:prompt-learn"
+      ],
+      "llm_score": 9.0,
+      "llm_evidence_en": "investigates in-context learning with linear transformers for domain generalization",
+      "llm_evidence_cn": "研究线性Transformer的上下文学习以支持领域泛化",
+      "llm_evidence": "研究线性Transformer的上下文学习以支持领域泛化",
+      "canonical_evidence": "研究线性Transformer的上下文学习以支持领域泛化",
+      "llm_tldr_en": "Studies the approximation and generalization of in-context learning in efficient transformers, focusing on linear attention for domain generalization. Provides theoretical insights into how context enables prompt-based few-shot adaptation.",
+      "llm_tldr_cn": "该论文针对经典Transformer在上下文学习中计算复杂度高的问题，深入研究了线性Transformer用于上下文学习时的近似能力和领域泛化性能。通过理论分析揭示了线性注意力如何实现基于提示的快速适应，并考察了不同特征映射的作用。实验结果表明，适当设计特征映射可显著提升上下文学习效率，为构建高效提示学习方法提供了理论依据和实践方向。此外，该研究还探讨了领域泛化背景下上下文学习与提示学习的关联，为未来工作奠定了坚实基础。",
+      "llm_tldr": "该论文针对经典Transformer在上下文学习中计算复杂度高的问题，深入研究了线性Transformer用于上下文学习时的近似能力和领域泛化性能。通过理论分析揭示了线性注意力如何实现基于提示的快速适应，并考察了不同特征映射的作用。实验结果表明，适当设计特征映射可显著提升上下文学习效率，为构建高效提示学习方法提供了理论依据和实践方向。此外，该研究还探讨了领域泛化背景下上下文学习与提示学习的关联，为未来工作奠定了坚实基础。",
+      "llm_tags": [
+        "query:prompt-learn"
+      ],
+      "matched_query_tag": "query:prompt-learn",
+      "matched_query_text": "learning from demonstrations provided in the prompt context",
+      "matched_requirement_id": "req-3",
+      "selection_source": "fresh_fetch"
+    },
+    {
+      "id": "2606.27446v1",
+      "source": "arxiv",
+      "title": "Causal Connections: Leveraging Multilingual Fine-Tuning for Financial QA@FinCausal 2026",
+      "abstract": "This paper describes team HSA_CORAL's submission to the FinCausal 2026 shared task on extracting cause-effect relations from financial narratives via extractive question answering in English and Spanish. We compare three modeling families: (i) encoder-only token tagging with multilingual BERT, (ii) encoder-decoder generation with multilingual BART, and (iii) decoder-only LLMs (Llama 3.1 and GPT variants) using prompt refinement, few-shot demonstrations, and supervised fine-tuning. Across settings, prompting and few-shot examples yield competitive performance, while supervised fine-tuning provides the largest gains. Our best system, GPT-4.1 Mini fine-tuned on combined English and Spanish training data, achieves a tied highest score on the English subtask (score 4.8140) and ranks third on Spanish (score 4.7753) under the shared task's LLM-as-a-judge metric. Overall, the results highlight the value of task-specific adaptation and multilingual fine-tuning for cross-lingual transfer in financial causality QA.",
+      "authors": [
+        "Akash Kumar Gautam",
+        "Serhii Hamotskyi",
+        "Christian Hänig"
+      ],
+      "primary_category": "cs.CL",
+      "categories": [
+        "cs.CL"
+      ],
+      "published": "2026-06-25T18:17:04+00:00",
+      "link": "https://arxiv.org/pdf/2606.27446v1",
+      "tags": [
+        "keyword:prompt-learn",
+        "query:prompt-learn"
+      ],
+      "llm_score": 8.0,
+      "llm_evidence_en": "Uses few-shot demonstrations and prompt refinement for financial QA",
+      "llm_evidence_cn": "使用少样本示例和提示优化进行金融问答",
+      "llm_evidence": "使用少样本示例和提示优化进行金融问答",
+      "canonical_evidence": "使用少样本示例和提示优化进行金融问答",
+      "llm_tldr_en": "This paper compares prompted methods with few-shot examples and fine-tuning for financial causal relation extraction, showing competitive performance.",
+      "llm_tldr_cn": "本文针对金融因果抽取任务，比较了提示微调、少样本示例和监督微调三种方法，发现提示和少样本示例具有竞争力，而微调收益最大。",
+      "llm_tldr": "本文针对金融因果抽取任务，比较了提示微调、少样本示例和监督微调三种方法，发现提示和少样本示例具有竞争力，而微调收益最大。",
+      "llm_tags": [
+        "query:prompt-learn"
+      ],
+      "matched_query_tag": "query:prompt-learn",
+      "matched_query_text": "providing a few examples in the prompt to adapt model behavior",
+      "matched_requirement_id": "req-4",
+      "selection_source": "fresh_fetch"
+    },
+    {
+      "id": "2606.30336v1",
+      "source": "arxiv",
+      "title": "FlexTab: A Flexible Encoder-Decoder Architecture for In-Context Learning Across Diverse Tabular Tasks",
+      "abstract": "We introduce FlexTab, a flexible encoder-decoder architecture for in-context learning on tabular data that pairs a single, task-agnostic encoder with a suite of task-specific decoders. Unlike existing tabular in-context learners, which entangle feature representations with a specific prediction target, our design produces \\textit{target-agnostic} row embeddings that can be leveraged across a wide range of downstream tasks within a table-native in-context learning setup. We demonstrate this flexibility on six distinct problems: classification, regression, anomaly detection, clustering, entity matching, and entity classification in relational databases. Both the encoder and the task-specific decoders are trained on a large corpus of real-world, unlabeled tables. FlexTab achieves state-of-the-art performance on classification, regression, anomaly detection and entity matching, while remaining competitive with specialized models on entity classification in a relational setting. These results demonstrate that a single shared encoder, paired with task-specific decoders, can serve as an effective general-purpose backbone for diverse tabular prediction problems. The inference code and checkpoints will be made publicly available at https://github.com/SAP-samples/flextab.",
+      "authors": [
+        "Marek Polewczyk",
+        "Maximilian Schambach",
+        "Marco Spinaci",
+        "Sam Thelin",
+        "Johannes Höhne"
+      ],
+      "primary_category": "cs.LG",
+      "categories": [
+        "cs.LG"
+      ],
+      "published": "2026-06-29T14:14:34+00:00",
+      "link": "https://arxiv.org/pdf/2606.30336v1",
+      "tags": [
+        "keyword:prompt-learn",
+        "query:prompt-learn"
+      ],
+      "llm_score": 8.0,
+      "llm_evidence_en": "proposes an encoder-decoder architecture for in-context learning on tabular data using demonstrations in the prompt",
+      "llm_evidence_cn": "提出编码器-解码器架构，在表格数据的上下文学习中利用提示中的演示",
+      "llm_evidence": "提出编码器-解码器架构，在表格数据的上下文学习中利用提示中的演示",
+      "canonical_evidence": "提出编码器-解码器架构，在表格数据的上下文学习中利用提示中的演示",
+      "llm_tldr_en": "FlexTab uses a task-agnostic encoder and task-specific decoders to enable in-context learning on tabular data, leveraging demonstrations in the prompt to adapt to new tasks.",
+      "llm_tldr_cn": "FlexTab 针对表格数据上下文学习中特征表示与特定预测目标纠缠的问题，提出一种灵活编码器-解码器架构。该架构使用任务无关编码器生成目标无关的行嵌入，结合任务特定解码器，在提示中利用演示适应多种下游任务，在分类、回归、异常检测等六个任务上验证了灵活性和有效性，为表格数据的高效上下文学习提供了通用框架。",
+      "llm_tldr": "FlexTab 针对表格数据上下文学习中特征表示与特定预测目标纠缠的问题，提出一种灵活编码器-解码器架构。该架构使用任务无关编码器生成目标无关的行嵌入，结合任务特定解码器，在提示中利用演示适应多种下游任务，在分类、回归、异常检测等六个任务上验证了灵活性和有效性，为表格数据的高效上下文学习提供了通用框架。",
+      "llm_tags": [
+        "query:prompt-learn"
+      ],
+      "matched_query_tag": "query:prompt-learn",
+      "matched_query_text": "learning from demonstrations provided in the prompt context",
+      "matched_requirement_id": "req-3",
+      "selection_source": "fresh_fetch"
+    }
+  ],
+  "quick_skim": [
+    {
+      "id": "2607.01792v1",
+      "source": "arxiv",
+      "title": "PARTREP: Learning What to Repeat for Decoder-only LLMs",
+      "abstract": "While decoder-only LLMs excel at a vast array of natural language tasks, it suffers from an asymmetric information flow induced by causal attention: later tokens are richer in contextual grounding than earlier ones. A simple and effective remedy is prompt repetition -- just appending a second copy of prompt before generation can redistribute grounding across positions and improve reasoning performance. However, full repetition of the original prompt doubles the KV cache footprint and quadruples attention cost during prefill, making it impractical for long-context settings. We propose PartRep, a selective augmentation method that appends only the most informative tokens -- rather than the entire prompt. We use token-wise negative log-likelihood (NLL) as a selection signal, motivated by the hypothesis that less predictable tokens are less recoverable from surrounding context and therefore benefit more from late-position repetition. To avoid the heavy cost of a full forward pass for scoring, we train a lightweight gate that predicts high-NLL tokens from early-layer hidden states, enabling token selection during mid-prefill via early exit. Across eight benchmarks (including MMLU, GSM8K, and RULER) and three model families (Qwen2.5, Llama3.2, Gemma4), PartRep retains most of the gains of full repetition while using only 59.4\\% of its KV cache and 79.0\\% of its prefill FLOPs.",
+      "authors": [
+        "Andikawati P Widjaja",
+        "Yongjun Kim",
+        "Hyounghun Kim",
+        "Jaeho Lee"
+      ],
+      "primary_category": "cs.CL",
+      "categories": [
+        "cs.CL",
+        "cs.LG"
+      ],
+      "published": "2026-07-02T07:07:28+00:00",
+      "link": "https://arxiv.org/pdf/2607.01792v1",
+      "tags": [
+        "keyword:prompt-learn",
+        "query:prompt-learn"
+      ],
+      "llm_score": 6.0,
+      "llm_evidence_en": "prompt repetition with selective information to improve reasoning",
+      "llm_evidence_cn": "选择性提示重复以提升推理性能",
+      "llm_evidence": "选择性提示重复以提升推理性能",
+      "canonical_evidence": "选择性提示重复以提升推理性能",
+      "llm_tldr_en": "PartRep addresses the asymmetric information flow in decoder-only LLMs by selectively repeating only the most informative prompt tokens, reducing KV cache overhead while maintaining reasoning performance.",
+      "llm_tldr_cn": "解码器LLM因因果注意力导致提示中靠后位置信息更丰富，提示重复虽能改善推理但计算开销大。PartRep提出选择性地仅重复信息量最大的标记来增强提示，使用负对数似然作为选择信号，在保持推理性能的同时大幅减少KV缓存和注意力成本。实验表明该方法在长上下文设置下近似完整重复效果，为高效提示增强提供了实用方案。",
+      "llm_tldr": "解码器LLM因因果注意力导致提示中靠后位置信息更丰富，提示重复虽能改善推理但计算开销大。PartRep提出选择性地仅重复信息量最大的标记来增强提示，使用负对数似然作为选择信号，在保持推理性能的同时大幅减少KV缓存和注意力成本。实验表明该方法在长上下文设置下近似完整重复效果，为高效提示增强提供了实用方案。",
+      "llm_tags": [
+        "query:prompt-learn:composite"
+      ],
+      "matched_query_tag": "query:prompt-learn:composite",
+      "matched_query_text": "Papers central to 提示词学习相关研究, especially work that connects or combines: continuous vector representations used as prompts; discrete natural language prompts for guiding models; learning from demonstrations provided in the prompt context; providing a few examples in the prompt to adapt model behavior; using prompts without any task-specific examples; gradient-based tuning of continuous prompt embeddings; What are the latest advances in prompt learning for large language models?; How to optimize discrete prompts for few shot classification?; Comparison between soft prompt tuning and prefix tuning methods; Techniques for automatic prompt generation in natural language processing.",
+      "matched_requirement_id": "req-composite-prompt-learn",
+      "selection_source": "fresh_fetch",
+      "quick_tier": "6"
+    }
+  ]
+}

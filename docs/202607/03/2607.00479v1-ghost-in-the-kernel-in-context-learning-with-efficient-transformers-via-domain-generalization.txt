@@ -1,0 +1,7295 @@
+Ghost in the Kernel: In-Context Learning with
+Eﬀicient Transformers via Domain Generalization
+Peilin Liu 1∗
+Ding-Xuan Zhou1†
+1School of Mathematics and Statistics, University of Sydney, NSW Australia
+Abstract
+Transformer-based large models have demonstrated remarkable generalization abilities across dif-
+ferent tasks by leveraging a context-aware attention module for in-context learning. With richer
+context, transformers adapt more effectively to the current use case without any parameter up-
+dates. However, the quadratic computational and memory complexity with respect to context
+length significantly slows data processing in softmax transformers. Linear transformers were pro-
+posed to address this issue by reducing the complexity to linear dependence on context length,
+but the design and understanding of the feature mapping in linear attention, from a theoretical
+viewpoint, remain unclear. In this paper, we investigate the approximation and generalization
+abilities of linear transformers under a two-staged sampling process from domain generalization.
+We show that linear transformers perform in-context learning as learning a mapping from context
+distributions to response functions. A dimension-independent convergence rate is obtained for our
+generalization analysis, which also exhibits the tradeoff between the regularities of data distribu-
+tions and latent features. Guided by our theoretical framework, we propose a new perspective on
+activation and loss design for linearizing pretrained softmax large language models.
+Keywords:
+in-context learning, operator learning, eﬀicient transformer, linear attention, gener-
+alization analysis
+1 Introduction
+Transformer-based neural networks have become the foundation of modern deep learning frameworks
+for natural language processing [6, 12] and computer vision [17, 31]. Especially when trained with
+large and diverse corpora, transformers exhibit remarkable few/zero-shot generalization capabili-
+ties across various downstream tasks [6]. An underlying mechanism for this behavior is in-context
+learning, in which pretrained large language models (LLMs) condition on instructions or a few
+input-output pairs (both referred to as prompts) and make predictions on test examples without
+parameter updates. Many theoretical and empirical studies [1, 15, 48, 55] have demonstrated that
+the emergence of in-context learning capability is closely related with the context-aware structure
+of the attention mechanism [see 46] which enables each token in a sequence to adaptively weight
+information from all other tokens and to produce a representation conditioned on the sequence
+context.
+However, the original softmax attention mechanism in Vaswani et al. [46] is a double-edged sword:
+while it is beneficial for context-based representation learning, it suffers from quadratic computa-
+tional complexity with respect to the context length [see 52]. As context length grows dramatically,
+the quadratic computational and memory costs of the standard attention increasingly hinder autore-
+gressive training and inference, undermining LLM performance in long-context modeling scenarios
+∗. Email: peilin.6liu@gmail.com
+†. Email: dingxuan.zhou@sydney.edu.au
+1
+arXiv:2607.00479v1  [cs.LG]  1 Jul 2026
+
+
+such as processing entire codebases, preserving coherence in long conversations and performing in-
+depth reasoning across several documents. Therefore, it’s crucial for the design of LLMs to alleviate
+the curse of quadratic complexity and improve long-context processing capabilities. Numerous works
+have been recently proposed with this motivation and show performance comparable to the stan-
+dard attention, including RetNet [43], Mamba [16], and Gated Linear Attention [50]. One branch of
+these works is known as linear attention [see 7, 20, 50, 54], which replaces the exponential similarity
+function with a dot product of key/query functions and yields a linear computational complexity
+with respect to the context length. This reduction in time and memory cost enables much longer
+contexts and lower latency during the inference. Meanwhile, the introduction of the hidden-state
+memory matrix and the forgetting gate improves algorithm stability over utra-long contexts [see 50].
+Although linear attention models have outperformed the softmax attention on some long-context
+modeling tasks, the theoretical understanding and design principles of these models, especially for
+in-context learning, remain limited and unexplored.
+In this work, we investigate the approximation and generalization abilities of linear transformers
+with context-augmented inputs to reveal the advantage of the linear attention mechanism for the
+in-context learning scenario. We establish a connection between in-context learning and domain
+generalization frameworks and show that transformer-based neural networks perform in-context
+learning as domain generalization [4, 5], and this connection demonstrates the essence of LLMs’
+remarkable few/zero-shot generalization capabilities without parameter updates during testing. We
+work with the formulation in Liu and Zhou [23] by representing the context information as a kernel
+embedding from context probability distributions to vector-valued functions, and exhibit how each
+word token interacts with the context embedding through an inner product of a tensor product
+Hilbert space. Based on this framework, we construct a linear transformer to perform in-context
+learning via a two-staged sampling process, which shows the internal mechanism of the robust
+generalization capabilities of LLMs. Our main contributions are as follows.
+• We present a theoretical analysis framework for the family of linear transformers, one of the
+most compelling alternatives to the softmax attention in practice.
+By connecting domain
+generalization framework with in-context learning, we rigorously prove that linear transformers
+perform a robust generalization ability under distribution shifts, which builds the theoretical
+foundation for understanding the generalization abilities of linear transformers in long-context
+modeling.
+• We observe a fast eigendecay phenomenon in the softmax attention weight matrix products of
+LLMs. We prove that this phenomenon helps linear transformers alleviate the negative effects
+of distribution shifts, achieve dimension-independent convergence rates in approximation and
+generalization analysis and eﬀiciently mimic the behavior of the standard attention.
+• We investigate the application of likelihood ratio moments to control distribution shifts in
+domain generalization. We apply a relaxed condition for unbounded likelihood ratios of prob-
+ability distributions defined on the noncompact space Rd and obtain a distribution-dependent
+concentration inequality for a second stage estimation by the connection between subgaussian
+norm and finite Rényi divergence.
+• We propose a new perspective for linear conversion of LLMs with the softmax attentions
+based on our theoretical analysis framework. This conversion scheme captures information
+from data distributions and parameter matrices in pretrained softmax LLMs. It provides a
+new perspective on designing new activation functions and training loss for linear conversion
+of softmax LLMs.
+In the following part of this paper, we first introduce the motivation and definition of linear
+transformers and a two-staged sampling process as our learning framework. Section 3 presents the
+main results on approximation and generalization, with a proof sketch in Subsection 3.3. Section 4
+provides further discussion, and Appendix A contains the full proofs.
+2
+
+
+2 Linear Transformers and Formulations for In-Context Learning
+In this Section, we first define the structure of linear transformers whose inputs are pairs (ˆρ, x),
+where ˆρ the empirical version of distribution ρ from which x is sampled. We refer to learning with
+samples (ˆρ, x) as in-context learning, and these samples are generated from the two-staged sampling
+process defined in Subsection 2.2.
+2.1 Linear Transformers
+The standard Transformer [46] consists of blocks of attention mechanisms and shallow networks to
+process sequential inputs. Let the input sequence Q = [x1, · · · , xn]T with token vectors xi ∈Rd
+for 1 ≤i ≤n. Then Q is an input sequence of length n with feature dimension d. The softmax
+attention is defined as, for 1 ≤i ≤n,
+SoftmaxAttn(xi|Q) =
+Pn
+j=1 sim(xi, xj)(Wvxj)
+Pn
+j=1 sim(xi, xj)
+∈Rd with sim(xi, xj) = exp
+⟨Wqxi, Wkxj⟩
+√
+d′
+
+(1)
+where Wv ∈Rd×d, Wq ∈Rd′×d, Wk ∈Rd′×d are parameter matrices for value, query, and key token
+vectors respectively. Intuitively, the attention mechanism SoftmaxAttn takes the input sequence Q
+as context and produces a refined context-aware representation SoftmaxAttn(xi|Q) for each query
+token xi in Q.
+To establish connections between each token and their context and to demonstrate the benefits of
+context-aware representation produced by the attention mechanism, we follow Furuya et al. [14], Liu
+and Zhou [23] to assume that Q is a realization with n samples drawn i.i.d. from a Borel probability
+measure ρ on Rd, with ρ regarded as the ground truth context. Then the RHS of the expression
+(1) can be written as
+SoftmaxAttn(ˆρ, xi) =
+R
+sim(xi, x)(Wvx) dˆρ(x)
+R
+sim(xi, x) dˆρ(x)
+∈Rd
+(2)
+where (ˆρ, xi) is a context-augmented input and ˆρ = δ([x1, · · · , xn]) is the accessible context with
+δ(S) defined as the empirical distribution generated by the dataset S. With a richer accessible con-
+text ˆρ by more and more samplings from ρ, the empirical distribution ˆρ can recover the information
+of the population distribution ρ and produce more refined context-aware representation for each
+token xi, which is consistent with the empirical practice of increasing the context window length n.
+However, it’s easy to observe that for each query token xi (1 ≤i ≤n), we must evaluate
+sim(xi, xj) for all 1 ≤j ≤n and then normalize by Pn
+j=1 sim(xi, xj), which creates an n × n
+attention score matrix and causes both time and memory cost to scale quadratically in the context
+length n [see 52]. Such quadratic growth poses significant challenges for eﬀicient algorithm design
+in long-context modeling scenarios. The key idea of linear transformers is to reduce the quadratic
+time and memory cost to linear dependence on the context length n by decoupling queries and keys
+in sim(xi, xj). By replacing the similarity function sim(xi, xj) with ϕ(xi)T ϕ(xj) where ϕ : Rd →Rd′
+is a feature mapping, a simple linear attention module can be written as
+LinearAttn(ˆρ, xi) = ϕ(xi)T R
+ϕ(x)(Wvx) dˆρ(x)
+ϕ(xi)T R
+ϕ(x) dˆρ(x)
+=
+ R
+(Wvx)ϕ(x)T dˆρ(x)
+
+ϕ(xi)
+ R
+ϕ(x)T dˆρ(x)
+
+ϕ(xi)
+.
+(3)
+It’s easy to observe that a universal memory matrix
+R
+(Wvx)ϕ(x)T dˆρ(x) ∈Rd×d′ can be shared
+across all query tokens, thus eliminating the need to compute and store the quadratic attention
+score matrix in (1). Beyond this computational eﬀiciency, recent empirical studies [32, 50, 54] have
+achieved performances comparable to the softmax attention using linear attentions. Motivated by
+normalization-free linear attentions in Qin et al. [32] and the design of shallow neural network feature
+3
+
+
+mapping ϕ in Zhang et al. [54], we define Linear Transformers as follows. Let σ : R →R denote
+the ReLU activation function σ(u) = max{u, 0}, σtanh : R →R denote the tanh activation function
+σtanh(u) = exp(u)−exp(−u)
+exp(u)+exp(−u).
+Definition 1 A Linear Transformer Tn with the structure of Tn,m, ˜m and m = m(n), ˜m = ˜m(n) is
+defined as
+Tn(ρ, x) =
+n
+X
+j=1
+αjσ
+
+
+m(n)
+X
+q=1
+ϕq, ˜m(n)(x)
+
+
+m(n)
+X
+p=1
+Tv
+Z
+ϕp, ˜m(n)(y)A(j)
+p,qy dρ(y)
+
++ bj
+
++ b0
+(4)
+for context-augmented input (ρ, x) with A(j)
+p,q ∈Rd×d, bj, b0 ∈Rd and αj ∈R for 1 ≤j ≤n, and
+two-hidden-layer tanh neural networks {ϕq, ˜m(n)}m(n)
+q=1
+with the product gate, in the form of
+ϕq, ˜m(n) = T1,⊙
+
+NN q, ˜m(n)
+
+and NN q, ˜m(n)(x) = Wq,2σtanh(Wq,1σtanh(Wq,0x + bq,0) + bq,1)
+with Wq,0 ∈R8d ˜m(n)×d, bq,0 ∈R8d ˜m(n), Wq,1 ∈R8d ˜m(n)×8d ˜m(n), bq,1 ∈R8d ˜m(n) and Wq,2 ∈
+Rd×8d ˜m(n), where T1,⊙(z) = Q
+l(T1(z))(l) denotes the product of all entries (T1(z))(l) of a trun-
+cated vector T1(z) and truncation operators T1 and Tv apply element-wise on input vectors such that
+(Tv(z))(l) = sgn(z(l)) min(v, |z(l)|) with truncation level v > 0.
+Remark 2 Linear transformers in (4) show that for each query x, there’s a universal mem-
+ory unit compressing information from the context on each attention head (p, q), in the form of
+Tv
+hR
+ϕp, ˜m(n)(y)A(j)
+p,qy dρ(y)
+i
+. We note that the truncation operator Tv is actually not required to
+derive the final generalization bound, but is necessary to obtain an oracle inequality for each linear
+transformers in hypothesis space, since we consider Borel probability measure ρ defined on the entire
+Rd in this paper. To construct the accessible context ˆρ, we collect unbounded samples from Rd and
+create the memory unit
+R
+ϕp, ˜m(n)(y)A(j)
+p,qy dˆρ(y) that is unbounded and will effect sampling estima-
+tion if the outer shallow neural network does not have a special structure. Thus, for the algorithm
+stability, we introduce the truncation operator Tv to keep the memory unit stable, similar as the idea
+in Yang et al. [50].
+Linear transformers defined by (4) do not have a normalization factor as equation (3) does in the
+form of ϕ(xi)T R
+ϕ(x) dˆρ(x). One benefit of normalization-free linear transformer is that it allows a
+more flexible design of the feature mapping ϕ. In practice, to ensure the normalization factor in (3)
+is nonzero, ϕ is often constrained to be nonnegative. It is not required any more with normalization-
+free linear transformers. Qin et al. [32] also shows that RMSNorm [53] can play a better role than
+normalization factor for stabilizing the optimization of linear transformers. For more details, we
+refer readers to Subsection 4.2.
+We apply two activation functions (ReLU and tanh) and a product gate in the construction
+of linear Transformer architecture, which is actually components of the modern activation function
+SwiGLU [37] for LLMs. The tanh activation is chosen in linear attention to approximate functions in
+a reproducing kernel Hilbert space (RKHS) induced by a smooth kernel. We include more discussion
+on this point in Subsection 4.3.
+2.2 Two-Staged Sampling Framework for In-Context Learning
+Our first novelty is to formulate the sequential modeling of transformers in in-context learning as the
+processing context-augmented inputs (ˆρ, x) as in (2)(3)(4) where samples like (ˆρ, x) are generated
+by a two-staged sampling framework from domain generalization [4, 5].
+Let X = Rd denote the input space and Y =
+
+y ∈Rd : ∥y∥2 ≤M
+	
+a closed ball with radius M >
+0 be the output space. Let B2(X) and B2(X × Y) denote the set of all Borel probability measures
+4
+
+
+with finite second moments on X and X × Y, respectively. We equip B2(X) and B2(X × Y) with
+Wasserstein-2 distances denoted by W2 which metrize the weak topology on B2(X) and B2(X × Y).
+Then for context-augment inputs (ρ, x), we define a complete separable metric space Ω= B2(X)×X
+equipped with the metric dΩas
+dΩ
+ (ρ, x), (ρ′, x′)
+
+=
+q
+W2(ρ, ρ′)2 + ∥x −x∥2
+2.
+Definition 3 A two-staged sampling process by meta probability measure PG is defined as
+follows: in the first stage sampling with N ∈N, (ρ(i)
+XY )N
+i=1 are independently sampled from a meta
+Borel probability measure PG on B2(X × Y); in the second stage sampling with ni ∈N for 1 ≤i ≤N,
+a dataset S = {(ˆρ(i)
+X , Xij, Yij)ni
+j=1}N
+i=1 is created by (Xij, Yij) sampled independently from ρXY and
+ˆρ(i)
+X = δ([Xi1, ..., Xini]).
+With the two-staged sampling process induced by PG, for a prediction function Φ : Ω→Rd, we
+define the population risk for in-context learning as
+E(Φ) = EρXY ∼PGE(X,Y )∼ρXY ∥Φ(ρX, X) −Y ∥2
+2
+(5)
+and the empirical risk with a dataset S = {(ˆρ(i)
+X , Xij, Yij)ni
+j=1}N
+i=1 as
+ES(Φ) = 1
+N
+N
+X
+i=1
+1
+ni
+ni
+X
+j=1
+∥Φ(ˆρ(i)
+X , Xij) −Yij∥2
+2.
+Let HTn be the hypothesis space of a collection of linear transformers in Definition 1 and TS,n ∈
+HTn be the function learned from the empirical risk minimization (ERM) algorithm by
+TS,n = arg
+min
+Tn∈HTn
+ES(Tn).
+(6)
+Because of the boundedness of the output space Y, our estimator is given by TM(TS,n) where TM
+is a truncation operator defined on Rd such that TM(y) = y if ∥y∥2 ≤M otherwise M
+y
+∥y∥2 .
+Remark 4 For an in-context learning dataset S, each sample consists of a context-augmented input
+(ˆρX, X) and a label Y .
+Removing the accessible context ˆρX from an input reduces the learning
+problem to classical regression. On the other side, if we drop the query token X, the problem will
+degenerate to distribution regression as considered in our previous work [23].
+2.3 Latent Feature Space for Context-Augmented Inputs
+Our second purpose is to investigate how context-augmented samples interact within the attention
+mechanism and to formulate this interaction into an inner product of a tensor-product Hilbert space
+(the latent feature space).
+To mimic normalization-free attention for (ρ, x) inspired by (2) as
+R
+X sim(x, x′)x′dρ(x′), we first
+introduce an anisotropic Gaussian kernel kλ on X × X as
+kλ(x, x′) = exp(−(x −x′)T Σλ(x −x′))
+with shape parameter vector λ = [λ1, · · · , λd]T ∈Rd and Σλ = diag(λ2
+1, · · · , λ2
+d). (For more details
+about the choice of the anisotropic Gaussian kernel, see Subsection 4.4.) We use kernel kλ to measure
+the similarity between different tokens and then the attention mechanism induced by kλ outputs
+R
+X kλ(x, x′)x′dρ(x′) for the context-augmented input (ρ, x).
+To better understand how the attention mechanism processes context information for context-
+augmented inputs, we introduce the following definition for context embedding.
+5
+
+
+Definition 5 Let Hkλ be the reproducing kernel Hilbert space (RKHS) induced by kλ. For each
+context ρ ∈B2(X), we define Kλ(ρ) : X →Rd as
+Kλ(ρ) =
+Z
+X
+kλ( · , x)x dρ(x) ∈Hkλ ⊗Rd.
+Intuitively, Kλ embeds context information ρ into a dictionary function mapping each query
+xquery to a context-aware representation
+Kλ(ρ)(xquery) =
+Z
+X
+kλ(xquery, x)x dρ(x) ∈Rd.
+Next, we define a feature mapping Iλ and a latent feature space HF for context-augmented inputs
+(ρ, x) ∈Ω. In the latent feature space HF, the similarity measure between context inputs not only
+depends on context information, but also has the properties of the attention mechanism.
+Definition 6 Define a latent feature space HF = (Hkλ ⊗Rd) ⊗Hkλ. Define Iλ : B2(X) × X →HF
+by
+Iλ(ρ, x) = Kλ(ρ) ⊗kλ(x, ·) ∈HF,
+(7)
+which introduces an inner product for similarity measure between context-augmented inputs (ρ, x), (ρ′, x′) ∈
+Ωas
+⟨Iλ(ρ, x), Iλ(ρ′, x′)⟩HF = ⟨Kλ(ρ), Kλ(ρ′)⟩Hkλ⊗Rdkλ(x, x′).
+(8)
+The similarity between context-augmented inputs (ρ, x) and (ρ, x′) defined in (8), depends not
+only on the token values but also on the contexts ρ and ρ′. This is consistent with a basic observation
+in natural language processing: a word may have different meanings in different contexts.
+Remark 7 The definition of Iλ is inspired by the similarity measure in the domain generalization
+literature [4, 5] where the mapping (ρ, x) 7→ΦkB(ρ)⊗ΦkX (x) is considered with ΦkB,ΦkX the canonical
+feature maps of kernels kB [see 8], kX respectively. In Appendix B, we show that both Kλ and Iλ
+are injective and continuous mappings. The injection of Kλ is one of the key features of attention
+modules: compress context distributions into elements in Hkλ ⊗Rd and fight against the negative
+effects of distribution shifts, while preserving the ability to distinguish different context distributions.
+It would be interesting to extend the results in Sriperumbudur et al. [42] to a quantitative analysis
+on dissimilar distribution with a small distance in Hkλ ⊗Rd to investigate this tradeoff created by
+Kλ.
+3 Main Results
+This section states the main results of approximation and generalization analysis for in-context
+learning with linear transformers. We first introduce some assumptions on PG for the two-staged
+sampling process and kλ for the latent feature space.
+The two-staged sampling process induced by PG in Definition 3 introduces a probability measure
+PX
+G on B2(X) for context information by
+PX
+G (E) = PG
+ {µ ∈B2(X × Y) : µ ◦π−1
+X
+∈E}
+
+(9)
+for any Borel set E ∈B2(X) with the coordinate map πX : X×Y →X, and also a probability measure
+νG for context-augmented inputs on the product σ-algebra of Ωby νG(B × A) =
+R
+B ρ(A)dPX
+G (ρ) for
+any Borel set B ∈B2(X), A ∈X.
+6
+
+
+Assumption 8 PX
+G is supported on a subset B2,b(X) of B2(X) defined as
+B2,b(X) =
+
+ρ ∈B2(X) : EX∼ρ∥X∥4
+2 ≤C2
+B
+	
+with a constant CB > 1. We also denote ΩB =
+
+(ρ, x) ∈Ω: ρ ∈B2,b(X)
+	
+.
+Assumption 9 There exists γ > 1 and κ, CG > 0 such that
+Z
+B2(X)
+∥ωκ(ρ)∥2
+Lγ(ρκ) dPX
+G (ρ) ≤CG
+where ωκ(ρ) is the likelihood ratio defined as
+dρ
+dρκ and ρκ is Gaussian probability measure with zero
+mean and covariance matrix κ2Id.
+We provide two examples of meta probability measure PX
+G satisfying Assumptions 8 and 9 in
+Appendix C.
+Assumption 10 For the anisotropic Gaussian kernel kλ, we assume λ = (λl)d
+l=1 is a sequence of
+shape parameters such that λ(l) ≤Cθl−θ for 1 ≤l ≤d with the order λ(1) ≥λ(2) ≥· · · ≥λ(d) > 0
+where Cθ, θ > 0 are two constants independent of d.
+Remark 11 By the Portmanteau theorem, B2,b(X) is closed in the W2-topology, which allows prob-
+ability measures supported on B2,b(X) can be extended to probability measures on the entire B2(X),
+matching the framework of the two-staged sampling process. The fourth moment condition here is
+used only to control the second-stage sampling error with accessible contexts. For approximation and
+all other sampling errors, we only need the condition that EX∼ρ∥X∥2
+2 ≤CB for any ρ ∈B2,b(X).
+The likelihood ratio is a popular tool to control distribution shifts in both theoretical and empirical
+studies [24, 36] and actually the quantity ∥ωκ(ρ)∥Lγ(ρκ) in Assumption 9 is closely related to the
+Rényi divergence [35, 45] of distribution ρ with respect to the reference distribution ρκ.
+The fast decay of shape parameters in λ is often observed in practice.
+More details about
+Assumption 10 can be found in Subsection 4.4.
+3.1 Approximation of Variation Normed Functions
+Our third contribution is to propose an explicit hypothesis space under which linear transformers
+achieve dimension-independent convergence rates for operator approximation without assuming ac-
+cess to the structure of a latent feature space HF, enabling further study on generalization error
+analysis.
+First we impose a regularity condition on the true predictor for (5) using the latent feature
+mapping Iλ in (7) and a variation normed space. Let Hpara = HF ⊕R (the extra dimension is left
+for bias weights) and
+B(Hpara; Rd) =
+n
+W ∈L(Hpara; Rd)
+ ∥W∥op ≤1
+o
+the closed unit ball with the operator norm in the space L(Hpara; Rd) of all bounded linear operators
+from Hpara to Rd. Note that the finite dimension of the output space makes L(Hpara; Rd) identical
+with the Hilbert space of Hilbert-Schmidt operators, and hence B(Hpara; Rd) is weakly compact in
+L(Hpara; Rd). Let M(B(Hpara; Rd)) denote the space of all signed Radon measures on B(Hpara; Rd).
+Definition 12 For µ ∈M(B(Hpara; Rd)), let Fµ(h) =
+R
+B(Hpara;Rd) σ(Wh) dµ(W) for h ∈Hpara.
+The variation normed space F1 of Rd-valued functions on Hpara is defined as
+F1(Hpara; Rd) =
+n
+F : Hpara →Rd  ∥F∥F1 :=
+inf
+µ:F =Fµ ∥µ∥M < ∞
+o
+.
+7
+
+
+Then we give a dimension-independent approximation result with the hypothesis space
+HTn =
+(
+Tn : ∥α∥1 ≤2CF ,
+m(n)
+X
+p,q=1
+A(j)
+p,q
+
+2
+F ≤d, ∥bj∥2 ≤
+p
+2dCB for each 1 ≤j ≤n,
+∥b0∥2 ≤CF
+p
+2dCB, ∥Θtanh∥∞≤c1(c2 log(n))c3(log n)2 and truncation level v = CB
+)
+.
+(10)
+where CF > 0 is a constant, c1, c2, c3 are constants depending on θ, γ and Θtanh denotes the param-
+eters in two-layered tanh neural networks satisfying a sparse structure such that
+Wq,j = diag(W (1)
+q,j , ..., W (d)
+q,j ) for j = 0, 1, 2
+where for 1 ≤l ≤d, W (l)
+q,0 ∈R8 ˜m(n)×1, W (l)
+q,1 ∈R8 ˜m(n)×8 ˜m(n) and W (l)
+q,2 ∈R1×8 ˜m(n).
+Let ˜X = (ρX, X) be the context-augmented input with the ground truth context, and ˜Xij =
+(ˆρ(i)
+X , Xij) with the accessible context. We rewrite E(Φ) = E( ˜
+X,Y )∼PG∥Φ( ˜X) −Y ∥2
+2 where PG is a
+probability measure induced by the two-staged sampling process with PG [see 5, Page 9]. Then the
+regression function for the population risk E is defined as
+ΦG( ˜X) =
+Z
+Y
+y d PG(·| ˜X).
+(11)
+Theorem 13 Let ΦG = F(Iλ(·), 1) with F ∈F1(Hpara; Rd) and ∥F∥F1 ≤CF . For 0 < ξ < θ and
+n > C′
+κ,θ,γ, there exists a T ∈HT2n such that
+∥T −ΦG∥2
+L2(νG) ≤C2
+∗n−1 and ∥T∥C(Ω) ≤2CF
+p
+d(1 + CB)
+with m =
+l
+n
+γ
+2(γ−1)ξ
+m
+, ˜m =
+l
+1
+2 +
+γ
+4(γ−1)ξ
+
+log n
+m
+in (4), where C∗is a constant depending on
+κ, ξ, γ, λ, CG, CB, CF and poly(d).
+Remark 14 Variation normed spaces for neural network approximation have been well studied in
+Bach [2], Barron [3], Korolev [21], Siegel [39], Siegel and Xu [40], Yang and Zhou [51]. Roughly
+speaking, a variation normed space can be viewed as the collection of shallow neural networks with
+infinity width and thus can mimic the function class of target functions arising in practice. Definition
+12 is a special case of Korolev [21] where the authors consider neural networks with values in a Banach
+space, extending the original result in Barron [3, Theorem 4].
+3.2 Generalization Analysis of In-Context Learning
+Our final contribution is to address unbounded sampling (without domain restrictions) in the two-
+staged sampling process and establish an oracle inequality in Appendix A.2. Combining Theorem
+13 with this oracle inequality, we obtain a dimension-independent generalization rate.
+Theorem 15 Let d ≥2 and n ≥max{3, C′
+κ,θ,γ,
+C′2
+∗
+64MCd,F,B } and ΦG = F(Iλ(·), 1) for some F ∈
+F1(Hpara; Rd). If the parameter n of the hypothesis space HTn and the second-stage sample size ϑ
+are chosen as
+n = ⌊K1N
+1
+2+γ/[(γ−1)ξ] ⌋and ϑ = N 3
+and m, ˜m chosen as in Theorem 13, then for the estimator generated by the ERM framework for the
+two-staged sampling process, we have
+E{∥TM(TS,n) −ΦG∥2
+L2(νG)} ≤K3N
+−
+ξ
+2ξ+
+γ
+γ−1 (log N)3
+(12)
+where K3 is a constant depending on κ, ξ, γ, λ, CG, CB, CF and poly(d).
+8
+
+
+Remark 16 Although controlling distribution shift via likelihood ratio moments with divergence
+order γ > 1 provides L2(ρ) error bounds for every target distributions ρ satisfying Assumptions 8
+and 9, the factor γ−1
+γ
+in RHS of (12) significantly slows the convergence rate as γ approaches 1.
+This makes a tradeoff between convergence rate and the capacity of admissible target distributions:
+smaller γ allows more distributions satisfying Assumption 9 as shown in Example 2 but greatly slows
+convergence. However, we observe the fast spectral decay phenomenon in LLMs (shown in Figure 1
+of Subsection 4.4) that mitigates this slowdown for in-context learning. Indeed, under Assumption
+10, the exponent becomes (γ−1)ξ
+γ
+that slows the rate of tending to infinity as γ →1 when ξ is large.
+3.3 Proof Sketch
+The proof of the approximation result in Theorem 13 relies on the following error decomposition
+∥ΦG −T2n,m, ˜m∥L2(νG)
+≤∥ΦG −N2n∥L2(νG) + ∥N2n −Ψ2n,m∥L2(νG) + ∥Ψ2n,m −T2n,m, ˜m∥L2(νG)
+(13)
+for T2n,m, ˜m ∈HT2n, where N2n is a shallow neural network with operator-valued parameters in
+L(Hpara; Rd) and Ψ2n,m is a neural network with latent polynomial features depending on the pa-
+rameterization of kλ, both explicitly constructed in Section A.1.
+The approximation error ∥ΦG −N2n∥L2(νG) is estimated by random approximation results from
+[21] in Appendix A.1. The estimation of the last two terms in the RHS of (13) relies on Assumption
+9 to bound L2 errors under first-stage samples ρX with L2 error under the reference probability
+distribution ρκ, as described in Appendix A.1.1 and A.1.2. More specifically, for the second term
+∥N2n −Ψ2n,m∥L2(νG), N2n can be regarded as a neural network with countably infinite feature-
+function parameters in an RKHS, and Ψ2n,m is a neural network constructed by the optimal choice
+of selecting only m feature-function parameters based on the parameterization of kλ. For the last
+term ∥Ψ2n,m −T2n,m, ˜m∥L2(νG), the idea is to show the linear attentions in T2n,m, ˜m are fast universal
+approximators for any feature-function parameters in RKHS Hkλ without any prior knowledge on
+the parameterization of kλ.
+The approximation is considered with the supremum norm on the
+bounded domain [−B, B]d, and the error outside this domain is controlled by a Gaussian tail decay
+(see Appendix D.2).
+For the generalization analysis, we define the first-stage sampling error EN as
+EN(Φ) = 1
+N
+N
+X
+i=1
+E
+h
+∥Φ( ˜X) −Y ∥2
+2|ρ(i)
+XY
+i
+and the second-stage sampling error EN,X with ground truth context as
+EN,X (Φ) = 1
+N
+N
+X
+i=1
+1
+ni
+ni
+X
+j=1
+∥Φ(ρ(i)
+X , Xij) −Yij∥2
+2.
+Then for any Φ ∈HTn, we have the following error decomposition
+E(TM(TS,n)) −E(ΦG) = E(TM(TS,n)) −EN(TM(TS,n)) + EN(TM(TS,n)) −EN,X (TM(TS,n))
++ EN,X (TM(TS,n)) −ES(TM(TS,n)) + ES(TM(TS,n)) −ES(Φ)
++ ES(Φ) −EN,X (Φ) + EN,X (Φ) −EN(Φ) + EN(Φ) −E(Φ)
++ E(Φ) −E(ΦG)
+with E(TM(TS,n)) −E(ΦG) = ∥TM(TS,n) −ΦG∥2
+L2(νG) and ES(TM(TS,n)) −ES(Φ) ≤0.
+9
+
+
+Let
+E1(TM(TS,n)) =
+
+E(TM(TS,n)) −E(ΦG)
+
+−
+
+EN(TM(TS,n)) −EN(ΦG)
+
+,
+E′
+1(Φ) =
+
+EN(Φ) −EN(ΦG)
+
+−
+
+E(Φ) −E(ΦG)
+
+,
+E2(TM(TS,n)) = EN(TM(TS,n)) −EN,X (TM(TS,n)),
+E′
+2(Φ) = EN,X (Φ) −EN(Φ),
+E3(TM(TS,n)) = EN,X (TM(TS,n)) −ES(TM(TS,n)),
+E′
+3(Φ) = ES(Φ) −EN,X (Φ) and E4(Φ) = E(Φ) −E(ΦG).
+Then we have
+E(TM(TS,n)) −E(ΦG) ≤E1(TM(TS,n)) + E′
+1(Φ) + E2(TM(TS,n)) + E′
+2(Φ)
++ E3(TM(TS,n)) + E′
+3(Φ) + E4(Φ).
+(14)
+In the first-stage sampling, we control the effect of unbounded sampling on E1(TM(TS,n)) by us-
+ing the covering number under a pseudo-metric defined by the supremum of distribution expectations
+over B2,b(X) (Appendix A.2.3). In the second-stage sampling, the situation becomes more compli-
+cated with the structure of linear transformers, so we decompose the second-stage sampling error
+into two parts: E2(TM(TS,n)), E′
+2(Φ) defined using ground truth contexts (called pseudo second-stage
+sampling in Appendix A.2.4) and E3(TM(TS,n)), E′
+3(Φ) defined using accessible contexts (Appendix
+A.2.5).
+For the case with ground truth contexts, the similar idea with the first-stage sampling applies:
+after introducing Rademacher complexity for sampling estimation, we bound the empirical process
+by the Dudley integral. We then use concavity to move the expectations over second stage samples
+into the covering number expression, thereby eliminating the effect of unbounded samples. For the
+last sampling estimation with accessible contexts, the problem becomes even more challenging in
+the presence of memory units in linear transformers, since both the input samples and the memory-
+unit outputs are unbounded. Here, we apply an extension of Azuma-McDiarmind’s inequality under
+subgaussian conditions to obtain a distribution-dependent probability concentration inequality where
+an observation on the relation between ∥ωκ(ρ)∥Lγ(ρκ) and subgaussian norm plays an important role.
+To obtain the final generalization error, we apply the expectation identity for non-negative random
+variables to bring ∥ωκ(ρ)∥Lγ(ρκ) out of the denominator and the exponential, so that we can take
+an expectation of ∥ωκ(ρ)∥Lγ(ρκ) with respect to PX
+G by Assumption 9.
+4 Related Works and Discussions
+4.1 In-Context Learning
+Prior studies [1, 15, 38, 55] often formulate in-context learning as predicting the label of a given
+sample conditioned an input prompt containing other samples and labels. As noted in Zhang et al.
+[55], a model Φ performs in-context learning as
+Φ : S × X →Y,
+S = ∪n∈N
+
+(x1, y1, ..., xn, yn) : xi ∈X, yi ∈Y
+	
+where X is the input space and Y the output space, and Φ is trained on prompts of the form
+P = (x1, h(x1), ..., xϑ, h(xϑ), xquery) with h ∼P a distribution defined on a function space H to
+minimize the error EPl(Φ(P), h(xquery)) with a loss function l.
+Previous theoretical work has
+focused on linear function spaces [55] and Hölder spaces [38]. These studies have demonstrated that
+transformers can perform well on structured prompts of input-output pairs, but this formulation has
+two limitations to bridge the gap between theory and application [see 27]. First, in-context learning
+emerges as a property of LLMs after pretraining on tasks like autoregression or diffusion-based
+10
+
+
+generation.
+A pretrained LLM can perform in-context learning without any parameter updates
+[48], which is not consistent with theoretical settings that require training on structured prompts.
+Second, prompts for in-context learning are often unstructured and may lack labels. For example,
+in machine translation from English to French, the input prompt may contain only instructions in
+English. Empirical studies [27] also show that the correct mapping between inputs and true labels
+in prompts has little performance gains for in-context learning: model performance with random
+labels closely matches that with true labels.
+We address these problems by the domain generalization framework [4, 5] and formulate in-
+context learning as operator learning with the two-staged sampling process:
+Φ : ˆρ(i)
+X 7→(h : X →Y),
+ˆρ(i)
+X = δ([xi1, ..., xini]) with xij ∈X.
+(15)
+This formulation suggests that the operator Φ maps the context distribution ˆρ(i)
+X to a response
+function hˆρ(i)
+X
+that takes queries from X and outputs hˆρ(i)
+X (xquery) for any xquery ∈X, which
+aligns with both the nature of transformers as context-based representation learning and also the
+parameter-freezing setting after pretraining for in-context learning.
+With a richer unstructured
+prompt [xi1, ..., xin] by more and more samplings (Xij∼ρ(i)
+X ) from the ground truth context dis-
+tribution ρ(i)
+X , the empirical context distribution ˆρ(i)
+X can recover ρ(i)
+X and then ˆΦ(ˆρ(i)
+X ) can well
+approximate Φ(ρ(i)
+X ) without parameter updates, where ˆΦ is a pretrained Transformer model to
+approximate the operator Φ.
+4.2 Normalization Factor and RMSNorm
+Early linear attention models [7, 20] have some softmax-inspired design features (1), such as inserting
+a normalization denominator as in (3). However, Qin et al. [32] demonstrates both theoretically and
+empirically that linear transformers with (3) make the gradients for attention matrices unbounded
+and lead to a less stable optimization and worse convergence. To alleviate this negative effect, Qin
+et al. [32] removes the normalization factor in (3) and applies RMSNorm [53] to the linear attention
+output:
+Onorm = RMSNorm(Q(KT V ))
+(16)
+where
+Q = [ϕ(Q1), · · · , ϕ(Qn)]T ∈Rn×d′,
+K = [ϕ(K1), · · · , ϕ(Kn)]T ∈Rn×d′,
+V = [V1, · · · , Vn]T ∈Rn×d
+and for input A = (aij)i,j ∈Rn×d, A′ = RMSNorm(A) ∈Rn×d is defined as
+A′ = (a′
+ij)i,j such that a′
+ij =
+aij
+q
+1
+d
+Pd
+j=1 a2
+ij + ϵ
+· βj
+with learnable scaling factor β = (β1, ..., βd)T ∈Rd. RMSNorm reduces the amount of computation
+and increases eﬀiciency over LayerNorm, and it is widely used in the open-weight LLMs like Qwen3
+[49].
+4.3 Activation Functions in LLM
+The design of activation functions has evolved with the development of LLMs. While the original
+transformer used ReLU activation by default, early LLMs such as BERT and GPT-2/3 employed
+11
+
+
+the Gaussian Error Linear Unit (GeLU) activation [18], and it then became the standard choice.
+For x ∈Rd, GeLU is defined as
+GeLU(x) = x ⊙F(x)
+where ⊙denotes the Hadamard product and F denotes the cumulative distribution function for the
+standard gaussian and applies element-wise on d-dimensional vectors. In practice, GeLU activation
+function is often implemented via a tanh approximation 1 as
+GeLU(x) ≈0.5x ⊙
+"
+1 + σtanh
+ r
+2
+π
+ x + 0.044715x⊙3
+!#
+.
+where x⊙3 denotes the Hadamard power of order 3.
+Similar activation functions such as Swish
+activation [33] were introduced later. It’s worth noting that Swish activation is defined as
+Swishβ(x) = x ⊙Sigmoid(β x)
+where β ∈R is a constant or learnable parameter and Sigmoid applies element-wise on x with
+Sigmoid(a) =
+1
+1 + exp(−a) = 1
+2(1 + σtanh(a/2)) for a ∈R.
+(17)
+SiLU is a special case of Swish with β = 1.
+Finally, combining all tricks above, Shazeer [37] proposed SwiGLU which is widely used in modern
+LLMs and defined as
+SwiGLUβ(x) = Wo((W1x + b1) ⊙Swishβ(W2x + b2)).
+In our definition of linear transformers (1), we use three nonlinear components: Tanh activation,
+product gate, and ReLU activation. It is easy to observe the connection between tanh activation and
+SwiGLU by Equation (17). For ReLU activation, when β is large enough, Sigmoid(β a) approximates
+the indicator function (except at zero) and Swishβ behaves like a ReLU activation function. For
+product gate, when β = 0, Swishβ(x) = x/2 and then we can obtain x ⊙x by SwiGLU activation
+with a suitable choice of parameters [see 33].
+4.4 Linear Conversion of Softmax LLMs
+Distilling knowledge from pretrained softmax LLMs into subquadratic models [54] has recently
+attracted interest in the research community. Here, we present a perspective on linearizing pretrained
+softmax LLMs, derived from our theoretical analysis framework.
+Recall the softmax attention module (1). Following Liu and Zhou [23], Tsai et al. [44], we take a
+kernelized viewpoint of attention modules by letting similarity function sim(xi, xj) = exp(⟨Wqxi, Wkxj⟩).
+Then (1) can be written as
+SoftmaxAttn(xi|Q) =
+1
+Z(xi)
+n
+X
+j=1
+sim(xi, xj)(Wvxj)
+(18)
+where Z(xi) = Pn
+j=1 sim(xi, xj) is a normalization factor. For each pair of query and key weight
+matrices (Wq, Wk), we perform singular value decomposition W T
+q Wk = W T
+1 ΣλW2 where W1, W2 are
+d × d orthogonal matrices and Σλ is a positive diagonal matrix with rank dhidden. It’s obtained that
+1. Refer to GeLU implementation in Pytorch 2.8 documentation:
+https://docs.pytorch.org/docs/stable/
+generated/torch.nn.GELU.html
+12
+
+
+(a) Fast Decay of Singular Values
+(b) Polynomial Fit of Decay Trend
+Figure 1: Fast Eigendecay of Qwen3-8B (Ghost in the Kernel)
+sim(xi, xj) = exp(xT
+i W T
+1 ΣλW2xj) = exp(˜xT
+i Σλˆxj)
+= exp
+1
+2 ˜xT
+i Σλ˜xi
+
+exp
+1
+2 ˆxT
+j Σλˆxj
+
+exp
+
+−1
+2(˜xi −ˆxj)T Σλ(˜xi −ˆxj)
+
+(19)
+with query ˜xi = W1xi and key ˆxj = W2xj. From the above expression, we observe that the roles
+of the key and query matrices can be decomposed into kernel asymmetry between queries and keys,
+represented by orthogonal matrices W1, W2, and geometric information, represented by a diagonal
+matrix Σλ. In Figure 1, we show a numerical demonstration of singular values in diagonal matrices
+Σλ in the attention modules of large language model Qwen3 [49] , which exhibits a rapid decay of
+singular values across layers, nearly exponential for large d. The rapid decay of shape parameters
+enables us to design linear transformers that eﬀiciently mimic softmax attention and alleviate the
+negative effects of distribution shifts in our analysis.
+For the construction of a linear attention, the key is to decouple the interaction in sim(xi, xj)
+between queries and keys as shown in (3). For similarity function in Equation 19, the target is to find
+a decoupling of query-key interaction between ˜x and ˆx for the anisotropic gaussian kernel kλ(˜x, ˆx) =
+exp(−1
+2(˜x−ˆx)T Σλ(˜x−ˆx)) to mimic context modeling in softmax attention. In Appendix D.1, we know
+that there’s an optimal linear approximation scheme for context embedding, denoted as (ψλ
+q )m
+q=1 with
+explicit expressions, which only depends on geometric information of Σλ and underlying context
+distributions on Rd. With a suitable choice of m, we have
+sim(xi, xj) ≈
+m
+X
+q=1
+exp
+1
+2 ˜xT
+i Σλ˜xi
+
+ψλ
+q (˜xi)
+|
+{z
+}
+query
+· exp
+1
+2 ˆxT
+i Σλˆxi
+
+ψλ
+q (ˆxi)
+|
+{z
+}
+key
+.
+(20)
+Compared with previous methods [7, 20] for linear attention, the choice of (ψλ
+q ) captures the
+latent data structures learned by the pretrained softmax LLM and makes use of its parameters.
+However, in practice, it may be diﬀicult to directly apply the approximation (20), because the
+semantic distributions of tokens are highly anisotropic and hard to estimate, while we use an isotropic
+Gaussian to roughly control the class of distributions in the two-staged sampling process. But it
+still provides us an idea to design new activation functions and regularity for feature mappings for
+linear conversion of pretrained softmax LLMs, just as in Zhang et al. [54].
+13
+
+
+4.5 Conclusion
+In this paper, we investigate the approximation and generalization ability of linear transformers
+under the two-staged sampling process from domain generalization. We demonstrate that the re-
+markable generalization and in-context learning capacities are closely related with context-aware
+structures in linear transformers, and we obtain a dimension-independent convergence rate in the
+generalization analysis that reveals a trade-off between the regularity of data distributions and the
+rate of spectral decay. It would be interesting to investigate the linearization algorithm proposed
+in Subsection 4.4 through extensive empirical experiments with various open-weight LLMs and op-
+timization methods from theoretical aspects in operator learning [28, 29].
+An eﬀicient, tunable
+conversion algorithm would be a breakthrough for adapting LLMs to long-context scenarios. On
+the other hand, hybrid models with both linear and softmax attention have shown their potentials
+to take advantage of both architectures, and theoretical analysis for such hybrid models would be
+important for understanding the mathematical foundations of Transformer variants.
+Acknowledgments and Disclosure of Funding
+The work described in this article was partially supported by a Discovery Project (DP240101919)
+of the Australian Research Council. The title “Ghost in the Kernel” is inspired from the 1995 film
+Ghost in the Shell, directed by Mamoru Oshii. On its 30th anniversary, this paper is dedicated as a
+tribute to that film, which has had a profound influence on the first author’s exploration of artificial
+intelligence.
+14
+
+
+Appendix A. Proof Details
+A.1 Theorem 13: Approximation Scheme by Linear Transformers
+By Proposition 20, we know that Iλ : Ω→HF is continuous, which introduces a pushforward
+probability measure µG on HF by µG = νG ◦I−1
+λ . Then we define a probability measure ˜µG = µG ×δ1
+on Hpara. For h ∈Hpara, let hF = ProjHF (h) and we have
+Z
+Hpara
+∥h∥2
+Hpara d˜µG(h) = 1 +
+Z
+HF
+∥hF∥2
+HF dµG(hF) = 1 +
+Z
+ΩB
+∥Kλ(ρ) ⊗kλ(x, ·)∥2
+HF dνG(ρ, x)
+= 1 +
+Z
+ΩB
+∥Kλ(ρ)∥2
+Hkλ⊗Rd∥kλ(x, ·)∥2
+Hkλ dνG(ρ, x) ≤1 + CB.
+We also note that for W ∈L(Hpara; Rd), ∥W∥op ≤∥W∥HS ≤
+√
+d∥W∥op where ∥· ∥HS denotes
+Hilbert-Schmidt norm of HS(Hpara; Rd). let {el}d
+l=1 denote an orthonormal basis of Rd and for any
+h ∈Hpara, we have ⟨Wh, el⟩Rd = ⟨h, W ∗el⟩Hpara. Denote wl = W ∗el ∈Hpara and then
+Wh =
+d
+X
+l=1
+⟨h, wl⟩Hparael =
+d
+X
+l=1
+(el ⊗wl)h.
+(21)
+It implies that the elements in B(Hpara; Rd) share the form W = Pd
+l=1 el ⊗wl where wl ∈Hpara
+such that
+∥W∥op =
+sup
+∥h∥Hpara=1
+ d
+X
+l=1
+⟨wl, h⟩2
+Hpara
+! 1
+2
+≤1.
+For the probability measure ˜µG and F ∈F1(Hpara; Rd), we have the following lemma from
+Theorem 3.24 in [21] for the approximation by shallow nets with operator-valued parameters.
+Lemma 17 For any probability measure µ on Hpara with a finite second moment and F ∈F1(Hpara; Rd),
+there exists a shallow neural network Nn such that
+∥F −Nn∥2
+L2µ(Hpara;Rd) ≤
+∥F∥2
+F1 Eh∼µ∥h∥2
+Hpara
+n
+,
+and the shallow neural network Nn has the form
+Nn(h) =
+n
+X
+j=1
+αjσ(Wjh) with αj ∈R, Wj ∈B(Hpara; Rd) for 1 ≤j ≤n and ∥α∥1 ≤∥F∥F1.
+We apply the above lemma with µ = ˜µG. Then for h = (hF, 1), Nn(h) can be further written by
+(21) into
+Nn(h) =
+n
+X
+j=1
+αjσ(Wjh) =
+n
+X
+j=1
+αjσ
+ d
+X
+l=1
+(el ⊗wj,l)h
+!
+=
+n
+X
+j=1
+αjσ
+ d
+X
+l=1
+(⟨vj,l, hF⟩HF + bj,l)el
+!
+=
+n
+X
+j=1
+αjσ
+ d
+X
+l=1
+⟨vj,l, hF⟩HF el + bj
+!
+15
+
+
+where bj = Pd
+l=1 bj,lel ∈Rd, wj,l = (vj,l, bj,l) with vj,l ∈HF and bj,l ∈R such that
+∥Wj∥op =
+sup
+∥h∥Hpara=1
+ d
+X
+l=1
+⟨wj,l, h⟩2
+Hpara
+! 1
+2
+≤1.
+We also know that for h = (hF, 1) in the support of ˜µG, hF = Kλ(ρ) ⊗kλ(x, ·) for some (ρ, x) ∈ΩB.
+It follows that ∥h∥Hpara ≤√1 + CB and ∥Wjh∥2 ≤√1 + CB for h ∈supp(˜µG). Then we construct
+a double-width shallow neural network N2n as
+N2n(h) =
+n
+X
+j=1
+αj
+
+σ(Wjh +
+p
+1 + CB1d) −σ(Wjh −
+p
+1 + CB1d) −
+p
+1 + CB1d
+
+=
+2n
+X
+j=1
+α′
+jσ
+
+W ′
+jh + (−1)⌊j−1
+n ⌋p
+1 + CB1d
+
+−
+n
+X
+j=1
+αj
+p
+1 + CB1d
+=
+2n
+X
+j=1
+α′
+jσ
+ d
+X
+l=1
+⟨v′
+j,l, hF⟩HF el + b′
+j
+!
++ b′
+0
+to realize the same approximant in Lemma 17 by adding additional bias vectors and letting α′
+j =
+−α′
+j+n = αj, v′
+j,l = v′
+j+n,l = vj,l, b′
+j = bj + √1 + CB1d, b′
+j+n = bj −√1 + CB1d for 1 ≤j ≤n, and
+b0 = −Pn
+j=1 αj
+√1 + CB1d. In the following content, we still use (αj, vj,l, bj, b0) as notations for
+parameters in N2n with no confusion.
+A.1.1 Neural Network with Latent Polynomial Features
+Recall that for (ρ, x) sampled from the probability measure νG on ΩB, we take the feature Iλ(ρ, x) =
+Kλ(ρ)⊗kλ(x, ·) ∈HF as the model input. Let (ψλ
+q )q∈N be the orthonormal basis of Hkλ and (rλ
+q )q∈N
+the eigenvalue sequence as defined in Appendix D.1. Then for each pair (j, l), vj,l can be written as
+vj,l =
+X
+p,q∈N
+X
+1≤s≤d
+a(j,l)
+p,q,s(ψλ
+p ⊗es) ⊗ψλ
+q with
+X
+p,q∈N
+X
+1≤s≤d
+(a(j,l)
+p,q,s)2 ≤1.
+It follows that
+⟨vj,l, Iλ(ρ, x)⟩HF =
+X
+p,q∈N
+X
+1≤s≤d
+a(j,l)
+p,q,s⟨ψλ
+p ⊗es ⊗ψλ
+q , Kλ(ρ) ⊗kλ(x, ·)⟩HF
+=
+X
+p,q∈N
+X
+1≤s≤d
+a(j,l)
+p,q,sψλ
+q (x)
+Z
+ψλ
+p (y)eT
+s y dρ(y).
+The basic idea for constructing a neural network with latent polynomial features is to estimate
+the truncation error for the query index q and the context memory index p.
+First we consider to estimate the truncation error on index q. We make one step further by
+writing
+⟨vj,l, Iλ(ρ, x)⟩HF =
+X
+q∈N
+
+X
+p∈N
+X
+1≤s≤d
+a(j,l)
+p,q,s
+Z
+ψλ
+p (y)eT
+s y dρ(y)
+
+ψλ
+q (x) =:
+X
+q∈N
+b(j,l)
+q
+(ρ)ψλ
+q (x).
+Define
+A(j,l) : l2(N × [d]) →l2(N) such that (A(j,l)z)q =
+X
+p∈N
+X
+s∈[d]
+a(j,l)
+p,q,szp,s
+16
+
+
+where [d] := {1, . . . , d} and q ∈N. It is easy to see that A(j,l) is a Hilbert-Schmidt operator with
+∥A(j,l)∥2
+HS = P
+p,q∈N,s∈[d](a(j,l)
+p,q,s)2 ≤1. Also note that by dominated convergence theorem,
+X
+p∈N
+X
+s∈[d]
+Z
+ψλ
+p (y)eT
+s y dρ(y)
+2
+≤
+Z X
+p∈N
+(ψλ
+p (y))2∥y∥2
+2 dρ(y) =
+Z
+kλ(y, y)∥y∥2
+2 dρ(y) ≤CB,
+which shows that
+R
+ψλ(y)y dρ(y) :=
+ R
+ψλ
+p (y)eT
+s y dρ(y)
+
+p∈N,s∈[d] ∈l2(N × [d]). It follows that
+C
+1
+2
+B ≥∥A(j,l)∥HS
+
+Z
+ψλ(y)y dρ(y)
+
+l2(N×[d])
+≥
+A(j,l)
+Z
+ψλ(y)y dρ(y)
+
+l2(N)
+=
+
+X
+q∈N
+(b(j,l)
+q
+(ρ))2
+
+
+1
+2
+and P
+q∈N b(j,l)
+q
+(ρ)ψλ
+q ∈Hkλ for each (j, l). Let
+Ψ2n,m1(ρ, x) :=
+2n
+X
+j=1
+αjσ
+ d
+X
+l=1
+m1
+X
+q=1
+b(j,l)
+q
+(ρ)ψλ
+q (x)el + bj
+!
++ b0.
+Then we have
+∥N2n(Iλ(·), 1) −Ψ2n,m1∥2
+L2(νG)
+=
+Z
+ΩB
+∥N2n(Iλ(ρ, x), 1) −Ψ2n,m1(ρ, x)∥2
+2 dνG(ρ, x)
+≤
+Z
+ΩB
+
+2n
+X
+j=1
+|αj|
+d
+X
+l=1
+
+X
+q≥m1+1
+b(j,l)
+q
+(ρ)ψλ
+q (x)
+
+el
+
+2
+2
+dνG(ρ, x)
+=
+Z
+ΩB
+d
+X
+l=1
+
+
+2n
+X
+j=1
+|αj|
+
+X
+q≥m1+1
+b(j,l)
+q
+(ρ)ψλ
+q (x)
+
+
+
+2
+dνG(ρ, x)
+≤
+Z
+ΩB
+d
+X
+l=1
+∥α∥1
+
+
+2n
+X
+j=1
+|αj|
+
+
+X
+q≥m1+1
+b(j,l)
+q
+(ρ)ψλ
+q (x)
+
+
+2
+dνG(ρ, x)
+=
+Z
+B2,b(X)
+∥α∥1
+d
+X
+l=1
+
+
+2n
+X
+j=1
+|αj|
+Z
+X
+
+
+X
+q≥m1+1
+b(j,l)
+q
+(ρ)ψλ
+q (x)
+
+
+2
+dρ(x)
+
+dPX
+G (ρ)
+≤
+Z
+B2,b(X)
+∥α∥2
+1
+d
+X
+l=1
+
+max
+1≤j≤2n
+Z
+X
+
+
+X
+q≥m1+1
+b(j,l)
+q
+(ρ)ψλ
+q (x)
+
+
+2
+dρ(x)
+
+dPX
+G (ρ)
+=:
+Z
+B2,b(X)
+∥α∥2
+1
+d
+X
+l=1
+
+max
+1≤j≤2n Ej,l(ρ)
+
+dPX
+G (ρ).
+(22)
+17
+
+
+If 1 < γ < ∞, for each pair (j, l) ∈{1, . . . , n} × {1, . . . , d}, we obtain that
+Ej,l(ρ) =
+Z
+X
+
+
+X
+q≥m1+1
+b(j,l)
+q
+(ρ)ψλ
+q (x)
+
+
+2
+dρ(x)
+=
+Z
+X
+
+
+X
+q≥m1+1
+b(j,l)
+q
+(ρ)ψλ
+q (x)
+
+
+2
+(ωκ(ρ)(x))dρκ(x)
+≤∥ωκ(ρ)∥Lγ(ρκ)
+
+
+Z
+X
+
+
+X
+q≥m1+1
+b(j,l)
+q
+(ρ)ψλ
+q (x)
+
+
+2γ
+γ−1
+dρκ(x)
+
+
+γ−1
+γ
+≤∥ωκ(ρ)∥Lγ(ρκ)
+
+
+Z
+X
+
+
+X
+q≥m1+1
+b(j,l)
+q
+(ρ)ψλ
+q (x)
+
+
+2
+dρκ(x)
+
+
+γ−1
+γ
+
+X
+q≥m1+1
+b(j,l)
+q
+(ρ)ψλ
+q
+
+2
+γ
+∞
+≤∥ωκ(ρ)∥Lγ(ρκ)
+
+X
+q≥m1+1
+b(j,l)
+q
+(ρ)ψλ
+q
+
+2(γ−1)
+γ
+L2(ρκ)
+
+X
+q≥m1+1
+b(j,l)
+q
+(ρ)ψλ
+q
+
+2
+γ
+Hkλ
+= ∥ωκ(ρ)∥Lγ(ρκ)
+
+X
+q≥m1+1
+b(j,l)
+q
+(ρ)ψλ
+q
+
+2(γ−1)
+γ
+L2(ρκ)
+
+
+X
+q≥m1+1
+(b(j,l)
+q
+(ρ))2
+
+
+1
+γ
+.
+Insert the above estimation back into (22). It can be derived by the approximation result in Appendix
+D.1 that
+∥N2n(Iλ(·), 1) −Ψ2n,m1∥2
+L2(νG)
+≤∥α∥2
+1
+Z
+B2,b(X)
+∥ωκ(ρ)∥Lγ(ρκ)
+d
+X
+l=1
+
+max
+1≤j≤2n
+
+X
+q≥m1+1
+b(j,l)
+q
+(ρ)ψλ
+q
+
+2(γ−1)
+γ
+L2(ρκ)
+
+
+X
+q≥m1+1
+(b(j,l)
+q
+(ρ))2
+
+
+1
+γ 
+dPX
+G (ρ)
+≤4C2
+F
+Z
+B2,b(X)
+∥ωκ(ρ)∥Lγ(ρκ)
+d
+X
+l=1
+
+max
+1≤j≤2n
+
+
+
+
+X
+q∈N
+(b(j,l)
+q
+(ρ))2
+
+
+1
+2
+Cκ,ξm−ξ
+1
+
+
+
+2(γ−1)
+γ
+
+X
+q∈N
+(b(j,l)
+q
+(ρ))2
+
+
+1
+γ
+
+dPX
+G (ρ)
+=4C2
+F
+Z
+B2,b(X)
+∥ωκ(ρ)∥Lγ(ρκ)
+d
+X
+l=1
+
+max
+1≤j≤2n
+
+X
+q∈N
+(b(j,l)
+q
+(ρ))2
+
+
+
+Cκ,ξ,γm
+−ξ· 2(γ−1)
+γ
+1
+dPX
+G (ρ)
+≤4C2
+F
+Z
+B2,b(X)
+∥ωκ(ρ)∥Lγ(ρκ)dCBCκ,ξ,γm
+−ξ· 2(γ−1)
+γ
+1
+dPX
+G (ρ) ≤C1m
+−ξ· 2(γ−1)
+γ
+1
+where CF = ∥F∥F1 and C1 = 4dC2
+F CBCκ,ξ,γC
+1
+2
+G .
+For γ = ∞, it’s easy to obtain that
+Ej,l(ρ) ≤∥ωκ(ρ)∥L∞(ρκ)∥
+X
+q≥m1+1
+b(j,l)
+q
+(ρ)ψλ
+q ∥2
+L2(ρκ)
+18
+
+
+and then
+∥N2n −Ψ2n,m1∥2
+L2(π) ≤C1m−2ξ
+1
+.
+Next we perform a truncation on the index p: we let
+Ψ2n,m1,m2(ρ, x) :=
+2n
+X
+j=1
+αjσ
+ d
+X
+l=1
+m1
+X
+q=1
+m2
+X
+p=1
+d
+X
+s=1
+a(j,l)
+p,q,sψλ
+q (x)
+Z
+ψλ
+p (y)(eleT
+s )ydρ(y) + bj
+!
++ b0.
+and a(j,l)
+p,s (x) := Pm1
+q=1 a(j,l)
+p,q,sψλ
+q (x). Then we have
+∥Ψ2n,m1 −Ψ2n,m1m2∥2
+L2(νG) =
+Z
+ΩB
+∥Ψ2n,m1(ρ, x) −Ψ2n,m1,m2(ρ, x)∥2
+2 dνG(ρ, x)
+≤
+Z
+ΩB
+
+2n
+X
+j=1
+|αj|
+d
+X
+l=1
+
+m1
+X
+q=1
+X
+p≥m2+1
+d
+X
+s=1
+a(j,l)
+p,q,sψλ
+q (x)
+Z
+ψλ
+p (y)eT
+s y dρ(y)
+
+el
+
+2
+2
+dνG(ρ, x)
+=
+Z
+ΩB
+d
+X
+l=1
+
+
+2n
+X
+j=1
+|αj|
+
+m1
+X
+q=1
+X
+p≥m2+1
+d
+X
+s=1
+a(j,l)
+p,q,sψλ
+q (x)
+Z
+ψλ
+p (y)eT
+s y dρ(y)
+
+
+
+2
+dνG(ρ, x)
+=:
+Z
+ΩB
+d
+X
+l=1
+
+
+2n
+X
+j=1
+|αj|
+
+X
+p≥m2+1
+d
+X
+s=1
+a(j,l)
+p,s (x)
+Z
+ψλ
+p (y)eT
+s y dρ(y)
+
+
+
+2
+dνG(ρ, x)
+≤
+Z
+ΩB
+∥α∥1
+d
+X
+l=1
+2n
+X
+j=1
+|αj|
+
+
+X
+p≥m2+1
+d
+X
+s=1
+a(j,l)
+p,s (x)
+Z
+ψλ
+p (y)eT
+s y dρ(y)
+
+
+2
+dνG(ρ, x)
+=:
+Z
+ΩB
+∥α∥1
+d
+X
+l=1
+2n
+X
+j=1
+|αj| E′
+j,l(ρ, x) dνG(ρ, x).
+(23)
+Similarly, by dominated convergence theorem and the integral shift to the gaussian distribution ρκ,
+we obtain
+E′
+j,l(ρ, x) =
+
+
+Z
+d
+X
+s=1
+(eT
+s y)
+
+
+X
+p≥m2+1
+a(j,l)
+p,s (x)ψλ
+p (y)
+
+dρ(y)
+
+
+2
+=
+ Z
+d
+X
+s=1
+(eT
+s y)a(j,l)
+s
+(x, y) dρ(y)
+!2
+≤
+
+
+Z
+∥y∥2
+ d
+X
+s=1
+a(j,l)
+s
+(x, y)2
+! 1
+2
+dρ(y)
+
+
+2
+≤Eρ∥Y ∥2
+2
+Z
+d
+X
+s=1
+a(j,l)
+s
+(x, y)2 dρ(y) ≤CB
+d
+X
+s=1
+Z
+a(j,l)
+s
+(x, y)2ωκ(ρ)(y) dρκ(y)
+≤CB∥ωκ(ρ)∥Lγ(ρκ)
+d
+X
+s=1
+Z  a(j,l)
+s
+(x, y)
+ 2γ
+γ−1 dρκ(y)
+ γ−1
+γ
+≤CB∥ωκ(ρ)∥Lγ(ρκ)
+d
+X
+s=1
+∥a(j,l)
+s
+(x, ·)∥
+2(γ−1)
+γ
+L2(ρκ)
+|
+{z
+}
+I(j,l,s)
+1
+(x)
+∥a(j,l)
+s
+(x, ·)∥
+2
+γ∞
+|
+{z
+}
+I(j,l,s)
+2
+(x)
+19
+
+
+Then (23) can be further bounded by
+CB
+Z
+B2,b(X)
+∥α∥1∥ωκ(ρ)∥Lγ(ρκ)
+2n
+X
+j=1
+|αj|
+d
+X
+s,l=1
+Z
+X
+I(j,l,s)
+1
+(x)I(j,l,s)
+2
+(x) dρ(x)
+
+dPX
+G (ρ)
+≤CB
+Z
+B2,b(X)
+∥α∥2
+1∥ωκ(ρ)∥Lγ(ρκ) max
+1≤j≤2n
+d
+X
+s,l=1
+Z
+X
+I(j,l,s)
+1
+(x)I(j,l,s)
+2
+(x) dρ(x)
+
+dPX
+G (ρ) =: ∆0
+where the integral of I(j,l,s)
+1
+(x)I(j,l,s)
+2
+(x) with respect to ρ can be bounded by
+Z
+X
+I(j,l,s)
+1
+(x)I(j,l,s)
+2
+(x) dρ(x) ≤
+I(j,l,s)
+1
+
+L
+γ
+γ−1 (ρ)
+I(j,l,s)
+2
+
+Lγ(ρ) .
+For the first term I(j,l,s)
+1
+,
+I(j,l,s)
+1
+
+L
+γ
+γ−1 (ρ) =
+Z
+X
+a(j,l)
+s
+(x, ·)
+
+2
+L2(ρκ) dρ(x)
+ γ−1
+γ
+=
+
+
+
+Z Z 
+
+X
+p≥m2+1
+a(j,l)
+p,s (x)ψλ
+p (y)
+
+
+2
+dρκ(y) dρ(x)
+
+
+
+γ−1
+γ
+=
+
+
+Z Z
+X
+p≥m2+1
+(a(j,l)
+p,s (x))2(ψλ
+p (y))2 dρκ(y) dρ(x)
+
+
+γ−1
+γ
+=
+
+
+Z
+X
+p≥m2+1
+Z
+(a(j,l)
+p,s (x))2 dρ(x)
+
+(ψλ
+p (y))2 dρκ(y)
+
+
+γ−1
+γ
+=
+
+X
+p≥m2+1
+a(j,l)
+p,s
+
+L2(ρ) ψλ
+p
+
+2(γ−1)
+γ
+L2(ρκ)
+.
+Perform the domain shift to each coeﬀicient of ψλ
+p again and we can obtain
+a(j,l)
+p,s
+
+L2(ρ) =
+Z m1
+X
+q=1
+a(j,l)
+p,q,sψλ
+q (x)
+!2
+ωκ(ρ)(x) dρκ(x)
+≤∥ωκ(ρ)∥Lγ(ρκ)
+
+m1
+X
+q=1
+a(j,l)
+p,q,sψλ
+q
+
+2(γ−1)
+γ
+L2(ρκ)
+
+m1
+X
+q=1
+a(j,l)
+p,q,sψλ
+q
+
+2
+γ
+Hkλ
+= ∥ωκ(ρ)∥Lγ(ρκ)
+ m1
+X
+q=1
+(a(j,l)
+p,q,s)2rλ
+q
+! γ−1
+γ
+ m1
+X
+q=1
+(a(j,l)
+p,q,s)2
+! 1
+γ
+≤∥ωκ(ρ)∥Lγ(ρκ)(rλ
+1 )
+γ−1
+γ
+m1
+X
+q=1
+(a(j,l)
+p,q,s)2,
+20
+
+
+which implies that P
+p≥m2+1
+a(j,l)
+p,s
+
+L2(ρ) ψλ
+p ∈Hkλ with the RKHS norm
+
+
+X
+p≥m2+1
+a(j,l)
+p,s
+
+2
+L2(ρ)
+
+
+1
+2
+≤
+
+∥ωκ(ρ)∥Lγ(ρκ)(rλ
+1 )
+γ−1
+γ
+X
+p≥m2+1
+m1
+X
+q=1
+(a(j,l)
+p,q,s)2
+
+
+1
+2
+.
+For the second term I(j,l,s)
+2
+,
+I(j,l,s)
+2
+
+Lγ(ρ) =
+Z a(j,l,s)
+λ
+(x, ·)
+
+2
+∞dρ(x)
+ 1
+γ
+≤
+Z a(j,l,s)
+λ
+(x, ·)
+
+2
+Hkλ
+dρ(x)
+ 1
+γ
+≤
+
+
+
+Z 
+X
+p≥m2+1
+a(j,l)
+p,s (x)ψλ
+p
+
+2
+Hkλ
+dρ(x)
+
+
+
+1
+γ
+=
+
+
+Z
+X
+p≥m2+1
+(a(j,l)
+p,s (x))2 dρ(x)
+
+
+1
+γ
+≤
+
+
+Z
+X
+p≥m2+1
+ m1
+X
+q=1
+a(j,l)
+p,q,sψλ
+q (x)
+!2
+dρ(x)
+
+
+1
+γ
+≤
+
+
+Z 
+
+X
+p≥m2+1
+m1
+X
+q=1
+(a(j,l)
+p,q,s)2
+
+
+ m1
+X
+q=1
+ψλ
+q (x)2
+!
+dρ(x)
+
+
+1
+γ
+≤
+
+
+X
+p≥m2+1
+m1
+X
+q=1
+(a(j,l)
+p,q,s)2
+
+
+1
+γ Z
+∞
+X
+q=1
+ψλ
+q (x)2 dρ(x)
+! 1
+γ
+=
+
+
+X
+p≥m2+1
+m1
+X
+q=1
+(a(j,l)
+p,q,s)2
+
+
+1
+γ
+.
+Combine the estimations for I(j,l,s)
+1
+and I(j,l,s)
+2
+and we get an upper bound that
+∆0 ≤4CBC2
+F
+Z
+B2,b(X)
+∥ωκ(ρ)∥Lγ(ρκ)
+
+max
+1≤j≤2n
+d
+X
+s,l=1
+I(j,l)
+1
+
+L
+γ
+γ−1 (ρ)
+I(j,l)
+2
+
+Lγ(ρ)
+
+dPX
+G (ρ)
+≤4CBC2
+F
+Z
+B2,b(X)
+∥ωκ(ρ)∥Lγ(ρκ)
+(
+max
+1≤j≤2n
+d
+X
+s,l=1
+
+
+
+∥ωκ(ρ)∥Lγ(ρκ)(rλ
+1 )
+γ−1
+γ
+X
+p∈N
+m1
+X
+q=1
+(a(j,l)
+p,q,s)2
+
+
+1
+2
+Cκ,ξm−ξ
+2
+
+
+2(γ−1)
+γ
+·
+
+X
+p∈N
+m1
+X
+q=1
+(a(j,l)
+p,q,s)2
+
+
+1
+γ )
+dPX
+G (ρ)
+≤4dCBC2
+F (rλ
+1 )
+(γ−1)2
+γ2
+Z
+B2,b(X)
+∥ωκ(ρ)∥
+2γ−1
+γ
+Lγ(ρκ)Cκ,ξ,γm
+−ξ· 2(γ−1)
+γ
+2
+dPX
+G (ρ)
+≤4dCBC2
+F Cκ,ξ,γ(rλ
+1 )
+(γ−1)2
+γ2
+m
+−ξ· 2(γ−1)
+γ
+2
+Z
+B2,b(X)
+∥ωκ(ρ)∥
+2γ−1
+γ
+Lγ(ρκ) dPX
+G (ρ)
+≤C2m
+−ξ· 2(γ−1)
+γ
+2
+21
+
+
+where C2 = 4dCBC2
+F Cκ,ξ,γ(rλ
+1 )
+(γ−1)2
+γ2
+C
+2γ−1
+2γ
+G
+.
+A.1.2 Linear Transformer with Adaptive Attention Heads
+Recall that
+Ψ2n,m(ρ, x) :=
+2n
+X
+j=1
+αjσ
+ d
+X
+l=1
+m
+X
+p,q=1
+d
+X
+s=1
+a(j,l)
+p,q,sψλ
+q (x)
+Z
+ψλ
+p (y)(eleT
+s )ydρ(y) + bj
+!
++ b0
+=
+2n
+X
+j=1
+αjσ
+ 
+m
+X
+p,q=1
+ψλ
+q (x)
+Z
+ψλ
+p (y)A(j)
+p,qy dρ(y) + bj
+!
++ b0
+with A(j)
+p,q = Pd
+l=1
+Pd
+s=1 a(j,l)
+p,q,seleT
+s = [a(j,l)
+p,q,s]1≤l≤d,1≤s≤d.
+Now we approximate each ψλ
+q with a neural network ϕq, and let
+T2n,m(ρ, x) :=
+2n
+X
+j=1
+αjσ
+ m
+X
+q=1
+ϕq(x)
+ m
+X
+p=1
+Z
+ϕp(y)A(j)
+p,qy dρ(y)
+!
++ bj
+!
++ b0.
+Then we have the error decomposition:
+∥Ψ2n,m −T2n,m∥L2(νG) ≤∥Ψ2n,m −eT2n,m∥L2(νG) + ∥eT2n,m −T2n,m∥L2(νG)
+where
+eT2n,m(ρ, x) =
+2n
+X
+j=1
+αjσ
+ m
+X
+q=1
+ϕq(x)
+ m
+X
+p=1
+Z
+ψλ
+p (y)A(j)
+p,qy dρ(y)
+!
++ bj
+!
++ b0.
+Similar with error estimations for the truncated error, let
+eb(j,l)
+q
+(ρ) :=
+X
+1≤p≤m,1≤s≤d
+a(j,l)
+p,q,s
+Z
+ψλ
+p (y)eT
+s y dρ(y)
+22
+
+
+and we have
+Ψ2n,m −eT2n,m
+
+2
+L2(νG)
+≤
+Z
+ΩB
+
+2n
+X
+j=1
+|αj|
+d
+X
+l=1
+
+m
+X
+q=1
+eb(j,l)
+q
+(ρ)
+ ψλ
+q (x) −ϕq(x)
+
+ el
+
+2
+2
+dνG(ρ, x)
+=
+Z
+ΩB
+d
+X
+l=1
+
+
+2n
+X
+j=1
+|αj|
+
+m
+X
+q=1
+eb(j,l)
+q
+(ρ)
+ ψλ
+q (x) −ϕq(x)
+
+
+
+
+2
+dνG(ρ, x)
+≤
+Z
+B2,b(X)
+∥α∥1
+d
+X
+l=1
+2n
+X
+j=1
+|αj|
+Z
+X
+
+X
+q∈[m]
+eb(j,l)
+q
+(ρ)
+ ψλ
+q (x) −ϕq(x)
+
+
+
+2
+dρ(x)dPX
+G (ρ)
+≤
+Z
+B2,b(X)
+∥α∥2
+1
+d
+X
+l=1
+max
+1≤j≤2n
+ m
+X
+q=1
+(eb(j,l)
+q
+(ρ))2
+! Z
+X
+m
+X
+q=1
+ ψλ
+q (x) −ϕq(x)
+2 dρ(x)dPX
+G (ρ)
+≤d∥α∥2
+1CB
+Z
+B2,b(X)
+m
+X
+q=1
+Z
+X
+ ψλ
+q (x) −ϕq(x)
+2 dρ(x) dPX
+G (ρ)
+=: dCB∥α∥2
+1
+m
+X
+q=1
+Z
+B2,b(X)
+eEq(ρ) dPX
+G (ρ).
+Take ϕq = ϕq, ˜m to be the two-hidden-layer tanh neural network with a product gate in Appendix
+D.2. Then we have
+eEq(ρ) ≤(4d2 + Cκ,γ∥ωκ(ρ)∥Lγ(ρκ)) exp(−2 ˜m log ˜m).
+Take the estimation back and it follows that
+Ψ2n,m −eT2n,m, ˜m
+
+2
+L2(νG) ≤C3m exp(−2 ˜m log ˜m)
+with C3 = 4dCBC2
+F
+
+4d2 + Cκ,γC
+1
+2
+G
+
+for ˜m > Cκ,θ,γ.
+Then we use the same group of two-hidden-layer neural networks {ϕq, ˜m}1≤q≤m to approximate
+{ψλ
+q }1≤q≤m in the context memory part. Now Let a linear Transformer
+T2n,m, ˜m(ρ, x) =
+2n
+X
+j=1
+αjσ
+ m
+X
+q=1
+ϕq, ˜m(x)
+ m
+X
+p=1
+Z
+ϕp, ˜m(y)A(j)
+p,qy dρ(y)
+!
++ bj
+!
++ b0.
+Then the approximation error for context functions can be measured as
+eT2n,m, ˜m −T2n,m, ˜m
+
+2
+L2(νG)
+≤
+Z
+B2,b(X)
+∥α∥2
+1
+d
+X
+l=1
+max
+1≤j≤2n
+Z
+X
+
+
+X
+1≤p,q≤m,1≤s≤d
+a(j,l)
+p,q,sϕq, ˜m(x)
+Z
+(ψλ
+p (y) −ϕp, ˜m(y))eT
+s y dρ(y)
+
+
+2
+dρ(x)dPX
+G (ρ)
+≤
+Z
+B2,b(X)
+∥α∥2
+1
+d
+X
+l=1
+max
+1≤j≤2n
+
+
+Z
+X
+X
+1≤p≤m,1≤s≤d
+(˜a(j,l)
+p,s (x))2dρ(x)
+
+·
+
+
+X
+1≤p≤m,1≤s≤d
+Z
+(ψλ
+p (y) −ϕp, ˜m(y))eT
+s y dρ(y)
+2
+
+dPX
+G (ρ)
+23
+
+
+where
+˜a(j,l)
+p,s (x) :=
+m
+X
+q=1
+a(j,l)
+p,q,sϕq, ˜m(x).
+For the first factor, let
+I(j,l)
+3
+(ρ) =
+Z
+X
+X
+1≤p≤m,1≤s≤d
+(˜a(j,l)
+p,s (x))2 dρ(x),
+and we can obtain
+d
+X
+l=1
+max
+1≤j≤2n I(j,l)
+3
+(ρ) ≤d
+m
+X
+q=1
+Z
+X
+(ϕq, ˜m(x))2 dρ(x) ≤d
+m
+X
+q=1
+(2∥ψλ
+q ∥2
+L2(ρ) + 2∥ψλ
+q −ϕq, ˜m∥2
+L2(ρ))
+≤2d + 2dm(4d2 + Cκ,γ∥ωκ(ρ)∥Lγ(ρκ)) exp(−2 ˜m log ˜m).
+For the second factor, it’s easy to observe that
+X
+1≤p≤m,1≤s≤d
+Z
+(ψλ
+p (y) −ϕp, ˜m(y))eT
+s y dρ(y)
+2
+≤
+m
+X
+p=1
+∥ψλ
+p −ϕq, ˜m∥2
+L2(ρ)EX∼ρ∥X∥2
+2
+≤CBm(4d2 + Cκ,γ∥ωκ(ρ)∥Lγ(ρκ)) exp(−2 ˜m log ˜m).
+Choose ˜m such that m exp(−2 ˜m log ˜m) < 1. Combine two estimations and it is obtained that
+˜Tn,m, ˜m −Tn,m, ˜m
+2
+L2(νG)
+≤8C2
+F CBd
+Z
+B2(X)
+(20d4 + 9d2Cκ,γ∥ωκ(ρ)∥Lγ(ρκ) + C2
+κ,γ∥ωκ(ρ)∥2
+Lγ(ρκ))m exp(−2 ˜m log ˜m) dPX
+G (ρ)
+≤C4m exp(−2 ˜m log ˜m)
+with C4 = 8C2
+F CBd(20d4 + 9d2(1 + Cκ,γCG)2).
+Combine all the estimations and we can achieve the following convergence rate for n ≥C′
+κ,θ,γ
+with C′
+κ,θ,γ = exp
+
+4(γ−1)ξCκ,θ,γ
+2(γ−1)ξ+γ
+
+:
+∥F(Iλ(·), 1) −T2n,m, ˜m∥L2(νG)
+≤∥F(Iλ(·), 1) −N2n(Iλ(·), 1)∥L2(νG) + ∥N2n(Iλ(·), 1) −Ψ2n,m∥L2(νG) + ∥Ψ2n,m −T2n,m, ˜m∥L2(νG)
+≤((1 + CB)C2
+F )
+1
+2 n−1
+2 +
+
+C
+1
+2
+1 + C
+1
+2
+2
+
+m−ξ(γ−1)
+γ
++
+
+C
+1
+2
+3 + C
+1
+2
+4
+
+m
+1
+2 exp(−˜m log ˜m) ≤C∗n−1
+2 ,
+with C∗= 3 max
+n
+(1 + CB)
+1
+2 CF , C
+1
+2
+1 + C
+1
+2
+2 , C
+1
+2
+3 + C
+1
+2
+4
+o
+,
+m =
+l
+n
+γ
+2(γ−1)ξ
+m
+and ˜m =
+1
+2 +
+γ
+4(γ −1)ξ
+
+log n
+
+.
+■
+A.2 Oracle Inequality: Sampling Error for Linear Transformers
+In this Subsection, we derive an oracle inequality for the two-stage sampling estimation. We first
+prove the compactness of the hypothesis space in A.2.1, which guarantees the existence of TS,n
+in (6).
+We then establish covering number estimates in A.2.2 to bound the empirical processes
+of the first-stage sampling (A.2.3), the pseudo second-stage sampling (A.2.4) and the second-stage
+sampling (A.2.5).
+24
+
+
+A.2.1 Compact subspaces in C(Ω)
+Recall that (Ω, dΩ) is a complete separable metric space. To prove that HTn is compact in C(Ω),
+it’s suﬀicient to show that HTn is sequentially compact in C(Ω). By Arzelà-Ascoli Theorem, it’s
+suﬀicient to check the equi-boundedness and equi-continuity of HTn. For any Tn ∈HTn, we can pick
+a group of parameters
+
+(αj), (bj), (A(j)
+p,q), Θtanh
+
+satisfying the conditions of the hypothesis space
+HTn. For the simplicity, we let
+σj(ρ, x) = σ
+
+
+m(n)
+X
+q=1
+ϕq, ˜m(n)(x)
+
+
+m(n)
+X
+p=1
+TCB
+Z
+ϕp, ˜m(n)(y)A(j)
+p,qy dρ(y)
+
++ bj
+
+.
+Then we have
+∥Tn(ρ, x) −Tn(ρ′, x′)∥2 =
+
+n
+X
+j=1
+αj(σj(ρ, x) −σj(ρ′, x′))
+
+2
+≤∥α∥1 max
+1≤j≤n ∥σj(ρ, x) −σj(ρ′, x′)∥2
+≤∥α∥1 max
+1≤j≤n
+m(n)
+X
+p,q=1
+ϕq, ˜m(n)(x)TCB
+Z
+ϕp, ˜m(n)(y)A(j)
+p,qy dρ(y)
+
+−ϕq, ˜m(n)(x′)TCB
+Z
+ϕp, ˜m(n)(y)A(j)
+p,qy dρ′(y)
+
+2
+≤∥α∥1 max
+1≤j≤n
+m(n)
+X
+p,q=1
+ϕq, ˜m(n)(x)
+
+TCB
+Z
+ϕp, ˜m(n)(y)A(j)
+p,qy dρ(y)
+
+−TCB
+Z
+ϕp, ˜m(n)(y)A(j)
+p,qy dρ′(y)
+
++ TCB
+Z
+ϕp, ˜m(n)(y)A(j)
+p,qy dρ′(y)
+
+(ϕq, ˜m(n)(x) −ϕq, ˜m(n)(x′))
+
+2
+≤∥α∥1 max
+1≤j≤n
+m(n)
+X
+p,q=1
+ 
+Z
+(ϕp, ˜m(n)(y)A(j)
+p,qy −ϕp, ˜m(n)(y′)A(j)
+p,qy′) dρ(y)dρ′(y′)
+
+2
+|
+{z
+}
+∆(ρ,ρ′)
++
+√
+dCB
+ϕq, ˜m(n)(x) −ϕq, ˜m(n)(x′)
+
+!
+.
+Recall that ϕq, ˜m(n)(x) = Qd
+l=1 T1(ϕ(l)
+q, ˜m(n)(x)), where (ϕ(l)
+q, ˜m(n))d
+l=1 is a group of two-hidden-layer tanh
+neural networks shown in Appendix D.2. It’s easy to observe that
+ϕq, ˜m(n)(x) −ϕq, ˜m(n)(x′)
+
+=
+
+d
+Y
+l=1
+T1(ϕ(l)
+q, ˜m(n)(x)) −
+d
+Y
+l=1
+T1(ϕ(l)
+q, ˜m(n)(x′))
+ ≤d max
+1≤l≤d
+ϕ(l)
+q, ˜m(n)(x) −ϕ(l)
+q, ˜m(n)(x′)
+
+≤d max
+1≤l≤d
+cT
+q,l[σtanh(W (l)
+q,1σtanh(W (l)
+q,0x + b(l)
+q,0) + b(l)
+q,1) −σtanh(W (l)
+q,1σtanh(W (l)
+q,0x′ + b(l)
+q,0) + b(l)
+q,1)]
+
+≤d max
+1≤l≤d ∥cT
+q,l∥∞
+W (l)
+q,1(σtanh(W (l)
+q,0x + b(l)
+q,0) −σtanh(W (l)
+q,0x′ + b(l)
+q,0))
+
+∞
+≤d max
+1≤l≤d ∥cT
+q,l∥∞
+W (l)
+q,1
+
+∞
+W (l)
+q,0
+
+∞∥x −x′∥∞≤
+
+d max
+1≤l≤d ∥cT
+q,l∥∞
+W (l)
+q,1
+
+∞
+W (l)
+q,0
+
+∞
+
+∥x −x′∥2
+≤Cn,d∥x −x′∥2.
+25
+
+
+Since the parameters in tanh neural networks are uniformly bounded by ∥Θtanh∥∞, Cn,d just depends
+on n and d. It also follows that for any τ ∈Q(ρ, ρ′),
+∆(ρ, ρ′) ≤
+Z ϕp, ˜m(n)(y)A(j)
+p,qy −ϕp, ˜m(n)(y′)A(j)
+p,qy′
+2 dτ(y, y′)
+≤
+A(j)
+p,q
+
+F
+Z
+∥ϕp, ˜m(n)(y)y −ϕp, ˜m(n)(y′)y′∥2 dτ(y, y′)
+≤
+A(j)
+p,q
+
+F
+Z ϕp, ˜m(n)(y)(y −y′)
+
+2 dτ(y, y′) +
+Z y′(ϕp, ˜m(n)(y) −ϕp, ˜m(n)(y′))
+
+2 dτ(y, y′)
+
+≤
+A(j)
+p,q
+
+F
+Z
+∥y −y′∥2 dτ(y, y′) + Cn,d
+q
+Eρ′ ∥Y ′∥2
+2
+q
+Eτ∥Y −Y ′∥2
+2
+
+≤
+A(j)
+p,q
+
+F (1 + Cn,d
+q
+Eρ′∥Y ′∥2
+2)
+q
+Eτ∥Y −Y ′∥2
+2.
+Take the above estimation back and it can be obtained that
+∥Tn(ρ, x) −Tn(ρ′, x′)∥2
+≤∥α∥1 max
+1≤j≤n
+m(n)
+X
+p,q=1
+ A(j)
+p,q
+
+F (1 + Cn,d∥Y ∥L2(ρ′))∥Y −Y ′∥L2(τ) +
+√
+dCBCn,d∥x −x′∥2
+
+≤∥α∥1m
+√
+d(1 + Cn,d∥Y ∥L2(ρ′) +
+√
+dCBCn,d)(∥Y −Y ′∥L2(τ) + ∥x −x′∥2)
+which holds for any τ ∈Q(ρ, ρ′). It follows that
+∥Tn(ρ, x) −Tn(ρ′, x′)∥2 ≤CF m
+√
+d(1 + Cn,d∥Y ∥L2(ρ′) +
+√
+dCBCn,d)dΩ((ρ, x), (ρ′, x′))
+and proves that HTn is equi-continuous at each (ρ′, x′) ∈Ω.
+For any (ρ, x) ∈Ω, we have
+∥Tn(ρ, x)∥2 ≤∥b0∥2 + ∥α∥1 max
+1≤j≤n
+
+∥bj∥2 +
+
+m(n)
+X
+p,q=1
+ϕq, ˜m(n)(x)TCB
+Z
+ϕp, ˜m(n)(y)A(j)
+p,qy dρ(y)
+
+2
+
+
+≤CF
+p
+dCB + CF
+
+p
+2dCB +
+m(n)
+X
+p,q=1
+TCB
+Z
+ϕp, ˜m(n)(y)A(j)
+p,qy dρ(y)
+
+2
+
+
+≤CF (2
+p
+dCB + m2CB
+√
+d).
+which shows that {Tn(ρ, x) : Tn ∈HTn} is bounded for each (ρ, x) ∈Ω. Therefore, HTn is compact
+in C(Ω) which guarantees the existence of TS,n and the below covering number.
+A.2.2 Covering Number Estimations
+Note that in the first stage and pseudo second stage sampling, we have access to the true distributions
+sampled from PG on B2,b(X) such that the second moments are uniformly bounded by CB, which
+however doesn’t hold true for the empirical distributions in the second stage sampling.
+Recall that the hypothesis space is defined as
+HTn =
+(
+Tn : ∥α∥1 ≤2CF ,
+m(n)
+X
+p,q=1
+∥A(j)
+p,q∥2
+F ≤d, ∥bj∥2 ≤
+p
+2dCB for each 1 ≤j ≤n,
+∥b0∥2 ≤CF
+p
+2dCB, and ∥Θtanh∥∞≤c1(c′
+2 log(n))c′
+3(log n)2
+)
+.
+26
+
+
+For σj(ρ, x) defined above, it’s easy to observe that for any (ρ, x) ∈ΩB,
+∥σj(ρ, x)∥2 ≤
+
+bj +
+m(n)
+X
+p,q=1
+ϕq, ˜m(n)(x)TCB
+Z
+ϕp, ˜m(n)(y)A(j)
+p,qy dρ(y)
+
+2
+≤∥bj∥2 +
+m(n)
+X
+p,q=1
+Z A(j)
+p,qy
+
+2 dρ(y)
+≤∥bj∥2 + C
+1
+2
+B
+m(n)
+X
+p,q=1
+A(j)
+p,q
+
+F
+≤
+p
+2dCB +
+p
+CBm
+√
+d ≤m
+p
+2dCB.
+Choose Tn, ￿Tn ∈HTn with ∥α −¯α∥1 ≤ϵ,
+Pm(n)
+p,q=1
+A(j)
+p,q −¯A(j)
+p,q
+
+2
+F
+ 1
+2
+≤ϵ, ∥bj −¯bj∥2 ≤ϵ for
+1 ≤j ≤n, and ∥b0 −¯b0∥2 ≤ϵ. Then we have
+Tn(ρ, x) −¯Tn(ρ, x)
+
+2 =
+
+(b0 −¯b0) +
+n
+X
+j=1
+(αjσj(ρ, x) −¯αj¯σj(ρ, x))
+
+2
+≤∥b0 −¯b0∥2 +
+
+n
+X
+j=1
+(αj −¯αj)σj(ρ, x) + ¯αj(σj(ρ, x) −¯σj(ρ, x))
+
+2
+≤ϵ + ∥α −¯α∥1 max
+1≤j≤n ∥σj(ρ, x)∥2 + ∥¯α∥1 max
+1≤j≤n ∥σj(ρ, x) −¯σj(ρ, x)∥2
+≤2
+p
+dCBmϵ + 2CF max
+1≤j≤n ∥σj(ρ, x) −¯σj(ρ, x)∥2.
+27
+
+
+For the second term in the above inequality, it follows that
+∥σj(ρ, x) −¯σj(ρ, x)∥2
+≤
+(bj −¯bj) +
+m(n)
+X
+p,q=1
+ 
+ϕq, ˜m(n)(x)TCB
+Z
+ϕp, ˜m(n)(y)A(j)
+p,qy dρ(y)
+
+−¯ϕq, ˜m(n)(x)TCB
+Z
+¯ϕp, ˜m(n)(y) ¯A(j)
+p,qy dρ(y)
+!
+2
+≤∥bj −¯bj∥2 +
+m(n)
+X
+p,q=1
+(ϕq, ˜m(n)(x) −¯ϕq, ˜m(n)(x))TCB
+Z
+ϕp, ˜m(n)(y)A(j)
+p,qy dρ(y)
+
+2
++
+m(n)
+X
+p,q=1
+¯ϕq, ˜m(n)(x)
+
+TCB
+Z
+ϕp, ˜m(n)(y)A(j)
+p,qy dρ(y)
+
+−TCB
+Z
+¯ϕp, ˜m(n)(y) ¯A(j)
+p,qy dρ(y)
+
+2
+≤∥bj −¯bj∥2 +
+m(n)
+X
+p,q=1
+ϕq, ˜m(n)(x) −¯ϕq, ˜m(n)(x)
+
+Z A(j)
+p,qy
+
+2 dρ(y)
++
+m(n)
+X
+p,q=1
+
+Z 
+ϕp, ˜m(n)(y)A(j)
+p,qy −¯ϕp, ˜m(n)(y) ¯A(j)
+p,qy
+
+dρ(y)
+
+2
+≤∥bj −¯bj∥2 + C
+1
+2
+B
+m(n)
+X
+p,q=1
+A(j)
+p,q
+
+F
+ϕq, ˜m(n)(x) −¯ϕq, ˜m(n)(x)
+ +
+m(n)
+X
+p,q=1
+
+Z
+ϕp, ˜m(n)(y)(A(j)
+p,q −¯A(j)
+p,q)y dρ(y)
+
+2
++
+m(n)
+X
+p,q=1
+
+Z
+(ϕp, ˜m(n)(y) −¯ϕp, ˜m(n)(y)) ¯A(j)
+p,qy dρ(y)
+
+2
+≤∥bj −¯bj∥2 + C
+1
+2
+B
+max
+1≤q≤m(n)
+ϕq, ˜m(n)(x) −¯ϕq, ˜m(n)(x)
+
+m(n)
+X
+p,q=1
+A(j)
+p,q
+
+F + C
+1
+2
+B
+m(n)
+X
+p,q=1
+A(j)
+p,q −¯A(j)
+p,q
+
+F
++
+m(n)
+X
+p,q=1
+Z ϕp, ˜m(n)(y) −¯ϕp, ˜m(n)(y)
+
+ ¯A(j)
+p,qy
+
+2 dρ(y)
+≤ϵ +
+p
+CBmϵ +
+p
+dCBm
+max
+1≤q≤m(n)
+ϕq, ˜m(n)(x) −¯ϕq, ˜m(n)(x)
+
++
+p
+dCBm
+max
+1≤p≤m(n) ∥ϕp, ˜m(n) −¯ϕp, ˜m(n)∥L2(ρ).
+28
+
+
+Recall that the above two-hidden-layer tanh neural networks have the form ϕp, ˜m(n) = T1,⊙
+ ϕ(1)
+p, ˜m(n), . . . , ϕ(d)
+p, ˜m(n)
+
+and then it can be obtained that for any x ∈Rd,
+ϕp, ˜m(n)(x) −¯ϕp, ˜m(n)(x)
+ ≤d max
+1≤l≤d
+ϕ(l)
+p, ˜m(n)(x) −¯ϕ(l)
+p, ˜m(n)(x)
+
+≤d max
+1≤l≤d
+
+cT
+p,l
+h
+σtanh(W (l)
+p,1σtanh(W (l)
+p,0x + b(l)
+p,0) + b(l)
+p,1)
+i
+|
+{z
+}
+=:f (l)
+p (x)
+−¯cT
+p,l
+h
+σtanh(W
+(l)
+p,1σtanh(W
+(l)
+p,0x + ¯b(l)
+p,0) + ¯b(l)
+p,1)
+i
+|
+{z
+}
+=: ¯
+f (l)
+p (x)
+
+≤d max
+1≤l≤d
+cT
+p,lf (l)
+p (x) −¯cT
+p,lf (l)
+p (x) + ¯cT
+p,lf (l)
+p (x) −¯cT
+p,l ¯f (l)
+p (x)
+
+≤d max
+1≤l≤d
+
+∥cp,l −¯cp,l∥1 + ∥¯cp,l∥1
+f (l)
+p (x) −¯f (l)
+p (x)
+
+∞
+
+≤8d ˜m(n) max
+1≤l≤d
+n
+∥cp,l −¯cp,l∥∞+ ∥¯cp,l∥∞
+f (l)
+p (x) −¯f (l)
+p (x)
+
+∞
+o
+,
+where
+f (l)
+p (x) −¯f (l)
+p (x)
+
+∞
+≤
+(W (l)
+p,1σtanh(W (l)
+p,0x + b(l)
+p,0) + b(l)
+p,1) −(W
+(l)
+p,1σtanh(W
+(l)
+p,0x + ¯b(l)
+p,0) + ¯b(l)
+p,1)
+
+∞
+≤
+b(l)
+p,1 −¯b(l)
+p,1
+
+∞+
+W (l)
+p,1 −W
+(l)
+p,1
+
+∞+
+W (l)
+p,1
+
+∞
+(W (l)
+p,0 −W
+(l)
+p,0)x + b(l)
+p,0 −¯b(l)
+p,0
+
+∞.
+Choose that
+∥cp,l −¯cp,l∥∞≤ϵ,
+b(l)
+p,1 −¯b(l)
+p,1
+
+∞≤ϵ,
+W (l)
+p,1 −W
+(l)
+p,1
+
+max ≤ϵ,
+W (l)
+p,0 −W
+(l)
+p,0
+
+max ≤ϵ,
+b(l)
+p,0 −¯b(l)
+p,0
+
+∞≤ϵ.
+(24)
+Then it’s easy to see that
+f (l)
+p (x) −¯f (l)
+p (x)
+
+∞≤24(1 + ∥x∥∞)[c4 ˜m(n)]c5( ˜m(n))2ϵ,
+which implies that
+ϕp, ˜m(n)(x) −¯ϕp, ˜m(n)(x)
+ ≤192d (2 + ∥x∥∞)[c4 ˜m(n)]3c5( ˜m(n))2ϵ
+and that
+p
+dCBm
+
+max
+1≤p,q≤m(n)
+ϕq, ˜m(x) −¯ϕq, ˜m(x)
+ + ∥ϕp, ˜m −¯ϕp, ˜m∥L2(ρ)
+
+≤
+p
+dCBm
+
+192d
+
+4 + ∥x∥∞+
+Z
+X
+∥x∥∞dρ
+
+[c4 ˜m(n)]3c5( ˜m(n))2
+ϵ
+≤192CBd
+3
+2 (5 + ∥x∥∞)(m(n))[c4 ˜m(n)]3c5( ˜m(n))2ϵ.
+We can conclude that
+Tn(ρ, x) −¯Tn(ρ, x)
+
+2 ≤386CF CBd
+3
+2 (9 + ∥x∥∞)(m(n))[c4 ˜m(n)]3c5( ˜m(n))2ϵ =: ￿(x, ϵ).
+For any pseudometric space (H, dH) and ϵ > 0, the covering number of (H, dH) with radius ϵ is
+defined as inf{|D| : D ⊂H, for any Ψ ∈H there exists Φ ∈D with dH(Ψ, Φ) ≤ϵ}.
+We denote by N(HTn, ϵ, dB2,b(X)) the uniform ϵ-covering number for the first stage sampling with
+the pseudometric
+dB2,b(X)(Φ1, Φ2) =
+sup
+ρ∈B2,b(X)
+Eρ∥Φ1( ˜X) −Φ2( ˜X)∥2.
+29
+
+
+It follows that for the above Tn, ¯Tn and the parameter selections,
+dB2,b(X)(Tn, ¯Tn) ≤
+sup
+ρ∈B2,b(X)
+EρΞ(X, ϵ) ≤c6CF C2
+Bd
+3
+2 (m(n))[c4 ˜m(n)]3c5( ˜m(n))2ϵ.
+Then the ˜ϵ-covering number of HTn with respect to dB2,b(X) can bounded as
+N(HTn, ˜ϵ, dB2,b(X))
+≤
+
+1 + 4CF
+ϵ
+n 
+1 + 2CF
+√2dCB
+ϵ
+n
+
+m2d2+d
+
++1 
+1 + (c′
+2 ˜m)c′
+3 ˜m2
+ϵ
+![8 ˜md+8 ˜m+(8 ˜m)2+8 ˜m+8 ˜m]dm
+≤
+
+1 + 4CF
+√dCB
+ϵ
+3nm2d2 
+1 + (c′
+2 ˜m)c′
+3 ˜m2
+ϵ
+!96d2 ˜m2m
+≤
+ 
+1 + 4c6CF C3
+Bd2m(c4 ˜m)3c5 ˜m2
+˜ϵ
+!3d2nm2 
+1 + c6CF C2
+Bd
+3
+2 m(c4 ˜m)6c5 ˜m2
+˜ϵ
+!96d2 ˜m2m
+≤
+
+1 + 8Cd,F,B
+˜ϵ
+100d2nm2
+((c4m ˜m)600c5d2nm2 ˜m2),
+with Cd,F,B = c6CF C3
+Bd2, which is followed by
+log N(HTn, ˜ϵ, dB2,b(X)) ≤100nd2m2 log
+
+1 + 8Cd,F,B
+˜ϵ
+
++ 600c5d2nm2 ˜m2 log(c4m ˜m).
+Conditioned on the pseudo second-stage samples (ρ(i)
+X , Xij)1≤i≤N,1≤j≤ni, we can define the empirical
+L2
+ˆ
+P ϵ-covering number N(HTn, ϵ, d ˆ
+P ) with the pseudometric
+d ˆ
+P (Φ1, Φ2) =
+
+1
+N
+N
+X
+i=1
+1
+ni
+ni
+X
+j=1
+∥Φ1(ρ(i)
+X , Xij) −Φ2(ρ(i)
+X , Xij)∥2
+2
+
+
+1
+2
+.
+Then for the above Tn, ¯Tn and the parameter selections, we have
+d ˆ
+P (Tn, ¯Tn) ≤
+
+1
+N
+N
+X
+i=1
+1
+ni
+ni
+X
+j=1
+Ξ(Xij, ϵ)2
+
+
+1
+2
+≤386
+√
+2CF CBd
+3
+2
+
+9 +
+v
+u
+u
+t 1
+N
+N
+X
+i=1
+1
+ni
+ni
+X
+j=1
+∥Xij∥2∞
+
+m[c4 ˜m]3c5 ˜m2ϵ
+≤c6CF CBd
+3
+2
+
+9 +
+v
+u
+u
+t 1
+N
+N
+X
+i=1
+1
+ni
+ni
+X
+j=1
+∥Xij∥2
+2
+
+
+|
+{z
+}
+=:∥ˆ
+X∥2
+m(c4 ˜m)3c5 ˜m2ϵ.
+Similarly, it’s easy to see that
+log N(HTn, ˜ϵ, d ˆ
+P ) ≤100nd2m2 log
+ 
+1 + 8c6CF C2
+Bd2∥ˆX∥2
+˜ϵ
+!
++ 600c5nd2m2 ˜m2 log(c4m ˜m).
+30
+
+
+A.2.3 First-Stage Sampling Error Estimation
+The following lemma is from Lemma 3.19 [9].
+Lemma 18 Let J be a set of functions on Z and B, c > 0 such that for each J ∈J , |J −E(J )| ≤
+B and E(Γ2) ≤cE(Γ) almost surely. Then for every ϵ > 0 and 0 < r ≤1,
+Pz∈Zm
+(
+sup
+J ∈J
+E(J ) −Ez(J )
+p
+E(J ) + ϵ
+> 4r√ϵ
+)
+≤N(J , rϵ, ∥· ∥L∞(Z)) exp
+
+−
+r2mϵ
+2c + 2
+3B
+
+.
+We consider the class of functions JΦ : B2,b(X × Y) →R, denoted by
+J (HTn) :=
+n
+JΦ : JΦ(ρXY ) = E[∥TMΦ( ˜X) −Y ∥2
+2|ρXY ] −E[∥ΦG( ˜X) −Y ∥2
+2|ρXY ], Φ ∈HTn
+o
+.
+Then for each JΦ ∈J (HTn), we have
+E(JΦ) = E(TMΦ) −E(ΦG) and 1
+N
+N
+X
+i=1
+JΦ(ρ(i)
+XY ) = EN(TMΦ) −EN(ΦG),
+where E(TMΦ) −E(ΦG) = ∥TMΦ −ΦG∥2
+L2νG . Also notice that
+|JΦ(ρXY )| =
+E
+
+∥TMΦ( ˜X) −Y ∥2
+2 −∥ΦG( ˜X) −Y ∥2
+2
+ρXY
+
+≤
+E
+
+(∥TMΦ( ˜X) −Y ∥2 + ∥ΦG( ˜X) −Y ∥2)(∥TMΦ( ˜X) −ΦG∥2)
+ρXY
+
+≤8M 2,
+which implies that |JΦ(ρXY ) −E(JΦ)| ≤16M 2 and
+E(J 2
+Φ) ≤EρXY ∼PG
+h
+E
+
+(∥TMΦ( ˜X) −Y ∥2
+2 −∥ΦG( ˜X) −Y ∥2
+2)2|ρXY
+i
+≤16M 2EρX∼PX
+G (E[∥TMΦ( ˜X) −ΦG∥2|ρX])2 ≤16M 2∥TMΦ −ΦG∥2
+L2
+ν = 16M 2E(JΦ).
+Then for any Φ1, Φ2 ∈HTn, it follows that
+|JΦ1(ρXY ) −JΦ2(ρXY )| =
+E[∥TMΦ1( ˜X) −Y ∥2
+2|ρXY ] −E[∥TMΦ2( ˜X) −Y ∥2
+2|ρXY ]
+
+≤4M
+E
+
+∥TMΦ1( ˜X) −TMΦ2( ˜X)∥2|ρX
+
+≤4M
+E
+
+∥Φ1( ˜X) −Φ2( ˜X)∥2|ρX
+ ≤4MdB2,b(X)(Φ1, Φ2),
+which shows that
+N(J (HTn), ϵ, ∥· ∥L∞(B2,b(X×Y))) ≤N
+
+HTn,
+ϵ
+4M , dB2,b(X)
+
+.
+Then with the uniform ratio inequality, we have that
+P
+(
+sup
+Φ∈HTn
+(E(TMΦ) −E(ΦG)) −(EN(TMΦ) −EN(ΦG))
+p
+E(TMΦ) −E(ΦG) + ϵ
+> √ϵ
+)
+≤N
+
+J (HTn), ϵ
+4, ∥· ∥L∞(B2,b(X×Y))
+
+exp
+
+−
+3Nϵ
+2048M 2
+
+≤N
+
+HTn,
+ϵ
+16M , dB2,b(X)
+
+exp
+
+−
+3Nϵ
+2048M 2
+
+.
+31
+
+
+It’s easy to see that
+p
+(E(TMΦ) −E(ΦG) + ϵ)ϵ ≤1
+2(E(TMΦ) −E(ΦG)) + ϵ, which follows by taking
+Φ = TS,n that
+P
+
+E1(TM(TS,n)) > 1
+2
+ E(TM(TS,n)) −E(ΦG)
+
++ ϵ
+
+≤N
+
+HTn,
+ϵ
+16M , dB2,b(X)
+
+exp
+
+−
+3Nϵ
+2048M 2
+
+.
+(25)
+Similarly, For each Φ ∈HTn, note that ∥Φ∥C(ΩB) is uniformly bounded. We define
+e
+JΦ(ρXY ) = E[∥Φ( ˜X) −Y ∥2
+2|ρXY ] −E[∥ΦG( ˜X) −Y ∥2
+2|ρXY ].
+e
+JΦ can be considered as a random variable with
+ e
+JΦ(ρXY )
+ ≤(3M +∥Φ∥C(ΩB))2 and it follows that
+ e
+JΦ(ρXY ) −E( e
+JΦ)
+ ≤2(3M + ∥Φ∥C(ΩB))2
+and
+E( e
+J 2
+Φ) ≤(3M + ∥Φ∥C(ΩB))2E4(Φ).
+Then with the Bernstein inequality, we have
+P{E′
+1(Φ) > ϵ} ≤exp
+(
+−
+Nϵ2
+2(3M + ∥Φ∥C(ΩB))2  E4(Φ) + 2
+3ϵ
+
+)
+.
+(26)
+A.2.4 Second-Stage Sampling Error with Ground Truth Context
+Assume that n1 = · · · = nN = ϑ. Conditioned on the given first-stage samples (ρ(i)
+XY )1≤i≤N, the
+random variables (Xij, Yij)1≤i≤N,1≤j≤ϑ are independent but not identically distributed: for each
+1 ≤i ≤N, (Xij, Yij) ∼ρ(i)
+XY . Let eS = (ρ(i)
+X , Xij, Yij)1≤i≤N,1≤j≤ϑ. We introduce a random variable
+Λ(eS) =
+sup
+¯Φ∈TM(HTn)
+1
+N
+N
+X
+i=1
+1
+ϑ
+ϑ
+X
+j=1
+
+E
+
+∥¯Φ( ˜X) −Y ∥2
+2
+ρ(i)
+XY
+
+−∥¯Φ(ρ(i)
+X , Xij) −Yij∥2
+2
+
+,
+which follows that
+Λ(eS) −Λ(eS\(i,j))
+ ≤
+sup
+¯Φ∈TM(HTn)
+1
+Nϑ
+∥¯Φ(ρ(i)
+X , Xij) −Yij∥2
+2 −∥¯Φ(ρ(i)
+X , X′
+ij) −Y ′
+ij∥2
+2
+ ≤8M 2
+Nϑ
+where eS\(i,j) denotes the sample eS with a change on (i, j)-th variable with (Xij, Yij)
+i.i.d
+∼(X′
+ij, Y ′
+ij)
+while all others fixed. Then by Azuma-McDiarmind’s inequality, it can be derived that
+P
+nΛ(eS) −E
+
+Λ(eS)|(ρ(i)
+XY )i
+ > ϵ
+o
+≤2 exp
+
+−(Nϑ) ϵ2
+32M 4
+
+, for any ϵ > 0.
+Let (ζij)1≤i≤N,1≤j≤ϑ be i.i.d Rademacher random variables. Then by the symmetrization [22], we
+have
+E
+
+Λ(eS)
+(ρ(i)
+XY )i
+
+≤E
+(Xij,Yij)∼ρ(i)
+XY
+
+i
+E(ζij)
+sup
+¯Φ∈TM(HTn)
+2
+N
+N
+X
+i=1
+1
+ϑ
+ϑ
+X
+j=1
+ζij∥¯Φ(ρ(i)
+X , Xij) −Yij∥2
+2.
+Since |ly(u) −ly(u′)| ≤4M∥u −u′∥2 where ly(u) := ∥u −y∥2
+2 with ∥u∥2 and ∥y∥2 less than M, it
+follows by the vector-contraction inequality [25] that
+E[Λ(eS)|(ρ(i)
+XY )i] ≤8
+√
+2ME
+Xij∼ρ(i)
+X
+
+i
+E(ζij)
+sup
+¯Φ∈TM(HTn)
+1
+N
+N
+X
+i=1
+1
+ϑ
+ϑ
+X
+j=1
+⟨ζij, ¯Φ(ρ(i)
+X , Xij)⟩
+32
+
+
+where ζij is a random vector in Rd with each component being i.i.d Rademacher random variable.
+We define a family of zero-mean random variables indexed by ¯Φ ∈TM(HTn) as
+Z¯Φ :=
+1
+√
+Nϑ
+N
+X
+i=1
+ϑ
+X
+j=1
+⟨ζij, ¯Φ(ρ(i)
+X , Xij)⟩,
+which implies that
+E[Λ(eS)|(ρ(i)
+XY )i] ≤8
+√
+2ME[
+Xij∼ρ(i)
+X
+]
+i
+E
+"
+sup
+¯Φ∈TM(HTn)
+1
+√
+Nϑ
+Z¯Φ
+(Xij)i,j
+#
+.
+For any ¯Φ, ¯Φ′ ∈TM(HTn),
+E[exp(v(Z¯Φ −Z¯Φ′))|(Xij)i,j] ≤exp(v2dϑ(¯Φ, ¯Φ′)2/2), ∀v ∈R
+where
+dϑ(¯Φ, ¯Φ′) := ∥¯Φ −¯Φ′∥L2(Pϑ) =
+
+1
+Nϑ
+N
+X
+i=1
+ϑ
+X
+j=1
+∥¯Φ(ρ(i)
+X , Xij) −¯Φ′(ρ(i)
+X , Xij)∥2
+2
+
+
+1
+2
+.
+Then, conditioned on (Xij)i,j, Z¯Φ is a subgaussian process indexed by ¯Φ ∈TM(HTn) with respect
+to dϑ. It follows by the Dudley Integral [47] that
+E
+"
+sup
+¯Φ∈TM(HTn)
+Z¯Φ
+(Xij)i,j
+#
+≤32
+Z 2M
+0
+p
+log N(u, TM(HTn), dϑ) du.
+It follows that
+E[Λ(eS)|(ρ(i)
+XY )i] ≤256
+√
+2M
+√
+Nϑ
+E[Xij∼ρ(i)
+X ]i
+ Z 2M
+0
+q
+log N(u, HTn, dˆρϑ) du
+!
+≤256
+√
+2M
+√
+Nϑ
+E[Xij∼ρ(i)
+X ]i
+
+
+
+Z 2M
+0
+v
+u
+u
+u
+t100nd2m2
+|
+{z
+}
+ϱ1
+log
+ 
+1 + 8c6CF C2
+Bd2∥ˆX∥2
+u
+!
++ 600c5nd2m2 ˜m2 log(c4m ˜m)
+|
+{z
+}
+ϱ2
+du
+
+
+
+≤256
+√
+2M
+√
+Nϑ
+E[Xij∼ρ(i)
+X ]i
+
+2M√ϱ2 + √ϱ1
+Z 2M
+0
+v
+u
+u
+tlog
+ 
+1 + 8c6CF C2
+Bd2∥ˆX∥2
+u
+!
+du
+
+
+≤256
+√
+2M
+√
+Nϑ
+E[Xij∼ρ(i)
+X ]i
+ 
+2M√ϱ2 + √ϱ1
+q
+8c6CF C2
+Bd2∥ˆX∥2
+Z 2M
+0
+u−1
+2 du
+!
+= 256
+√
+2M
+√
+Nϑ
+
+2M√ϱ2 + 8
+q
+ϱ1c6CF C2
+Bd2M E[Xij∼ρ(i)
+X ]i
+q
+∥ˆX∥2
+
+where
+E[Xij∼ρ(i)
+X ]i
+q
+∥ˆX∥2 ≤
+q
+E[Xij∼ρ(i)
+X ]i∥ˆX∥2 =
+v
+u
+u
+u
+t9 + E
+v
+u
+u
+t 1
+Nϑ
+N
+X
+i=1
+ϑ
+X
+j=1
+∥Xij∥2
+2 ≤9 + C
+1
+2
+B .
+Then we can obtain that
+E[Λ(eS)|(ρ(i)
+XY )i] ≤CM,B,d
+√
+Nϑ
+√nm ˜m2
+33
+
+
+with CM,B,d = 256
+√
+2M max
+n
+20dM√6c5, 80d2(9 + C1/2
+B )
+p
+c6CF C2
+BM
+o
+.
+Then we have
+P
+(
+sup
+Φ∈HTn
+E2(TM(Φ)) > ϵ + CM,B,d
+√nm ˜m2
+√
+Nϑ
+ρ(1)
+XY , . . . , ρ(N)
+XY
+)
+≤exp
+
+−(Nϑ)ϵ2
+32M 4
+
+.
+(27)
+Similarly, for each Φ ∈HTn, we define
+˜ΛΦ(eS) =
+1
+Nϑ
+N
+X
+i=1
+ϑ
+X
+j=1
+
+∥Φ(ρ(i)
+X , Xij) −Yij∥2
+2 −E
+
+∥Φ( ˜X) −Y ∥2
+2|ρ(i)
+XY
+
+.
+Similarly, we have
+˜ΛΦ(eS) −˜ΛΦ(eS\(i,j))
+ ≤
+1
+Nϑ
+∥Φ(ρ(i)
+X , Xij) −Yij∥2
+2 −∥Φ(ρ(i)
+X , X′
+ij) −Y ′
+ij∥2
+2
+ ≤4(M + ∥Φ∥C(ΩB))2
+Nϑ
+.
+Then by Azuma-McDiarmind’s inequality, we can derive that
+P{E′
+2(Φ) > ϵ|ρ(1)
+XY , . . . , ρ(N)
+XY } ≤exp
+
+−
+(Nϑ)ϵ2
+8(M + ∥Φ∥C(ΩB))4
+
+.
+(28)
+A.2.5 Second-Stage Sampling Error with Accessible Context
+Now, we estimate the sampling error with accessible context information, i.e., the empirical distri-
+butions. We have
+sup
+Φ∈HTn
+|E3(TM(Φ))|
+=
+sup
+Φ∈HTn
+
+1
+Nϑ
+N
+X
+i=1
+ϑ
+X
+j=1
+
+∥TM(Φ)(ρ(i)
+X , Xij) −Yij∥2
+2 −∥TM(Φ)(ˆρ(i)
+X , Xij) −Yij∥2
+2
+
+
+≤
+sup
+Φ∈HTn
+1
+Nϑ
+N
+X
+i=1
+ϑ
+X
+j=1
+4M
+Φ(ρ(i)
+X , Xij) −Φ(ˆρ(i)
+X , Xij)
+
+2
+≤
+sup
+Φ∈HTn
+4M
+N
+N
+X
+i=1
+
+∥α∥1 max
+1≤j′≤n
+m(n)
+X
+p,q=1
+
+Z
+X
+ϕp, ˜m(n)(x)A(j′)
+p,q x dρ(i)
+X −
+Z
+X
+ϕp, ˜m(n)(x)A(j′)
+p,q x dˆρ(i)
+X
+
+2
+
+
+≤
+sup
+ϕ∈NN (Θ ˜
+m)
+8MCF
+N
+N
+X
+i=1
+m
+√
+d max
+1≤p≤m
+
+Z
+X
+ϕp, ˜m(n)(x)x dρ(i)
+X −
+Z
+X
+ϕp, ˜m(n)(x)x dˆρ(i)
+X
+
+2
+≤8MCF
+√
+dm
+N
+N
+X
+i=1
+sup
+ϕ∈NN (Θ ˜
+m)
+
+Z
+X
+ϕ(x)x dρ(i)
+X −
+Z
+X
+ϕ(x)x dˆρ(i)
+X
+
+2
+|
+{z
+}
+=:V(i)(ˆρ(i)
+X )
+≤8MCF
+√
+dm max
+1≤i≤N V(i)(ˆρ(i)
+X ).
+Then for x = (x1, . . . , xϑ) ∈X ϑ and the samples (Xi1, . . . , Xiϑ) in ˆρ(i)
+X , we define
+V(i)
+j (ˆρ(i)
+X )(x) = V(i)(δ[x1, . . . , xj−1, Xij, xj+1, . . . , xϑ])
+−EX′
+ij∼ρ(i)
+X (V(i)(δ[x1, . . . , xj−1, X′
+ij, xj+1, . . . , xϑ]))
+34
+
+
+for 1 ≤j ≤ϑ where δ[S] is defined as the empirical distribution generated by the dataset S.
+We easily obtain that
+V(i)
+j (ˆρ(i)
+X )(x)
+
+=
+EX′
+ij∼ρ(i)
+X
+
+V(i)(δ[x1, . . . , xj−1, Xij, xj+1, . . . , xϑ]) −V(i)(δ[x1, . . . , xj−1, X′
+ij, xj+1, . . . , xϑ])
+
+≤EX′
+ij∼ρ(i)
+X
+
+sup
+ϕ∈NN (Θ ˜
+m)
+
+1
+ϑ
+
+X
+j′̸=j
+ϕ(xj′)xj′ + ϕ(Xij)Xij
+
+−Eρ(i)
+X (ϕ(X)X)
+
+2
+−
+sup
+ϕ∈NN (Θ ˜
+m)
+
+1
+ϑ
+
+X
+j′̸=j
+ϕ(xj′)xj′ + ϕ(X′
+ij)X′
+ij
+
+−Eρ(i)
+X (ϕ(X)X)
+
+2
+
+≤EX′
+ij∼ρ(i)
+X
+ 
+sup
+ϕ∈NN (Θ ˜
+m)
+1
+ϑ
+ϕ(Xij)Xij −ϕ(X′
+ij)X′
+ij
+
+2
+!
+≤EX′
+ij∼ρ(i)
+X
+ 
+sup
+ϕ∈NN (Θ ˜
+m)
+1
+ϑ(∥ϕ(Xij)Xij∥2 + ∥ϕ(X′
+ij)X′
+ij∥2)
+!
+≤1
+ϑ(∥Xij∥2 + EX′
+ij∼ρ(i)
+X ∥X′
+ij∥2) ≤1
+ϑ(∥Xij∥2 +
+p
+CB).
+For each ρ(i)
+X ∈B2,b(X), we have the ratio condition that ∥ωκ(ρ(i)
+X )∥Lγ(ρκ) < ∞. Then for Xij ∼ρ(i)
+X
+and any p ≥1, we have
+
+Eρ(i)
+X ∥Xij∥p
+2
+ 1
+p =
+Z
+X
+∥x∥p
+2 · ωκ(ρ(i)
+X )(x) dρκ
+ 1
+p
+≤∥ωκ(ρ(i)
+X )∥
+1
+p
+Lγ(ρκ)(Eρκ∥X∥pγ′
+2 )
+1
+pγ′
+≤(1 + ∥ωκ(ρ(i)
+X )∥Lγ(ρκ))(Eρκ∥X∥pγ′
+2 )
+1
+pγ′
+with γ′ =
+γ
+γ−1. For X ∼ρκ, ∥X∥2 is a norm subgaussian random variable [19] such that (Eρκ∥X∥p
+2)
+1
+p ≤
+cκ√dp for any p ≥1 where c is an absolute constant. Then we have
+
+Eρ(i)
+X ∥Xij∥p
+2
+ 1
+p ≤cκ
+p
+γ′ 1 +
+ωκ(ρ(i)
+X )
+
+Lγ(ρκ)
+√p
+for any p ≥1.
+We define the subgaussian norm [47] for a random variable Z as ∥Z∥ψ2 =
+supp≥1
+(E|Z|p)
+1
+p
+√p
+.
+Then ∥Xij∥2 is a subgaussian random variable with ∥∥Xij∥2∥ψ2 ≤cκ√γ′(1 +
+∥ωκ(ρ(i)
+X )∥Lγ(ρκ)). It also implies that for any x ∈Xϑ, V(i)
+j (ˆρ(i)
+X )(x) is also a subgaussian random
+variable with
+V(i)
+j (ˆρ(i)
+X )(x)
+
+ψ2 ≤1
+ϑ
+
+∥∥Xij∥2∥ψ2 +
+p
+CB
+
+,
+because for any p ≥1,
+
+EXij∼ρ(i)
+X
+V(i)
+j (ˆρ(i)
+X )(x)
+
+p  1
+p ≤1
+ϑ
+h
+(Eρ(i)
+X ∥Xij∥p
+2)
+1
+p +
+p
+CB
+i
+by Minkowski inequality. Then by Theorem 3 in Maurer and Pontil [26], we have for any ϵ > 0,
+P{V(i)(ˆρ(i)
+X ) −EV(i)(ˆρ(i)
+X ) > ϵ} ≤exp
+ 
+−
+ϑϵ2
+ψ2(ρ(i)
+X )
+!
+35
+
+
+where
+ψ2(ρ(i)
+X ) = 32e
+
+cκ
+p
+γ′(1 + ∥ωκ(ρ(i)
+X )∥Lγ(ρκ)) +
+p
+CB
+2
+.
+We also have
+EV(i)(ˆρ(i)
+X ) = EXij∼P (i)
+X
+sup
+ϕ∈NN (Θ ˜
+m)
+
+1
+ϑ
+ϑ
+X
+j=1
+ϕ(Xij)Xij −EP (i)
+X (ϕ(X)X)
+
+2
+≤EXij,X′
+ij
+i.i.d
+∼P (i)
+X
+sup
+ϕ∈N N (Θ ˜
+m)
+
+1
+ϑ
+ϑ
+X
+j=1
+[ϕ(Xij)Xij −ϕ(X′
+ij)X′
+ij]
+
+2
+= 1
+ϑEXij,X′
+ij
+i.i.d
+∼P (i)
+X Eζij
+sup
+ϕ∈N N (Θ ˜
+m)
+
+ϑ
+X
+j=1
+ζij[ϕ(Xij)Xij −ϕ(X′
+ij)X′
+ij]
+
+2
+≤2
+ϑEXijEζij
+sup
+ϕ∈N N (Θ ˜
+m)
+
+ϑ
+X
+j=1
+ζijϕ(Xij)Xij
+
+2
+= 2
+ϑEXijEζij
+sup
+ϕ∈N N (Θ ˜
+m)
+sup
+u∈Sd−1
+
+
+ϑ
+X
+j=1
+ζijϕ(Xij)uT Xij
+
+
+= 2
+ϑEXijEζij sup
+f∈U
+
+
+ϑ
+X
+j=1
+ζijf(Xij)
+
+
+where (ζij)ϑ
+j=1 are independent Rademacher random variables and
+U := {f : f(x) = ϕ(x)uT x with ϕ ∈NN(Θ ˜m), u ∈Sd−1}.
+We define a family of zero-mean random variables index by f ∈U as
+Z(i)
+f
+:=
+1
+√
+ϑ
+ϑ
+X
+j=1
+ζijf(Xij),
+which implies that
+EV(i)(ˆρ(i)
+X ) ≤EXijE
+"
+sup
+f∈U
+1
+√
+ϑ
+Z(i)
+f
+(Xij)j
+#
+.
+For any f, f ′ ∈U,
+E[exp(v(Z(i)
+f
+−Z(i)
+f ′ ))|(Xij)i,j] ≤exp(v2d(i)
+ϑ (f, f ′)2/2), ∀v ∈R
+where
+d(i)
+ϑ (f, f ′) :=
+
+1
+ϑ
+ϑ
+X
+j=1
+(f(Xij) −f ′(Xij))2
+
+
+1
+2
+.
+Then, conditioned on (Xij)j, Z(i)
+f
+is a subgaussian process indexed by f ∈U with respect to d(i)
+ϑ .
+It’s easy to see that for any f, f ′ ∈U,
+d(i)
+ϑ (f, f ′) =
+
+1
+ϑ
+ϑ
+X
+j=1
+
+ϕf(Xij)uT
+f Xij −ϕf ′(Xij)uT
+f ′Xij
+2
+
+
+1
+2
+≤2
+v
+u
+u
+t 1
+ϑ
+ϑ
+X
+j=1
+∥Xij∥2
+2 =: 2Mi.
+36
+
+
+If ∥uf −uf ′∥2 ≤ϵ and parameters in ϕf and ϕf ′ satisfy (24),
+d(i)
+ϑ (f, f ′) ≤
+
+1
+ϑ
+ϑ
+X
+j=1
+
+ϕf(Xij)uT
+f Xij −ϕf ′(Xij)uT
+f Xij
+2
+
+
+1
+2
++
+
+1
+ϑ
+ϑ
+X
+j=1
+
+ϕf ′(Xij)uT
+f Xij −ϕf ′(Xij)uT
+f ′Xij
+2
+
+
+1
+2
+≤
+
+1
+ϑ
+ϑ
+X
+j=1
+
+ϕf(Xij) −ϕf ′(Xij)
+2
+∥Xij∥2
+2
+
+
+1
+2
++ Mi ∥uf −uf ′∥2
+≤
+
+1
+ϑ
+ϑ
+X
+j=1
+
+192d(2 + ∥Xij∥∞)[c4 ˜m]3c5 ˜m2ϵ
+2
+∥Xij∥2
+2
+
+
+1
+2
++ Miϵ
+≤
+
+Mi + 192d(c4 ˜m)3c5 ˜m2
+v
+u
+u
+t 1
+ϑ
+ϑ
+X
+j=1
+(8∥Xij∥2
+2 + 2∥Xij∥4
+2)
+
+ϵ.
+Then the covering number
+N(˜ϵ, U, d(i)
+ϑ ) ≤
+ 
+1 + (c′
+2 ˜m)c′
+3 ˜m2
+ϵ
+!96d2 ˜m2 
+1 + 2
+ϵ
+d
+≤
+ 
+1 + (c′
+2 ˜m)c′
+3 ˜m2
+ϵ
+!100d2 ˜m2
+≤
+
+1 + ∆(i)
+˜ϵ
+100d2 ˜m2
+(c6 ˜m)c7 ˜m4,
+where ∆(i) := Mi +
+q
+1
+ϑ
+Pϑ
+j=1(8∥Xij∥2
+2 + 2∥Xij∥4
+2), c6 = 192d(c′
+2 + c4) and c7 = 100(c′
+3 + 3c5)d2.
+Then by Dudley integral, we have
+E
+"
+sup
+f∈U
+Z(i)
+f
+(Xij)j
+#
+≤32
+Z 2Mi
+0
+q
+log N(v, U, d(i)
+ϑ ) dv
+≤32
+Z 2Mi
+0
+s
+100d2 ˜m2 log
+
+1 + ∆(i)
+v
+
++ c7 ˜m4 log(c6 ˜m) dv
+≤32
+ 
+2Mi ˜m2p
+c7 log(c6 ˜m) + 10d ˜m
+Z 2Mi
+0
+s
+log
+
+1 + ∆(i)
+v
+
+dv
+!
+≤32
+ 
+2Mi ˜m2p
+c7 log(c6 ˜m) + 10d ˜m
+Z 2Mi
+0
+p
+∆(i)v−1
+2 dv
+!
+≤32
+
+2Mi ˜m2p
+c7 log(c6 ˜m) + 20d ˜m
+p
+2Mi∆(i)
+
+.
+Then we have
+EV(i)(ˆρ(i)
+X ) ≤
+1
+√
+ϑ
+EXij32
+
+2Mi ˜m2p
+c7 log(c6 ˜m) + 20d ˜m
+p
+2Mi∆(i)
+
+=
+1
+√
+ϑ
+
+64 ˜m2p
+c7 log(c6 ˜m)EXijMi + 640d ˜mEXij
+p
+2Mi∆(i)
+
+37
+
+
+where EXijMi = EXij
+q
+1
+ϑ
+Pϑ
+j=1 ∥Xij∥2
+2 ≤
+q
+1
+ϑ
+Pϑ
+j=1 EXij∥Xij∥2
+2 = √CB and
+EXij
+p
+2Mi∆(i) = EXij
+v
+u
+u
+u
+t2Mi
+
+Mi +
+v
+u
+u
+t 1
+ϑ
+ϑ
+X
+j=1
+(8∥Xij∥2
+2 + 2∥Xij∥4
+2)
+
+
+≤EXij
+v
+u
+u
+u
+t2Mi
+
+Mi +
+v
+u
+u
+t 1
+ϑ
+ϑ
+X
+j=1
+8∥Xij∥2
+2 +
+v
+u
+u
+t 1
+ϑ
+ϑ
+X
+j=1
+2∥Xij∥4
+2
+
+
+= EXij
+v
+u
+u
+u
+t(2 + 4
+√
+2)M 2
+i + 2
+√
+2Mi
+v
+u
+u
+t 1
+ϑ
+ϑ
+X
+j=1
+∥Xij∥4
+2
+≤
+v
+u
+u
+u
+u
+t(2 + 4
+√
+2)EXijM 2
+i + 2
+√
+2
+q
+EXijM 2
+i
+v
+u
+u
+u
+tEXij
+
+1
+ϑ
+ϑ
+X
+j=1
+∥Xij∥4
+2
+
+
+≤
+q
+(2 + 4
+√
+2)CB + 2
+√
+2
+p
+CBCB ≤
+q
+2 + 6
+√
+2C
+3
+4
+B .
+It follows that
+EV(i)(ˆρ(i)
+X ) ≤
+1
+√
+ϑ
+
+64
+p
+CB ˜m2p
+c7 log(c6 ˜m) + 640d
+q
+2 + 6
+√
+2C
+3
+4
+B ˜m
+
+≤c8
+√
+ϑ
+˜m2p
+log( ˜m)
+where c8 = 64
+p
+CBc7(log c6 + 1) + 640d
+p
+2 + 6
+√
+2C
+3
+4
+B .
+Then we have
+P
+(
+V(i)(ˆρ(i)
+X ) > ϵ + c8 ˜m2p
+log( ˜m)
+√
+ϑ
+)
+≤exp
+ 
+−
+ϑϵ2
+ψ2(ρ(i)
+X )
+!
+,
+and it follows that
+P
+(
+sup
+Φ∈HTn
+|E3(TM(Φ))| > 8MCF
+√
+dm
+ 
+ϵ + c8 ˜m2p
+log( ˜m)
+√
+ϑ
+!ρ(1)
+X , . . . , ρ(N)
+X
+)
+≤N exp
+ 
+−
+ϑϵ2
+max1≤i≤N ψ2(ρ(i)
+X )
+!
+which is equivalent to the inequality that
+P
+(
+sup
+Φ∈HTn
+|E3(TM(Φ))| > ϵ + 8c8
+√
+dMCF ˜m2m
+p
+log( ˜m)
+√
+ϑ
+ρ(1)
+X , . . . , ρ(N)
+X
+)
+≤N exp
+ 
+−
+ϑϵ2
+64M 2C2
+F dm2 max1≤i≤N ψ2(ρ(i)
+X )
+!
+.
+(29)
+38
+
+
+Similarly, for any Φ ∈HTn, we have both ∥Φ∥C(ΩB) and ∥Φ∥C(Ω) uniformly bounded respectively.
+Then we have
+E3(Φ) =
+1
+Nϑ
+N
+X
+i=1
+ϑ
+X
+j=1
+
+∥Φ(ˆρ(i)
+X , Xij) −Yij∥2
+2 −∥Φ(ρ(i)
+X , Xij) −Yij∥2
+2
+
+≤
+1
+Nϑ
+N
+X
+i=1
+ϑ
+X
+j=1
+(2M + ∥Φ∥C(ΩB) + ∥Φ∥C(Ω))
+Φ(ˆρ(i)
+X , Xij) −Φ(ρ(i)
+X , Xij)
+
+2
+≤4(M + ∥Φ∥C(Ω))CF
+√
+dm max
+1≤i≤N
+
+Z
+X
+ϕΦ(x)x dˆρ(i)
+X −
+Z
+X
+ϕΦ(x)x dρ(i)
+X
+
+2
+,
+which follows that
+P
+(
+E′
+3(Φ) > ϵ + 4c8CF
+√
+d(M + ∥Φ∥C(Ω)) ˜m2m
+p
+log( ˜m)
+√
+ϑ
+ρ(1)
+X , . . . , ρ(N)
+X
+)
+≤N exp
+ 
+−
+ϑϵ2
+16(M + ∥Φ∥C(Ω))2C2
+F dm2 max1≤i≤N ψ2(ρ(i)
+X )
+!
+(30)
+Recall that for any Φ ∈HTn,
+E((TM(TS,n))) −E(ΦG) = ∥TM(TS,n) −ΦG∥2
+L2(νG)
+≤E1(TM(TS,n)) + E′
+1(Φ) + E2(TM(TS,n)) + E′
+2(Φ) + E3(TM(TS,n)) + E′
+3(Φ) + E4(Φ).
+Then combine all inequalities (25)(26)(27)(28)(29)(30), and by the union bound, for any Φ ∈HTn
+and ϵ > 0 we have
+P
+(
+∥TM(TS,n) −ΦG∥2
+L2(π) > 2E4(Φ) + 2CM,B,d
+√nm ˜m2
+√
+Nϑ
++ c9(3M + ∥Φ∥C(Ω)) ˜m2m
+p
+log( ˜m)
+√
+ϑ
++ 12ϵ
+)
+≤N
+
+HTn,
+ϵ
+16M , dB2,b(X)
+
+exp
+
+−
+3Nϵ
+2048M 2
+
++ exp
+(
+−
+Nϵ2
+2(3M + ∥Φ∥C(ΩB))2  E4(Φ) + 2
+3ϵ
+
+)
++ 2 exp
+
+−
+(Nϑ)ϵ2
+32(M + ∥Φ∥C(ΩB))4
+
++ 2EP (i)
+X ∼PX
+G N exp
+(
+−
+ϑϵ2
+64(M + ∥Φ∥C(Ω))2C2
+F dm2 max1≤i≤N ψ2(ρ(i)
+X )
+)
+where E4(Φ) = ∥Φ −ΦG∥2
+L2(νG) and c9 = 8c8CF
+√
+d.
+■
+A.3 Theorem 15: Generalization Bound for Linear Transformers
+From the approximation in Theorem 13, for n ≥3, there exists a transformer T ∈HTn such that
+∥T −ΦG∥L2(νG) ≤C∗
+jn
+2
+k−1
+2 ≤C′
+∗n−1
+2 with C′
+∗= 2C∗
+and by the approximant construction, we have ∥T∥C(ΩB) ≤∥T∥C(Ω) ≤2CF
+p
+d(1 + CB) = A1.
+Apply the above oracle inequality with letting Φ = T and ψ2(ρX) :=
+1
+N
+PN
+i=1 ψ2(ρ(i)
+X ), and we
+39
+
+
+obtain that
+P
+(
+∥TM(TS,n) −ΦG∥2
+L2(π) > 2C′2
+∗n−1 + 2CM,B,d
+√nm ˜m2
+√
+Nϑ
++ 8c8CF
+√
+d(3M + A1) ˜m2m
+p
+log( ˜m)
+√
+ϑ
++ 12ϵ
+)
+≤exp
+
+100d2nm2 log
+
+1 + 128MCd,F,B
+ϵ
+
++ 600c5d2nm2 ˜m2 log(c4m ˜m) −
+3Nϵ
+2048M 2
+
++ exp
+(
+−
+Nϵ2
+2(3M + A1)2  C′2
+∗n−1 + 2
+3ϵ
+
+)
++ 2 exp
+
+−
+(Nϑ)ϵ2
+32(M + A1)4
+
++ 2EP (i)
+X ∼PX
+G N exp
+(
+−
+ϑϵ2
+64(M + A1)2dC2
+F m2Nψ2(ρX)
+)
+.
+We follow the parameter selections in the approximation by letting m = ⌈n
+γ
+2(γ−1)ξ ⌉and ˜m =
+⌈( 1
+2 +
+γ
+4(γ−1)ξ) log n⌉. It’s obtained that
+P
+(
+∥TM(TS,n) −ΦG∥2
+L2(π) > 2C′2
+∗n−1 + A2
+n
+1
+2 +
+γ
+2(γ−1)ξ (log n)2
+√
+Nϑ
++ A3
+n
+γ
+2(γ−1)ξ (log n)3
+√
+ϑ
++ 12ϵ
+)
+≤exp
+
+200d2n1+
+γ
+(γ−1)ξ log
+
+1 + 128MCd,F,B
+ϵ
+
++ A4n1+
+γ
+(γ−1)ξ (log n)3 −
+3Nϵ
+2048M 2
+
++ exp
+(
+−
+Nϵ2
+2(3M + A1)2  C′2
+∗n−1 + 2
+3ϵ
+
+)
++ 2 exp
+
+−
+(Nϑ)ϵ2
+32(M + A1)4
+
++ 2EP (i)
+X ∼PX
+G N exp
+(
+−
+ϑϵ2
+128d(M + A1)2C2
+F n
+γ
+(γ−1)ξ Nψ2(ρX)
+)
+where A2 =
+ 1 +
+γ
+2(γ−1)ξ
+2CM,B,d, A3 = 32(3M + A1)CF
+√dCB and
+A4 =
+
+1 +
+γ
+(γ −1)ξ
+ " 
+1200c5d2
+1
+2 +
+γ
+4(γ −1)ξ
+2
++ log c4
+1
+2 +
+γ
+4(γ −1)ξ
+2!#
+.
+If we take ϵ ≥2C′2
+∗n−1(log n)3, it follows that
+P
+(
+∥TM(TS,n) −ΦG∥2
+L2(π) > 13ϵ + A2
+n
+1
+2 +
+γ
+2(γ−1)ξ (log n)2
+√
+Nϑ
++ A3
+n
+γ
+2(γ−1)ξ (log n)3
+√
+ϑ
+)
+≤exp
+
+200d2n1+
+γ
+(γ−1)ξ log
+
+1 + 64MCd,F,B
+C′2
+∗
+n
+
++ A4n1+
+γ
+(γ−1)ξ (log n)3 −
+3Nϵ
+2048M 2
+
++ exp
+
+−
+3Nϵ
+8(3M + A1)2
+
++ 2 exp
+
+−
+(Nϑ)ϵ2
+32(M + A1)4
+
++ 2EP (i)
+X ∼PX
+G N exp
+(
+−
+ϑϵ2
+128d(M + A1)2C2
+F n
+γ
+(γ−1)ξ Nψ2(ρX)
+)
+.
+40
+
+
+Take n = ⌊K1N
+1
+2+γ/[(γ−1)ξ] ⌋with K1 =
+ 
+min
+(
+3C′2
+∗
+819200M 2d2
+(
+1+log
+( 64MCd,F,B
+C∗
+)),
+3C′2
+∗
+4096M 2A4
+)!
+1
+2+
+γξ
+(γ−1)
+and the second stage data size ϑ ≥N, then we have
+P{∥TM(TS,n) −ΦG∥2
+L2(π) > A5ϵ}
+≤exp
+
+3Nϵ
+8192M 2 +
+3Nϵ
+8192M 2 −
+3Nϵ
+2048M 2
+
++ exp
+
+−
+3Nϵ
+8(3M + A1)2
+
++ 2 exp
+
+−
+C′2
+∗Nϵ
+16K1(M + A1)4
+
++ 2EP (i)
+X ∼PX
+G N exp
+(
+−
+ϑϵ
+A6N
+3(γ−1)ξ+2γ
+2(γ−1)ξ+γ ψ2(ρX)
+)
+≤4 exp
+
+−Nϵ
+A7
+
++ 2EP (i)
+X ∼PX
+G N exp
+(
+−
+ϑϵ
+A6N
+3(γ−1)ξ+2γ
+2(γ−1)ξ+γ ψ2(ρX)
+)
+,
+where
+A5 = 13 + A2K
+3
+2 +
+γ
+2(γ−1)ξ
+1
++ A3K
+1+
+γ
+(γ−1)ξ
+1
+2C′2
+∗
+, A6 = 128d(M + A1)2C2
+F K
+γ
+(γ−1)ξ
+1
+,
+and A7 = min
+n
+3
+3096M 2 ,
+3
+8(3M+A1)2 ,
+C′2
+∗
+16K1(M+A1)4
+o
+.
+Take t = A5ϵ. Then when t ≥2A5C′2
+∗n−1(log n)3, we have
+P{∥TM(TS,n)−ΦG∥2
+L2(νG) > t} ≤4 exp
+
+−Nt
+A5A7
+
++2Eρ(i)
+X ∼PX
+G N exp
+(
+−
+ϑt
+A5A6N
+3(γ−1)ξ+2γ
+2(γ−1)ξ+γ ψ2(ρX)
+)
+.
+It implies that
+E{E(TM(TS,n)) −E(ΦG)} = E∥TM(TS,n) −ΦG∥2
+L2(νG) =
+Z ∞
+0
+P{∥TM(TS,n) −ΦG∥2
+L2(νG) > t} dt
+=
+ Z 2A5C′2
+∗n−1(log n)3
+0
++
+Z ∞
+2A5C′2
+∗n−1(log n)3
+!
+P{∥TM(TS,n) −ΦG∥2
+L2(νG) > t} dt
+≤2A5C′2
+∗n−1(log n)3 +
+Z ∞
+0
+P{∥TM(TS,n) −ΦG∥2
+L2(νG) > t} dt
+≤2K2N −
+1
+2+γ/[(γ−1)ξ] (log N)3 +
+Z ∞
+0
+4 exp
+(
+−N
+1
+2+γ/[(γ−1)ξ] t
+A5A7
+)
+dt
++ 2Eρ(i)
+X ∼PX
+G N
+Z ∞
+0
+exp
+(
+−
+ϑt
+A5A6N
+3(γ−1)ξ+2γ
+2(γ−1)ξ+γ ψ2(ρX)
+)
+dt
+= 2K2N −
+1
+2+γ/[(γ−1)ξ] (log N)3 + 4A5A7N −
+1
+2+γ/[(γ−1)ξ] + 2A5A6
+N
+5(γ−1)ξ+3γ
+2(γ−1)ξ+γ
+ϑ
+Eρ(i)
+X ∼PX
+G
+
+ψ2(ρX)
+
+where K2 = 4A5C′2
+∗K−1
+1
+
+log K1 +
+1
+2+γ/[(γ−1)ξ]
+3
+. Take ϑ = N 3 and we obtain that
+E{E(TM(TS,n)) −E(ΦG)} ≤
+
+2K2 + 4A5A7 + 2A5A6Eρ(i)
+X ∼PX
+G
+
+ψ2(ρX)
+
+N −
+1
+2+γ/[(γ−1)ξ] (log N)3
+41
+
+
+where
+Eρ(i)
+X ∼PX
+G
+
+ψ2(ρX)
+
+= Eρ(i)
+X ∼PX
+G
+ 
+1
+N
+N
+X
+i=1
+ψ2(ρ(i)
+X )
+!
+= 32e Eρ(i)
+X ∼PX
+G
+1
+N
+N
+X
+i=1
+
+cκ
+p
+γ′(1 + ∥ωκ(ρ(i)
+X )∥Lγ(ρκ)) +
+p
+CB
+2
+≤64e EρX∼PX
+G
+
+c2κ2γ′(1 + ∥ωκ(ρX)∥Lγ(ρκ))2 + CB
+
+≤64e(CB + 2c2κ2γ′) + 128e EρX∼PX
+G ∥ωκ(ρX)∥2
+Lγ(ρκ)
+≤64e(CB + 2c2κ2γ′ + 2CG).
+It follows that
+E{E(TM(TS,n)) −E(ΦG)} ≤K3N −
+1
+2+γ/[(γ−1)ξ] (log N)3
+with K3 = 2K2 + 4A5A7 + 128eA5A6(CB + 2c2κ2γ′ + 2CG).
+■
+42
+
+
+Appendix B. Context Embedding and Feature Mapping
+Proposition 19 Kλ : B2(X) →Hkλ ⊗Rd is an injective and continuous mapping.
+Proposition 20 The embedding operator Iλ : Ω→HF is injective and continuous.
+Proof. Continuity: Recall that Ω= B2(X) × X is a metric space equipped with dΩ. Also observe
+that
+∥Iλ(ρ, x) −Iλ(ρ′, x′)∥HF ≤∥Iλ(ρ, x) −Iλ(ρ′, x)∥HF + ∥Iλ(ρ′, x) −Iλ(ρ′, x′)∥HF
+= ∥Kλ(ρ −ρ′) ⊗kλ(x, ·)∥HF + ∥Kλ(ρ′) ⊗(kλ(x, ·) −kλ(x′, ·))∥HF ,
+in which
+∥kλ(x, ·) −kλ(x′, ·)∥2
+Hkλ = 2(1 −exp{−(x −x′)T Σλ(x −x′)})
+≤2(x −x′)T Σλ(x −x′) ≤2∥Σλ∥2∥x −x∥2
+2,
+and for any τ ∈Q(ρ, ρ′),
+∥Kλ(ρ −ρ′)∥Hkλ⊗Rd =
+
+Z
+X×X
+(kλ(·, y)y −kλ(·, y′)y′) dρ(y)dρ′(y′)
+
+Hkλ⊗Rd
+≤
+Z
+X×X
+∥kλ(·, y)y −kλ(·, y′)y′∥Hkλ⊗Rd dτ(y, y′)
+≤
+Z
+X×X
+∥kλ(·, y)(y −y′)∥Hkλ⊗Rd + ∥(kλ(·, y) −kλ(·, y′))y′∥Hkλ⊗Rd dτ(y, y′)
+≤
+Z
+X×X
+∥y −y′∥2 dτ(y, y′) +
+Z
+X×X
+√
+2∥Σλ∥
+1
+2
+2 ∥y −y′∥2∥y′∥2 dτ(y, y′)
+≤
+Z
+X×X
+∥y −y′∥2
+2 dτ(y, y′)
+ 1
+2
++
+√
+2∥Σλ∥
+1
+2
+2
+Z
+X×X
+∥y −y′∥2
+2 dτ(y, y′)
+ 1
+2
+(Eρ′∥Y ′∥2
+2)
+1
+2
+≤
+
+1 +
+√
+2∥Σλ∥
+1
+2
+2 (Eρ′∥Y ′∥2
+2)
+1
+2
+ Z
+X×X
+∥y −y′∥2
+2 dτ(y, y′)
+ 1
+2
+.
+Since the above inequality holds for any τ ∈Q(ρ, ρ′), it follows that
+∥Kλ(ρ −ρ′)∥Hkλ⊗Rd ≤(1 +
+√
+2∥Σλ∥
+1
+2
+2 (Eρ′∥Y ′∥2
+2)
+1
+2 )W2(ρ, ρ′)
+and that
+∥Iλ(ρ, x) −Iλ(ρ′, x′)∥HF ≤
+
+1 +
+√
+2∥Σλ∥
+1
+2
+2 (Eρ′∥Y ′∥2
+2)
+1
+2
+
+W2(ρ, ρ′) +
+√
+2∥Σλ∥
+1
+2
+2 (Eρ′∥Y ′∥2
+2)∥x −x′∥2
+≤(1 + 2
+√
+2∥Σλ∥
+1
+2
+2 (Eρ′∥Y ′∥2
+2))dΩ((ρ, x), (ρ′, x′)).
+Injection: kλ(x, y) = gλ(x−y) = exp
+
+−1
+2(x −y)T Σ−1
+λ (x −y)
+	
+with Σλ = diag(2λ−2
+1 , . . . , 2λ−2
+d ) ≻
+0. For each 1 ≤j ≤d, let
+\
+K(j)
+λ (ρ)(ω) =
+Z
+Rd e−iωT yK(j)
+λ (ρ)(y) dy =
+Z
+Rd
+Z
+Rd e−iωT ygλ(y −x)x(j) dρ(x) dy.
+By Fubini Theorem, we have
+\
+K(j)
+λ (ρ)(ω) =
+Z
+Rd
+Z
+Rd e−iωT ygλ(y −x) dy
+
+x(j)dρ(x)
+= (2π)
+d
+2 det(Σλ)
+1
+2 e−1
+2 ωT Σλω
+Z
+Rd x(j)e−iωT x dρ(x)
+= (2π)
+d
+2 det(Σλ)
+1
+2 e−1
+2 ωT Σλω i∂jF(ρ)(ω),
+43
+
+
+where F(ρ) is Fourier transform of probability measure ρ.
+It follows that \
+Kλ(ρ)(ω) = (2π)
+d
+2 det(Σλ)
+1
+2 e−1
+2 ωT Σλω i∇F(ρ)(ω). Take µ = ρ1 −ρ2 with ρ1, ρ2 ∈
+B2(X). If Kλ(µ) = 0, then Kλ(µ)(y) = 0 for any y ∈Rd. It implies that \
+Kλ(µ) ≡0 and ∇F(µ) ≡0.
+Note that F(µ)(0) = µ(X) = ρ1(X) −ρ2(X) = 0. It can be obtained that F(µ) ≡0. Then by the
+inversion of Fourier transform of measures, we have ρ1 = ρ2, which shows that Kλ is an injective
+mapping on B2(X). It also follows that Iλ is injective since x 7→kλ(x, ·) is also an injective mapping.
+■
+Appendix C. Examples for Marginal Meta Probability Measure
+Example 1 The Class of Distributions with Compact Support and Bounded Density
+For B, C > 0, we define the probability class G(B, C) of all probability measures with a Lebesgue
+density bounded by C almost surely and supported on the the closed ball of radius B centered at zero.
+Then PX
+G is a probability measure supported on G(B, C).
+Proof. Take (µn) a sequence in G(B, C) with µn →µ in (B2(X), W2). Denote K the closed ball
+of radius B centered at zero. Then by Portmanteau Theorem, the weak convergence of measures
+implies that 1 = lim supn→∞µn(K) ≤µ(K) ≤1. Therefore, µ(K) = 1.
+Also by the weak convergence, we have
+R
+φdµ = limn→∞
+R
+φdµn ≤C
+R
+φdν for any φ ∈C+
+c (K),
+where ν is Lebesgue measure. Then by the density of function class C+
+c (K), we have µ(E) ≤Cν(E)
+for any Borel set E ⊂K, which follows that µ is absolute continuous with respect to ν and dµ/dν ≤C
+almost everywhere on K. It implies that µ ∈G(B, C) and then G(B, C) is closed in (B2(X), W2).
+It’s easy to obtain that
+Eρ∼PX
+G ∥ωκ(ρ)∥2
+Lγ(ρκ) =
+Z
+G(B,C)
+Z
+K
+ dρ
+dρκ
+γ
+dρκ
+ 2
+γ
+dPX
+G (ρ)
+≤C2(2πκ2)
+(γ−1)d
+γ
+exp
+(γ −1)B2
+γκ2
+
+.
+■
+Example 2 The Class of Distributions in Diffusion Generative Modeling [41]
+For B > 0 and 0 < t0 < T <
+q
+γ
+γ−1κ, we define the probability class G[t0,T ](B) as the collection
+of the convolutions between two probability distributions
+n
+µ ∗ρ˜κ :µ supported on the closed ball with radius B in Rd,
+Gaussian measure ρ˜κ with t0 ≤˜κ ≤T
+o
+with
+(µ ∗ρ˜κ)(x) = (2π˜κ2)−d
+2
+Z
+∥y∥2≤B
+exp
+
+−∥x −y∥2
+2˜κ2
+
+dµ(y).
+The marginal meta probability measure PX
+G is defined as a joint probability measure on B2,b(X)×
+[t0, T] as ˜PX
+G × Uniform[t0, T] where ˜PX
+G is a probability measure defined on B2,b(X).
+Proof. Since the convolution between µ and ρ˜κ can be considered as the probability distribution of
+random variable X + Z˜κ with X ∼µ and Z˜κ ∼gaussian distribution ρ˜κ independently, W2(µ1 ∗
+ρ˜κ, µ2∗ρ˜κ) ≤W2(µ1, µ2) by the coupling argument. Similarly for (µ1, t1), (µ2, t2) ∈B2,b(X)×[t0, T],
+we have
+W2(µ1 ∗ρt1, µ2 ∗ρt2) ≤W2(µ1, µ2) + W2(ρt1, ρt2) ≤W2(µ1, µ2) +
+√
+d |t1 −t2| ,
+44
+
+
+which shows that ˜I : (µ, ˜κ) 7→µ ∗ρ˜κ is continuous. Then the meta probability in domain generaliza-
+tion framework can be defined with PX
+G = ( ˜PX
+G × Uniform[t0, T]) ◦˜I−1. It’s easy to see that for any
+µ ∗ρ˜κ ∈G[t0,T ](B), we have
+E∥X + Z∥4
+2 ≤E(2∥X∥2
+2 + 2∥Z∥2
+2)2 = 4(E∥X∥4
+2 + E∥Z∥4
+2) + 8(E∥X∥2
+2)(E∥Z∥2
+2)
+≤4(B4 + d(d + 2)T 4) + 8dB2T 2,
+and
+∥ωκ(µ ∗ρ˜κ)∥γ
+Lγ(ρκ) = (2πκ2)
+d(γ−1)
+2
+Z
+Rd(µ ∗ρ˜κ(x))γ exp
+γ −1
+2κ2 ∥x∥2
+2
+
+dx
+= (2πκ2)
+d(γ−1)
+2
+(2π˜κ2)−dγ
+2
+Z
+Rd
+ Z
+∥y∥2≤B
+exp
+
+−∥x −y∥2
+2
+2˜κ2
+
+dµ(y)
+!γ
+exp
+γ −1
+2κ2 ∥x∥2
+2
+
+dx
+= (2πκ2)
+d(γ−1)
+2
+(2π˜κ2)−dγ
+2
+Z
+Rd
+ Z
+∥y∥2≤B
+exp
+2xT y −∥y∥2
+2
+2˜κ2
+
+dµ(y)
+!γ
+exp
+
+−
+ γ
+2˜κ2 −γ −1
+2κ2
+
+∥x∥2
+2
+
+dx.
+It’s easy to see that ∥ωκ(µ ∗ρ˜κ)∥Lγ(ρκ) < ∞if and only if v˜κ :=
+γ
+2˜κ2 −γ−1
+2κ2 which is equivalent
+to the condition ˜κ <
+q
+γ
+γ−1κ. Moreover, Let b˜κ =
+γ
+˜κ2 . By Jensen’s inequality, we have
+∥ωκ(µ ∗ρ˜κ)∥γ
+Lγ(ρκ)
+≤Ad,κ,γ˜κ−dγ
+Z
+Rd
+Z
+∥y∥2≤B
+exp
+
+−γ∥x −y∥2
+2
+2˜κ2
+
+dµ(y) exp
+γ −1
+2κ2 ∥x∥2
+2
+
+dx
+≤Ad,κ,γ˜κ−dγ
+Z
+∥y∥2≤B
+Z
+Rd exp
+
+−
+ γ
+2˜κ2 −γ −1
+2κ2
+
+∥x∥2
+2
+
+exp
+2γxT y −γ∥y∥2
+2
+2˜κ2
+
+dx dµ(y)
+≤Ad,κ,γ˜κ−dγ
+Z
+∥y∥2≤B
+Z
+Rd exp(−v˜κ∥x∥2
+2 + b˜κyT x) dx exp
+
+−γ∥y∥2
+2
+2˜κ2
+
+dµ(y)
+= Ad,κ,γ˜κ−dγ
+Z
+∥y∥2≤B
+Z
+Rd exp
+
+−v˜κ
+x −b˜κy
+2v˜κ
+
+2
+2
+
+dx exp
+ b2
+˜κ
+4v˜κ
+∥y∥2
+2 −
+γ
+2˜κ2 ∥y∥2
+2
+
+dµ(y)
+= Ad,κ,γ
+ π
+v˜κ
+ d
+2 ˜κ−dγ
+Z
+∥y∥2≤B
+exp
+  b2
+˜κ
+4v˜κ
+−
+γ
+2˜κ2
+
+∥y∥2
+2
+
+dµ(y)
+≤Ad,κ,γ
+ π
+v˜κ
+ d
+2 ˜κ−dγ exp
+
+γ(γ −1)˜κ2
+2(γκ2˜κ2 −(γ −1)˜κ4)B2
+
+=: f(˜κ)γ,
+We can observe that f(˜κ) is a continuous function on [t0, T] and f(˜κ) ∼˜κ−d(1−1
+γ ), ˜κ →0. For the
+domain generalization assumption, we have
+Z
+B2(X)
+∥ωκ(ρ)∥2
+Lγ(ρκ) dPX
+G (ρ) =
+Z
+G[t0,T ](B)
+∥ωκ(ρ)∥2
+Lγ(ρκ) dPX
+G (ρ)
+=
+1
+T −t0
+Z T
+t0
+Z
+B2,c(X)
+∥ωκ(µ ∗ρ˜κ)∥2
+Lγ(ρκ) d ˜PX
+G (µ) d˜κ
+≤
+1
+T −t0
+Z T
+t0
+f(˜κ)2 d˜κ ≤Ct0,T,γ,B,d.
+■
+45
+
+
+Appendix D. Approximation in Gaussian Space
+D.1 Optimal Linear Approximation
+Note that the space Hkλ is actually the tensor product of unvariate RKHS with the kernels exp{−λ2
+l (a−
+b)2} for a, b ∈R, so we first consider the univariate case with kλ1(a, b) = exp{−λ2
+1(a −b)2} where
+a, b ∈R and the gaussian measure ρ1,κ with density function (2πκ2)−1
+2 exp
+n
+−a2
+2κ2
+o
+.
+For j ≥1, the eigenvalues and eigenfunctions are given in Fasshauer et al. [13], Rasmussen and
+Williams [34] by
+rλ1,j = (
+√
+2κ)−1λ2j−2
+1
+/C
+j−1
+2
+1
+where C1 = λ2
+1 +
+1
+4κ2 + 1
+2κ
+r
+1
+4κ2 + 2λ2
+1,
+and
+˜φλ1,j(a) = exp
+ 
+−
+ 
+1
+2κ
+r
+1
+4κ2 + 2λ2
+1 −
+1
+4κ2
+!
+a2
+!
+Hj−1
+ 
+1
+κ
+1
+2
+ 1
+4κ2 + 2λ2
+1
+ 1
+4
+a
+!
+where Hj−1 is the Hermite polynomial of degree j −1, given by
+Hj−1(a) = (−1)j−1ea2 dj−1
+daj−1 e−a2 for a ∈R
+such that
+Z
+R
+H2
+j−1(a) exp(−a2) da = √π2j−1(j −1)! for j ∈N.
+Then we can take a orthonormal basis of L2(ρ1,κ) to be {φλ1,j}j∈N by
+φλ1,j(a) =
+s
+(1 + 8κ2λ2
+1)
+1
+4
+2j−1(j −1)! exp
+ 
+−
+2λ2
+1a2
+p
+1 + 8κ2λ2
+1 + 1
+!
+Hj−1
+
+1
+√
+2κ(1 + 8κ2λ2
+1)
+1
+4 a
+
+,
+and observe that (
+√
+2κ)−1C
+−1
+2
+1
+= 1 −λ2
+1
+C1 , which allows us to rewrite rλ1,j as rλ1,j = (1 −ηλ1)ηj−1
+λ1
+with
+ηλ1 = λ2
+1
+C1
+=
+4κ2λ2
+1
+4κ2λ2
+1 + 1 +
+p
+1 + 8κ2λ2
+1
+∈(0, 1).
+For the multivariate case with λ = (λ1, . . . , λd), let j be a multi-index with j = (j1, . . . , jd) ∈Nd.
+Then the pairs (rλ
+j , φλ
+j ) of eigenvalues and eigenfunctions are given by
+rλ
+j :=
+d
+Y
+l=1
+rλl,jl =
+d
+Y
+l=1
+(1 −ηλl)ηjl−1
+λl
+and φλ
+j (x) :=
+d
+Y
+l=1
+φλl,jl(x(l)) for x = [x(1), ..., x(d)] ∈Rd.
+We can also define an orthonormal basis (ψλ
+j ) on Hkλ by
+ψλ
+j (x) :=
+d
+Y
+l=1
+ψλl,jl(x(l)) where ψλl,jl := √rλl,jlφλl,jl.
+For the simplicity of notation, we rearrange the sequence of eigenpairs (rλ
+j , ψλ
+j )j∈Nd to the se-
+quence (rλ
+q , ψλ
+q )q∈N with the order of a non-increasing sequence of eigenvalues, i.e., rλ
+1 ≥rλ
+2 ≥· · · > 0.
+46
+
+
+By Corollary 4.12 in [30], the optimal linear approximation error is
+E(n, Hkλ) :=
+inf
+Λn⊂Hkλ
+sup
+∥f∥Hkλ ≤1
+f −ProjΛn(f)
+
+L2(ρκ) =
+q
+rλ
+n+1
+where Λn is an n-dimensional subspace of Hkλ. By Theorem 5.2 in [13], E(n, Hkλ) ≤Cδ,κ,θn−max(θ, 1
+2)+δ
+for any δ > 0 where Cδ,κ,θ only depends on δ, κ and θ.
+D.2 Approximation of Eigenfunctions by Two-Hidden-Layer Tanh Neural Networks
+In this part, we show L2(ρ)-approximation of orthonormal basis defined in Appendix D.1 by neural
+networks where ρ is a probability distribution with ∥ωκ(ρ)∥Lγ(ρκ) < ∞.
+Recall that ψλ
+j has a product form of factors being elements with a unit norm in Hkλl . To
+approximate analytic functions with this form, we apply the shallow neural network with and tanh
+activation functions and a product-gated output defined in (1).
+By scaling and translating the variable, for each pair (λl, jl), we define gλl,jl(t) := ψλl,jl
+ 2B
+ t −1
+2
+
+for t ∈[0, 1] with some number B > 0. Here we introduce the class of (Q, R)-analytic functions with
+Q, R > 0 in which an analytic function f satisfies the smoothness condition that ∥Dβf∥L∞([0,1]d) ≤
+QR−ββ! for all β ∈N.
+By Theorem 1 in [56], for each ψλl,jl ∈Hkλl , we have that
+Dβgλl,jl(t)
+ =
+(2B)βDβψλl,jl (2B (t −1/2))
+ =
+(2B)β D
+(Dβkλj)2B(t−1
+2), ψλl,jl
+E
+Hkλl
+
+≤(2B)β
+q
+D(β,β)kλl(x, x) ≤(4Bλl)ββ! ≤(4BCθ)ββ!.
+It implies that gλl,jl is a (1, (4BCθ)−1)-analytic function for each pair (λl, jl).
+Indeed, for kλl(a, b) = exp{−λ2
+l (a −b)2},
+D(β,β)kλl = ∂β
+a ∂β
+b kλl = (−λ2
+l )β∂2β
+c
+exp{−c2} with c = λl(a −b).
+By the definition of Hermite polynomials, ∂2β
+c
+exp(−c2) = H2β(c) exp(−c2). It follows that
+∂2β
+c
+exp(−c2)|c=0 = H2β(0) = (−1)β (2β)!
+β!
+which is called Hermite numbers of the even order. Then we have
+q
+D(β,β)kλl(x, x) ≤λβ
+l
+s
+(2β)!
+β!
+= λβ
+l
+s2β
+β
+
+β! ≤(2λl)ββ!,
+which proves the claim with Q = 1, R = (4BCθ)−1.
+The following lemma follows from an application of Theorem B.7 in [11] and Corollary 5.5 in [10]
+by taking s = 4 ˜m, N = ˜m.
+Lemma 21 For B > 1, each gλl,jl(t) = ψλl,jl
+ 2B
+ t −1
+2
+
+on [0, 1]. For ˜m > 3, There exists a
+tanh neural network ˆg ˜m
+λl,jl with two hidden layers of width at most 8 ˜m such that
+∥gλl,jl −ˆg ˜m
+λl,jl∥L∞([0,1]) ≤2 exp
+
+−4 ˜m log
+
+˜m
+6BCθ
+
+with the parameters bounded by c′
+1(c′
+2 ˜m)160 ˜m2 where c′
+1, c′
+2 are two absolute constants.
+47
+
+
+We define ˆψ ˜m
+λl,jl(t) = ˆg ˜m
+λl,jl
+  t
+2B + 1
+2
+
+and recall the product gate T1,⊙defined as
+T1,⊙(x) =
+d
+Y
+l=1
+T1(xl) with T1(xl) = xl if |xl| < 1 otherwise xl
+|xl|
+(T1 can be also implemented by a fixed ReLU neural network as σ(xl + 1) −σ(xl −1) −1). Then we
+can construct an approximant for ψλ
+j = Qd
+l=1 ψλl,jl by ˆψλ
+j, ˜m := T1,⊙
+ ( ˆψ ˜m
+λ1,j1, . . . , ˆψ ˜m
+λd,jd)
+
+with L2(ρ)
+approximation error
+ψλ
+j −ˆψλ
+j, ˜m
+
+2
+L2(ρ) =
+ Z
+∥x∥∞≤B
++
+Z
+∥x∥∞>B
+!
+(ψλ
+j (x) −ˆψλ
+j, ˜m(x))2 dρ(x)
+≤
+sup
+∥x∥∞≤B
+(ψλ
+j (x) −ˆψλ
+j, ˜m(x))2 + 2ρ({x : ∥x∥∞> B}).
+For the first term, we bound it with Lemma 21 by introducing intermediate terms as follows:
+sup
+∥x∥∞≤B
+ψλ
+j (x) −ˆψλ
+j, ˜m(x)
+ =
+
+d
+Y
+l=1
+ψλl,jl −
+d
+Y
+l=1
+T1( ˆψ ˜m
+λl,jl)
+
+L∞([−B,B]d)
+≤
+
+d
+Y
+l=1
+ψλl,jl −T1( ˆψ ˜m
+λ1,j1)
+d
+Y
+l=2
+ψλl,jl + · · · +
+h
+Y
+l′=1
+T1( ˆψ ˜m
+λl′,jl′ )
+d
+Y
+l=h+1
+ψλl,jl −
+h+1
+Y
+l′=1
+T1( ˆψ ˜m
+λl′,jl′ )
+d
+Y
+l=h+2
+ψλl,jl
++ · · · +
+d−1
+Y
+l′=1
+T1( ˆψ ˜m
+λl,jl)ψλd,jd −
+d
+Y
+l=1
+T1( ˆψ ˜m
+λl,jl)
+
+L∞([−B,B]d)
+≤d
+max
+0≤h≤d−1
+
+h
+Y
+l′=1
+T1( ˆψ ˜m
+λl′,jl′ )
+d
+Y
+l=h+1
+ψλl,jl −
+h+1
+Y
+l′=1
+T1( ˆψ ˜m
+λl′,jl′ )
+d
+Y
+l=h+2
+ψλl,jl
+
+L∞([−B,B]d)
+≤d
+max
+0≤h≤d−1 ∥ψλh+1,jh+1 −T1( ˆψ ˜m
+λh+1,jh+1)∥L∞([−B,B]) ≤d
+max
+0≤h≤d−1 ∥ψλh+1,jh+1 −ˆψ ˜m
+λh+1,jh+1∥L∞([−B,B])
+≤2d exp
+
+−4 ˜m log
+
+˜m
+6BCθ
+
+.
+For the second term, we bound it by the subgaussian tail decay of probability measures:
+ρ({x : ∥x∥∞> B}) =
+Z
+∥x∥∞>B
+ωκ(ρ)(x) dρκ(x) ≤∥ωκ(ρ)∥Lγ(ρκ)(ρκ({x : ∥x∥∞> B}))
+γ−1
+γ
+≤∥ωκ(ρ)∥Lγ(ρκ)
+
+d ·
+κ
+√
+2π B−1 exp
+
+−B2
+2κ2
+ γ−1
+γ
+≤Cκ,γd∥ωκ(ρ)∥Lγ(ρκ) exp
+
+−γ −1
+γ
+ B2
+2κ2 + log B
+
+with Cκ,γ =
+
+κ
+√
+2π
+ γ−1
+γ . Let B =
+˜m
+3
+4
+6Cθ and the above upper bound can written as
+ρ({x : ∥x∥∞> B}) ≤dCκ,γ∥ωκ(ρ)∥Lγ(ρκ) exp
+ 
+−γ −1
+γ
+
+˜m
+3
+2
+72κ2C2
+θ
++ 3
+4 log ˜m −log 6Cθ
+!
+≤dCκ,γ∥ωκ(ρ)∥Lγ(ρκ) exp(−2 ˜m log ˜m)
+when ˜m > Cκ,θ,γ with Cκ,θ,γ a constant only depending on κ, γ and Cθ.
+48
+
+
+Then combine two estimations and we can the final bound as
+∥ψλ
+j −ˆψλ
+j, ˜m∥2
+L2(ρ) ≤(2d)2 exp(−2 ˜m log ˜m) + 2dCκ,γ∥ωκ(ρ)∥Lγ(ρκ) exp(−2 ˜m log ˜m)
+≤(4d2 + Cκ,γ∥ωκ(ρ)∥Lγ(ρκ)) exp(−2 ˜m log ˜m)
+for ˜m > Cκ,θ,γ.
+■
+49
+
+
+References
+[1] E. Akyürek, D. Schuurmans, J. Andreas, T. Ma, and D. Zhou. What learning algorithm is in-
+context learning? investigations with linear models. In The Eleventh International Conference
+on Learning Representations, 2023.
+[2] F. Bach. Breaking the curse of dimensionality with convex neural networks. Journal of Machine
+Learning Research, 18(19):1–53, 2017.
+[3] A. Barron. Universal approximation bounds for superpositions of a sigmoidal function. IEEE
+Transactions on Information Theory, 39(3):930–945, 1993.
+[4] G. Blanchard, G. Lee, and C. Scott. Generalizing from several related classification tasks to
+a new unlabeled sample. In Advances in Neural Information Processing Systems, volume 24.
+Curran Associates, Inc., 2011.
+[5] G. Blanchard, A. A. Deshmukh, U. Dogan, G. Lee, and C. Scott. Domain generalization by
+marginal transfer learning. Journal of machine learning research, 22(2):1–55, 2021.
+[6] T. Brown, B. Mann, N. Ryder, M. Subbiah, J. D. Kaplan, P. Dhariwal, A. Neelakantan,
+P. Shyam, G. Sastry, A. Askell, et al. Language models are few-shot learners. Advances in
+neural information processing systems, 33:1877–1901, 2020.
+[7] K. M. Choromanski, V. Likhosherstov, D. Dohan, X. Song, A. Gane, T. Sarlos, P. Hawkins, J. Q.
+Davis, A. Mohiuddin, L. Kaiser, et al. Rethinking attention with performers. In International
+Conference on Learning Representations, 2021.
+[8] A. Christmann and I. Steinwart. Universal kernels on non-standard input spaces. In Advances
+in Neural Information Processing Systems, volume 23. Curran Associates, Inc., 2010.
+[9] F. Cucker and D. X. Zhou. Learning Theory: An Approximation Theory Viewpoint, volume 24.
+Cambridge University Press, 2007.
+[10] T. De Ryck, S. Lanthaler, and S. Mishra. On the approximation of functions by tanh neural
+networks. Neural Networks, 143:732–750, 2021.
+[11] T. De Ryck, A. D. Jagtap, and S. Mishra. Error estimates for physics-informed neural networks
+approximating the navier–stokes equations. IMA Journal of Numerical Analysis, page drac085,
+2023.
+[12] J. Devlin, M.-W. Chang, K. Lee, and K. Toutanova. Bert: Pre-training of deep bidirectional
+transformers for language understanding. In Proceedings of the 2019 conference of the North
+American chapter of the association for computational linguistics: human language technologies,
+volume 1 (long and short papers), pages 4171–4186, 2019.
+[13] G. E. Fasshauer, F. J. Hickernell, and H. Woźniakowski. On dimension-independent rates of
+convergence for function approximation with gaussian kernels. SIAM Journal on Numerical
+Analysis, 50(1):247–271, 2012.
+[14] T. Furuya, M. V. de Hoop, and G. Peyré. Transformers are universal in-context learners. In
+The Thirteenth International Conference on Learning Representations, 2025.
+[15] S. Garg, D. Tsipras, P. S. Liang, and G. Valiant. What can transformers learn in-context? a
+case study of simple function classes. Advances in neural information processing systems, 35:
+30583–30598, 2022.
+50
+
+
+[16] A. Gu and T. Dao. Mamba: Linear-time sequence modeling with selective state spaces. In First
+conference on language modeling, 2024.
+[17] K. He, X. Chen, S. Xie, Y. Li, P. Dollár, and R. Girshick. Masked autoencoders are scalable
+vision learners. In Proceedings of the IEEE/CVF conference on computer vision and pattern
+recognition, pages 16000–16009, 2022.
+[18] D. Hendrycks and K. Gimpel.
+Gaussian error linear units (gelus).
+arXiv preprint
+arXiv:1606.08415, 2016.
+[19] C. Jin, P. Netrapalli, R. Ge, S. M. Kakade, and M. I. Jordan. A short note on concentration
+inequalities for random vectors with subgaussian norm, 2019.
+[20] A. Katharopoulos, A. Vyas, N. Pappas, and F. Fleuret. Transformers are rnns: Fast autore-
+gressive transformers with linear attention. In Proceedings of the 37th International Conference
+on Machine Learning, pages 5156–5165. PMLR, 2020.
+[21] Y. Korolev.
+Two-layer neural networks with values in a banach space.
+SIAM Journal on
+Mathematical Analysis, 54(6):6358–6389, 2022.
+[22] M. Ledoux and M. Talagrand. Probability in Banach Spaces. Springer Berlin Heidelberg, Berlin,
+Heidelberg, 1991. ISBN 978-3-642-20211-7 978-3-642-20212-4.
+[23] P. Liu and D.-X. Zhou. Generalization analysis of transformers in distribution regression. Neural
+Computation, 37(2):260–293, 2025.
+[24] C. Ma, R. Pathak, and M. J. Wainwright. Optimally tackling covariate shift in rkhs-based
+nonparametric regression. The Annals of Statistics, 51(2):738–761, 2023.
+[25] A. Maurer.
+A vector-contraction inequality for rademacher complexities.
+In International
+Conference on Algorithmic Learning Theory, pages 3–17. Springer, 2016.
+[26] A. Maurer and M. Pontil. Concentration inequalities under sub-gaussian and sub-exponential
+conditions. In Advances in Neural Information Processing Systems, volume 34, pages 7588–7597.
+Curran Associates, Inc., 2021.
+[27] S. Min, X. Lyu, A. Holtzman, M. Artetxe, M. Lewis, H. Hajishirzi, and L. Zettlemoyer. Re-
+thinking the role of demonstrations: What makes in-context learning work? In Proceedings of
+the 2022 Conference on Empirical Methods in Natural Language Processing, pages 11048–11064,
+2022.
+[28] N. Mücke. Stochastic gradient descent meets distribution regression. In International Confer-
+ence on Artificial Intelligence and Statistics, pages 2143–2151. PMLR, 2021.
+[29] M. Nguyen and N. Mücke. Optimal convergence rates for neural operators. arXiv preprint
+arXiv:2412.17518, 2024.
+[30] E. Novak and H. Woźniakowski. Tractability of Multivariate Problems. 1: Linear Information.
+Number 6. European Mathematical Soc, Zürich, 2008. ISBN 978-3-03719-026-5.
+[31] W. Peebles and S. Xie. Scalable diffusion models with transformers. In Proceedings of the
+IEEE/CVF International Conference on Computer Vision, pages 4195–4205, 2023.
+[32] Z. Qin, X. Han, W. Sun, D. Li, L. Kong, N. Barnes, and Y. Zhong.
+The devil in linear
+transformer. In Proceedings of the 2022 Conference on Empirical Methods in Natural Language
+Processing, pages 7025–7041, 2022.
+51
+
+
+[33] P. Ramachandran, B. Zoph, and Q. V. Le. Searching for activation functions. arXiv preprint
+arXiv:1710.05941, 2017.
+[34] C. E. Rasmussen and C. K. I. Williams. Gaussian Processes for Machine Learning. MIT Press,
+Cambridge, Mass, 2006. ISBN 978-0-262-18253-9.
+[35] A. Rényi.
+On measures of entropy and information.
+In Proceedings of the fourth Berkeley
+symposium on mathematical statistics and probability, volume 1: contributions to the theory of
+statistics, volume 4, pages 547–562. University of California Press, 1961.
+[36] Z. Shao, P. Wang, Q. Zhu, R. Xu, J. Song, X. Bi, H. Zhang, M. Zhang, Y. K. Li, Y. Wu,
+and D. Guo. Deepseekmath: Pushing the limits of mathematical reasoning in open language
+models, 2024.
+[37] N. Shazeer. Glu variants improve transformer. arXiv preprint arXiv:2002.05202, 2020.
+[38] Z. Shen, A. Hsu, R. Lai, and W. Liao. Understanding in-context learning on structured mani-
+folds: Bridging attention to kernel methods. arXiv preprint arXiv:2506.10959, 2025.
+[39] J. W. Siegel. Optimal approximation of zonoids and uniform approximation by shallow neural
+networks. Constructive Approximation, pages 1–29, 2025.
+[40] J. W. Siegel and J. Xu. Sharp bounds on the approximation rates, metric entropy, and n-widths
+of shallow neural networks. Foundations of Computational Mathematics, 24(2):481–537, 2024.
+[41] Y. Song and S. Ermon. Generative modeling by estimating gradients of the data distribution.
+In Advances in Neural Information Processing Systems, volume 32. Curran Associates, Inc.,
+2019.
+[42] B. K. Sriperumbudur, A. Gretton, K. Fukumizu, B. Schölkopf, and G. R. Lanckriet. Hilbert
+space embeddings and metrics on probability measures.
+The Journal of Machine Learning
+Research, 11:1517–1561, 2010.
+[43] Y. Sun, L. Dong, S. Huang, S. Ma, Y. Xia, J. Xue, J. Wang, and F. Wei. Retentive network:
+A successor to transformer for large language models. arXiv preprint arXiv:2307.08621, 2023.
+[44] Y.-H. H. Tsai, S. Bai, M. Yamada, L.-P. Morency, and R. Salakhutdinov. Transformer dissection:
+An unified understanding for transformer’s attention via the lens of kernel. In Proceedings of the
+2019 Conference on Empirical Methods in Natural Language Processing and the 9th International
+Joint Conference on Natural Language Processing (EMNLP-IJCNLP), pages 4344–4353, 2019.
+[45] T. van Erven and P. Harremoës.
+Rényi divergence and kullback-leibler divergence.
+IEEE
+Transactions on Information Theory, 60(7):3797–3820, 2014.
+[46] A. Vaswani, N. Shazeer, N. Parmar, J. Uszkoreit, L. Jones, A. N. Gomez, Ł. Kaiser, and
+I. Polosukhin. Attention is all you need. In Advances in Neural Information Processing Systems,
+volume 30. Curran Associates, Inc., 2017.
+[47] M. J. Wainwright.
+High-Dimensional Statistics: A Non-Asymptotic Viewpoint.
+Cambridge
+University Press, 1 edition, Feb. 2019. ISBN 978-1-108-62777-1 978-1-108-49802-9.
+[48] S. M. Xie, A. Raghunathan, P. Liang, and T. Ma. An explanation of in-context learning as
+implicit bayesian inference. In International Conference on Learning Representations, 2022.
+52
+
+
+[49] A. Yang, A. Li, B. Yang, B. Zhang, B. Hui, B. Zheng, B. Yu, C. Gao, C. Huang, C. Lv, C. Zheng,
+D. Liu, F. Zhou, F. Huang, F. Hu, H. Ge, H. Wei, H. Lin, J. Tang, J. Yang, J. Tu, J. Zhang,
+J. Yang, J. Yang, J. Zhou, J. Zhou, J. Lin, K. Dang, K. Bao, K. Yang, L. Yu, L. Deng, M. Li,
+M. Xue, M. Li, P. Zhang, P. Wang, Q. Zhu, R. Men, R. Gao, S. Liu, S. Luo, T. Li, T. Tang,
+W. Yin, X. Ren, X. Wang, X. Zhang, X. Ren, Y. Fan, Y. Su, Y. Zhang, Y. Zhang, Y. Wan,
+Y. Liu, Z. Wang, Z. Cui, Z. Zhang, Z. Zhou, and Z. Qiu. Qwen3 technical report, 2025.
+[50] S. Yang, B. Wang, Y. Shen, R. Panda, and Y. Kim. Gated linear attention transformers with
+hardware-eﬀicient training. In Forty-first International Conference on Machine Learning, 2024.
+[51] Y. Yang and D.-X. Zhou. Optimal rates of approximation by shallow relu$$^k$$neural networks
+and applications to nonparametric regression. Constructive Approximation, 2024.
+[52] M. Zaheer, G. Guruganesh, K. A. Dubey, J. Ainslie, C. Alberti, S. Ontanon, P. Pham,
+A. Ravula, Q. Wang, L. Yang, and A. Ahmed. Big bird: Transformers for longer sequences.
+In Advances in Neural Information Processing Systems, volume 33, pages 17283–17297. Curran
+Associates, Inc., 2020.
+[53] B. Zhang and R. Sennrich. Root mean square layer normalization. Advances in neural infor-
+mation processing systems, 32, 2019.
+[54] M. Zhang, K. Bhatia, H. Kumbong, and C. Re. The hedgehog & the porcupine: Expressive
+linear attentions with softmax mimicry. In The Twelfth International Conference on Learning
+Representations, 2024.
+[55] R. Zhang, S. Frei, and P. L. Bartlett. Trained transformers learn linear models in-context.
+Journal of Machine Learning Research, 25(49):1–55, 2024.
+[56] D.-X. Zhou. Derivative reproducing properties for kernel methods in learning theory. Journal
+of Computational and Applied Mathematics, 220(1):456–463, 2008.
+53

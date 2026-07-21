@@ -1,0 +1,1321 @@
+Title: In-context learning of closed form solution to simple linear regression task using transformer with linear self-attention
+
+URL Source: https://arxiv.org/pdf/2607.15819v1
+
+Published Time: Mon, 20 Jul 2026 00:46:42 GMT
+
+Number of Pages: 25
+
+Markdown Content:
+# In-context learning of closed form solution to simple linear regression task using transformer with linear self-attention 
+
+## Katsuyuki Hagiwara 
+
+Faculty of Education, Mie University 1577 Kurima-Machiya-cho, Tsu, 514-8507, Japan hagi@edu.mie-u.ac.jp 
+
+Abstract 
+
+In-context learning is a remarkable property of transformers and has recently received a lot of interest. In many studies of in-context learning, it has been shown that transformers are capable of implementing solver for linear and non-linear regression problems, in which the most of them implement gradient descent algorithm. However, it is still unclear whether those implementations have actually been acquired through training. In this paper, we construct a transformer with linear self-attention, which in-context learns the least squares estimate in a simple regression task. The point here is that the closed form (analytical) solution is approximately obtained by using layer normalization rather than an approximate solution based on gradient descent algorithm. Then, we show an experimental example, in which our implementation is mainly used in the transformer trained with ℓ1 regularization when the target output is the least squares estimate. 
+
+Keyword in-context learning, linear self-attention, a simple linear regression, layer normalization 
+
+# 1 Introduction 
+
+In-context learning is a remarkable property of transformers, which form the basis of large language models such as GPT-3 [3], and it has been the focus of recent research. Through in-context learning, given a prompt containing examples of a task and a new query input, the trained language model can generate the corresponding output for the new query in a one-shot manner. It is natural to think that transformers acquire, through training, the algorithms to solve tasks via in-context learning. In this regard, it has been demonstrated that transformers are capable of implementing various algorithms, particularly in regression tasks [5, 11, 1, 4, 2]. [5] empirically studied the in-context learning abilities of transformers for various function classes in machine learning, including the linear function class. In particu-lar, for linear functions, a trained transformer performs similarly to the least squares 1arXiv:2607.15819v1 [cs.LG] 17 Jul 2026 solution. [11] provided an explicit construction of a linear self-attention layer that im-plements a single step of the gradient descent algorithm on the mean squared error loss. Additionally, they empirically showed that several self-attention layers can iteratively perform curvature correction, improving upon the plain gradient descent algorithm. [1] proved that a transformer can implement a gradient descent algorithm and a closed form solution for ridge regression. [4] also pointed out the correspondence between the lin-ear version of attention and the gradient descent algorithm, claiming that transformers perform implicit fine-tuning. They also empirically investigated the similarity between in-context learning and explicit fine-tuning. While the works of [5, 11, 1, 10, 4] do not consider the training phase, [13] investigated the learning dynamics of a gradient flow in a simplified transformer architecture when the training prompts consist of ran-dom instances of linear regression datasets, concluding that transformers trained by a gradient flow in-context learn a class of linear functions. More recently, [2] showed that transformers can implement a broad class of standard machine learning algorithms in context, such as least squares, ridge regression, and Lasso. In contrast to [1], [2] precisely evaluated the prediction performance in terms of network size, and shown a near-optimal predictive power. [2] also demonstrated the algorithm selection ability of transformers, such as regularization selection according to validation error for ridge regression. In these works, however, it still remains unclear whether those algorithms are actually obtained through the training process of transformers. In this paper, for a simple regression task, we first construct a transformer with linear-self attention, which implements an approximate closed form (analytical) solution to the least squares estimate according to [1]. We then present a numerical example, in which this imple-mentation is mainly used in the transformer trained with the ℓ1 regularization when the target is the least squares estimate. Previous works [5, 11, 1, 4, 2] have investigated regression problems, finding that the solver implemented by a transformer is basically the gradient descent algorithm. This is natural since the attention mechanism in a transformer computes the product of the inputs, which is exactly what is required for the gradient descent method. In a linear regression problem, however, the least squares estimate is analytically obtained by calculating the matrix inverse, which requires division. Consequently, the gradient descent algorithm implicitly calculates this division by repeatedly performing multipli-cation and addition. Among these works, [1] showed that a transformer can implement a close form solution to a ridge regression problem, in which the division is implemented using layer normalization. Our construction of the least squares estimate for a simple regression problem is based on this insight. The transformer in our setting comprises a linear transformation of the input, a stack of transformer blocks, a flatten layer, and an output linear transformation, in which the transformer block consists of multi-head linear self-attention blocks with layer normalization followed by a skip connection. Thus, the layer normalization is applied to the sum of the output of the linear self-attention blocks and a skip connection sum is applied to the layer normalized output. This transformer receives the in-context samples and the query input (prediction point) as a prompt, and outputs the least squares estimate for the query input. Specifically, the number of layers, the number of heads, and the model dimension in our construction are 2, 2, and 4 respectively, which is very small. The closed form solution to the least squares estimate for a simple regression 2problem requires division by the variance of the input data in the in-context samples. We provide a specific construction to approximately calculate this closed form solution under a natural input form, in which the layer normalization is used for performing division according to [1]. After showing this construction, we present numerical experiments to show that our implementation is actually used in the transformer trained with ℓ1 regularization when the target output is the least squares estimate. In other words, through training, the transformer mainly acquires the calculation of the closed form solution rather than the steps of the gradient descent algorithm. This paper is organized as follows. Section 2 formulates our problem setting. Section 3 presents the construction of a transformer that calculates the least squares estimate based on in-context samples. Section 4 provides a numerical example of training to demonstrate that this construction is actually valid. Finally, Section 5 concludes the paper and discusses future work. 
+
+# 2 Problem setting 
+
+## 2.1 Notations 
+
+In this paper, O𝐼,𝐽 is the 𝐼 × 𝐽 zero matrix. Note that we use this notation also for vectors, where either 𝐼 or 𝐽 equals 1. For an 𝐼 × 𝐽 matrix A, A[𝑖, 𝑗 ] is the (𝑖, 𝑗 )-entry of A, A[𝑖, :] is the 𝑖 -th row vector of A and A[:, 𝑗 ] is the 𝑗 -th column vector of A for 
+
+𝑖 = 1, . . . , 𝐼 and 𝑗 = 1, . . . , 𝐽 . When A is an 𝐼 × 1 vector, A[𝑖 ] denotes its 𝑖 -th entry. 
+
+## 2.2 Setting of in-context learning of transformer 
+
+We next explain the transformer-based in-context learning of a simple linear regression task. Let 𝑀 be the number of training data for the transformer. Let (𝑥, 𝑦 ) be a pair of input-output variables in a simple regression problem. At each 𝑚 in {1, . . . , 𝑀 }, a set of 𝑁 random samples of (𝑥, 𝑦 ), which is denoted by {( 𝑥 𝑚,𝑛 , 𝑦 𝑚,𝑛 ) : 𝑛 = 1, . . . , 𝑁 }, are generated. We denote the 𝑚 -th prompt (input to the transformer) by P𝑚 , which is an 
+
+(𝑁 + 1) × 3 matrix and whose 𝑛 -th row is 
+
+P𝑚 [𝑛, :] = 1 𝑥 𝑚,𝑛 𝑦 𝑚,𝑛 
+
+ , (1) where we define 𝑦 𝑚, 𝑁 +1 := 0 and 𝑥 𝑚, 𝑁 +1 := 𝑢 𝑚 that is a prediction point; e.g., see [1]. Thus, the input sequence length is 𝑁 + 1 and the number of in-context samples is 𝑁 .We assume that, for each 𝑥 𝑚,𝑛 , 𝑦 𝑚,𝑛 is generated by 
+
+𝑦 𝑚,𝑛 = 𝜃 𝑚, 0 + 𝜃 𝑚, 1𝑥 𝑚,𝑛 + 𝜀 𝑚,𝑛 , (2) where 𝜀 𝑚, 1, . . . , 𝜀 𝑚, 𝑁 , 𝑚 = 1, . . . , 𝑀 are i.i.d. additive noises from a probability distribution with mean 0 and variance 𝜎 2 < ∞. Our goal is to obtain the least squares prediction at 𝑥 = 𝑢 𝑚 for the prompt P𝑚 . Therefore, for each 𝑚 , we need to calculate the least squares solution using 
+
+D𝑚 = {( 𝑥 𝑚,𝑛 , 𝑦 𝑚,𝑛 ) : 𝑛 = 1, . . . , 𝑁 }, (3) 3which is the set of in-context samples. The important point is that the regression lines can be different for each 𝑚 . Thus, we may assume that (𝜃 𝑚, 0, 𝜃 𝑚, 1) are sampled from a probability distribution for each 𝑚 . However, in the construction of the transformer, we do not make any specific assumptions on the underlying probability distribution of 
+
+(𝜃 𝑚, 0, 𝜃 𝑚, 1). Although we also do not make any specific assumptions on the underlying probability distribution of 𝑥 𝑚,𝑛 and 𝜀 𝑚,𝑛 , we will make an assumption on the in-context samples later. 
+
+## 2.3 Training data for the transformer 
+
+For the 𝑚 -th training data D𝑚 defined in (3), we define 
+
+𝑥 𝑚 := 1
+
+𝑁 
+
+> 𝑁
+
+∑︁ 
+
+> 𝑛 =1
+
+𝑥 𝑚,𝑛 (4) 
+
+𝑦 𝑚 := 1
+
+𝑁 
+
+> 𝑁
+
+∑︁ 
+
+> 𝑛 =1
+
+𝑦 𝑚,𝑛 (5) 
+
+𝑉 𝑚 := 1
+
+𝑁 
+
+> 𝑁
+
+∑︁ 
+
+> 𝑛 =1
+
+(𝑥 𝑚,𝑛 − 𝑥 𝑚 )2 (6) 
+
+𝐶 𝑚 := 1
+
+𝑁 
+
+> 𝑁
+
+∑︁ 
+
+> 𝑛 =1
+
+(𝑥 𝑚,𝑛 − 𝑥 𝑚 )( 𝑦 𝑚,𝑛 − 𝑦 𝑚 ). (7) For a simple regression problem, it is easy to see that the prediction at 𝑥 = 𝑢 𝑚 using the least squares solution based on D𝑚 is given by 
+
+b𝑦 𝑚 (𝑢 𝑚 ) := 𝑦 𝑚 + 𝐶 𝑚 
+
+𝑉 𝑚 
+
+(𝑢 𝑚 − 𝑥 𝑚 ) (8) (see e.g., [14]). Below, we construct the transformer that receives P𝑚 as an input and outputs b𝑦 𝑚 (𝑢 𝑚 )
+
+for 𝑚 = 1, . . . , 𝑀 . Thus, the transformer calculates the least squares estimate at the prediction point 𝑢 𝑚 using in-context samples D𝑚 at each 𝑚 .
+
+## 2.4 Linear self-attention 
+
+We define a linear self-attention (LSA), which receives an (𝑁 + 1) × 𝐷 matrix Q as an input and outputs (𝑁 + 1) × 𝐷 matrix defined by LSA 𝚯 (Q) := (QW 3)( QW ⊤ 
+
+> 1
+
+)⊤ (QW 2)
+
+= (QW 3)( W1Q⊤QW 2), (9) where 𝚯 = {W1, W2, W3 } is an ordered set of parameters and W1, W2 and W3 are 
+
+𝐷 × 𝐷 matrices. The operation using this LSA is precisely discussed in [6]. 42.5 Transformer structure 
+
+The transformer structure considered in this paper is illustrated in Fig. 1, in which grey blocks are operation blocks. The transformer here consists of input linear trans-formation, stacking transformer blocks, flatten and output linear transformation (Fig. 1 (a)). The transformer block consists of multi-head LSA (MHLSA) block with layer normalization followed by a skip connection (Fig. 1 (b)). It receives the 𝑚 -th prompt 
+
+P𝑚 defined in (1) and, for simplicity, outputs a scalar value whose target is the least squares estimate at a prediction point 𝑢 𝑚 , which is b𝑦 𝑚 (𝑢 𝑚 ) given by (8). 
+
+(a) Main stream 
+
+(b) Transformer block Figure 1: Structure of transformer Let Win and 𝒃 in be a 𝐷 × 3 input weight matrix and 𝐷 × 1 input bias vector respec-tively. The embedding of the prompt P𝑚 by an affine transformation with (Win , 𝒃 in ) is denoted by Q𝑚, 1 whose size is (𝑁 + 1) × 𝐷 . More precisely, we define 
+
+Q𝑚, 1 [𝑛, :]⊤ := Win P𝑚 [𝑛, :]⊤ + 𝒃 in (10) for 𝑛 = 1, . . . , 𝑁 + 1. The number of layers is denoted by 𝐿 . For the 𝑚 -th training data, the input to the 𝑙 -th layer is denoted by Q𝑚,𝑙 , 𝑙 = 1, . . . , 𝐿 . Thus, the above Q𝑚, 1 is the input to the first layer. 5The parameter of the LSA block of the 𝑘 -th head in the 𝑙 -th layer is denoted by 
+
+𝚯 𝑙,𝑘 = {W𝑙,𝑘, 1, W𝑙,𝑘, 2, W𝑙,𝑘, 3 }. The output of the MHLSA in the 𝑙 -th layer for 𝑚 -th training data is 
+
+H𝑚,𝑙,𝑘 := LSA 𝚯 𝑙,𝑘 (Q𝑚,𝑙 ) (11) 
+
+H𝑚,𝑙 :=
+
+> 𝐾
+
+∑︁ 
+
+> 𝑘 =1
+
+H𝑚,𝑙,𝑘 , (12) where 𝐾 is the number of heads. The size of H𝑚,𝑙 is (𝑁 + 1) × 𝐷 . The number of heads is common for all layers. We employ the layer normalization along the model (embedding) dimension. We define 
+
+𝜇 𝑚,𝑙,𝑛 := 1
+
+𝐷 
+
+> 𝐷
+
+∑︁ 
+
+> 𝑑 =1
+
+H𝑚,𝑙 [𝑛, 𝑑 ] (13) 
+
+𝜎 2 
+
+> 𝑚,𝑙,𝑛
+
+:= 1
+
+𝐷 
+
+> 𝐷
+
+∑︁ 
+
+> 𝑑 =1
+
+(H𝑚,𝑙 [𝑛, 𝑑 ] − 𝜇 𝑚,𝑙,𝑛 )2. (14) Then, the output of the layer normalization with these parameters is denoted by H𝑚,𝑙 
+
+whose (𝑛, 𝑑 )-entry is 
+
+H𝑚,𝑙 [𝑛, 𝑑 ] := (H𝑚,𝑙 [𝑛, 𝑑 ] − 𝜇 𝑚,𝑙,𝑛 )/ 𝜎 𝑚,𝑙,𝑛 (15) for 𝑑 = 1, . . . , 𝐷 at each 𝑛 . Finally, the output of the 𝑙 -th layer is given by 
+
+Q𝑚,𝑙 +1 = Q𝑚,𝑙 + H𝑚,𝑙 , (16) where the first term of the right-hand side comes from a skip connection. Note that, in our model, the layer normalization is applied before the skip connection(see e.g. [1]). 
+
+Q𝑚,𝐿 is the output of the last layer. It is then flattened and obtain 𝒒 𝑚 which is a 
+
+𝐷 (𝑁 + 1) × 1 vector. Let Wout and 𝑏 out be a 𝐷 (𝑁 + 1) × 1 output weight matrix and output bias respectively. We then obtain the transformer output by 
+
+𝑄 out (P𝑚 ) := W⊤ 
+
+> out
+
+𝒒 𝑚 + 𝑏 out (17) which is a scalar. We refer to this transformer as TF (𝐷, 𝐿, 𝐾 ), where 𝐷 , 𝐿 and 𝐾 are the model dimension, the number of layers and heads respectively. 
+
+# 3 A construction of transformer 
+
+We here gives a construction of the transformer that calculates the least squares estimate at the prediction point. To achieve this, we require that |𝑢 𝑚 − 𝑥 𝑚 |/ 𝑁 and |𝑦 𝑚 |/ 𝑁 be negligible in the calculation below. If we naturally assume that |𝑢 𝑚 − 𝑥 𝑚 | and |𝑦 𝑚 | do not increase as 𝑁 increases then this is satisfied when 𝑁 is sufficiently large. With this 6case in mind, we assume that 𝑁 is sufficiently large so that |𝑢 𝑚 |/ 𝑁 , |𝑥 𝑚 |/ 𝑁 and |𝑦 𝑚 |/ 𝑁 
+
+are negligible for any 𝑚 . We will address this assumption in a later section We here fix the structure of the transformer, in which the model dimension 𝐷 = 4, the number of layers 𝐿 = 2 and the number of heads 𝐾 = 2. Therefore, the transformer is TF (4, 2, 2). Now, the 𝑚 -th prompt to TF (4, 2, 2) is P𝑚 defined in (1). 
+
+## 3.1 Input embedding 
+
+Let 𝑅 be a real positive number. We assume that 𝑅 can be chosen sufficiently large below. As in [1], 𝑅 is important for approximate implementation of the closed form solution. In the input embedding, we set 
+
+Win =
+
+
+
+1 0 00 1 
+
+> 𝑅𝑁
+
+00 0 1  
+
+> 𝑅𝑁 √2𝑁 𝑁 +1
+
+− 1 
+
+> 𝑅𝑁
+
+− 1
+
+> 𝑅𝑁
+
+
+
+(18) and 𝒃 in = O4,1. By (10), the 𝑛 -th row of the input embedding is 
+
+Q𝑚, 1 [𝑛, :]⊤ =
+
+
+
+1 
+
+> 1
+> 𝑅𝑁
+
+𝑥 𝑚,𝑛  
+
+> 1
+> 𝑅𝑁
+
+𝑦 𝑚,𝑛 √2𝑁 𝑁 +1 − 1 
+
+> 𝑅𝑁
+
+𝑥 𝑚,𝑛 − 1 
+
+> 𝑅𝑁
+
+𝑦 𝑚,𝑛 
+
+
+
+, (19) which is the input to the transformer. 
+
+## 3.2 Output of the first layer 
+
+We here construct the first layer. We consider the first head. We have 
+
+𝜉 1,1,1 := Q𝑚, 1 [:, 1]⊤Q𝑚, 1 [:, 1] = 𝑁 + 1. (20) and 
+
+𝜉 1,1,2 := Q𝑚, 1 [:, 1]⊤Q𝑚, 1 [:, 2]
+
+= 1
+
+𝑅𝑁 (𝑁𝑥 𝑚 + 𝑢 𝑚 ) ≃ 1
+
+𝑅 𝑥 𝑚 , (21) where the last approximation holds by the assumption. Since 𝑦 𝑚, 𝑁 +1 = 0, we have 
+
+𝜉 1,1,3 := Q𝑚, 1 [:, 1]⊤Q𝑚, 1 [:, 3]
+
+= 1
+
+𝑅𝑁 𝑁𝑦 𝑚 = 1
+
+𝑅 𝑦 𝑚 . (22) 7By the same way as above, we also have 
+
+𝜉 1,1,4 := Q𝑚, 1 [:, 1]⊤Q𝑚, 1 [:, 4]≃ √2𝑁 − 1
+
+𝑅 𝑥 𝑚 + − 1
+
+𝑅 𝑦 𝑚 . (23) Therefore, we have 
+
+Q⊤
+
+> 𝑚, 1
+
+Q𝑚, 1 =
+
+
+
+𝜉 1,1,1 𝜉 1,1,2 𝜉 1,1,3 𝜉 1,1,4
+
+− − − −− − − −− − − −
+
+
+
+, (24) where the irrelevant elements are indicated by “ −”. We set 𝚯 1,1 = {W1,1,1, W1,1,2, W1,1,3 }
+
+in which 
+
+W1,1,1 =
+
+
+
+1 0 0 00 0 0 00 0 0 00 0 0 0
+
+
+
+(25) 
+
+W1,1,2 =
+
+  
+
+> 𝑁 𝑁 +1
+
+0 0 00 − 1√2 0 00 0 − 1√2 00 0 0 −1√2
+
+
+
+(26) 
+
+W1,1,3 =
+
+
+
+1 0 0 00 0 0 00 0 0 00 0 0 0
+
+
+
+. (27) Then, by (9) and (11), the 𝑛 -th row of the output of the first head is 
+
+H𝑚, 1,1 [𝑛, :]⊤ =
+
+
+
+𝑁 
+
+− 1√2𝑅 𝑥 𝑚 
+
+− 1√2𝑅 𝑦 𝑚 
+
+−𝑁 + 1√2𝑅 𝑥 𝑚 + 1√2𝑅 𝑦 𝑚 
+
+
+
+. (28) On the other hand, for the second head, we set 𝚯 1,2 = {W1,2,1, W1,2,2, W1,2,3 } in which 
+
+W1,2,1 = W1,2,2 = W1,2,3 = O𝑑,𝑑 . (29) Then, by (9) and (11), the 𝑛 -th row of the output of the second head is 
+
+H𝑚, 1,2 [𝑛, :] = O1,4. (30) 8Therefore, by (12), the 𝑛 -th row of the output of the MHLSA in the first layer is 
+
+H𝑚, 1 [𝑛, :]⊤ = H𝑚, 1,1 [𝑛, :]⊤
+
+=
+
+
+
+𝑁 
+
+− 1√2𝑅 𝑥 𝑚 
+
+− 1√2𝑅 𝑦 𝑚 
+
+−𝑁 + 1√2𝑅 𝑥 𝑚 + 1√2𝑅 𝑦 𝑚 
+
+
+
+(31) Now, we consider the layer normalization. By (13), (14) and (31), for H𝑚, 1 [𝑛, :],we have 
+
+𝜇 𝑚, 1,𝑛 = 0 (32) 
+
+𝜎 2 
+
+> 𝑚, 1,𝑛
+
+= 14
+
+
+
+𝑁 2 + 𝑂 
+
+ 1
+
+𝑅 2
+
+
+
++ 𝑁 2 + 𝑂 
+
+ 𝑁 𝑅 
+
+ 
+
+≃ 𝑁 2
+
+2 , (33) since we can set a sufficiently large value for 𝑅 ; e.g., 𝑅 = 𝑁 𝑝 , where 𝑝 is a sufficiently large positive integer. By (15), (31), (32) and (33), the 𝑛 -th row of the output of the layer normalization is 
+
+H𝑚, 1 [𝑛, :]⊤ =
+
+
+
+√2
+
+− 1 
+
+> 𝑅𝑁
+
+𝑥 𝑚 
+
+− 1 
+
+> 𝑅𝑁
+
+𝑦 𝑚 
+
+−√2 + 1 
+
+> 𝑅𝑁
+
+𝑥 𝑚,𝑛 + 1 
+
+> 𝑅𝑁
+
+𝑦 𝑚,𝑛 
+
+
+
+. (34) Then, by (16), (19) and (34), the 𝑛 -th row of the output of the first layer is 
+
+Q𝑚, 2 [𝑛, :]⊤ =
+
+
+
+1 + √2 
+
+> 1
+> 𝑅𝑁
+
+Δ𝑥 𝑚,𝑛  
+
+> 1
+> 𝑅𝑁
+
+Δ𝑦 𝑚,𝑛 
+
+− 
+
+> √2
+> 𝑁 +1
+
+
+
+, (35) where 
+
+Δ𝑥 𝑚,𝑛 = 𝑥 𝑚,𝑛 − 𝑥 𝑚 (36) 
+
+Δ𝑦 𝑚,𝑛 = 𝑦 𝑚,𝑛 − 𝑦 𝑚 . (37) and the 𝑂 (1/( 𝑅𝑁 )) terms in Q𝑚, 2 [𝑛, 4] is omitted since 𝑅 is sufficiently large and, indeed, they do not affect the final outcome in our construction. 
+
+## 3.3 Output of the second layer 
+
+We next construct the second layer. 9By (35), we have 
+
+𝜉 2,2,2 := 𝑄 𝑚, 2 [:, 2]⊤𝑄 𝑚, 2 [:, 2]
+
+= 1
+
+𝑅 2 𝑁 2 {𝑁𝑉 𝑚 + ( 𝑢 𝑚 − 𝑥 𝑚 )2 }≃ 1
+
+𝑅 2 𝑁 𝑉 𝑚 (38) 
+
+𝜉 2,2,3 := 𝑄 𝑚, 2 [:, 2]⊤𝑄 𝑚, 2 [:, 3]
+
+= 1
+
+𝑅 2 𝑁 2 {𝑁𝐶 𝑚 + ( 𝑢 𝑚 − 𝑥 𝑚 )( 0 − 𝑦 𝑚 )} ≃ 1
+
+𝑅 2 𝑁 𝐶 𝑚 (39) under the assumption and, thus, we have 
+
+Q⊤
+
+> 𝑚, 2
+
+Q𝑚, 2 =
+
+
+
+− − − −− 𝜉 2,2,2 𝜉 2,2,3 −− − − −− − − −
+
+
+
+. (40) We consider the first head. We set 𝚯 2,1 = {W2,1,1, W2,1,2, W2,1,3 }, in which 
+
+W2,1,1 =
+
+
+
+0 1 0 00 0 0 00 0 0 00 0 0 0
+
+
+
+(41) 
+
+W2,1,2 =
+
+
+
+0 0 0 00 0 0 00 𝑅 2 𝑁 /√2 −𝑅 2 𝑁 /√2 00 0 0 0
+
+
+
+(42) 
+
+W2,1,3 =
+
+
+
+0 0 0 01 0 0 00 0 0 00 0 0 0
+
+
+
+. (43) Then, by (9), (11) and (40), the 𝑛 -th row of the output of the first head is 
+
+H𝑚, 2,1 [𝑛, :]⊤ =
+
+
+
+0 
+
+> 1√2𝑅𝑁
+
+𝐶 𝑚 Δ𝑥 𝑚,𝑛 
+
+− 1√2𝑅𝑁 𝐶 𝑚 Δ𝑥 𝑚,𝑛 
+
+0
+
+
+
+. (44) On the other hand, we consider the second head. We set 𝚯 2,2 = {W2,2,1, W2,2,2, W2,2,3 }
+
+10 in which 
+
+W2,2,1 =
+
+
+
+0 1 0 00 0 0 00 0 0 00 0 0 0
+
+
+
+(45) 
+
+W2,2,2 =
+
+
+
+0 0 0 0
+
+𝑅 2 𝑁 0 0 −𝑅 2 𝑁 
+
+0 0 0 00 0 0 0
+
+
+
+(46) 
+
+W2,2,3 =
+
+
+
+1/( 1 + √2) 0 0 00 0 0 00 0 0 0
+
+
+
+. (47) Then, by (9), (11) and (40), the 𝑛 -th row of the output of the second head is 
+
+H𝑚, 2,2 [𝑛, :]⊤ =
+
+
+
+𝑉 𝑚 
+
+00
+
+−𝑉 𝑚 
+
+
+
+. (48) Therefore, by (12), the 𝑛 -th row of the output of the MHLSA in the second layer is 
+
+H𝑚, 2 [𝑛, :]⊤ =
+
+
+
+𝑉 𝑚  
+
+> 1√2𝑅𝑁
+
+𝐶 𝑚 Δ𝑥 𝑚,𝑛 
+
+− 1√2𝑅𝑁 𝐶 𝑚 Δ𝑥 𝑚,𝑛 
+
+−𝑉 𝑚 
+
+
+
+. (49) Now, we consider the layer normalization. By (13), (14) and (49), for H𝑚, 2 [𝑛, :],we have 
+
+𝜇 𝑚, 2,𝑛 = 0 (50) 
+
+𝜎 2 
+
+> 𝑚, 2,𝑛
+
+= 14
+
+
+
+2𝑉 2 
+
+> 𝑚
+
++ 𝑂 
+
+ 1
+
+𝑅 2 𝑁 2
+
+ 
+
+≃ 12𝑉 2 
+
+> 𝑚
+
+(51) since 𝑅 is sufficiently large. By (15), the 𝑛 -th row of the output of the layer normalization is 
+
+H𝑚, 2 [𝑛, :]⊤ =
+
+
+
+√2 
+
+> 1
+> 𝑅𝑁 𝐶 𝑚
+> 𝑉 𝑚
+
+Δ𝑥 𝑚,𝑛 
+
+− 1 
+
+> 𝑅𝑁 𝐶 𝑚
+> 𝑉 𝑚
+
+Δ𝑥 𝑚,𝑛 
+
+−√2
+
+
+
+. (52) The division performed by the layer normalization is actually used for this purpose in [1]. 11 Then, by (16), (35) and (52), the 𝑛 -th row of the output of the second layer is 
+
+Q𝑚, 3 [𝑛, :]⊤ =
+
+
+
+1 + 2√2 
+
+> 1
+> 𝑅𝑁
+
+Δ𝑥 𝑚,𝑛 + 1 
+
+> 𝑅𝑁 𝐶 𝑚
+> 𝑉 𝑚
+
+Δ𝑥 𝑚,𝑛  
+
+> 1
+> 𝑅𝑁
+
+Δ𝑦 𝑚,𝑛 − 1 
+
+> 𝑅𝑁 𝐶 𝑚
+> 𝑉 𝑚
+
+Δ𝑥 𝑚,𝑛 
+
+−√2(𝑁 + 2)/( 𝑁 + 1)
+
+
+
+. (53) 
+
+## 3.4 Model output 
+
+Since 𝑥 𝑚, 𝑁 +1 = 𝑢 𝑚 and 𝑦 𝑚, 𝑁 +1 = 0, we have 
+
+Q𝑚, 3 [𝑁 + 1, 3] = − 1
+
+𝑅𝑁 
+
+
+
+𝑦 𝑚 + 𝐶 𝑚 
+
+𝑉 𝑚 
+
+(𝑢 𝑚 − 𝑥 𝑚 )
+
+
+
+(54) by (53). Now, Q𝑚, 3 is flattened into 𝒒 𝑚 . Then, we have 𝒒 𝑚 [𝐷 (𝑁 + 1) − 1] =
+
+Q𝑚, 3 [𝑁 + 1, 3]. Hence, if we set 
+
+Wout [𝑖 ] =
+
+(
+
+−𝑅𝑁 𝑖 = 𝐷 (𝑁 + 1) − 10 otherwise (55) then the transformer output for the 𝑚 -th prompt is, approximately, 
+
+𝑄 out (P𝑚 ) = 𝑦 𝑚 + 𝐶 𝑚 
+
+𝑉 𝑚 
+
+(𝑢 𝑚 − 𝑥 𝑚 ) (56) by (17) and (54). This is consistent with the least squares estimate at 𝑢 𝑚 in (8). 
+
+## 3.5 Discussion 
+
+In our construction, we need to choose a large value for 𝑁 that is the number of in-context samples. This is because, for example as in (21), we need to eliminate the effect of the prediction point (𝑢 𝑚 , 0) on the calculation of the mean of the in-context input samples. In other words, it is necessary to treat the in-context samples and prediction point separately here. This is not possible since the attention mechanism calculates the inner product of the two sequences, which implies that information on the sequence dependent property disappears; e.g., see (9). In large language models, this fact is generally important since we may need masking and/or positional encoding to control the sequence dependent property that cannot be controlled by the attention mechanism. Note that if we appropriately design the prompt (input to the transformer) then we may not need to worry about this approximation problem. For example, in the prompt, the in-context samples and prediction point are embedded separately in the different sequences. The input employed in our setting is just a natural one that is also employed in [1]. In other words, the prompt (input) design is possible to affect the algorithm that is obtained by training. This is also pointed out in [6]. Therefore, a large 𝑁 
+
+assumption may not be essential for performing division using the layer normalization. The construction under the different prompt design is left as a future work. 12 On the other hand, a large value for 𝑅 is significantly required for performing division by layer normalization. Note that this enforces the absolute values of weights to be either close to zero or extremely large. Our construction may be relatively compact. Unfortunately, the representation of LSA is not unique in the sense that, as shown in A, it produces the same output for different inputs. Therefore, it might be possible to create the same output using a more verbose expression, in which the most weight values are not zeros. 
+
+# 4 Numerical experiment 
+
+We here show several numerical experiments to demonstrate that our construction in the previous section is actually used in the trained transformer. 
+
+## 4.1 Setting of experiment 
+
+The transformer defined in this paper is coded by PyTorch, in which we omit the biases in the input and output linear transformation using torch.nn.Linear . For the training data D𝑚 defined by (3), we set 𝜎 2 = 0.04 for the noise variance and, at each 𝑚 , the inputs including prediction points are randomly drawn from a standard normal distribution 𝑁 (0, 1). And, we generate 𝜃 𝑚, 0 and 𝜃 𝑚, 1 according to 𝑁 (0, 1)
+
+independently at each 𝑚 . The length of the input sequence is 𝑁 + 1 = 51 (the number of in-context samples is 𝑁 = 50). The target output (teacher) for the transformer is the least squares estimate at the prediction point. This is a more direct instruction than the output data at the prediction point. The transformer is TF (4, 2, 2). For the training, the number of training data is 𝑀 = 5000, the number of validation data is 1000, the batch size is 500, the learning rate is 0 .005, the maximum number of training epochs is 20000. We apply the layer normalization without an element-wise affine setting in 
+
+torch.nn.LayerNorm . As mentioned in Sec. 3.5, there is a lack of uniqueness in the LSA representation. Therefore, we apply the ℓ1 regularization to the input and output weights, by which non-contributing weights are set to zero and important weights may be highlighted. This may make one expect a relatively compact expression as obtained in our construction. We employ the transformer that minimizes the validation error calculated every 100 epochs. 
+
+## 4.2 Verifying the use of layer normalization 
+
+We execute 10 different training runs under the above setting, in which both of data and initialization differ for each run. We generate 1000 new data of pairs of the prompt and the least squares estimate, in which the prompts are i.i.d. samples from the same distribution as the prompt in the training data. Then, for each prompt, we obtain the output of the trained transformer and can calculate the squared test error between the output and the least squares estimate at the prediction point. Thus, in each run, we can obtain the average test error for 1000 new data. Simultaneously, for each 𝑚 -th prompt in the new data, we can calculate H𝑚, 2
+
+defined in (12). The variance along the embedding used in the layer normalization 13 is the variance of H𝑚, 2 [𝑛, :] for the 𝑛 -th sequence, which is 𝜎 2 
+
+> 𝑚, 2,𝑛
+
+defined in (14). Also, we can calculate 𝑉 𝑚 defined in (6) as the variance of in-context input samples in the new data. In our construction, the division by 𝑉 𝑚 in (8) is executed using the division by the standard deviation in the layer normalization in (52). To see this, we calculate the correlation coefficient between 1 /𝜎 𝑚, 2,51 , 𝑚 = 1, . . . , 1000 and 1 /𝑉 𝑚 ,
+
+𝑚 = 1, . . . , 1000 in each run. The results for 10 runs are summarized in Table 1. We can see that the correlation coefficient is larger than 0 .9 in the first and ninth runs. This implies that the division by 𝑉 𝑚 is approximately calculated using the layer normalization for these two runs. Since, as seen in our construction, there exist approximation errors in doing this, these correlation coefficients may be satisfactory. Additionally, the trained transformer in the first run shows a better predictive performance in terms of the average test error. Then, we further analyze the trained transformer in the first run below. Note that the trained transformer in the fourth run shows the best predictive performance while the correlation is low. This indicates that an alternative way of the construction exists. We discuss this point in the conclusion. Table 1: Average squared test error and correlation between reciprocals of standard deviation in layer normalization and variance of in-context input samples No. Average test error Correlation 1 0.00072 0.90608 2 0.00139 -0.00510 3 0.00088 0.60064 4 0.00063 0.50725 5 0.00267 0.20170 6 0.00165 0.55747 7 0.00092 0.53876 8 0.00074 0.10411 9 0.00105 0.92632 10 0.00131 0.73416 
+
+## 4.3 Input and output weights 
+
+In Fig. 2 (a) and (b), for the first run, we show the absolute values of the input and output weights which are denoted by Win and Wout in this paper. The weight values are shown on a logarithmic scale. Win is a 3 × 4 matrix. The row and column are the indices of inputs and embeddings respectively. For the input weights, the indices of inputs (1, 2, 3) correspond to the variables (1, 𝑥, 𝑦 ) in the prompt to the transformer; i.e., a constant term, input and output in a simple regression problem. Although Wout 
+
+is a 204-dimensional vector, we here convert it into a 4 × 51 matrix whose row and column correspond to the indices of embeddings and sequences respectively. We refer to the entry in row 𝑖 and column 𝑗 of these weight matrices as the (𝑖, 𝑗 ) weight value. Especially, the output weight is the weight for the output of the cell in the final layer; 14 i.e., (𝑖, 𝑗 ) weight is for the cell that is located in the 𝑗 -th sequence of the 𝑖 -th embedding. We refer to the cell connected to the (𝑖, 𝑗 ) weight as the (𝑖, 𝑗 ) cell. 1 2 3 4
+
+> Embedding
+> 123
+> Input
+> 10 −3
+> 10 −1
+
+(a) Input weights 5 10 15 20 25 30 35 40 45 50 
+
+> Sequence
+> 1234
+> Embedding
+> 10 −4
+> 10 −2
+> 10 0
+
+(b) Output weights Figure 2: Absolute weight values In Fig. 2 (a), for the first embedding that corresponds to the first column in the figure, the (3, 1) value is larger than (1, 1) and (2, 1) values, which implies that 𝑦 is dominant in this embedding. For the second embedding, the (1, 2) value is relatively larger than the other values, which implies that the constant term is dominant in this embedding. For the third embedding, the (2, 3) and (3, 3) values are larger than the 
+
+(1, 3) value, which implies that (𝑥, 𝑦 ) are dominant in this embedding. Lastly, for the fourth embedding, the (2, 4) value is larger than the other values, which implies that 
+
+𝑥 is dominant in this embedding. Although the non-dominant weights are not exactly zero, this result may support that the inputs are extracted in the embedding separately for the further calculation. Note that this representation may vary depending on the run since LSA is possible to give the same output for different inputs; e.g., see A. In Fig. 2 (b), we can see that the weight values of the third embedding cells are relatively large and, especially, the (3, 51 ) value is extremely large compared to the other values. Therefore, the (3, 51 ) cell is the dominant factor for the transformer output. Note that the contribution of the third embedding cells are relatively large compared to the other embeddings. The effect of those cells will be mentioned in the conclusion. 
+
+## 4.4 Regression analysis 
+
+We here check that, in the first run, the output of the (3, 51 ) cell in the second layer has the form of (8) by using a regression analysis. We generate 1000 new data for the prompt to the trained transformer, which are i.i.d. samples from the same distribution as the training data. Then, for each 𝑚 -th new prompt, we can obtain Q𝑚, 3 in (53) and focus on 𝑧 𝑚 := Q𝑚, 3 [51 , 3], which is the output of the (3, 51 ) cell in the second layer. We then fit 𝑧 𝑚 by 
+
+𝑓 𝑚 := 𝛼 0 + 𝛼 1 (𝑢 𝑚 − 𝑥 𝑚 ) + 𝛼 2𝑦 𝑚 + 𝛼 3
+
+𝐶 𝑚 
+
+𝑉 𝑚 
+
+(𝑢 𝑚 − 𝑥 𝑚 ), (57) 15 where (𝛼 0, 𝛼 1, 𝛼 2, 𝛼 3) are regression coefficients. Table 2: Results of regression analysis 
+
+𝛼 0 𝛼 1 𝛼 2 𝛼 3
+
+0.00250 -0.00159 -0.2436 -0.22498 (-0.00453) (-0.72452) (-0.69403) The coefficient estimates are summarized in Table 2, in which we show the stan-dardized regression coefficients in the brackets. In Table 2, the estimates of 𝛼 0 and 𝛼 1
+
+are small and those of 𝛼 2 and 𝛼 3 are large. Here, the correlation between 𝑧 𝑚 and 𝑓 𝑚 
+
+was 0 .99479. Thus, 𝑧 𝑚 is found to be the form of the last two terms in 𝑓 𝑚 . It is the same form of the least squares solution in (8). And, the correlation between 𝑧 𝑚 and the least squares solution was −0.99396, which implies that the output of the (3, 51 )
+
+cell is almost consistent with the least quares solution except the sign. The sign can be changed by adjusting the corresponding output weight as in our construction. 
+
+## 4.5 Prediction 
+
+We finally show the fitting curve of the trained transformer in the first run to visually confirm that our conclusion is valid. We generate 100 new data for the prompts to the trained transformer, which are {( 𝑥 1, 𝑦 1), . . . , (𝑥 𝑛 , 𝑦 50 ), (𝑢 𝑘 , 0)} for 𝑘 = 1, . . . , 100, where (𝑥 𝑖 , 𝑦 𝑖 ) is generated from the same distribution as the training data and 𝑢 𝑘 is the equidistant points in [− 3, 3]. In other words, we obtain the transformer output at 100 different prediction points under the same in-context samples. Therefore, we can plot a fitting curve for the in-context samples. In Fig. 3 (a), we show the in-context samples (open circle) and the transformer output (black solid line). In this figure, we also show the least squares estimate of a simple regression model (gray solid line), which is obtained for the in-context samples, 
+
+(𝑥 1, 𝑦 1), . . . , (𝑥 𝑛 , 𝑦 50 ). We can see that the transformer output is well consistent with the least squares estimate of a simple regression model. In Fig. 3 (b), we show the transformer output when the output weight values are set to zero except the (3, 51 )
+
+weight value. In other words, we check the output only through the (3, 51 ) cell. We can see that the output through this cell is almost consistent with the least squares estimate, which implies that the (3, 51 ) cell significantly contributes the entire output and, as in our construction, the output of the (3, 51 ) cell approximates (54) well. Note that, however, the output through the (3, 51 ) cell is not entirely consistent with the transformer output. This point will be mentioned in the conclusion. 
+
+# 5 Conclusion and future work 
+
+In this paper, we constructed the transformer that outputs the least squares estimate of a simple regression problem. To achieve this, we approximately represent the closed form solution by using the layer normalization, which is an insight of [1]. For in-context learning of regression tasks, most studies have considered implementations of the 16 −4 −2 0 2 4
+
+> x
+> −2
+> −1
+> 0
+> 1
+> 2
+> 3
+> 4
+> prediction
+> linear regression
+> transformer output
+> in-context samples
+
+(a) Transformer output −4 −2 0 2 4 
+
+> x
+> −2
+> −1
+> 0
+> 1
+> 2
+> 3
+> 4
+> prediction
+> linear regression
+> transformer output
+> in-context samples
+
+(b) Output through (3, 51 ) cell Figure 3: Fitting curve gradient descent algorithms. This is because multiplication, which is a basic operation of the attention mechanism, is suitable for implementing the gradient descent algorithm. However, the experimental evidence that the gradient descent algorithm is implemented through training is still unclear. In contrast, in this paper, we experimentally showed that there exist the examples, in which our implementation based on the layer normalization is mainly used in the transformer trained with the ℓ1 regularization when the target output is the least sqaures estimate. Althogh this paper considered a very simple case, it may be a first attempt to step into the training of transformer that implements in-context learning. Therefore, we further have several things to address. 
+
+• Unfortunately, as see in Fig. 3, the output constructed based on the layer normal-ization is not entirely consistent with the transformer output. Thus, the trained transformer has the other mechanism to further fit the least squared estimate well. In Fig. 2 (b), we can see that the output weight values that are assigned to the third embedding cells are relatively larger than the weight values in the other embedding cells. Therefore, the outputs of the third embedding cells may serve to complement the approximation error in our construction. Also, as in Table 1, the trained transformer in the fourth run may not implement the division by 𝑉 𝑚 
+
+using the layer normalization in the second layer. Nevertheless, the test error is low. Furthermore, in training without the ℓ1 regularization, similar results are obtained. Thus, there may be different types of solver for obtaining the least squares estimate for TF (4, 2, 2). Hence, we need the investigation to reveal the other mechanism as part of our future work. 
+
+• Note that the gradient descent based implementation may not be comparable in TF (4, 2, 2) since the number of layers of this transformer may not be enough to implement the sufficient number of gradient descent steps. For example, the two gradient descent steps can be implemented by a 3-layer transformer with linear attention; e.g., see B. The detailed comparison to the gradient descent algorithm is left as a future work. 
+
+• In our experiment, the prediction point is generated from the same distribution of the training inputs. Therefore, the approximation under a large 𝑁 assumption 17 is almost accurate; i.e., for example, in (21), the mean of 𝑁 samples is almost consistent with that of 𝑁 + 1 samples. Therefore, we need to investigate the case where the prediction point is out-of-distribution. Note that this relates to the generalization capability of transformers. On the other hand, as noted in Sec. 3.5, a large 𝑁 approximation may be relaxed by the choice of the prompt format (design). The construction under the other prompt format and the numerical investigation are parts of our future work. 
+
+• Although, in our experiment, we employed the least sqaures estimate as the target output in training, the output sample at the prediction point may be natural as the target output and it may be easily collectible. The experimental analysis of this case is also left as a future work. 
+
+# References 
+
+[1] E. Aky¨ urek, D. Schuurmans, J. Andreas, T. Ma, D. Zhou, “What learn-ing algorithm is in-context learning? investigations with linear models”, arXiv:2211.15661, 2022. [2] Y. Bai , F. Chen, H. Wang, C. Xiong, S. Mei, “Transformers as Statisticians: Prov-able in-context learning with in-context algorithm selection”, arXiv:2306.04637, 2023. [3] T. Brown, et al., “Language models are few-shot learners”. arXiv:2005.14165, 2020. [4] D. Dai, Y. Sun, L. Dong, Y. Hao, Z. Sui, F. Wei, “Why can gpt learn in-context? language models secretly perform gradient descent as meta-optimizers”, arXiv:2212.10559, 2023. [5] S. Garg, D. Tsipras, P. Liang, G. Valiant, “What can transformers learn in-context? a case study of simple function classes”, arXiv:2208.01066, 2022. [6] K. Hagiwara, ‘Effect of bias matrix in linear self-attention for in-context learning”, IEICE Trans. D, vol.E109-D, No.8, 2026. [7] K. He, X. Zhang, S. Ren, J. Sun, “Deep residual learning for image recognition”, arXiv:1512.03385, 2015. [8] K. Hornik, M. Stinchcombe, H. White, “Multilayer feedforward networks are universal approximators”, Neural Networks, vol.2, no.5, pp.359–366, 1989. [9] A. Krizhevsky, I. Sutskever, G. E. Hinton, “ImageNet classification with deep convolutional neural networks”, Communications of the ACM, vol.80, no.6, pp.86-90, 2012. [10] A. Mahankali, T. B. Hashimoto, T. Ma, “One step of gradient descent is provably the optimal in-context learner with one layer of linear self-attention”, arXiv:2307.03576, 2023. 18 [11] J. von Oswald, et al., “Transformers learn in-context by gradient descent”, arXiv:2212.07677, 2022. [12] A. Vaswani, et al., “Attention is All you Need”, arXiv:1706.03762v7, 2017. [13] R. Zhang, S. Frei, P. L. Bartlett, “Trained transformers learn linear models in-context”, Journal of Machine Learning Research, vol.25, no.49, pp.1-55, 2023. [14] N. Ravishanker, D. K. Dey, “A first course in linear model theory”, Chapman & Hall/CRC, 2002. 
+
+# A An example of a lack of uniqueness 
+
+We show here a simple example, in which LSA produces the same output for the different inputs. Let Q be an 𝑁 × 3 matrix whose 𝑛 -th row is [1, 𝑎 𝑛 , 𝑏 𝑛 ] and define 𝑎 := Í𝑁 𝑛 =1 𝑎 𝑛 and 
+
+𝑏 := Í𝑁 𝑛 =1 𝑏 𝑛 . In (9), we set this Q as the input matrix and we set 𝚯 = {W1, W2, W3 },where 
+
+W1 = W3 =
+
+
+
+1 0 00 0 00 0 0
+
+
+
+, W2 =
+
+
+
+0 0 00 1 00 0 1
+
+
+
+. (58) Then, the 𝑛 -th row of LSA 𝚯 (Q) is [0, 𝑎, 𝑏 ] for any 𝑛 . On the other hand, let Q be an 
+
+𝑁 × 3 matrix whose 𝑛 -th row is [1, 𝑎 𝑛 , 𝑎 𝑛 + 𝑏 𝑛 ]. In (9), by setting 
+
+W1 = W3 =
+
+
+
+1 0 00 0 00 0 0
+
+
+
+, W2 =
+
+
+
+0 0 00 1 −10 0 1
+
+
+
+, (59) the 𝑛 -th row of LSA 𝚯 (Q) is [0, 𝑎, 𝑏 ] for any 𝑛 . This is the same as in the first case. 
+
+# B Implementation of gradient descent method 
+
+## B.1 Gradient descent method for a simple regression 
+
+The least squares estimates at 𝑢 𝑚 is given by (8). Here, we consider to obtain this solution by using a gradient descent method. We define 
+
+𝑓 𝜃 𝑚 (𝑢 𝑚 ) := 𝑦 𝑚 + 𝜃 𝑚 (𝑢 − 𝑥 𝑚 ), (60) where 𝜃 𝑚 is a parameter to be adjusted. Thus, b𝜃 𝑚 = 𝐶 𝑚 /𝑉 𝑚 is a closed form solution to 𝜃 𝑚 . We also define 
+
+𝑆 𝑚 (𝜃 ) := 12
+
+> 𝑁
+
+∑︁ 
+
+> 𝑛 =1
+
+(𝑦 𝑚,𝑛 − 𝑓 𝜃 (𝑥 𝑚,𝑛 )) 2. (61) 19 We have 
+
+𝜕𝑆 𝑚 (𝜃 )
+
+𝜕𝜃 
+
+= −
+
+> 𝑁
+
+∑︁ 
+
+> 𝑛 =1
+
+(𝑦 𝑚,𝑛 − 𝑓 𝜃 (𝑥 𝑚,𝑛 ))( 𝑥 𝑚,𝑛 − 𝑥 𝑚 )
+
+= −
+
+> 𝑁
+
+∑︁ 
+
+> 𝑛 =1
+
+(( 𝑦 𝑚,𝑛 − 𝑦 𝑚 ) − 𝜃 (𝑥 𝑚,𝑛 − 𝑥 𝑚 ))( 𝑥 𝑚,𝑛 − 𝑥 𝑚 )
+
+= −𝑁 (𝐶 𝑚 − 𝜃𝑉 𝑚 ). (62) By setting 𝜃 𝑚 (0) as an initial value, at the 𝑡 -th step, the update equation of the gradient descent for 𝜃 𝑚 (𝑡 ) is given by 
+
+𝜃 𝑚 (𝑡 ) = 𝜃 𝑚 (𝑡 − 1) − 𝜂 𝜕𝑆 𝑚 (𝜃 )
+
+𝜕𝜃 𝜃 =𝜃 𝑚 (𝑡 −1)
+
+= 𝜃 𝑚 (𝑡 − 1) + 𝑁𝜂 (𝐶 𝑚 − 𝜃 𝑚 (𝑡 − 1)𝑉 𝑚 ), (63) where 𝜂 > 0 is a learning rate. We here give a solution to the second step. We set 
+
+𝜃 𝑚 (0) = 𝑎 𝑚 (64) and have 
+
+𝜃 𝑚 (1) = 𝜃 𝑚 (0) + 𝑁𝜂 (𝐶 𝑚 − 𝜃 𝑚 (0)𝑉 𝑚 )
+
+= 𝑎 𝑚 + 𝑁𝜂 (𝐶 𝑚 − 𝑎 𝑚 𝑉 𝑚 ) (65) By a simple calculation, we then have 
+
+𝜃 𝑚 (2)
+
+= 𝜃 𝑚 (1) + 𝑁𝜂 (𝐶 𝑚 − 𝜃 𝑚 (1)𝑉 𝑚 )
+
+= 𝑎 𝑚 + 2𝑁𝜂𝐶 𝑚 − 2𝑁𝜂𝑎 𝑚 𝑉 𝑚 − 𝑁 2𝜂 2𝐶 𝑚 𝑉 𝑚 + 𝑁 2𝜂 2𝑎 𝑚 𝑉 2
+
+> 𝑚
+
+. (66) and we obtain the estimate at 𝑢 𝑚 by 
+
+𝑓 𝜃 𝑚 (2) (𝑢 𝑚 ) = 𝑦 𝑚 + 𝜃 𝑚 (2)( 𝑢 𝑚 − 𝑥 𝑚 ) (67) with this 𝜃 𝑚 (2).In this section, we show an implementation of this 2-step gradient descent by TF (4, 3, 2) under the assumption that 𝑁 is large or the 𝑂 (1/𝑁 ) term is negligible. Here, we omit the layer normalization to simplify the construction and focus on the role of multiplication. We here drop the subscript 𝑚 that denotes an index of training data for the transformer. 20 B.2 Input embedding 
+
+We define 
+
+Win =
+
+
+
+1 0 00 𝛼 1 00 𝛼 2 𝛽 2
+
+0 𝛼 3 𝛽 3
+
+
+
+(68) and 𝒃 in = O𝐷, 1. By (10), we then have the embedding whose 𝑖 -th row is 
+
+Q1 [𝑛, :]⊤ =
+
+
+
+1
+
+𝛼 1𝑥 𝑛 
+
+𝛼 2𝑥 𝑛 + 𝛽 2𝑦 𝑛 
+
+𝛼 3𝑥 𝑛 + 𝛽 3𝑦 𝑛 
+
+
+
+. (69) 
+
+Q1 is the (𝑁 + 1) × 𝐷 matrix and is the input to TF (4, 3, 2).
+
+B.2.1 The first layer 
+
+We show a construction of the first head. Since 𝑥 𝑁 +1 = 𝑢 and 𝑦 𝑁 +1 = 0, we have 
+
+Q1 [:, 1]⊤Q1 [:, 3] = 
+
+> 𝑁 +1
+
+∑︁ 
+
+> 𝑛 =1
+
+1 · ( 𝛼 2𝑥 𝑛 + 𝛽 2𝑦 𝑛 )
+
+= 𝛼 2 𝑁𝑥 + 𝛽 2 𝑁𝑦 + 𝛼 2𝑢 
+
+≃ 𝛼 2 𝑁𝑥 + 𝛽 2 𝑁𝑦 (70) 
+
+Q1 [:, 1]⊤Q1 [:, 4] = 
+
+> 𝑁 +1
+
+∑︁ 
+
+> 𝑛 =1
+
+1 · ( 𝛼 3𝑥 𝑛 + 𝛽 3𝑦 𝑛 )
+
+= 𝛼 3 𝑁𝑥 + 𝛽 3 𝑁𝑦 + 𝛼 3𝑢 
+
+≃ 𝛼 3 𝑁𝑥 + 𝛽 3 𝑁𝑦 (71) by omitting 𝑂 (1) terms under the assumption that 𝑁 is large. If we set 
+
+W1,1,1 =
+
+
+
+− 1 
+
+> 𝑁
+
+0 0 00 0 0 00 0 0 00 0 0 0
+
+
+
+(72) 
+
+W1,1,2 =
+
+
+
+0 0 0 00 0 0 00 0 1 00 0 0 1
+
+
+
+(73) 
+
+W1,1,3 =
+
+
+
+1 0 0 00 0 0 00 0 0 00 0 0 0
+
+
+
+(74) 21 then, by (9), we have 
+
+H1,1 [𝑛, :]⊤ =
+
+
+
+00
+
+−𝛼 2𝑥 − 𝛽 2𝑦 
+
+−𝛼 3𝑥 − 𝛽 3𝑦 
+
+
+
+. (75) We next show a construction of the second head. We have 
+
+Q1 [:, 1]⊤Q1 [:, 2] ≃ 𝛼 1 𝑁𝑥 (76) when 𝑁 is large. Thus, if we set 
+
+W1,2,1 =
+
+
+
+− 1 
+
+> 𝑁
+
+0 0 00 0 0 00 0 0 00 0 0 0
+
+
+
+(77) 
+
+W1,2,2 =
+
+
+
+0 0 0 00 1 0 00 0 0 00 0 0 0
+
+
+
+(78) 
+
+W1,2,3 =
+
+
+
+1 0 0 00 0 0 00 0 0 00 0 0 0
+
+
+
+(79) then, by (9), we have 
+
+H1,2 [𝑛, :] = 0 −𝛼 1𝑥 0 0 . (80) As a result, the output of the first layer is 
+
+Q2 = (H1,1 + H1,2) + Q1, (81) whose 𝑛 -th row is given by 
+
+Q2 [𝑛, :]⊤ =
+
+
+
+1
+
+𝛼 1 (𝑥 𝑛 − 𝑥 )
+
+𝛼 2 (𝑥 𝑛 − 𝑥 ) + 𝛽 2 (𝑦 𝑛 − 𝑦 )
+
+𝛼 3 (𝑥 𝑛 − 𝑥 ) + 𝛽 3 (𝑦 𝑛 − 𝑦 )
+
+
+
+(82) since we omit the layer normalization. 
+
+## B.3 The second layer 
+
+We show a construction of the firs head. We have 
+
+Q2 [:, 1]⊤Q2 [:, 2]
+
+= 
+
+> 𝑁 +1
+
+∑︁ 
+
+> 𝑛 =1
+
+𝛼 1 (𝑥 𝑛 − 𝑥 ) { 𝛼 2 (𝑥 𝑛 − 𝑥 ) + 𝛽 2 (𝑦 𝑛 − 𝑦 )} ≃ 𝑁𝜉 2,1 (83) 22 for a large 𝑁 , where 
+
+𝜉 2,1 := 𝛼 1𝛼 2𝑉 + 𝛼 1 𝛽 2𝐶. (84) If we set 
+
+W2,1,1 =
+
+
+
+0 1 
+
+> 𝑁
+
+0 00 0 0 00 0 0 00 0 0 0
+
+
+
+(85) 
+
+W2,1,2 =
+
+
+
+0 0 0 00 0 0 00 0 0 10 0 0 0
+
+
+
+(86) 
+
+W2,1,3 =
+
+
+
+0 0 0 01 0 0 00 0 0 00 0 0 0
+
+
+
+(87) then, by (9), we have 
+
+H2,1 [𝑛, :] = 0 0 0 𝜉 2,1𝛼 1 (𝑥 𝑛 − 𝑥 ) . (88) We next show a construction of the second head. If we set 
+
+W2,2,1 = W2,2,2 = W2,2,3 = O4,4, (89) then we formally have 
+
+H2,2 = O𝑁 +1,4. (90) Therefore, the the output of the second layer is 
+
+Q3 = (H2,1 + H2,2) + Q2, (91) whose 𝑛 -th row is given by 
+
+Q3 [𝑛, :]⊤ =
+
+
+
+1
+
+𝛼 1 (𝑥 𝑛 − 𝑥 )
+
+𝛼 2 (𝑥 𝑛 − 𝑥 ) + 𝛽 2 (𝑦 𝑛 − 𝑦 )(𝜉 2,1𝛼 1 + 𝛼 3)( 𝑥 𝑛 − 𝑥 ) + 𝛽 3 (𝑦 𝑛 − 𝑦 )
+
+
+
+. (92) 
+
+## B.4 The third layer 
+
+We show a construction of the first head. We have 
+
+Q3 [𝑛, 2]⊤Q3 [𝑛, 4]
+
+= 
+
+> 𝑁 +1
+
+∑︁ 
+
+> 𝑛 =1
+
+(𝜉 2,1𝛼 1 + 𝛼 3)( 𝑥 𝑛 − 𝑥 ) + 𝛽 3 (𝑦 𝑛 − 𝑦 ) 𝛼 1 (𝑥 𝑛 − 𝑥 )≃ 𝑁𝜉 3,1 (93) 23 for a large 𝑁 , where 
+
+𝜉 3,1 = 𝛼 1 (𝜉 2,1𝛼 1 + 𝛼 3)𝑉 + 𝛼 1 𝛽 3𝐶. (94) If we set 
+
+W3,1,1 =
+
+
+
+0 1/𝑁 0 00 0 0 00 0 0 00 0 0 0
+
+
+
+(95) 
+
+W3,1,2 =
+
+
+
+0 0 0 00 0 0 00 0 0 00 0 1 0
+
+
+
+(96) 
+
+W3,1,3 =
+
+
+
+0 0 0 01 0 0 00 0 0 00 0 0 0
+
+
+
+(97) then we have 
+
+H3,1 [𝑛, :] = 0 0 𝜉 3,1𝛼 1 (𝑥 𝑛 − 𝑥 ) 0 . (98) We next show a construction of the second head. If we set 
+
+W3,2,1 = W3,2,2 = W3,2,3 = O4,4, (99) then we formally have 
+
+H3,2 = O𝑁 +1,4. (100) Thus, the the output of the third layer is 
+
+Q4 = (H3,1 + H3,2) + Q3, (101) whose 𝑛 -th row is given by 
+
+Q4 [𝑛, :]⊤ =
+
+
+
+1
+
+𝛼 1 (𝑥 𝑛 − 𝑥 )
+
+𝜉 3,1𝛼 1 (𝑥 𝑛 − 𝑥 ) + 𝛼 2 (𝑥 𝑛 − 𝑥 ) + 𝛽 2 (𝑦 𝑛 − 𝑦 )
+
+𝜉 2,1𝛼 1 (𝑥 𝑛 − 𝑥 ) + 𝛼 3 (𝑥 𝑛 − 𝑥 ) + 𝛽 3 (𝑦 𝑛 − 𝑦 )
+
+
+
+, (102) where we can write 
+
+𝜉 3,1 = 𝛼 1 (𝜉 2,1𝛼 1 + 𝛼 3)𝑉 + 𝛼 1 𝛽 3𝐶 
+
+= (𝛼 21 𝜉 2,1 + 𝛼 1𝛼 3)𝑉 + 𝛼 1 𝛽 3𝐶 
+
+= (𝛼 31 𝛼 2𝑉 + 𝛼 31 𝛽 2𝐶 + 𝛼 1𝛼 3)𝑉 + 𝛼 1 𝛽 3𝐶 
+
+= 𝛼 1𝛼 3𝑉 + 𝛼 1 𝛽 3𝐶 + 𝛼 31 𝛼 2𝑉 2 + 𝛼 31 𝛽 2𝐶𝑉 (103) 24 by (84) and (94). 
+
+Q4 is flattended into 𝒒 which is a 4 (𝑁 + 1) × 1 vector. Then, by setting 
+
+Wout [𝑛 ] =
+
+(
+
+1 𝑛 = 4𝑁 + 30 otherwise , (104) the prediction of the transformer is obtained by 
+
+b𝑦 (𝑢 ) = Q4 [𝑁 + 1, 3]
+
+= −𝛽 2𝑦 + 𝜉 4,1 (𝑢 − 𝑥 ), (105) where 
+
+𝜉 4,1 = 𝛼 2 + 𝛼 21 𝛼 3𝑉 + 𝛼 21 𝛽 3𝐶 + 𝛼 41 𝛼 2𝑉 2 + 𝛼 41 𝛽 2𝐶𝑉 . (106) 
+
+## B.5 Correspondence to gradient descent 
+
+By the correspondence between (105) and (67), we have 
+
+
+
+−𝛽 2 = 1
+
+−𝛼 2 = 𝑎 𝛼 21 𝛼 3 = −2𝑛𝜂𝑎 𝛼 21 𝛽 3 = 2𝑛𝜂 𝛼 41 𝛼 2 = 𝑛 2𝜂 2𝑎 𝛼 41 𝛽 2 = −𝑛 2𝜂 2
+
+(107) where 𝑎 is an initial value of the 2-step gradient decent in (64). By solving these equations, we have 
+
+(𝛼 1, 𝛼 2, 𝛽 2, 𝛼 3, 𝛽 3) = (√𝑛𝜂, 𝑎, −1, −2𝑎, 2). (108) Therefore, the output of the transformer is approximately consistent with the output of the linear function after the 2-step gradient descent. 25

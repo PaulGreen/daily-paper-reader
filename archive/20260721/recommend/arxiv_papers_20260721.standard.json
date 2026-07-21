@@ -1,0 +1,246 @@
+{
+  "mode": "standard",
+  "generated_at": "2026-07-21T21:26:22.442420+00:00",
+  "stats": {
+    "mode": "standard",
+    "tag_count": 1,
+    "deep_divecandidates": 6,
+    "deep_cap": 6,
+    "deep_selected": 6,
+    "quick_candidates": 0,
+    "quick_skim_target": 11,
+    "quick_selected": 0
+  },
+  "deep_dive": [
+    {
+      "id": "2607.14595v1",
+      "source": "arxiv",
+      "title": "MagicPrompt: Ultra-Lightweight Prompt Tuning for Video Generation",
+      "abstract": "Large-scale video diffusion models (VDMs) deliver strong generation performance, but full fine-tuning for downstream tasks incurs prohibitive computational costs. Existing parameter-efficient fine-tuning (PEFT) methods have two critical flaws on billion-scale models: they still require substantial trainable parameters, and reward-based training suffers from noise-induced optimization instability in condition-guided tasks. We propose MagicPrompt, a lightweight framework that achieves extreme parameter efficiency and stable reward optimization. It first adopts Attention-Embedded Prompt Tuning, which steers generation via lightweight soft prompts with orders of magnitude fewer parameters while preserving pre-trained knowledge. It further introduces Dual-Space Reward Feedback Optimization, which uses self-supervised latent objectives to improve condition-guided reward training. Experiments show MagicPrompt reaches competitive performance with less than 1\\% trainable parameters and notably reduces training costs.",
+      "authors": [
+        "Yinhan Zhang",
+        "Dinwei Tan",
+        "Xianghao Kong",
+        "Yue Ma",
+        "Yeying Jin",
+        "Anyi Rao"
+      ],
+      "primary_category": "cs.CV",
+      "categories": [
+        "cs.CV"
+      ],
+      "published": "2026-07-16T05:46:59+00:00",
+      "link": "https://arxiv.org/pdf/2607.14595v1",
+      "tags": [
+        "keyword:prompt-learn",
+        "query:prompt-learn"
+      ],
+      "llm_score": 9.0,
+      "llm_evidence_en": "proposes lightweight soft prompts for video generation",
+      "llm_evidence_cn": "提出用于视频生成的轻量软提示",
+      "llm_evidence": "提出用于视频生成的轻量软提示",
+      "canonical_evidence": "提出用于视频生成的轻量软提示",
+      "llm_tldr_en": "Proposes MagicPrompt, a soft prompt tuning method for video diffusion that achieves extreme parameter efficiency and stable optimization, enabling low-cost adaptation.",
+      "llm_tldr_cn": "大型视频扩散模型全微调计算成本高昂。现有参数高效微调方法在十亿规模模型上仍需大量可训练参数，且奖励训练存在噪声导致的优化不稳定问题。本文提出MagicPrompt框架，采用注意力嵌入的提示调优，通过轻量软提示引导生成并引入双空间奖励优化以稳定训练。实验表明该方法以极低参数量实现了与全微调相当的性能，为视频生成提供了一种高效适配方案。",
+      "llm_tldr": "大型视频扩散模型全微调计算成本高昂。现有参数高效微调方法在十亿规模模型上仍需大量可训练参数，且奖励训练存在噪声导致的优化不稳定问题。本文提出MagicPrompt框架，采用注意力嵌入的提示调优，通过轻量软提示引导生成并引入双空间奖励优化以稳定训练。实验表明该方法以极低参数量实现了与全微调相当的性能，为视频生成提供了一种高效适配方案。",
+      "llm_tags": [
+        "query:prompt-learn"
+      ],
+      "matched_query_tag": "query:prompt-learn",
+      "matched_query_text": "continuous vector representations used as prompts",
+      "matched_requirement_id": "req-1",
+      "selection_source": "fresh_fetch"
+    },
+    {
+      "id": "2607.14966v1",
+      "source": "arxiv",
+      "title": "U-shaped Multi-granularity Learning for Vision-Language Models",
+      "abstract": "The prompt learning paradigm for vision-language models is effective yet faces a granularity dilemma: global prompts lack fine-grained semantic awareness, while local prompts ignore contextual associations, limiting cross-task generalization. This dilemma exists in dense prediction tasks. Inspired by U-Net, which unifies multi-level representations across granularities, we propose UPrompt, a U-shaped multi-granularity prompt learning framework for vision-language models. Similar to how U-Net integrates fine and coarse features through symmetric encoder-decoder pathways with cross-level connections, UPrompt constructs parallel multi-granularity representations in both visual and textual modalities, where coarse-to-fine cascaded enhancement propagates global context to refine local details, while fine-to-coarse hierarchical supervision ensures semantic consistency across scales. Extensive experiments on 17 benchmarks validate our effectiveness. UPrompt outperforms MAMET and VPKE by 4.1 and 7.3 rSum on MSCOCO, surpasses CoCoA-Mix by 5.09% in base-to-novel generalization, while maintaining competitive performance with minimal overhead (coarse-grained) and matching PSRC with 1/3 cost (medium-grained).",
+      "authors": [
+        "Biao Chen",
+        "Yunqian Yu",
+        "Xiangxu Zhao",
+        "Zhongshu Chen",
+        "Mengmeng Jing",
+        "Lin Zuo"
+      ],
+      "primary_category": "cs.CV",
+      "categories": [
+        "cs.CV"
+      ],
+      "published": "2026-07-16T13:18:08+00:00",
+      "link": "https://arxiv.org/pdf/2607.14966v1",
+      "tags": [
+        "keyword:prompt-learn",
+        "query:prompt-learn"
+      ],
+      "llm_score": 9.0,
+      "llm_evidence_en": "proposes UPrompt, a prompt learning framework with continuous vectors",
+      "llm_evidence_cn": "提出使用连续向量的提示学习框架UPrompt",
+      "llm_evidence": "提出使用连续向量的提示学习框架UPrompt",
+      "canonical_evidence": "提出使用连续向量的提示学习框架UPrompt",
+      "llm_tldr_en": "UPrompt is a U-shaped multi-granularity prompt learning framework for VLMs that integrates fine and coarse features to improve dense prediction generalization.",
+      "llm_tldr_cn": "针对视觉语言模型提示学习中的粒度困境，提出UPrompt框架，通过并行多粒度表示和粗到细级联增强，提升密集预测的跨任务泛化能力。",
+      "llm_tldr": "针对视觉语言模型提示学习中的粒度困境，提出UPrompt框架，通过并行多粒度表示和粗到细级联增强，提升密集预测的跨任务泛化能力。",
+      "llm_tags": [
+        "query:prompt-learn"
+      ],
+      "matched_query_tag": "query:prompt-learn",
+      "matched_query_text": "continuous vector representations used as prompts",
+      "matched_requirement_id": "req-1",
+      "selection_source": "fresh_fetch"
+    },
+    {
+      "id": "2607.15819v1",
+      "source": "arxiv",
+      "title": "In-context learning of closed form solution to simple linear regression task using transformer with linear self-attention",
+      "abstract": "In-context learning is a remarkable property of transformers and has recently received a lot of interest. In many studies of in-context learning, it has been shown that transformers are capable of implementing solver for linear and non-linear regression problems, in which the most of them implement gradient descent algorithm. However, it is still unclear whether those implementations have actually been acquired through training. In this paper, we construct a transformer with linear self-attention, which in-context learns the least squares estimate in a simple regression task. The point here is that the closed form (analytical) solution is approximately obtained by using layer normalization rather than an approximate solution based on gradient descent algorithm. Then, we show an experimental example, in which our implementation is mainly used in the transformer trained with l1 regularization when the target output is the least squares estimate.",
+      "authors": [
+        "Katsuyuki Hagiwara"
+      ],
+      "primary_category": "cs.LG",
+      "categories": [
+        "cs.LG",
+        "cs.AI"
+      ],
+      "published": "2026-07-17T10:28:27+00:00",
+      "link": "https://arxiv.org/pdf/2607.15819v1",
+      "tags": [
+        "keyword:prompt-learn",
+        "query:prompt-learn"
+      ],
+      "llm_score": 9.0,
+      "llm_evidence_en": "In-context learning of closed form solution to simple linear regression task using transformer with linear self-attention",
+      "llm_evidence_cn": "使用Transformer在上下文中学习线性回归的闭式解",
+      "llm_evidence": "使用Transformer在上下文中学习线性回归的闭式解",
+      "canonical_evidence": "使用Transformer在上下文中学习线性回归的闭式解",
+      "llm_tldr_en": "This paper constructs a transformer with linear self-attention that in-context learns the least squares estimate for simple linear regression. It demonstrates that layer normalization enables approximation of the closed-form solution, providing new understanding of in-context learning.",
+      "llm_tldr_cn": "本文针对简单线性回归任务，构建了一个采用线性自注意力机制的变换器模型，研究其如何仅通过输入上下文中的演示示例学习最小二乘估计。结果表明，模型经过训练后能够利用层归一化操作近似求解出闭式解析解，而不是像以往认为的实现梯度下降。这一发现揭示了变换器在上下文学习中可能采用的一种新型求解机制，为深入理解上下文学习的内在机理以及设计更有效的提示学习方法提供了新的视角。",
+      "llm_tldr": "本文针对简单线性回归任务，构建了一个采用线性自注意力机制的变换器模型，研究其如何仅通过输入上下文中的演示示例学习最小二乘估计。结果表明，模型经过训练后能够利用层归一化操作近似求解出闭式解析解，而不是像以往认为的实现梯度下降。这一发现揭示了变换器在上下文学习中可能采用的一种新型求解机制，为深入理解上下文学习的内在机理以及设计更有效的提示学习方法提供了新的视角。",
+      "llm_tags": [
+        "query:prompt-learn"
+      ],
+      "matched_query_tag": "query:prompt-learn",
+      "matched_query_text": "learning from demonstrations provided in the prompt context",
+      "matched_requirement_id": "req-3",
+      "selection_source": "fresh_fetch"
+    },
+    {
+      "id": "2607.16001v1",
+      "source": "arxiv",
+      "title": "BayesPO: Bayesian Prompt Optimization via Parallel-Tempered Gradient-Guided Discrete MCMC",
+      "abstract": "Prompt optimization adapts large language models (LLMs) without updating model parameters, but many automatic prompt optimizers remain heuristic search procedures over candidate instructions. This paper studies prompt optimization as Bayesian posterior sampling over discrete prompt tokens. We define a posterior distribution by combining a task likelihood term, which rewards prompts that explain input-output examples, with a language-model prior, which favors fluent instructions. This converts prompt optimization into an energy-based posterior sampling problem, for which gradients can be used to guide discrete Markov chain Monte Carlo (MCMC) proposals over vocabulary tokens. We refer to our framework as BayesPO, short for Bayesian Prompt Optimization. In this paper, BayesPO is instantiated with Markov chain Monte Carlo: it uses a Metropolis-Hastings corrected Gibbs-with-Langevin (GwL) proposal and integrates parallel tempering for global exploration of rugged LLM-induced energy landscapes. The concrete sampler further adapts the GwL sampler to the practical constraints of non-weight-tied LLM embeddings. Experiments with Qwen2.5 models show that the sampler discovers semantically meaningful prompts on diagnostic tasks, that parallel tempering helps escape a local optimum in a poetry completion task, and that post-optimizing APE prompts on 24 instruction-induction subtasks improves average accuracy from 60.04% to 63.23%. The study also reveals two main limitations: energy minimization may overfit small optimization sets, and the current sampler remains computationally expensive. These findings position Bayesian prompt sampling as a principled post-optimization tool and point to a promising direction for probabilistic prompt optimization.",
+      "authors": [
+        "Junjie Zhou",
+        "Zhijian Ou"
+      ],
+      "primary_category": "cs.CL",
+      "categories": [
+        "cs.CL"
+      ],
+      "published": "2026-07-17T14:39:05+00:00",
+      "link": "https://arxiv.org/pdf/2607.16001v1",
+      "tags": [
+        "keyword:prompt-learn",
+        "query:prompt-learn"
+      ],
+      "llm_score": 9.0,
+      "llm_evidence_en": "optimizes discrete prompts via Bayesian posterior sampling with gradient-guided MCMC",
+      "llm_evidence_cn": "通过贝叶斯后验采样和梯度引导MCMC优化离散提示",
+      "llm_evidence": "通过贝叶斯后验采样和梯度引导MCMC优化离散提示",
+      "canonical_evidence": "通过贝叶斯后验采样和梯度引导MCMC优化离散提示",
+      "llm_tldr_en": "BayesPO formulates prompt optimization as Bayesian posterior sampling over discrete tokens, using gradient-guided MCMC to find effective prompts for LLMs without parameter updates.",
+      "llm_tldr_cn": "将提示优化定义为离散令牌上的贝叶斯后验采样问题，结合任务似然和语言模型先验，通过并行回火梯度引导的离散MCMC搜索有效提示，在多个任务上优于启发式方法。",
+      "llm_tldr": "将提示优化定义为离散令牌上的贝叶斯后验采样问题，结合任务似然和语言模型先验，通过并行回火梯度引导的离散MCMC搜索有效提示，在多个任务上优于启发式方法。",
+      "llm_tags": [
+        "query:prompt-learn"
+      ],
+      "matched_query_tag": "query:prompt-learn",
+      "matched_query_text": "discrete natural language prompts for guiding models",
+      "matched_requirement_id": "req-2",
+      "selection_source": "fresh_fetch"
+    },
+    {
+      "id": "2607.18114v1",
+      "source": "arxiv",
+      "title": "How Does Alignment Tuning Shape Representations of Sycophancy and Related Cue-Induced Biases in LLMs?",
+      "abstract": "Modern LLMs are alarmingly susceptible to surprisingly simple immaterial changes of input prompts: a casual hint, an incorrectly labeled few-shot example, or a fake prior assistant turn often flips an originally correct answer. We study where this susceptibility, spanning sycophancy and related cue-induced biases, lives inside the model. Across five model families and seven BCT bias types, we extract a per-bias direction from hidden states and triangulate it through three measures: probing, leave-one-dataset-out transfer, and causal intervention. The susceptibility is largely installed by alignment tuning rather than pretraining: pretrained base models barely cave to these biases, and their activations carry no cue-specific signal beyond question content. Within aligned models, each bias becomes a single coherent direction that we can both decode and steer along, recovering the unbiased answer across every family we test. The biases stay representationally distinct, however: cross-bias entanglement is model-specific rather than a property of the bias category, and even behaviorally similar biases occupy different directions. The same intervention also serves as a modest debiasing tool, recovering a meaningful share of bias-induced errors while preserving most correct answers across all instruct families. Cue-induced bias is therefore best understood not as a single flaw in LLMs but as a family of distinct, causally active directions that alignment tuning installs.",
+      "authors": [
+        "Prakhar Gupta",
+        "Terry Jingchen Zhang",
+        "Florent Draye",
+        "Bernhard Schölkopf",
+        "Zhijing Jin"
+      ],
+      "primary_category": "cs.CL",
+      "categories": [
+        "cs.CL",
+        "cs.AI",
+        "cs.LG"
+      ],
+      "published": "2026-07-20T16:10:06+00:00",
+      "link": "https://arxiv.org/pdf/2607.18114v1",
+      "tags": [
+        "keyword:prompt-learn",
+        "query:prompt-learn"
+      ],
+      "llm_score": 9.0,
+      "llm_evidence_en": "Studies how few-shot examples in prompts cause sycophantic behavior",
+      "llm_evidence_cn": "研究提示中少样本示例如何导致迎合行为",
+      "llm_evidence": "研究提示中少样本示例如何导致迎合行为",
+      "canonical_evidence": "研究提示中少样本示例如何导致迎合行为",
+      "llm_tldr_en": "This paper investigates the susceptibility of LLMs to input prompt biases such as casual hints and few-shot examples, finding that alignment tuning installs cue-specific directions that invert model behavior, while pretrained base models remain robust.",
+      "llm_tldr_cn": "该论文研究了大语言模型对输入提示偏见的敏感性，如随意提示和错误标注的少样本示例如何轻易改变正确答案。通过对多个模型家族和偏见类型进行探测、迁移和因果干预分析，发现这种脆弱性主要由对齐微调引入，预训练基模型几乎不受影响。研究揭示了对齐微调在隐藏状态中创建了每个偏见特有的方向，这些方向能被线性解码且跨数据集通用，从而驱动迎合行为。这一发现为理解提示学习中的偏见机制和模型对齐设计提供了关键见解。",
+      "llm_tldr": "该论文研究了大语言模型对输入提示偏见的敏感性，如随意提示和错误标注的少样本示例如何轻易改变正确答案。通过对多个模型家族和偏见类型进行探测、迁移和因果干预分析，发现这种脆弱性主要由对齐微调引入，预训练基模型几乎不受影响。研究揭示了对齐微调在隐藏状态中创建了每个偏见特有的方向，这些方向能被线性解码且跨数据集通用，从而驱动迎合行为。这一发现为理解提示学习中的偏见机制和模型对齐设计提供了关键见解。",
+      "llm_tags": [
+        "query:prompt-learn"
+      ],
+      "matched_query_tag": "query:prompt-learn",
+      "matched_query_text": "providing a few examples in the prompt to adapt model behavior",
+      "matched_requirement_id": "req-4",
+      "selection_source": "fresh_fetch"
+    },
+    {
+      "id": "2607.15937v1",
+      "source": "arxiv",
+      "title": "The Language of Security: How Prompt Syntax Shapes Secure Code Generation in Open LLMs",
+      "abstract": "Large Language Models (LLMs) are increasingly used for source code generation despite their outputs often exhibiting security vulnerabilities. Prior work shows that prompt engineering can mitigate such risks, yet (1) they focused on high-level prompting strategies, neglecting recent evidence that fine-grained syntactic variations can substantially alter model behavior; and (2) predominantly evaluate proprietary LLMs, limiting the applicability of their findings in industrial settings where self-hosted, open models are preferred for privacy, compliance, and deployment control. In this paper, we study how fine-grained syntactic constituents of prompts influence the security of open LLM-generated code. Using a parser-driven approach, we systematically generate syntactic variants of security-relevant code generation prompts and evaluate their impact on code security across multiple open LLMs and programming languages. Our results show that specific syntactic elements, such as constraints, guards, conditions, and concept bindings, and their position within the prompt consistently affect the likelihood of generating insecure code. These findings identify prompt syntax as a concrete security control surface and provide actionable guidance for reducing vulnerability risk in LLM-assisted development.",
+      "authors": [
+        "Matteo Cicalese",
+        "Antonio Della Porta",
+        "Stefano Lambiase",
+        "Emanuele Iannone",
+        "Torge Hinrichs",
+        "Riccardo Scandariato",
+        "Fabio Palomba"
+      ],
+      "primary_category": "cs.CR",
+      "categories": [
+        "cs.CR",
+        "cs.SE"
+      ],
+      "published": "2026-07-17T13:20:21+00:00",
+      "link": "https://arxiv.org/pdf/2607.15937v1",
+      "tags": [
+        "keyword:prompt-learn",
+        "query:prompt-learn"
+      ],
+      "llm_score": 8.0,
+      "llm_evidence_en": "Analyzes how fine-grained prompt syntax affects the security of LLM-generated code",
+      "llm_evidence_cn": "分析细粒度提示语法如何影响LLM生成代码的安全性",
+      "llm_evidence": "分析细粒度提示语法如何影响LLM生成代码的安全性",
+      "canonical_evidence": "分析细粒度提示语法如何影响LLM生成代码的安全性",
+      "llm_tldr_en": "This paper investigates the impact of syntactic variations in prompts on the security of code generated by open LLMs, using a parser-driven approach to systematically manipulate prompt components and evaluate resulting vulnerabilities.",
+      "llm_tldr_cn": "该论文研究提示的细粒度句法成分如何影响开放大语言模型生成代码的安全性。通过解析器驱动的方法系统操控提示中的修饰语、动词形式、代码上下文位置等句法要素，评测了多个开源模型生成代码的安全漏洞。结果表明，微小的句法变化可导致安全缺陷率显著波动，某些句法模式普遍更不安全，且不同模型对句法变化的敏感性存在差异。这一发现为通过提示工程提升LLM代码安全提供了实证依据，并揭示了句法在安全相关任务中的关键作用。",
+      "llm_tldr": "该论文研究提示的细粒度句法成分如何影响开放大语言模型生成代码的安全性。通过解析器驱动的方法系统操控提示中的修饰语、动词形式、代码上下文位置等句法要素，评测了多个开源模型生成代码的安全漏洞。结果表明，微小的句法变化可导致安全缺陷率显著波动，某些句法模式普遍更不安全，且不同模型对句法变化的敏感性存在差异。这一发现为通过提示工程提升LLM代码安全提供了实证依据，并揭示了句法在安全相关任务中的关键作用。",
+      "llm_tags": [
+        "query:prompt-learn"
+      ],
+      "matched_query_tag": "query:prompt-learn",
+      "matched_query_text": "discrete natural language prompts for guiding models",
+      "matched_requirement_id": "req-2",
+      "selection_source": "fresh_fetch"
+    }
+  ],
+  "quick_skim": []
+}

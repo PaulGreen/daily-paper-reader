@@ -1,0 +1,244 @@
+{
+  "mode": "standard",
+  "generated_at": "2026-07-22T21:33:37.907179+00:00",
+  "stats": {
+    "mode": "standard",
+    "tag_count": 1,
+    "deep_divecandidates": 3,
+    "deep_cap": 6,
+    "deep_selected": 3,
+    "quick_candidates": 3,
+    "quick_skim_target": 11,
+    "quick_selected": 3
+  },
+  "deep_dive": [
+    {
+      "id": "2607.18302v1",
+      "source": "arxiv",
+      "title": "A Better Start for Language Models: Domain-Conditional Position Offsets",
+      "abstract": "Autoregressive language models are least accurate at the beginning of a sequence, where little context forces reliance on a generic pretraining prior. We show that this cold-start penalty is domain dependent and reduce it with a domain-conditional position offset: a single learned vector added to the embedding activation at the first sequence positions while all model weights remain frozen. The offset trains in minutes on roughly one hundred documents, switches between domains without added sequence state, and has no measurable latency overhead. Across eight Mamba, GPT-NeoX, and Llama models spanning 410M to 8B parameters, it reduces held-out in-domain perplexity by up to 27%; the effect persists at 70B, and one position captures most of the benefit. A matched, converged direct logit-bias correction reaches at most only 7.9% and leaves later-token loss unchanged, showing that the offset propagates through model state rather than merely recalibrating the output prior. A tuned LoRA reaches lower perplexity but uses two to three orders of magnitude more parameters and an active low-rank weight path, while soft prompts add sequence positions. With wrong-domain controls, offsets improve retrieval reranking and domain classification when decisions depend on early in-domain tokens, For the few-shot reasoning whose signal occurs later, the results maintains unchanged. Position-aware prefill application also help generation tasks, whereas naive application at every cached decoding step causes repetition. The offset is therefore not the strongest adapter, but a lightweight, hot switchable tool for short in-domain scoring and calibration.",
+      "authors": [
+        "Ye Qiao"
+      ],
+      "primary_category": "cs.LG",
+      "categories": [
+        "cs.LG"
+      ],
+      "published": "2026-07-17T02:12:09+00:00",
+      "link": "https://arxiv.org/pdf/2607.18302v1",
+      "tags": [
+        "keyword:prompt-learn",
+        "query:prompt-learn"
+      ],
+      "llm_score": 9.0,
+      "llm_evidence_en": "learns a continuous domain-conditional position offset vector acting as a soft prompt prefix",
+      "llm_evidence_cn": "学习一个连续的领域条件位置偏移向量作为软提示前缀",
+      "llm_evidence": "学习一个连续的领域条件位置偏移向量作为软提示前缀",
+      "canonical_evidence": "学习一个连续的领域条件位置偏移向量作为软提示前缀",
+      "llm_tldr_en": "Proposes domain-conditional position offsets, a small learned vector added to the first positions of a sequence to reduce the cold-start penalty in autoregressive LMs, achieving up to 27% perplexity reduction with minimal training.",
+      "llm_tldr_cn": "针对自回归语言模型在序列开始处准确率低的问题，提出领域条件位置偏移方法：学习一个连续向量添加到前几个位置的嵌入上，模型其余权重保持不变。该方法仅需数百文档的几分钟训练，可无延迟切换领域，在8个模型上最高降低27%的困惑度，有效缓解了冷启动惩罚。",
+      "llm_tldr": "针对自回归语言模型在序列开始处准确率低的问题，提出领域条件位置偏移方法：学习一个连续向量添加到前几个位置的嵌入上，模型其余权重保持不变。该方法仅需数百文档的几分钟训练，可无延迟切换领域，在8个模型上最高降低27%的困惑度，有效缓解了冷启动惩罚。",
+      "llm_tags": [
+        "query:prompt-learn"
+      ],
+      "matched_query_tag": "query:prompt-learn",
+      "matched_query_text": "continuous vector representations used as prompts",
+      "matched_requirement_id": "req-1",
+      "selection_source": "fresh_fetch"
+    },
+    {
+      "id": "2607.18804v1",
+      "source": "arxiv",
+      "title": "Elicitation without Backpropagation: Steering Model Behavior by Optimizing the Latent Posterior",
+      "abstract": "In the \\emph{latent posterior model} of transformer behavior, the next-token distribution arises from a posterior over latent predictive models conditioned on the context, mixed to generate continuations. We exploit this model in settings where it is exact, namely Bayes-filtered transformers (BFTs) meta-learned on sequences from a hierarchical prior, to introduce \\textbf{Posterior Prefix Tuning (PPT)}, a new method for \\emph{eliciting} behavior from a transformer: given a utility function on continuations, find a prompt under which the transformer generates continuations of high expected utility. For a BFT, the elicitation objective factors through the latent posterior, and the gradient of this objective can be estimated from samples of the prior alone. PPT optimizes the parameters of a distribution over hard prompts: it draws prior samples once from the BFT via predictive Monte Carlo (PMC), then estimates the gradient by importance sampling against them. The optimization performs no transformer forward passes and no backpropagation through the transformer, and the prior samples are utility-independent, so a single set of samples drives elicitation against any number of utilities at negligible marginal cost. We validate PPT on Beta--Bernoulli and reinforced urn BFTs across three utility families (reverse cross-entropy, frequency matching, Dyck validity).",
+      "authors": [
+        "Garrett Baker",
+        "Vinayak Pathak",
+        "Daniel Murfet",
+        "Susan Wei"
+      ],
+      "primary_category": "cs.LG",
+      "categories": [
+        "cs.LG",
+        "stat.ML"
+      ],
+      "published": "2026-07-21T07:34:18+00:00",
+      "link": "https://arxiv.org/pdf/2607.18804v1",
+      "tags": [
+        "keyword:prompt-learn",
+        "query:prompt-learn"
+      ],
+      "llm_score": 9.0,
+      "llm_evidence_en": "Posterior Prefix Tuning optimizes continuous prefix prompt via latent posterior gradients",
+      "llm_evidence_cn": "后验前缀调优通过潜在后验梯度优化连续前缀提示",
+      "llm_evidence": "后验前缀调优通过潜在后验梯度优化连续前缀提示",
+      "canonical_evidence": "后验前缀调优通过潜在后验梯度优化连续前缀提示",
+      "llm_tldr_en": "Introduces Posterior Prefix Tuning (PPT), which finds a continuous prefix prompt that maximizes utility on model continuations by estimating gradients of the latent posterior in Bayes-filtered transformers, enabling behavior steering without backpropagation.",
+      "llm_tldr_cn": "在贝叶斯滤波transformer中，模型行为可由潜在后验调节；本文提出后验前缀调优(PPT)方法，通过估计潜在后验梯度来寻找最优连续前缀提示，从而最大化期望效用；实验表明PPT能有效引导生成行为，无需反向传播，为提示学习提供了理论驱动的优化新途径。",
+      "llm_tldr": "在贝叶斯滤波transformer中，模型行为可由潜在后验调节；本文提出后验前缀调优(PPT)方法，通过估计潜在后验梯度来寻找最优连续前缀提示，从而最大化期望效用；实验表明PPT能有效引导生成行为，无需反向传播，为提示学习提供了理论驱动的优化新途径。",
+      "llm_tags": [
+        "query:prompt-learn"
+      ],
+      "matched_query_tag": "query:prompt-learn",
+      "matched_query_text": "gradient-based tuning of continuous prompt embeddings",
+      "matched_requirement_id": "req-6",
+      "selection_source": "fresh_fetch"
+    },
+    {
+      "id": "2607.19234v1",
+      "source": "arxiv",
+      "title": "In-Context Time Series Classification with Random Convolutional Features",
+      "abstract": "Time series classification is central to domains like medical signal analysis, industrial monitoring, and sensor-based activity recognition, where class information manifests as localized shapes, specific frequencies, temporal shifts, or complex cross-channel interactions. Random convolutional transforms efficiently map these sequences to fixed-dimensional tabular features but are traditionally paired with simple linear classifiers. We investigate whether a pretrained tabular foundation model can more effectively harness these rich representations.   We propose MASHT, a pipeline that marries MultiRocket and Hydra features with the power of in-context tabular foundation models. By leveraging a pretrained tabular foundation model, our approach completely bypasses task-specific model training, requiring only feature extraction and direct inference. Extensive experiments demonstrate that MASHT matches state-of-the-art time series classification baselines on univariate tasks, achieving a lower average rank than HIVE-COTE 2.0. On multivariate datasets, MASHT remains highly competitive with the strongest reference methods.",
+      "authors": [
+        "Joscha Cüppers",
+        "Jilles Vreeken"
+      ],
+      "primary_category": "cs.LG",
+      "categories": [
+        "cs.LG"
+      ],
+      "published": "2026-07-21T16:04:35+00:00",
+      "link": "https://arxiv.org/pdf/2607.19234v1",
+      "tags": [
+        "keyword:prompt-learn",
+        "query:prompt-learn"
+      ],
+      "llm_score": 8.0,
+      "llm_evidence_en": "in-context time series classification using pretrained tabular foundation model",
+      "llm_evidence_cn": "使用预训练表格基础模型进行上下文时间序列分类",
+      "llm_evidence": "使用预训练表格基础模型进行上下文时间序列分类",
+      "canonical_evidence": "使用预训练表格基础模型进行上下文时间序列分类",
+      "llm_tldr_en": "MASHT combines random convolutional features with a pretrained tabular foundation model for in-context time series classification, eliminating task-specific training by leveraging few-shot demonstrations.",
+      "llm_tldr_cn": "针对时间序列分类中传统方法需要任务特定训练的问题，本文提出MASHT，将随机卷积特征与上下文表格基础模型相结合。通过利用预训练模型中的少样本上下文学习能力，无需额外训练即可实现分类。实验表明该方法能有效利用丰富表示，简化了时间序列分类流程，展示了上下文学习在结构化数据上的应用潜力。",
+      "llm_tldr": "针对时间序列分类中传统方法需要任务特定训练的问题，本文提出MASHT，将随机卷积特征与上下文表格基础模型相结合。通过利用预训练模型中的少样本上下文学习能力，无需额外训练即可实现分类。实验表明该方法能有效利用丰富表示，简化了时间序列分类流程，展示了上下文学习在结构化数据上的应用潜力。",
+      "llm_tags": [
+        "query:prompt-learn"
+      ],
+      "matched_query_tag": "query:prompt-learn",
+      "matched_query_text": "learning from demonstrations provided in the prompt context",
+      "matched_requirement_id": "req-3",
+      "selection_source": "fresh_fetch"
+    }
+  ],
+  "quick_skim": [
+    {
+      "id": "2607.18695v1",
+      "source": "arxiv",
+      "title": "Attributes Should Come from Images, Not Class Names: Distribution-Conditioned Attribute Selection for Vision-Language Models",
+      "abstract": "A popular route to interpretable zero-shot classification asks a large language model (LLM) to describe each class name and prompts CLIP with the resulting descriptors. We show that these descriptors carry little visual evidence of their own: removing the class name from the prompt collapses ImageNet accuracy from 59.5% to 15.5%. The diagnosis is that the descriptors are conditioned on the label rather than on the images, so they describe the concept in general and mislead exactly when the data shifts; an LLM insists that strawberries are red, but every strawberry in ImageNet-Sketch is a colorless line drawing. We therefore select attributes from the target image collection instead: we score a large attribute pool against the images in CLIP's joint embedding space and keep the top-scoring attributes per class. Selected this way, class-name-free attribute prompts reach 23.8% on ImageNet (against 15.5% for LLM descriptors), the gain holds on four shifted ImageNet variants, and reselecting from the LLM's own pool isolates the selection mechanism as the cause. With one image per class, the selected attributes outperform the prompt-tuning method CoOp by 3 points while fitting in under a minute instead of 14 hours, with no learned soft prompt to obscure the decision. Because the attribute set is chosen by the data, it doubles as a readable summary of a dataset, which we use to describe distribution shift in words.",
+      "authors": [
+        "Gautam Rajendrakumar Gare",
+        "Jia Shi",
+        "Zhiqiu Lin",
+        "Deepak Pathak",
+        "John Galeotti",
+        "Deva Ramanan"
+      ],
+      "primary_category": "cs.CV",
+      "categories": [
+        "cs.CV",
+        "cs.AI",
+        "cs.LG",
+        "eess.IV"
+      ],
+      "published": "2026-07-21T04:34:24+00:00",
+      "link": "https://arxiv.org/pdf/2607.18695v1",
+      "tags": [
+        "keyword:prompt-learn",
+        "query:prompt-learn"
+      ],
+      "llm_score": 7.0,
+      "llm_evidence_en": "prompts CLIP with distribution-conditioned attributes instead of LLM-generated class descriptions",
+      "llm_evidence_cn": "用分布条件属性而非LLM生成的类描述作为CLIP提示",
+      "llm_evidence": "用分布条件属性而非LLM生成的类描述作为CLIP提示",
+      "canonical_evidence": "用分布条件属性而非LLM生成的类描述作为CLIP提示",
+      "llm_tldr_en": "The paper finds LLM-generated class descriptors are poor visual prompts and proposes selecting attributes from images; this improves zero-shot classification by aligning prompts with visual distribution.",
+      "llm_tldr_cn": "本文发现大语言模型为类别名生成的描述符缺乏视觉证据，导致零样本分类性能大幅下降。为此提出从目标图像集合中基于分布自动选择判别性属性作为提示。实验表明该方法在ImageNet等数据集上显著提升分类准确性，揭示了视觉提示应源自图像数据本身。",
+      "llm_tldr": "本文发现大语言模型为类别名生成的描述符缺乏视觉证据，导致零样本分类性能大幅下降。为此提出从目标图像集合中基于分布自动选择判别性属性作为提示。实验表明该方法在ImageNet等数据集上显著提升分类准确性，揭示了视觉提示应源自图像数据本身。",
+      "llm_tags": [
+        "query:prompt-learn"
+      ],
+      "matched_query_tag": "query:prompt-learn",
+      "matched_query_text": "discrete natural language prompts for guiding models",
+      "matched_requirement_id": "req-2",
+      "selection_source": "fresh_fetch",
+      "quick_tier": "7"
+    },
+    {
+      "id": "biorxiv-10-64898-2026-06-28-735106-v3",
+      "source": "biorxiv",
+      "title": "Tabular Foundation Models Are Competitive Cellular Perturbation Predictors Across Biological Scales",
+      "abstract": "Predicting how cells respond to genetic and chemical perturbations is a central challenge in drug discovery and functional genomics. A growing ecosystem of specialized single-cell foundation models has been developed to address this problem, yet their practical advantage over domain-agnostic approaches remains unclear. Here we evaluate the power of Tabular Foundation Models such as TabICL and TabPFN, general-purpose pre-trained regression models, against domain-specific architectures including PRESAGE, scGPT, scLAMBDA, STACK and Prophet across four complementary evaluation settings: cell-level in-context cross-cell-type prediction, pseudobulk perturbation prediction on five Perturb-seq datasets of cell-lines, a genome-wide CRISPR screen in primary human CD4+ T cells, and embryo-level cell-type composition prediction in a zebrafish developmental perturbation atlas. In the cell-level cross-cell type perturbation prediction, Tabular Foundation Models perform on par or better than specialized models. On pseudobulk perturbation prediction, Tabular Foundation Models consistently outperform specialized baselines across multiple evaluation metrics and datasets. On whole-emrbryo cell-type composition prediction, Tabular Foundation Models are competitive with specialized baselines. These results demonstrate that general-purpose tabular in-context learning provides a strong and scalable alternative to bespoke biological architectures for perturbation response modeling across cell systems and scales.",
+      "authors": [
+        "Palla, G.",
+        "Hillsley, A.",
+        "Kim, Y.-J.",
+        "Royer, L. A."
+      ],
+      "primary_category": "bioinformatics",
+      "categories": [
+        "bioinformatics"
+      ],
+      "published": "2026-07-19T00:00:00+00:00",
+      "link": "https://www.biorxiv.org/content/10.64898/2026.06.28.735106v3.full.pdf",
+      "tags": [
+        "keyword:prompt-learn",
+        "query:prompt-learn"
+      ],
+      "llm_score": 6.0,
+      "llm_evidence_en": "evaluates in-context learning with demonstrations for tabular foundation models",
+      "llm_evidence_cn": "评估使用演示的表格基础模型的上下文学习",
+      "llm_evidence": "评估使用演示的表格基础模型的上下文学习",
+      "canonical_evidence": "评估使用演示的表格基础模型的上下文学习",
+      "llm_tldr_en": "Evaluates tabular foundation models like TabICL and TabPFN against specialized single-cell models for cellular perturbation prediction across four settings, finding competitive performance with in-context learning.",
+      "llm_tldr_cn": "针对细胞扰动预测，该研究在四种互补评估设置下比较了表格基础模型（如TabICL和TabPFN）与专用单细胞模型的性能。表格基础模型利用上下文学习，在跨细胞类型预测、伪批量扰动预测等任务中表现出竞争力。结果表明，通用的基于上下文学习的表格模型有潜力替代领域专用架构，为生物信息学中的提示学习方法应用提供了参考。",
+      "llm_tldr": "针对细胞扰动预测，该研究在四种互补评估设置下比较了表格基础模型（如TabICL和TabPFN）与专用单细胞模型的性能。表格基础模型利用上下文学习，在跨细胞类型预测、伪批量扰动预测等任务中表现出竞争力。结果表明，通用的基于上下文学习的表格模型有潜力替代领域专用架构，为生物信息学中的提示学习方法应用提供了参考。",
+      "llm_tags": [
+        "query:prompt-learn"
+      ],
+      "matched_query_tag": "query:prompt-learn",
+      "matched_query_text": "learning from demonstrations provided in the prompt context",
+      "matched_requirement_id": "req-3",
+      "selection_source": "fresh_fetch",
+      "quick_tier": "6"
+    },
+    {
+      "id": "2607.18819v1",
+      "source": "arxiv",
+      "title": "In-Context Learning for Wound Classification with Small Multimodal Language Models",
+      "abstract": "Wound image classification is often treated as a task-specific supervised learning problem, requiring substantial amounts of manually labelled data and retraining when the label space or deployment setting changes. This study evaluated whether small multimodal language models (SMLMs) can provide a training-free alternative for wound classification through retrieval-based in-context learning (ICL). Experiments used two public wound-image datasets: the Kaggle wound dataset (1469 images, 10 classes) and the Medetec dataset (560 images, 9 classes). Eleven SMLMs from the Qwen 3.5, Ministral 3, and Gemma 4 families were evaluated under zero-shot prompting and few-shot prompting with random support examples, embedding-based k-nearest-neighbour (kNN) retrieval, and kNN retrieval followed by maximal marginal relevance reranking (MMR). Retrieval-only weighted-kNN controls, support-set reduction experiments, and support-context size sweeps were used to assess the effects of retrieval, model scale, and prompt length. Query-conditioned ICL consistently outperformed zero-shot and random few-shot prompting. On the Kaggle dataset, the best result was achieved by Qwen 3.5 27B with kNN+MMR, reaching 0.872 accuracy and 0.871 F1 score. On Medetec, Qwen 3.5 27B with kNN+MMR reached 0.678 accuracy and 0.670 F1. Larger models exceeded matched weighted-kNN controls, indicating use of retrieved examples beyond nearest-neighbour voting. Retrieval-based ICL degraded modestly under support-set reduction, and most gains saturated with 8-10 support images. Retrieval-based ICL allows SMLMs to perform adaptable wound image classification without task-specific retraining. Compact retrieved contexts may support practical and privacy-conscious deployment, although performance remains dependent on model scale, retrieval strategy, and dataset difficulty.",
+      "authors": [
+        "George Martvel",
+        "Oskar Gustafsson",
+        "John Pavia",
+        "Ernst Ahlberg"
+      ],
+      "primary_category": "cs.CV",
+      "categories": [
+        "cs.CV"
+      ],
+      "published": "2026-07-21T07:55:07+00:00",
+      "link": "https://arxiv.org/pdf/2607.18819v1",
+      "tags": [
+        "keyword:prompt-learn",
+        "query:prompt-learn"
+      ],
+      "llm_score": 7.0,
+      "llm_evidence_en": "evaluates retrieval-based in-context learning with few-shot demonstrations for wound classification",
+      "llm_evidence_cn": "评估基于检索的上下文学习和少样本演示进行伤口分类",
+      "llm_evidence": "评估基于检索的上下文学习和少样本演示进行伤口分类",
+      "canonical_evidence": "评估基于检索的上下文学习和少样本演示进行伤口分类",
+      "llm_tldr_en": "Evaluates small multimodal language models for wound classification using zero-shot and retrieval-based few-shot in-context learning, finding that ICL can outperform zero-shot but trails fine-tuning.",
+      "llm_tldr_cn": "针对伤口图像分类，该研究评估了小多模态语言模型使用零样本和基于检索的少样本上下文学习的性能。实验显示，使用kNN检索的示例进行上下文学习在某些模型上优于零样本，但尚不及微调。该工作探索了在医学图像分类中无需训练即可适应新任务的提示学习方法。",
+      "llm_tldr": "针对伤口图像分类，该研究评估了小多模态语言模型使用零样本和基于检索的少样本上下文学习的性能。实验显示，使用kNN检索的示例进行上下文学习在某些模型上优于零样本，但尚不及微调。该工作探索了在医学图像分类中无需训练即可适应新任务的提示学习方法。",
+      "llm_tags": [
+        "query:prompt-learn"
+      ],
+      "matched_query_tag": "query:prompt-learn",
+      "matched_query_text": "learning from demonstrations provided in the prompt context",
+      "matched_requirement_id": "req-3",
+      "selection_source": "fresh_fetch",
+      "quick_tier": "7"
+    }
+  ]
+}

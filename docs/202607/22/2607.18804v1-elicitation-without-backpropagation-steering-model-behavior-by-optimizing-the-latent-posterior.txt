@@ -1,0 +1,1865 @@
+Title: Elicitation without Backpropagation: Steering Model Behavior by Optimizing the Latent Posterior
+
+URL Source: https://arxiv.org/pdf/2607.18804v1
+
+Published Time: Wed, 22 Jul 2026 00:38:08 GMT
+
+Number of Pages: 28
+
+Markdown Content:
+# Elicitation without Backpropagation: Steering Model Behavior by Optimizing the Latent Posterior 
+
+Garrett Baker 
+
+Timaeus 
+
+garrett@timaeus.co 
+
+Vinayak Pathak ∗
+
+CORAL 
+
+path.vinayak@gmail.com 
+
+Daniel Murfet 
+
+Timaeus 
+
+daniel@timaeus.co 
+
+Susan Wei †
+
+Monash University 
+
+susan.wei@monash.edu 
+
+Abstract 
+
+In the latent posterior model of transformer behavior, the next-token distribution arises from a posterior over latent predictive models conditioned on the context, mixed to generate continuations. We exploit this model in settings where it is exact, namely Bayes-filtered transformers (BFTs) meta-learned on sequences from a hierarchical prior, to introduce Posterior Prefix Tuning (PPT) , a new method for 
+
+eliciting behavior from a transformer: given a utility function on continuations, find a prompt under which the transformer generates continuations of high expected utility. For a BFT, the elicitation objective factors through the latent posterior, and the gradient of this objective can be estimated from samples of the prior alone. PPT optimizes the parameters of a distribution over hard prompts: it draws prior samples once from the BFT via predictive Monte Carlo (PMC), then estimates the gradient by importance sampling against them. The optimization performs no transformer forward passes and no backpropagation through the transformer, and the prior samples are utility-independent, so a single set of samples drives elicitation against any number of utilities at negligible marginal cost. We validate PPT on Beta–Bernoulli and reinforced urn BFTs across three utility families (reverse cross-entropy, frequency matching, Dyck validity). Code is available at https://github.com/timaeus-research/elicitation .
+
+1 Introduction 
+
+Transformers trained on distributions with diverse tasks exhibit in-context learning (ICL), the ability to learn from context alone [Brown et al., 2020]. One important model of this behavior, the latent posterior model , holds that the transformer maintains a posterior over latent predictive models, updated by the tokens it has seen, and uses this posterior to generate continuations [Xie et al., 2022, Panwar et al., 2024, Marks et al., 2026]. The latent posterior model has been verified as a good approximation in synthetic settings such as in-context linear regression [Garg et al., 2022, Akyürek et al., 2023], and has the potential to confer new ideas for understanding and controlling transformer behavior more broadly. 
+
+In this paper we explore this potential, motivated by the elicitation problem. We currently lack a deep scientific understanding of why transformers, post-trained to be effective assistants, behave (and 
+
+> ∗Work done while at Timaeus.
+> †Corresponding author. Preprint. arXiv:2607.18804v1 [cs.LG] 21 Jul 2026
+
+misbehave) in the ways that they do. These systems undergo testing before deployment, which can be formalized as the evaluation of utility functions U on the model’s outputs across a distribution of prompts. However, the space of possible prompts is too vast to search exhaustively, so a prompt that elicits undesirable behavior can slip through testing. This leads to the problem of elicitation [Irving et al., 2025]: given a specification of undesirable behavior (formalized as a utility function U ), which prompt maximizes the expected utility of the transformer’s continuations? This is closely related to the problem of prompt and prefix tuning [Li and Liang, 2021, Lester et al., 2021]. A promising avenue for investigating the elicitation problem is to factor it through the latent posterior. Rather than searching directly over the combinatorial space of prompts, we ask: is there a prompt conditioned on which the latent posterior concentrates on predictive models with a high probability of generating undesirable behavior? We study this question in Bayes-filtered transformers (BFTs) [Fortini et al., 2026]: transformers meta-learned on sequences from a two-stage hierarchical process, in which a latent task is first sampled from a prior and the sequence is then generated from the task’s likelihood. For such sequences, the autoregressive log-loss is minimized at every position by the Bayesian posterior predictive, determined jointly by the prior over latent tasks and the likelihood by which each task generates the sequence [Ortega et al., 2019]. We call a BFT that attains this minimum exactly the idealized BFT ; it realizes the latent posterior model by construction, and a suitably trained BFT approximately admits the same factorization. For a BFT, elicitation can therefore be carried out entirely in latent-posterior space. We call the resulting method Posterior Prefix Tuning (PPT). Figure 1 sketches PPT. The method has two properties: • No backpropagation through the transformer. PPT computes the gradient of its objective entirely in latent-posterior space, so optimization never backpropagates through the transformer and makes zero transformer calls per step. • Utility amortization. The bulk of PPT’s computation is utility-independent: characterizing the BFT’s beliefs (the prior samples in the middle panel of Figure 1) is a one-time cost, after which any number of utility functions can be optimized against at negligible marginal cost. We instantiate this approach with two BFTs: one meta-learned on an exchangeable process, whose latent task is a probability mass function (pmf), and one on a 1-Markov exchangeable process, whose latent task is a transition matrix. Both latent tasks are finite-dimensional, so we optimize over a prompt distribution of the same form and recover a hard prompt from the optimum. We find that PPT and its Rao–Blackwellized variant PPT-RB are effective across both BFTs, three utility families (reverse cross-entropy, frequency matching, Dyck validity), and prompt lengths m ∈{6, 50 }. The comparison with Greedy Coordinate Gradient (GCG) [Zou et al., 2023], the standard hard-prompt baseline, is mixed: PPT methods substantially outperform GCG on the reinforced urn at m = 6 (PPT-RB reaches the Dyck optimum on every seed) and on reverse cross-entropy on the reinforced urn at m = 50 , while GCG is competitive or stronger on the Beta–Bernoulli BFT and on Dyck validity for the reinforced urn at m = 50 . We note that GCG backpropagates through the transformer at every step, unlike PPT and PPT-RB. 
+
+Outline. The remainder of the paper is organized as follows. Section 2 establishes the formal setup and connects the elicitation problem to the latent-posterior factorization (4) . Section 3 develops PPT and derives the gradient estimator. The experimental results follow in the remainder. 
+
+2 Overview 
+
+2.1 Formalizing the elicitation problem 
+
+Let Y be a finite vocabulary, ∆( Y) the simplex of pmfs on Y, and Y∗ := S 
+
+> n≥0
+
+Yn. Let πθ : Y∗ →
+
+∆( Y), y1: n 7 → πθ (· | y1: n), be a transformer sequence model, with empty history y1:0 := ∅. In the prefix-tuning setting, the prompt z1: m ∈ Y m is fed to πθ as a prefix. Fix a continuation horizon 
+
+N ≥ 1 and let Y1: N ∈ Y N denote the length-N continuation generated autoregressively from πθ
+
+given z1: m, i.e. Yt ∼ πθ (· | z1: m, Y 1: t−1) for t = 1 , . . . , N ; abusing notation, we write πθ (· | z1: m)
+
+for the resulting law of Y1: N , extending the one-step predictor πθ to the continuation. We formalize undesirable behavior via a utility function U : YN → R evaluated on this continuation. Given a hard prompt z1: m ∈ Y m, the elicitation objective is 
+
+J(z1: m) := EY1: N ∼πθ (·| z1: m)
+
+U (Y1: N ). (1) 2The latent landscape Latent prior samples          
+
+> (utility independent)
+> Latent posterior samples
+> (obtained by tilting)
+> KHigh μ(˜k)Roll out πθto sample its prior Optimize κso the latent
+> posterior weights high utility ˜k
+
+Figure 1: Steering the latent posterior to elicit behavior. Given a utility U on continuations, let 
+
+μ(˜k) be its expectation under a latent ˜k. To elicit high-utility behavior from the transformer πθ , we seek prompts z1: m that steer the latent posterior Π( d˜k | z1: m) over K toward latents ˜k with high 
+
+μ(˜k). Left : the latent space K. Middle : Predictive Monte Carlo (PMC) samples once from the latent prior the BFT implies; this is the only time we call πθ , and it does not use U . Right : a continuous surrogate κ for z1: m and a tilt W (˜k, κ ) define a tilted posterior Πtilt (d˜k; κ), sampled by importance reweighting of the fixed prior samples; optimizing κ concentrates this posterior on latents with high 
+
+μ(˜k). Snapping the optimum yields a hard prompt z1: m.
+
+Definition 1 (Elicitation problem) . Given a sequence model πθ , a utility function U , and a set of allowed prompts Z ⊆ Y m, the elicitation problem is to find z1: m ∈ Z maximizing J(z1: m).
+
+2.2 Bayes-filtered transformers and the latent-posterior factorization Bayes-filtered transformers. A Bayes-filtered transformer (BFT) is one meta-learned on sequences from a two-stage hierarchical process: a latent task ˜k is drawn from a prior Π0 on a class K := {˜k :
+
+Y∗ → ∆( Y)} of kernels, 3 and a sequence y1: n is then generated from ˜k, i.e. yi ∼ ˜k(· | y1: i−1). The predictor πθ : Y∗ → ∆( Y) is trained to minimize the population risk , the expected autoregressive log-loss under this process, 
+
+R(πθ ) := E˜k∼Π0 Ey1: n∼˜k
+
+h Pni=1 − log πθ (yi | y1: i−1)
+
+i
+
+. (2) Minimized over all predictors, (2) is solved at every position by the Bayesian posterior predictive distribution (PPD), determined jointly by the prior Π0 and the likelihood by which each task generates the sequence, given the observed prefix [Ortega et al., 2019]; the training targets are Bayes-filtered in this sense, and the term BFT follows Fortini et al. [2026]. 
+
+Meta-learning a BFT. The population risk (2) is not directly accessible, so meta-learning minimizes its empirical counterpart (empirical risk minimization): drawing a training set {y(j)1: n}Dj=1 from the process, ˜k(j) ∼ Π0 then y(j)1: n ∼ ˜k(j), we minimize 
+
+bR(πθ ) := 1
+
+D
+
+> D
+
+X
+
+> j=1
+> n
+
+X
+
+> i=1
+
+− log πθ (y(j) 
+
+> i
+
+| y(j)1: i−1). (3) The loss itself is standard for transformer pretraining; what distinguishes BFT training is this data. In the limit of infinite data, infinite capacity, and perfect optimization, the trained transformer attains the population minimum of (2) , realizing the PPD exactly; we call this limit the idealized BFT . With finite data, parameters, and optimization, it only approximates the idealized BFT, and the quality            
+
+> 3Throughout, kernel is used in its probabilistic sense: a map taking a history h∈ Y ∗to a probability distribution
+> ˜k(· | h)∈∆( Y)over the next token, equivalently a conditional distribution of the next symbol given the past. This is the notion of a Markov (also transition or stochastic) kernel; it specializes to a pmf when there is no history dependence ( k= 0 ,Section 3.1) and to a transition matrix in the 1-Markov case (Section 3.2). It is unrelated to the kernel of kernel methods.
+
+3of this approximation has been studied empirically across a range of settings [Mikulik et al., 2020, Genewein et al., 2023, Grau-Moya et al., 2024]. 
+
+The latent-posterior factorization. Concretely, the minimizer of (2) is a Bayes mixture over the latent kernel: when the trained BFT realizes the PPD, as the idealized BFT does, its one-step predictive distribution is 
+
+πθ (y | y1: n) = 
+
+Z
+
+> K
+
+˜k(y | y1: n) Π( d˜k | y1: n), y ∈ Y , (4) where Π( · | y1: n) is the posterior under Π0 given the prefix: 
+
+Π( d˜k | y1: n) ∝
+
+h Qni=1 ˜k(yi | y1: i−1)
+
+i
+
+Π0(d˜k).
+
+This factorization holds exactly for the idealized BFT; a trained πθ inherits it asymptotically, for large prefix lengths n, when the approximation error is well-behaved. 
+
+Factoring J through the latent posterior. Let us extend ˜k from one-step predictions to length-N
+
+continuations via the autoregressive product ˜k(y1: N | z1: m) := QNt=1 ˜k(yt | z1: m, y 1: t−1), i.e., the joint probability that the next N tokens equal y1: N when each is sampled from ˜k given the prefix accumulated so far. Set 
+
+μ(˜k; z1: m) := X 
+
+> y1: N∈Y N
+
+U (y1: N ) ˜k(y1: N | z1: m),
+
+the expected U over continuations sampled from ˜k given z1: m. Under (4) , the tower property yields 
+
+J(z1: m) = 
+
+Z
+
+> K
+
+μ(˜k; z1: m) Π( d˜k | z1: m). (5) 
+
+3 Posterior Prefix Tuning (PPT) 
+
+The factorization (5) expresses J(z1: m) as a posterior expectation, but optimizing it directly remains a discrete search over z1: m ∈ Y m. Existing hard-prompt methods such as greedy coordinate gradient (GCG) [Zou et al., 2023] tackle this discreteness by backpropagating through the transformer’s embedding layer for gradient signal in z1: m, requiring per-step transformer calls and gradients. Our proposed method, Posterior Prefix Tuning (PPT) , instead considers a kernel κ ∈ K in the same class as the latent task and optimizes a surrogate Jtilt in κ. The construction has four pieces. The tilt factor W (˜k; κ) is the probability that a latent task ˜k assigns to a prompt drawn from κ, measuring how compatible ˜k is with κ. Reweighting the prior Π0 by this factor gives the tilted posterior 
+
+Πtilt (·; κ) ∝ W (˜k; κ) Π 0, which favors the tasks most compatible with κ. Averaging a task’s utility over prompts drawn from κ gives the marginalized utility ¯μ(˜k; κ), and integrating it against the tilted posterior gives the surrogate objective Jtilt (κ), the tower identity (5) with Π( · | z1: m) replaced by 
+
+Πtilt (·; κ) and μ by ¯μ. Table 1 gives these four objects; their derivations are in Appendix D.3. Table 1: The four objects on which PPT is built. Tilt factor W (˜k; κ) := Ez1: m∼κ
+
+ Q mi=1 ˜k(zi | z1: i−1)
+
+Tilted posterior Πtilt (d˜k; κ) ∝ W (˜k; κ) Π 0(d˜k)
+
+Marginalized utility ¯μ(˜k; κ) := Ez1: m∼κ
+
+μ(˜k; z1: m)
+
+Surrogate objective Jtilt (κ) := R 
+
+> K
+
+¯μ(˜k; κ) Π tilt (d˜k; κ)
+
+To optimize over κ we need a finite-dimensional parameterization. We therefore work with k-Markov kernels: a kernel ˜k ∈ K is k-Markov if ˜k(· | h) depends on h only through its length-k suffix suf k(h),the last k symbols of h (we write Kk ⊆ K for this subset; formal background in Appendix A). A 
+
+k-Markov kernel is finite-dimensional: a pmf in ∆( Y) when k = 0 , and a transition table in Qk
+
+when k ≥ 1. Taking Π0 supported on Kk, both the latent task and the prompt kernel κ are of this form. Sections 3.1 and 3.2 instantiate these for k = 0 and k ≥ 1.4We maximize Jtilt by gradient ascent on this parameter. The gradient splits into two terms: 
+
+∇Jtilt (κ) = Cov ˜k∼Πtilt (·; κ)
+
+ ¯μ(˜k; κ), ∇ log W (˜k; κ) + E˜k∼Πtilt (·; κ)
+
+∇¯μ(˜k; κ), (6) where all gradients are with respect to this parameter. The first term is a covariance under Πtilt 
+
+between ¯μ and the score of log W ; the second vanishes when ¯μ does not depend on it. We estimate (6) by importance sampling against samples drawn once from the latent prior the BFT implies. These prior samples come from predictive Monte Carlo (PMC), an instance of predictive Bayesian inference via martingale posteriors [Fong et al., 2023], applied to BFTs by Effiezal Aswadi et al. [2026]: each sample is obtained by rolling out the BFT autoregressively without conditioning and reading the implied latent off the rollout’s token statistics. Appendix B.1 derives PMC for our setting and validates it against the analytic prior (Figure 2). Because the samples are drawn once and reused across optimization steps, the optimization needs no further transformer calls and no backpropagation through πθ .       
+
+> Autoregressive sampling via πθ
+> y(l)
+> t∼πθ(· | y(l)1: t−1)Approximate prior sample
+> Rollout 1
+
+y(1) 1 . . . y(1)  
+
+> R
+
+˜p(1) or ˜Q(1)  
+
+> count
+> Rollout 2
+
+y(2) 1 . . . y(2)  
+
+> R
+
+˜p(2) or ˜Q(2) 
+
+> count
+
+... ...  
+
+> Rollout L
+
+y(L)1 . . . y(L) 
+
+> R
+
+˜p(L) or ˜Q(L)
+
+> count
+
+(a) PMC schematic 0.0 0.5 1.0    
+
+> p0
+> 0
+> 1
+> 2
+> Density
+> 0.0 0.5 1.0
+> p1
+> 0
+> 1
+> 2
+> Density
+
+(b) Validation, 
+
+k = 0 0.0 0.5 1.0       
+
+> Q0, 0
+> 0
+> 1
+> 2
+> 0.0 0.5 1.0
+> Q0, 1
+> 0
+> 1
+> 2
+> Analytic prior
+> PPD PMC
+> BFT PMC
+> 0.0 0.5 1.0
+> Q1, 0
+> 0
+> 1
+> 2
+> 0.0 0.5 1.0
+> Q1, 1
+> 0
+> 1
+> 2
+
+(c) Validation, k = 1 
+
+Figure 2: Predictive Monte Carlo (PMC). (a) Schematic, adapted from Ng et al. [2026]: each of L rollouts autoregressively samples a length-R sequence from πθ with no conditioning; token frequencies give a prior sample ˜p(l) (k = 0 ) and transition counts give ˜Q(l) (k ≥ 1). (b)–(c) Validation of the sampled prior density against the closed form, for k = 0 and k = 1 . Analytic prior (green, filled) is the closed-form prior Π0; PPD PMC (red, dotted) runs PMC on the exact posterior predictive (PPD) rule, isolating PMC’s own sampling error; BFT PMC (blue, dashed) runs PMC on the trained BFT, the sampler we actually use ( L=5000 rollouts, R=2000 ). 
+
+Recovering a hard prompt. The optimization above returns a kernel κ from which prompts are sampled, but the elicitation problem asks for a hard prompt z1: m ∈ Y m. We recover one by snapping the continuous optimum: for k = 0 this means rounding the per-token sampling frequencies; for 
+
+k ≥ 1, constructing a hard prompt from the optimized transition table via an Eulerian path on its de Bruijn graph. Both procedures are given in Appendix B.6. 
+
+3.1 The exchangeable case ( k = 0 )
+
+Consider a BFT trained on i.i.d. sequences: the prior Π0 is supported on K0, the i.i.d. kernels of the form ˜k(y | h) = ˜ p(y) for some pmf ˜p ∈ ∆( Y). Identifying K0 with ∆( Y), the latent-posterior factorization (4) becomes a Bayes mixture over the latent pmf: 
+
+πθ (y | y1: n) = 
+
+Z
+
+> ∆( Y)
+
+˜p(y) Π( d˜p | y1: n), Π( d˜p | y1: n) ∝
+
+h Qni=1 ˜p(yi)
+
+i
+
+Π0(d˜p). (7) 
+
+Instantiating the definitions in Table 1. The prompt kernel κ ∈ K 0 is determined by a pmf 
+
+α ∈ ∆( Y) via κ(y | h) = α(y). The objects in Table 1 become functions of ˜p and α. The tilt factor 
+
+takes the form 
+
+W (˜ p; α) = Ez1: m∼α⊗m
+
+
+
+> m
+
+Y
+
+> j=1
+
+˜p(zj )
+
+ =
+
+"X
+
+> v∈Y
+
+α(v) ˜ p(v)
+
+#m
+
+. (8) For k = 0 , μ(˜k; z1: m) does not depend on z1: m (the latent kernel ignores history); abbreviate 
+
+μ(˜ p) := μ(˜k; z1: m) = EY1: N ∼ ˜p⊗N [U (Y1: N )] . (9) 5The marginalized utility ¯μ(˜ p; α) = μ(˜ p) trivially. 
+
+Score function gradient. The gradient of Jtilt specializes (6) (the second term vanishes since 
+
+¯μ = μ(˜ p) is α-independent): 
+
+∇αJtilt (α) = Cov ˜p∼Πtilt (·; α)
+
+ μ(˜ p), ∇α log W (˜ p; α). (10) 
+
+IS estimator. We estimate the gradient (10) by importance sampling from the BFT’s latent prior. Since this prior does not depend on α, we draw L prior samples ˜p(ℓ) from it once, via PMC (Appendix B.1), and reuse them across all optimization steps. Given the current α, define the importance weights wℓ := W (˜ p(ℓ); α) and their self-normalized form ˜wℓ := wℓ/ PLr=1 wr , and let bμ(ℓ) denote an estimator of μ(˜ p(ℓ)). We estimate ∇αJtilt (α) by the self-normalized sample covariance: 
+
+\∇αJtilt (α) := 
+
+> L
+
+X
+
+> ℓ=1
+
+˜wℓ
+
+bμ(ℓ) − ¯μw
+
+  
+
+s(ℓ) − ¯sw
+
+
+
+, (11) where 
+
+s(ℓ) := ∇α log W (˜ p(ℓ); α), ¯μw := X
+
+> ℓ
+
+˜wℓ bμ(ℓ), ¯sw := X
+
+> ℓ
+
+˜wℓs(ℓ).
+
+The two variants of (11) differ only in how they estimate μ(˜ p(ℓ)). PPT uses a single rollout: it draws a continuation Y (ℓ)1: N ∼ (˜ p(ℓ))⊗N and sets bμ(ℓ) := U (Y (ℓ)1: N ), which is unbiased given ˜p(ℓ) but noisy. PPT-RB instead uses the closed-form μ(˜ p(ℓ)) from (9) , available here (Appendix C.3). Replacing the rollout by its conditional expectation removes the rollout noise, so by Rao–Blackwell (Appendix B.3) PPT-RB has lower variance. 
+
+3.2 The k-Markov exchangeable case ( k ≥ 1)
+
+This subsection generalizes Section 3.1 to k ≥ 1, with k = 0 recovered as a special case. Consider a BFT trained on k-Markov exchangeable sequences: the prior Π0 is supported on Kk, the k-Markov kernels of the form ˜k(y | h) = ˜Qsuf k (h), y for some transition table ˜Q ∈ Q k := ∆( Y)|Y| k
+
+.Identifying Kk with Qk, the latent-posterior factorization (4) becomes a Bayes mixture over the latent transition table: 
+
+πθ (y | y1: n) = 
+
+Z
+
+> Qk
+
+˜Qsuf k (y1: n),y Π( d ˜Q | y1: n), Π( d ˜Q | y1: n) ∝
+
+> n
+
+Y
+
+> i=k+1
+
+˜Qsuf k (y1: i−1),y i Π0(d ˜Q).
+
+(12) 
+
+Instantiating the definitions in Table 1. The prompt is a Markov chain on Ym with two parameters: a transition table A ∈ Q k, where As,v is the probability of emitting v from state s, and a distribution 
+
+ρ ∈ ∆( Yk) over the first k tokens. We write PA,ρ for the resulting law on Ym: the first k tokens are drawn from ρ, and each subsequent token zj from A(· | suf k(z1: j−1)) . Equivalently, the prompt kernel is κ(y | h) = Asuf k (h), y . The objects in Table 1 become functions of ˜Q, A, ρ . The tilt factor 
+
+takes the form 
+
+W ( ˜Q; A, ρ ) = Ez1: m∼PA,ρ 
+
+
+
+> m
+
+Y
+
+> j=k+1
+
+˜Qsuf k (z1: j−1), z j
+
+ , (13) where the product starts at j = k + 1 because the first k tokens have no preceding context to transition from; ρ enters (13) only through PA,ρ , which determines the chain’s starting state. Appendix B.2 gives a closed-form matrix-power expression for W , which we use throughout. For k-Markov ˜k, μ(˜k; z1: m) depends on z1: m only through its length-k suffix; abbreviate 
+
+μ( ˜Q; s) := μ(˜k; z1: m) suf k (z1: m)= s = EY1: N ∼ ˜Q(·| s)[U (Y1: N )] , s ∈ Y k. (14) Closed forms for μ( ˜Q; s) in our utility/BFT pairs are in Appendix C.3. The marginalized utility is the average of μ( ˜Q; s) over the distribution νs(A, ρ ) that the suffix suf k(z1: m) has under PA,ρ :
+
+¯μ( ˜Q; A, ρ ) = X
+
+> s∈Y k
+
+νs(A, ρ ) μ( ˜Q; s), (15) 6Since νs(A, ρ ) is itself closed form (Appendix B.2), ¯μ is available in closed form whenever μ( ˜Q; s)
+
+is, as for our utility/BFT pairs; PPT-RB uses this closed form. 
+
+Score function gradient. The gradient with respect to A has two terms, one through the tilt weights and one through νs(A, ρ ):
+
+∇AJtilt (A, ρ ) = Cov ˜Q∼Πtilt 
+
+ ¯μ( ˜Q; A, ρ ), ∇A log W ( ˜Q; A, ρ ) + E ˜Q∼Πtilt 
+
+∇A ¯μ( ˜Q; A, ρ ). (16) The score ∇A log W is always available in closed form, by differentiating the matrix power (19) (Ap-pendix B.2). The second term, ∇A ¯μ = P 
+
+> s
+
+μ( ˜Q; s) ∇Aνs(A, ρ ), is closed form whenever μ( ˜Q; s)
+
+is (as for our utility/BFT pairs), which PPT-RB uses; otherwise PPT estimates the integrand by a single rollout. We optimize ρ jointly with A by simplex-projected gradient descent (Appendix B.5). The IS estimator extends (11) : the second term of (16) contributes an additional importance-weighted expectation, and the integrand ¯μ( ˜Q(ℓ); A, ρ ) can be evaluated either in closed form (PPT-RB) or by a single rollout (PPT). The full estimator is in Appendix B.4. 
+
+4 Experiments 
+
+Our experiments use Y = {0, 1}, continuation horizon N = 4 , Markov orders k ∈ { 0, 1}, and prompt lengths m ∈ { 6, 50 }. We meta-learn two BFTs. For the Beta–Bernoulli BFT (k = 0 ), 
+
+Π0 = Beta(1 /2, 1/2) on the latent pmf ˜p and tokens are conditionally i.i.d. Bernoulli(˜ p); for the 
+
+reinforced urn BFT (k = 1 ), Π0 has independent rows ˜Qa, ·
+
+> ind.
+
+∼ Dir(1 /2, 1/2) on the latent transition matrix ˜Q ∈ Q 1, and the sequence is a Markov chain with transition matrix ˜Q. In both cases the posterior on the latent kernel and the posterior predictive on the next token are available in closed form (Appendices C.1 and C.2); architectures and training details are in Appendix D.2. 
+
+4.1 Utility functions Reverse cross-entropy against a target distribution. Fix a target distribution ξ⋆ on YN and set 
+
+Uξ⋆ (y1: N ) := log ξ⋆(y1: N ). Then J(z1: m) is the negative cross-entropy from πθ (· | z1: m) to ξ⋆,so maximizing J rewards prompts whose continuation distribution concentrates on continuations that ξ⋆ assigns high probability. For the Beta–Bernoulli BFT we take ξ⋆ = Bernoulli( τ ⋆)⊗N and sweep τ ⋆ ∈ { 0.1, 0.2, 0.3, 0.4, 0.6, 0.7, 0.8, 0.9} (8 targets). For the reinforced urn BFT we take ξ⋆
+
+to be the law of a 1-Markov chain with transition matrix Q⋆, swept over two families: a symmetric 
+
+family ( sym-r) with Q⋆ 
+
+> 0,0
+
+= Q⋆ 
+
+> 1,1
+
+= r for r ∈ { 0.1, 0.2, 0.3, 0.4, 0.6, 0.7, 0.8, 0.9, 1.0} (9 targets), and a random family ( dir-s) of 10 matrices indexed by s ∈ { 0, . . . , 9}, with rows drawn i.i.d. from 
+
+Dir(1 /2, 1/2) under seed s. We omit τ ⋆ = 0 .5 and r = 0 .5 because both correspond to uniform targets under which J = −N log 2 for every prompt and method. 
+
+Match target frequency. Set Uq⋆ (y1: N ) := − f (y1: N ) − q⋆2, where f (y1: N ) := 1
+
+> N
+
+PNt=1 yt
+
+is the empirical 1-frequency. We sweep q⋆ ∈ { 0, 0.1, . . . , 1.0} (11 targets); full specification in Appendix D.1. 
+
+Dyck validity. Identifying 0 ≡“(” and 1 ≡“)”, set Udyck (y1: N ) = 1 if y1: N is a valid balanced-bracket sequence and 0 otherwise; full specification in Appendix D.1. 
+
+4.2 Prefix-tuning methods compared 
+
+We compare five methods. GCG [Zou et al., 2023] optimizes hard prompts z1: m ∈ Y m directly via gradient-guided coordinate substitution (Appendix D.4). PPT and PPT-RB (Section 3) optimize a continuous parameterization ( (A, ρ ) or α) of the prompt distribution and snap to a hard prompt at termination (Appendix B.6), with prior samples drawn from the trained BFT via PMC (Appendix B.1); closed-form μ (Appendix C.3) is available for all three utilities under both BFTs, so PPT-RB is applicable throughout. As diagnostic baselines, PPT ( ANALYTIC ) and PPT-RB ( ANALYTIC ) run the same procedure with samples drawn directly from Π0, isolating the contribution of PMC sampling error. Implementation details are in Appendix D. 
+
+Computational cost. PPT and PPT-RB make no BFT queries during optimization; their only BFT cost is the one-time PMC sampling of L = 5000 rollouts of length R = 2000 , i.e. LR forward 7passes, amortized across all utilities. The ( ANALYTIC ) variants query the BFT not at all. GCG, in contrast, queries the BFT at every step: |Y| N = 16 forward passes to evaluate J(z), a backward pass to rank candidate bitflips, and |Y| N further passes for each of the c ≤ m bitflips it considers, for 
+
+O((1 + c) |Y| N ) queries per step. 
+
+4.3 Evaluation and results 
+
+For any hard prompt z1: m ∈ Y m the elicitation objective J(z1: m) = EY1: N ∼πθ (·| z1: m)[U (Y1: N )] 
+
+is computed exactly by enumerating the |Y| N = 16 continuations through πθ ; this serves as our gold-standard score. For m = 6 we additionally enumerate all |Y| m = 64 candidate prompts to obtain the global optimum Jopt = max z∈Y m J(z) and the rank of every prompt; for m = 50 the prompt space has ∼ 10 15 elements, so Jopt and rank are unavailable. We compare the five methods of Section 4.2 on the Beta–Bernoulli and reinforced urn BFTs and the three utilities of Section 4.1, at m ∈ { 6, 50 }. Every (utility, prompt length, BFT) setting is run over 
+
+10 random seeds and we report means with standard errors. Table 2 summarizes reverse cross-entropy on the reinforced urn BFT. Per-configuration tables for all utilities and BFTs are in Appendix E.1; ESS and PMC diagnostics for PPT and PPT-RB are in Appendix E.2. Overall, the comparison depends on the utility, BFT, and prompt length. For reverse cross-entropy, the PPT variants substantially outperform GCG on the reinforced urn at both prompt lengths; on Beta–Bernoulli, all methods reach the optimum at m = 6 , and at m = 50 GCG and PPT-RB perform equally well and better than PPT. For frequency match, on Beta–Bernoulli all methods reach near-optimum at m = 6 and GCG outperforms the PPT variants at m = 50 ; on the reinforced urn, the PPT variants outperform GCG at m = 6 , and PPT-RB and GCG are comparable at 
+
+m = 50 . For Dyck validity, on Beta–Bernoulli all four PPT variants reach the m = 6 optimum and all methods produce J ≈ 0.12 at m = 50 ; on the reinforced urn at m = 6 , PPT-RB uniquely reaches the enumerated optimum on every seed, and at m = 50 the picture inverts with GCG producing J = 0 .61 versus J ≈ 0.014 –0.021 for the four PPT variants. The remainder of this section focuses on reverse cross-entropy; per-cell breakdowns for frequency match and Dyck validity are in Appendix E.1. 
+
+Reverse cross-entropy. On Beta–Bernoulli at m = 6 , all methods achieve J at the enumerated optimum for every τ ⋆. At m = 50 on Beta–Bernoulli, GCG and PPT-RB match each other across all τ ⋆, while PPT is consistently worse (Table 5). On the reinforced urn, Table 2 reports mean J at both m ∈ { 6, 50 }: the PPT variants achieve J substantially closer to the optimum than GCG on both the symmetric and random target families. At m = 6 , Table 7 reports the rank of each snapped prompt out of |Y| m = 64 : the PPT variants reach rank 1–3 on most cells while GCG averages rank 
+
+5–16 .Table 2: Reverse cross-entropy on the reinforced urn BFT. Each cell is the mean of J over n = 10 
+
+random seeds (max convention; higher better), with standard error in parentheses. Best method per 
+
+m in bold (within 10 −3). m = 6 m = 50                                                                                                                                                                                                                                                                                                         
+
+> GCG PPT-RB (A) PPT-RB PPT (A) PPT GCG PPT-RB (A) PPT-RB PPT (A) PPT
+> sym-0.1 −2.51 (0 .29) −1.75 (0 .01) −1.80 (0 .00) −1.76 (0 .01) −1.80 (0 .00) −1.48 (0 .10) −0.61 (0 .00) −0.61 (0 .00) −0.62 (0 .02) −0.65 (0 .02)
+> sym-0.2 −2.21 (0 .18) −1.73 (0 .01) −1.76 (0 .00) −1.73 (0 .01) −1.76 (0 .00) −1.56 (0 .06) −1.01 (0 .00) −1.01 (0 .00) −1.02 (0 .01) −1.03 (0 .01)
+> sym-0.3 −2.23 (0 .11) −1.94 (0 .01) −1.96 (0 .00) −1.95 (0 .01) −1.96 (0 .00) −1.83 (0 .04) −1.50 (0 .00) −1.50 (0 .00) −1.50 (0 .00) −1.50 (0 .00)
+> sym-0.4 −2.43 (0 .05) −2.29 (0 .00) −2.30 (0 .00) −2.29 (0 .00) −2.30 (0 .00) −2.24 (0 .02) −2.08 (0 .00) −2.22 (0 .14) −2.08 (0 .00) −2.08 (0 .00)
+> sym-0.6 −2.37 (0 .06) −2.18 (0 .00) −2.18 (0 .00) −2.18 (0 .00) −2.18 (0 .00) −2.28 (0 .03) −2.06 (0 .00) −2.06 (0 .00) −2.06 (0 .00) −2.06 (0 .00)
+> sym-0.7 −2.11 (0 .14) −1.71 (0 .01) −1.71 (0 .01) −1.71 (0 .01) −1.71 (0 .01) −1.93 (0 .06) −1.47 (0 .00) −1.47 (0 .00) −1.47 (0 .00) −1.47 (0 .00)
+> sym-0.8 −2.01 (0 .22) −1.36 (0 .01) −1.36 (0 .01) −1.36 (0 .01) −1.36 (0 .01) −1.71 (0 .09) −0.96 (0 .00) −0.96 (0 .00) −0.96 (0 .00) −0.96 (0 .00)
+> sym-0.9 −2.19 (0 .35) −1.17 (0 .02) −1.17 (0 .02) −1.17 (0 .02) −1.17 (0 .02) −1.72 (0 .15) −0.53 (0 .00) −0.53 (0 .00) −0.53 (0 .00) −0.53 (0 .00)
+> sym-1.0 −24 .10 (4 .79) −10 .48 (0 .23) −10 .62 (0 .22) −10 .48 (0 .23) −10 .62 (0 .22) −17 .75 (2 .01) −1.50 (0 .01) −1.50 (0 .01) −1.50 (0 .01) −1.50 (0 .01)
+> dir-0 −3.47 (0 .42) −1.89 (0 .00) −2.04 (0 .15) −1.89 (0 .00) −2.04 (0 .15) −1.76 (0 .03) −1.70 (0 .16) −1.94 (0 .20) −1.90 (0 .18) −2.01 (0 .19)
+> dir-1 −2.49 (0 .18) −1.63 (0 .00) −1.63 (0 .00) −1.63 (0 .00) −1.63 (0 .00) −1.65 (0 .04) −1.30 (0 .00) −1.48 (0 .18) −1.65 (0 .23) −1.66 (0 .24)
+> dir-2 −2.12 (0 .18) −1.32 (0 .00) −1.32 (0 .00) −1.32 (0 .00) −1.32 (0 .00) −2.32 (0 .08) −1.10 (0 .15) −0.95 (0 .00) −1.25 (0 .20) −1.26 (0 .20)
+> dir-3 −2.00 (0 .20) −1.40 (0 .04) −1.40 (0 .04) −1.40 (0 .04) −1.40 (0 .04) −1.74 (0 .09) −1.02 (0 .04) −1.02 (0 .04) −1.02 (0 .04) −1.02 (0 .04)
+> dir-4 −2.93 (0 .18) −2.04 (0 .23) −2.10 (0 .37) −2.04 (0 .23) −2.04 (0 .23) −2.72 (0 .09) −1.14 (0 .37) −0.64 (0 .27) −1.61 (0 .37) −1.33 (0 .37)
+> dir-5 −2.27 (0 .23) −1.75 (0 .00) −1.75 (0 .00) −1.75 (0 .00) −1.75 (0 .00) −1.36 (0 .05) −0.78 (0 .00) −0.78 (0 .00) −0.82 (0 .02) −0.80 (0 .01)
+> dir-6 −2.24 (0 .20) −1.45 (0 .13) −1.37 (0 .12) −1.45 (0 .13) −1.37 (0 .12) −1.79 (0 .15) −1.19 (0 .19) −0.93 (0 .18) −1.19 (0 .19) −1.19 (0 .19)
+> dir-7 −2.27 (0 .37) −1.22 (0 .01) −1.22 (0 .01) −1.23 (0 .01) −1.22 (0 .01) −1.92 (0 .15) −0.54 (0 .05) −0.54 (0 .05) −0.55 (0 .04) −0.52 (0 .05)
+> dir-8 −2.61 (0 .13) −2.45 (0 .03) −2.45 (0 .03) −2.45 (0 .03) −2.45 (0 .03) −2.13 (0 .02) −2.21 (0 .08) −2.22 (0 .08) −2.20 (0 .07) −2.21 (0 .08)
+> dir-9 −2.51 (0 .19) −1.82 (0 .00) −1.93 (0 .11) −1.82 (0 .00) −1.93 (0 .11) −1.74 (0 .03) −1.68 (0 .12) −1.68 (0 .12) −1.80 (0 .16) −1.90 (0 .17)
+
+85 Related Works 
+
+The Bayesian view of ICL. Our framework rests on the view that ICL admits an approximate Bayesian interpretation, in which the transformer’s predictions arise from a posterior over latent predictive models updated by the context. Xie et al. [2022] introduced this view as an explanation of ICL, and Panwar et al. [2024] developed it empirically across a range of synthetic settings. Garg et al. [2022] and Akyürek et al. [2023] validated the picture in in-context linear regression, showing that transformers trained on hierarchical data implement Bayesian predictors. The connection between meta-learning on hierarchical data and Bayesian posterior prediction was formalized by Ortega et al. [2019], whose analysis underlies our notion of an idealized BFT. Building on the same idealization, Fortini et al. [2026] prove a predictive central limit theorem for BFTs and use it to decompose a trained BFT’s predictive uncertainty into aleatoric and epistemic components, using only forward passes. 
+
+Belief-state geometry of trained transformers. The latent-posterior factorization (4) is a hypothesis about what the trained transformer represents internally. Shai et al. [2024] showed that transformers trained on hidden Markov processes linearly represent the Bayesian belief state in their residual stream, with geometry matching the mixed-state presentation of computational mechanics. Piotrowski et al. [2025] extended this to constrained belief updates that account for the simplices observed in trained models, and Riechers et al. [2025] showed that next-token pretraining on data with hidden structure implies ICL of that structure. These results indicate that the latent-posterior model is not merely a useful idealization: trained transformers can be observed to maintain and update a posterior over latent generators. Complementing these internal probes, Effiezal Aswadi et al. [2026] recover a trained BFT’s implied prior and posterior over the latent task from generation alone, via the same predictive Monte Carlo procedure we use in Appendix B.1. 
+
+Prefix tuning for BFTs. Two recent works also study prompting of BFTs: Genewein et al. [2025] and Wenliang et al. [2026], both of which prompt Beta–Bernoulli BFTs (the k = 0 case in our paper) with different Beta hyperparameters than ours: Genewein et al. [2025] use α = β = 1 (uniform-bias coin pretraining), and Wenliang et al. [2026] sweep over (α, β ). Wenliang et al. [2026] additionally consider two simpler Bernoulli BFTs whose latent prior is a point mass at a single coin bias or a two-point mixture. Neither work covers the k ≥ 1 Markov case. The prompt/prefix tuning problem as defined in Genewein et al. [2025] refers to aligning the BFT to a target sequence distribution ξTarget (y1: N ) by prepending a learnable prefix z1: m ∈ S m, where the prefix alphabet S varies by method: HardPT uses S = Y, SimplexPT uses S = ∆( Y) ⊂ R|Y| ,RealPT uses S = R|Y| , and SoftPT uses S = Rdembed (“embedding-dimensionality”). Their optimization objective (Eq. (7)), in our notation, is 
+
+min  
+
+> z1: m∈S m
+
+Ey1: N ∼ξTarget [− log πθ (y1: N | z1: m)] .
+
+Note their objective is the “forward” (mass-seeking) cross-entropy under the target distribution, which they minimize; maximizing our J is equivalent to minimizing the “reverse” (mode-seeking) cross-entropy. Wenliang et al. [2026] share the BFT setting and the forward cross-entropy objective above, but their focus is empirical: they show that exhaustive search and intuitive prompts often fail to identify the theoretically optimal prompt, and that optimal prompts depend on the pretraining distribution in unintuitive ways. 
+
+Hard-prompt elicitation and persona-modulation attacks. Outside the Bayesian view, a parallel literature attacks the elicitation problem by direct hard-prompt search. Zou et al. [2023] introduced Greedy Coordinate Gradient (GCG), which optimizes a hard prompt to elicit a target completion via gradient-guided coordinate substitution; we use GCG as our experimental baseline. A complementary line of work exploits the latent structure that PPT operates on directly. Shah et al. [2023] demonstrate that “persona-modulation attacks,” designed to steer a model into adopting a particular persona, are an effective and transferable jailbreak strategy, and Deshpande et al. [2023] show that persona assignment systematically shifts a model’s distribution of completions. From the latent-posterior viewpoint, both can be understood as engineering prompts that bias the latent posterior toward kernels with high adversarial utility. 
+
+Personas as latent factors. A growing body of work treats LLM behavior as conditioned on structured latent character traits, or personas . The Persona Selection Model of Marks et al. [2026] hypothesizes that the assistant character is one component of a richer latent posterior maintained 9by post-trained LLMs, and frames misalignment as undesirable persona selection. Ghandeharioun et al. [2024] similarly frame alignment in terms of personas, arguing that both the model’s adopted persona and its inferred user persona shape responses. Joshi et al. [2024] treat personas as latent factors and use this framing to explain the emergence of a “truth direction” in the latent space of language models. Most recently, Wang et al. [2026] exhibit persona features in fine-tuned models that mediate emergent misalignment under narrow fine-tuning. From our perspective, these strands of evidence point to K as the locus of behavioral steering: elicitation reduces to placing the latent posterior on a kernel, persona, or other latent factor that produces the target behavior. 
+
+6 Discussion 
+
+Summary. We formalized the elicitation problem for Bayes-filtered transformers and showed that, under the latent-posterior factorization (4) , a tilted surrogate Jtilt of the elicitation objective admits a gradient (6) estimable entirely in latent-prior space. Posterior Prefix Tuning (PPT) operationalizes this in 0- and 1-Markov exchangeable BFTs: the prompt is sampled from a kernel whose continuous parameter is a pmf on Y (k = 0 ) or a transition matrix on Y (k ≥ 1), and the gradient is estimated by importance sampling with samples drawn from the BFT’s latent prior. These samples are obtained once via predictive Monte Carlo and reused across optimization steps and across utility functions, so each gradient step requires zero transformer calls and no backpropagation through πθ .
+
+Limitations. The method requires (4) to hold for the trained transformer. Even in our stylized settings, where meta-learning data is drawn from a k-Markov exchangeable prior so the idealized log-loss optimum satisfies (4) , the trained BFT only approximates this representation, and real-world transformers approximate it at best loosely. The scope is limited in three further ways. First, PPT is restricted to the prefix-tuning setting; extending it to settings where the BFT additionally conditions on observed data is left for future work. Second, our experiments cover only |Y| = 2 , k ∈ { 0, 1},and continuation horizon N = 4 . Third, hard-prompt recovery is a separate procedure from the continuous optimization (floor/ceil candidate evaluation for k = 0 ; Eulerian-path construction on the de Bruijn graph for k = 1 ), and we do not establish that the recovered hard prompt is optimal among those consistent with the optimized κ.
+
+Outlook. The PMC samples are utility-independent and can be reused across any number of utility functions; the cost of drawing them from the BFT via PMC is paid once. Extending PPT beyond 
+
+k-Markov exchangeability to other latent classes with finite-dimensional parameterizations would broaden the settings in which the latent-posterior factorization holds. 
+
+References 
+
+Ekin Akyürek, Dale Schuurmans, Jacob Andreas, Tengyu Ma, and Denny Zhou. What learning algorithm is in-context learning? investigations with linear models. In The Eleventh International Conference on Learning Representations , 2023. URL https://openreview.net/forum?id= 0g0X4H8yN4I .Tom Brown, Benjamin Mann, Nick Ryder, Melanie Subbiah, Jared D. Kaplan, Prafulla Dhariwal, Arvind Neelakantan, Pranav Shyam, Girish Sastry, Amanda Askell, et al. Language models are few-shot learners. Advances in Neural Information Processing Systems , 33:1877–1901, 2020. Ameet Deshpande, Vishvak Murahari, Tanmay Rajpurohit, Ashwin Kalyan, and Karthik Narasimhan. Toxicity in ChatGPT: Analyzing persona-assigned language models. In Findings of the Association for Computational Linguistics: EMNLP 2023 , 2023. Afiq Abdillah Effiezal Aswadi, Haotong Ma, and Susan Wei. What does a Bayes-filtered transformer believe? A predictive Monte Carlo approach, 2026. URL https://arxiv.org/abs/2607. 17060 .Edwin Fong, Chris Holmes, and Stephen G. Walker. Martingale Posterior Distributions. Journal of the Royal Statistical Society Series B: Statistical Methodology , 85(5):1357–1391, 2023. doi: 10.1093/jrsssb/qkad005. Sandra Fortini and Sonia Petrone. Exchangeability, Prediction and Predictive Modeling in Bayesian Statistics. Statistical Science , 40(1):40 – 67, 2025. doi: 10.1214/24-STS965. URL https: //doi.org/10.1214/24-STS965 .10 Sandra Fortini, Kenyon Ng, Sonia Petrone, Judith Rousseau, and Susan Wei. Uncertainty de-composition for Bayes-filtered transformers via Bayesian predictive inference, 2026. URL 
+
+https://arxiv.org/abs/2602.04596 .Shivam Garg, Dimitris Tsipras, Percy Liang, and Gregory Valiant. What can Transformers learn In-Context? A case study of simple function classes. In Advances in Neural Information Processing Systems , 2022. Tim Genewein, Gregoire Deletang, Anian Ruoss, Li Kevin Wenliang, Elliot Catt, Vincent Dutordoir, Jordi Grau-Moya, Laurent Orseau, Marcus Hutter, and Joel Veness. Memory-Based Meta-Learning on Non-Stationary Distributions. In Proceedings of the 40th International Conference on Machine Learning , pages 11173–11195. PMLR, 2023. Tim Genewein, Li Kevin Wenliang, Jordi Grau-Moya, Anian Ruoss, Laurent Orseau, and Marcus Hutter. Understanding Prompt Tuning and In-Context Learning via Meta-Learning. In The Thirty-ninth Annual Conference on Neural Information Processing Systems , 2025. URL https: //openreview.net/forum?id=avRktRfQ8c .Asma Ghandeharioun, Ann Yuan, Marius Guerard, Emily Reif, Michael A. Lepori, and Lucas Dixon. Who’s asking? user personas and the mechanics of latent misalignment. In The Thirty-eighth Annual Conference on Neural Information Processing Systems , 2024. URL https:// openreview.net/forum?id=eSes1Mic9d .Jordi Grau-Moya, Tim Genewein, Marcus Hutter, Laurent Orseau, Gregoire Deletang, Elliot Catt, Anian Ruoss, Li Kevin Wenliang, Christopher Mattern, Matthew Aitchison, and Joel Veness. Learning universal predictors. In Forty-first International Conference on Machine Learning , 2024. URL https://openreview.net/forum?id=B1ajnQyZgK .Geoffrey Irving, Joseph Bloom, and Tomek Korbak. Eliciting bad contexts. AI Alignment Fo-rum, January 2025. URL https://www.alignmentforum.org/posts/inkzPmpTFBdXoKLqC/ eliciting-bad-contexts .Nitish Joshi, Javier Rando, Abulhair Saparov, Najoung Kim, and He He. Personas as a way to model truthfulness in language models. In Proceedings of the 2024 Conference on Empirical Methods in Natural Language Processing , pages 6346–6359. Association for Computational Linguistics, 2024. doi: 10.18653/v1/2024.emnlp-main.364. URL https://aclanthology. org/2024.emnlp-main.364/ .Brian Lester, Rami Al-Rfou, and Noah Constant. The power of scale for parameter-efficient prompt tuning. In Proceedings of the 2021 conference on empirical methods in natural language processing ,pages 3045–3059, 2021. Xiang Lisa Li and Percy Liang. Prefix-tuning: Optimizing continuous prompts for generation. In 
+
+Proceedings of the 59th Annual Meeting of the Association for Computational Linguistics and the 11th International Joint Conference on Natural Language Processing (Volume 1: Long Papers) ,pages 4582–4597, 2021. Sam Marks, Jack Lindsey, and Christopher Olah. The Persona Selection Model: Why AI assistants might behave like humans. Anthropic Alignment Science Blog, February 2026. URL https: //alignment.anthropic.com/2026/psm/ .Vladimir Mikulik, Grégoire Delétang, Tom McGrath, Tim Genewein, Miljan Martic, Shane Legg, and Pedro Ortega. Meta-trained agents implement Bayes-optimal agents. In Advances in Neural Information Processing Systems , volume 33, pages 18691–18703. Curran Associates, Inc., 2020. Kenyon Ng, Edwin Fong, David T. Frazier, Jeremias Knoblauch, and Susan Wei. TabMGP: Martingale posterior with TabPFN. In Forty-third International Conference on Machine Learning , 2026. Pedro A. Ortega, Jane X. Wang, Mark Rowland, Tim Genewein, Zeb Kurth-Nelson, Razvan Pascanu, Nicolas Heess, Joel Veness, Alex Pritzel, Pablo Sprechmann, Siddhant M. Jayakumar, Tom McGrath, Kevin Miller, Mohammad Azar, Ian Osband, Neil Rabinowitz, András György, Silvia Chiappa, Simon Osindero, Yee Whye Teh, Hado van Hasselt, Nando de Freitas, Matthew Botvinick, and Shane Legg. Meta-learning of Sequential Strategies, 2019. URL https://arxiv.org/abs/ 1905.03030 .11 Madhur Panwar, Kabir Ahuja, and Navin Goyal. In-context learning through the bayesian prism. In The Twelfth International Conference on Learning Representations , 2024. URL https:// openreview.net/forum?id=HX5ujdsSon .Mateusz Piotrowski, Paul M. Riechers, Daniel Filan, and Adam Shai. Constrained belief updates ex-plain geometric structures in transformer representations. In Forty-second International Conference on Machine Learning , 2025. URL https://openreview.net/forum?id=f6Hl60FBFU .Paul M. Riechers, Henry R. Bigelow, Eric A. Alt, and Adam Shai. Next-token pretraining implies in-context learning, 2025. URL https://arxiv.org/abs/2505.18373 .Rusheb Shah, Quentin Feuillade-Montixi, Soroush Pour, Arush Tagade, Stephen Casper, and Javier Rando. Scalable and transferable black-box jailbreaks for language models via persona modulation, 2023. URL https://arxiv.org/abs/2311.03348 .Adam Shai, Lucas Teixeira, Alexander Gietelink Oldenziel, Sarah Marzen, and Paul M. Riechers. Transformers represent belief state geometry in their residual stream. In The Thirty-eighth Annual Conference on Neural Information Processing Systems , 2024. URL https://openreview.net/ forum?id=YIB7REL8UC .Miles Wang, Tom Dupre la Tour, Olivia Watkins, Aleksandar Makelov, Ryan Andrew Chi, Samuel Miserendino, Jeffrey George Wang, Achyuta Rajaram, Johannes Heidecke, Tejal Patwardhan, and Daniel P Mossing. Persona features control emergent misalignment. In The Fourteenth International Conference on Learning Representations , 2026. URL https://openreview.net/ forum?id=yjrVOxjkDR .Li Kevin Wenliang, Anian Ruoss, Jordi Grau-Moya, Marcus Hutter, and Tim Genewein. Why is prompting hard? understanding prompts on binary sequence predictors. In Proceedings of the 29th International Conference on Artificial Intelligence and Statistics . PMLR, 2026. Sang Michael Xie, Aditi Raghunathan, Percy Liang, and Tengyu Ma. An explanation of in-context learning as implicit bayesian inference. In International Conference on Learning Representations ,2022. URL https://openreview.net/forum?id=RdJVFCHjUMI .Andy Zou, Zifan Wang, Nicholas Carlini, Milad Nasr, J. Zico Kolter, and Matt Fredrikson. Universal and transferable adversarial attacks on aligned language models, 2023. URL https://arxiv. org/abs/2307.15043 .
+
+A Markov exchangeability 
+
+The representation (4) is deliberately broad: it posits that the model’s next-token distribution is a Bayes mixture over latent tasks ˜k ∈ K , where K contains arbitrary history-dependent kernels and the posterior Π( · | y1: n) ranges over an essentially infinite-dimensional object. We restrict attention to structured subclasses in which the latent task admits a finite-dimensional parameterization and posterior updating depends on low-dimensional sufficient statistics of the observed history (typically token or k-gram transition counts). Exchangeability ( k = 0 ) and k-Markov exchangeability provide exactly this structure: by classical representation theorems, such processes are mixtures of i.i.d. models or mixtures of kth-order Markov chains, so the latent object reduces to a random pmf (exchangeable case) or a random transition table (Markov-exchangeable case). In the remainder of this section we recall these notions and introduce the corresponding definitions of in-context exchangeable and in-context k-Markov exchangeable transformers, which form the stylized setting used throughout the paper. Throughout this appendix, Y is a finite vocabulary and (Yn)n≥1 is an infinite sequence with joint law 
+
+P; we write ∆( Y) for the simplex of probability measures (pmfs) on Y. The representation theorems we invoke require exchangeability—and, in Section A.2, Markov exchangeability—of this full infinite sequence, and finiteness of Y is what makes the relevant parameter spaces finite-dimensional: the simplex ∆( Y) in the exchangeable case, and the set of row-stochastic transition matrices on Y (resp. on Yk) in the 1- (resp. k-) Markov-exchangeable case. 12 A.1 Exchangeability 
+
+The infinite sequence (Yn)n≥1 on Y with joint law P is (infinitely) exchangeable if for every n ≥ 1
+
+and every permutation σ of {1, . . . , n },
+
+(Y1, . . . , Y n) d
+
+= ( Yσ(1) , . . . , Y σ(n)).
+
+By the de Finetti representation theorem, the joint law of such a process is a mixture of i.i.d. laws: there is a unique probability measure Π0 on ∆( Y) such that 
+
+P(Y1: n = y1: n) = 
+
+Z
+
+> ∆( Y)
+
+ nY
+
+> i=1
+
+˜p(yi)
+
+
+
+Π0(d˜p), y1: n ∈ Y n,
+
+where the directing random measure ˜p is the almost-sure limit of the empirical distributions 
+
+> 1
+> n
+
+Pni=1 δYi . The one-step predictive distribution is 
+
+P(Yn+1 ∈ A | Y1: n = y1: n) = 
+
+Z
+
+> ∆( Y)
+
+˜p(A) Π( d˜p | y1: n), A ⊆ Y ,
+
+where Π( · | y1: n) is the posterior induced by the likelihood Qni=1 ˜p(yi). This is a special case of (4) obtained by restricting Π0 to the 0-Markov subclass K0, i.e. kernels of the form ˜k(· | h) ≡ ˜p(·).The one-step conditionals of πθ define consistent finite-dimensional joints through the chain rule, 
+
+Pθ (y1: n) = Qni=1 πθ (yi | y1: i−1), and these extend to a unique law Pθ on the infinite-sequence space 
+
+YN (Ionescu–Tulcea, which for finite Y applies without further regularity conditions). We shall say the transformer πθ is in-context exchangeable , or equivalently in-context 0-Markov exchangeable ,if Pθ is exchangeable; only then does the de Finetti representation above apply to it. 
+
+A.2 1-Markov exchangeability 
+
+For a sequence y1: n ∈ Y n, let 
+
+T (n) 
+
+> a,b
+
+(y1: n) := 
+
+> n−1
+
+X
+
+> t=1
+
+1{yt = a, y t+1 = b}, a, b ∈ Y ,
+
+count its a → b transitions. The infinite sequence (Yn)n≥1 on Y is Markov exchangeable if its law is invariant under reorderings of the steps that preserve the initial symbol and all transition counts: for every n and all y1: n, y ′ 
+
+> 1: n
+
+∈ Y n,
+
+y1 = y′ 
+
+> 1
+
+and T (n) 
+
+> a,b
+
+(y1: n) = T (n) 
+
+> a,b
+
+(y′
+
+> 1: n
+
+) ∀a, b =⇒ P(Y1: n = y1: n) = P(Y1: n = y′
+
+> 1: n
+
+).
+
+Let 
+
+Q := 
+
+n
+
+Q = ( Qa,b )a,b ∈Y : Qa,b ∈ [0 , 1] , X
+
+> b∈Y
+
+Qa,b = 1 ∀a ∈ Y 
+
+o
+
+denote the set of row-stochastic transition matrices on Y, write Qa(A) := P 
+
+> b∈A
+
+Qa,b for a ∈Y, A ⊆ Y , and call (Yn) recurrent if its initial state Y1 is P-a.s. visited infinitely often. The analogue of de Finetti’s theorem here is the Diaconis–Freedman representation of a recurrent Markov-exchangeable process as a mixture of Markov chains [Fortini and Petrone, 2025, Theorem 4.6]: there is a unique prior ΠQ 
+
+> 0
+
+on Q such that, for every y1: n,
+
+P(Y2: n = y2: n | Y1 = y1) = 
+
+Z
+
+> Q
+
+ n−1Y
+
+> t=1
+
+Qyt,y t+1 
+
+
+
+ΠQ 
+
+> 0
+
+(dQ ). (17) The directing random matrix ˜Q ∼ ΠQ 
+
+> 0
+
+is recovered P-a.s. as the entrywise limit of the normalized transition counts ˆT (n) 
+
+> a,b
+
+:= T (n)
+
+> a,b
+
+ P  
+
+> c∈Y
+
+T (n) 
+
+> a,c
+
+(set to 0 when the denominator vanishes). Updating ΠQ
+
+> 0
+
+through the Markov likelihood Ln(Q; y1: n) := Qn−1 
+
+> t=1
+
+Qyt,y t+1 gives the posterior ΠQ(dQ | y1: n) ∝
+
+Ln(Q; y1: n) Π Q 
+
+> 0
+
+(dQ ), and the one-step predictive distribution is the posterior mixture 
+
+P(Yn+1 ∈ A | Y1: n = y1: n) = 
+
+Z
+
+> Q
+
+Qyn (A) Π Q(dQ | y1: n), A ⊆ Y . (18) 13 This is a special case of (4) under the 1-Markov restriction ˜k(y | h) = ˜Qsuf 1(h), y , i.e. when the latent kernel depends on the history only through its last symbol suf 1(h). Thus we shall say the transformer 
+
+πθ is in-context 1-Markov exchangeable if the joint law it induces through its in-context predictions 
+
+Pθ is 1-Markov exchangeable. 
+
+A.3 k-Markov exchangeability 
+
+Fix k ≥ 1 and define the k-gram (block) process St := ( Yt−k+1 , . . . , Y t) ∈ Y k for t ≥ k. We call (Yt) k-Markov exchangeable if the block process (St)t≥k is Markov exchangeable in the sense of Section A.2 (with state space Yk). The block chain is constrained: St = ( yt−k+1 , . . . , y t) can transition only to states (yt−k+2 , . . . , y t, y t+1 ) that share its length-(k−1) suffix, so (St) moves on the subgraph of admissible k-gram transitions. When (St) is recurrent on this subgraph (its initial 
+
+k-gram Sk is P-a.s. revisited infinitely often), the Diaconis–Freedman representation of Section A.2, applied to (St), yields a mixture of Markov chains on Yk, equivalently a mixture of kth-order Markov chains on Y.Equivalently, (4) holds with Π0 supported on Kk, i.e. ˜k(· | h) depends on h only through suf k(h).Thus we shall say the transformer πθ is in-context k-Markov exchangeable if the joint law it induces through its in-context predictions Pθ is k-Markov exchangeable. 
+
+B Methodology details 
+
+B.1 Predictive Monte Carlo 
+
+PPT and PPT-RB require samples from the latent prior that the trained BFT πθ carries over the predictive object— ˜p in the 0-Markov exchangeable case, ˜Q in the k-Markov exchangeable case. We obtain them by Predictive Monte Carlo (PMC) [Fong et al., 2023, Fortini and Petrone, 2025, Effiezal Aswadi et al., 2026], using only forward passes through πθ .It is the BFT’s own implied prior that PMC samples, not the data-generating prior Π0. The BFT is meta-trained on sequences drawn from Π0 and the likelihood, but once trained it induces its own predictive law and, with it, an implied latent prior (and posterior) over the predictive object. An idealized BFT that exactly satisfies (4) makes this implied prior coincide with Π0; a trained BFT only approximates it, so the PMC samples inherit the approximation error of πθ .PMC is not a generic procedure for arbitrary sequence models: its validity rests on conditions on the model’s predictive law under which the rollout statistics converge to a well-defined latent. Effiezal Aswadi et al. [2026] review such sufficient conditions and show empirically that, for BFTs of the kind used here, PMC recovers both the implied prior and posterior; in this paper we use only prior samples. 
+
+Procedure (PMC for a BFT meta-trained on k-Markov exchangeable processes). For each rollout l = 1 , . . . , L :1. Autoregressively sample a length-R sequence from πθ with no conditioning: 
+
+y(l) 
+
+> t
+
+∼ πθ (· | y(l)1: t−1), t = 1 , . . . , R. 
+
+2. Count: • 0-Markov exchangeable : the token frequencies ˜p(l)(y) = #{t:y(l)   
+
+> t=y, 1≤t≤R}
+> R
+
+for each 
+
+y ∈ Y .• k-Markov exchangeable : the empirical transition frequencies from y(l)1: R, normalized to obtain ˜Q(l).The collection {˜p(l)}Ll=1 (resp. { ˜Q(l)}Ll=1 ) is a set of approximate samples from the BFT’s implied latent prior. For the idealized BFT, whose predictive law is exactly the exchangeable (resp. k-Markov exchangeable) mixture (4) , each rollout’s empirical frequencies converge almost surely as R → ∞ to its directing latent—a draw from Π0 [Fortini and Petrone, 2025]. Two distinct errors separate this idealization from practice: the finite-rollout counting error, which R controls and which vanishes as 14 R → ∞ ; and the gap between the trained πθ and the idealized BFT, a fixed property of the model that no choice of R reduces. Figure 2a illustrates the procedure. The key feature is that PMC requires only forward passes through 
+
+πθ (no gradients, no internal access), making it applicable even with API-only access to the model. 
+
+B.2 Closed-form computation of W and its score Exchangeable case. The tilt factor (8) is W (˜ p; α) = [ P 
+
+> v
+
+α(v)˜ p(v)] m. For Y = {0, 1} the score with respect to α has the closed form 
+
+∇α log W (˜ p; α) = m [˜ p − (1 − ˜p)] 
+
+α˜p + (1 − α)(1 − ˜p) .
+
+Markov-exchangeable case. The tilt factor (13) is an expectation over the prompt Markov chain on 
+
+Ym. Changing variables from token sequences to state sequences gives a closed-form matrix-power expression: 
+
+W ( ˜Q; A, ρ ) = ρ⊤ M ( ˜Q)m−k 1, (19) where M ( ˜Q) ∈ R|Y| k ×|Y| k
+
+has entries 
+
+M ( ˜Q) 
+
+> s,s ′
+
+= X
+
+> v∈Y
+
+As,v ˜Qs,v 1[suf k(s, v ) = s′]. (20) That is, M ( ˜Q) = A ⊙ ˜Q in the Hadamard sense, after accounting for the suffix map. The cost is 
+
+O(( m−k) · |Y| k+1 · L) across all L prior samples. When k = 0 , M is 1 × 1 with M = P 
+
+> v
+
+α(v)˜ p(v),
+
+ρ is trivial, and (19) recovers (8). 
+
+Gradient ∇A log W . Differentiating (19) through the matrix power gives 
+
+∇A log W ( ˜Q; A, ρ ) = ∇A
+
+ρ⊤(M ( ˜Q))m−k 1
+
+ρ⊤(M ( ˜Q))m−k 1 ,
+
+where the dependence on A enters only through M ( ˜Q), with entrywise derivative 
+
+∂M ( ˜Q)
+
+> s,s ′
+
+∂A s,v 
+
+= ˜Qs,v 1[suf k(s, v ) = s′].
+
+The matrix-chain derivative is then obtained by differentiating through the matrix power. 
+
+Suffix distribution νs(A, ρ ). The distribution that suf k(z1: m) has under PA,ρ is given by 
+
+νs(A, ρ ) = [ ρ⊤T m−kA ]s,
+
+where TA ∈ R|Y| k ×|Y| k
+
+is the state transition matrix induced by A, with entries 
+
+[TA]s,s ′ = X
+
+> v∈Y
+
+As,v 1[suf k(s, v ) = s′].
+
+The gradient ∇A ¯μ in (16) is computed by differentiating ρ⊤T m−kA through TA.
+
+B.3 Rao–Blackwellization of the gradient estimator 
+
+For each prior sample ˜k(ℓ) from the BFT’s latent prior, the IS estimator requires an estimate of the integrand ¯μ(˜k(ℓ); κ) (and, for k ≥ 1, of ∇¯μ). PPT-RB uses the closed-form ¯μ; PPT uses a single Monte Carlo rollout, 
+
+z1: m ∼ κ, Y1: N ∼ ˜k(ℓ)(· | suf k(z1: m)) , b¯μ(ℓ) := U (Y1: N ).
+
+15 Variance reduction. The rollout estimate is unbiased given ˜k(ℓ):
+
+E
+
+hb¯μ(ℓ) ˜k(ℓ)i
+
+= ¯ μ(˜k(ℓ); κ).
+
+The law of total variance gives 
+
+Var 
+
+b¯μ(ℓ)
+
+= Var 
+
+
+
+¯μ(˜k(ℓ); κ)
+
+
+
++ E
+
+h
+
+Var 
+
+b¯μ(ℓ) ˜k(ℓ)i 
+
+, (21) so Var(¯ μ(˜k(ℓ); κ)) ≤ Var( b¯μ(ℓ)), with the gap equal to the within-kernel sampling variance 
+
+E[Var( b¯μ(ℓ) | ˜k(ℓ))] . Substituting the closed-form ¯μ for b¯μ(ℓ) in the IS estimator ( (11) for k = 0 , (22) for k ≥ 1) reduces the variance of each summand, hence the variance of the gradient estimator. The reduction is largest when individual rollouts from a fixed ˜k(ℓ) are noisy. 
+
+Specialization to k = 0 . The kernel ignores history, so ¯μ(˜ p; α) = μ(˜ p) trivially and the rollout estimate is bμ(ℓ) = U (Y (ℓ)1: N ) with Y (ℓ)1: N ∼ (˜ p(ℓ))⊗N (no prompt sampling needed); PPT-RB uses the closed-form μ(˜ p(ℓ)).
+
+When the closed form exists. Closed-form expressions for μ(˜ p) and ¯μ( ˜Q; A, ρ ) depend on the utility/BFT combination; see Appendices C.1 and C.2 for the cases used in our experiments. For utilities where no closed form is available (e.g., a black-box behavioral classifier), only PPT applies. 
+
+B.4 IS gradient estimator for k ≥ 1
+
+For k ≥ 1 the score function gradient (16) has two terms; we estimate it by importance sampling using L prior samples ˜Q(ℓ) drawn once via PMC from the BFT’s latent prior (Appendix B.1) and reused across optimization steps. Given the current (A, ρ ), define the importance weights 
+
+wℓ := W ( ˜Q(ℓ); A, ρ ), ˜wℓ := wℓ
+
+PLr=1 wr
+
+.
+
+The estimator is a self-normalized sample covariance plus an importance-weighted expectation: 
+
+\∇AJtilt (A, ρ ) := 
+
+> L
+
+X
+
+> ℓ=1
+
+˜wℓ
+
+ b¯μ(ℓ) − ¯¯μw
+
+  s(ℓ) − ¯sw
+
+ +
+
+> L
+
+X
+
+> ℓ=1
+
+˜wℓ ∇A ¯μ( ˜Q(ℓ); A, ρ ), (22) where 
+
+s(ℓ) := ∇A log W ( ˜Q(ℓ); A, ρ ), ¯¯μw := X
+
+> ℓ
+
+˜wℓ b¯μ(ℓ), ¯sw := X
+
+> ℓ
+
+˜wℓs(ℓ).
+
+The integrand ¯μ( ˜Q(ℓ); A, ρ ) selects the variant. PPT-RB uses the closed form (15) , while PPT uses a single rollout, 
+
+z(ℓ) ∼ PA,ρ , Y (ℓ)1: N ∼ ˜Q(ℓ)(· | suf k(z(ℓ))) , b¯μ(ℓ) = U (Y (ℓ)1: N ),
+
+which is unbiased given ˜Q(ℓ),
+
+E
+
+hb¯μ(ℓ) | ˜Q(ℓ)i
+
+= ¯ μ( ˜Q(ℓ); A, ρ ).
+
+By Rao–Blackwell (Appendix B.3), PPT-RB has strictly lower variance for each ℓ.
+
+B.5 Updating the initial-state distribution ρ
+
+The prompt law PA,ρ of Section 3.2 has two parameters: the transition table A ∈ Q k and the initial-state distribution ρ ∈ ∆( Yk) over the first k tokens. Section 3.2 gives the update for A; here we describe the update for ρ, which we optimize by projected gradient ascent on the simplex ∆( Yk),interleaved with the A step. 16 Jtilt is linear in ρ. Fix A and the L prior samples ˜Q(ℓ), and hold the self-normalized importance weights ˜wℓ ∝ W ( ˜Q(ℓ); A, ρ ) at their current values while differentiating in ρ. (The weights do depend on ρ through W ; freezing them gives a partial gradient. Unlike the A gradient (16) , which retains the covariance term through ∇A log W , the ρ step keeps only the term below. This is the gradient the implementation uses, and it suffices because ρ is updated jointly with A at every step.) With the weights fixed, the surrogate objective is the importance-weighted marginalized utility 
+
+Jtilt (A, ρ ) = 
+
+> L
+
+X
+
+> ℓ=1
+
+˜wℓ ¯μ( ˜Q(ℓ); A, ρ ).
+
+Substitute the marginalized utility (15) , ¯μ( ˜Q(ℓ); A, ρ ) = P 
+
+> s∈Y k
+
+νs(A, ρ ) μ( ˜Q(ℓ); s), together with the closed form νs(A, ρ ) = [ ρ⊤T m−kA ]s from Appendix B.2: 
+
+Jtilt (A, ρ ) = X
+
+> ℓ
+
+˜wℓ
+
+X
+
+> s∈Y k
+
+ρ⊤T m−kA
+
+ 
+
+> s
+
+μ( ˜Q(ℓ); s) = ρ⊤T m−kA μw, [μw]s := X
+
+> ℓ
+
+˜wℓ μ( ˜Q(ℓ); s).
+
+(23) Here T m−kA propagates the starting state forward the m−k transitions of the prompt, and μw ∈ R|Y| k
+
+collects the importance-weighted utility at each possible ending state s. For fixed A and frozen weights, Jtilt is therefore a linear function of ρ, and its gradient is the constant vector 
+
+∇ρJtilt (A, ρ ) = T m−kA μw. (24) There is no transpose: writing Jtilt = ρ⊤ T m−kA μw
+
+ makes clear that ∂J tilt /∂ρ s = T m−kA μw
+
+
+
+> s
+
+.Component s of (24) is the utility a prompt would accrue if it started in state s, averaged over the tilted posterior; gradient ascent thus shifts mass toward starting states with high expected utility. 
+
+Projected gradient ascent on the simplex. A bare ascent step ρ + η ∇ρJtilt would leave the simplex ∆( Yk): the updated vector need neither sum to one nor stay nonnegative. We correct the step in two stages, with learning rate η.
+
+(i) Project the gradient onto the simplex tangent. The simplex lies in the affine hyperplane {x :P 
+
+> s
+
+xs = 1 }, whose tangent space is {v : P 
+
+> s
+
+vs = 0 }: moving along any such v leaves the coordinate sum unchanged. We project the gradient onto this tangent by subtracting its mean, 
+
+eg := ∇ρJtilt − ∇ ρJtilt 1, ∇ρJtilt := 1
+
+|Y| k
+
+X
+
+> s
+
+∇ρJtilt 
+
+
+
+> s
+
+,
+
+so that P 
+
+> s
+
+egs = 0 and the step ρ + η eg preserves P 
+
+> s
+
+ρs = 1 to first order. 
+
+(ii) Project back into the simplex. The tangent step can still drive components below zero, so afterward we map the result back into the simplex interior by flooring at ϵ and renormalizing, 
+
+proj ∆(x)s := max( xs, ϵ )
+
+P 
+
+> s′
+
+max( xs′ , ϵ ) , ϵ = 10 −6.
+
+The floor keeps every ρs ≥ ϵ after renormalization, preventing ρ from collapsing onto a vertex of the simplex; a vertex would pin the prompt to a single deterministic starting state and stall the joint 
+
+(A, ρ ) search. This clamp-and-renormalize map is a cheap stand-in for the exact Euclidean projection onto ∆( Yk), which we did not find necessary. Combining the two stages, each update is 
+
+ρ ← proj ∆
+
+
+
+ρ + η  ∇ρJtilt − ∇ ρJtilt 
+
+
+
+. (25) We interleave (25) with the A update of Section 3.2 at the same learning rate, so that A and ρ ascend 
+
+Jtilt jointly. (The optimizer minimizes the stored objective −Jtilt ; (25) states the equivalent ascent on Jtilt in the paper’s convention.) 
+
+B.6 Hard prompt recovery 
+
+After PPT optimization, we recover a hard prompt z1: m ∈ Y m from the optimized prompt-distribution parameter as follows. 17 Exchangeable case ( k = 0 ). For binary Y = {0, 1}, evaluate Jtilt at both h = ⌊mα ⌋ and 
+
+h = ⌈mα ⌉ ones, select the count with higher Jtilt , and construct the prompt with that many 1s. 
+
+Markov-exchangeable case ( k ≥ 1). Convert the optimized (A, ρ ) to a hard prompt z1: m via an Eulerian path in the de Bruijn graph. For each of the |Y| k starting states s0:1. Compute expected visit counts ν(u) = Pm−k−1 
+
+> j=0
+
+[e⊤ 
+
+> s0
+
+T jA]u for each k-gram state u.2. Assign edge multiplicities via Hamilton’s method (largest-remainder rounding): each row 
+
+u receives ˆν(u) = round( ν(u)) total edges (adjusted to sum to m−k), distributed across tokens as c(u, v ) = round(ˆ ν(u) · Au(v)) (adjusted to sum to ˆν(u)). 3. If an Eulerian path from s0 exists on c, find it via Hierholzer’s algorithm. Otherwise, try 
+
+O(|Y| k+1 ) single-edge swap variants (c(u, v ) −= 1 , c (u, v ′) += 1) that admit an Eulerian path. 4. Among all candidates admitting an Eulerian path, select the one maximizing Jtilt . The edge labels give tokens zk+1: m; prepend the k tokens encoding s0 to recover z1: m.
+
+C BFTs: detailed derivations 
+
+C.1 Beta–Bernoulli 
+
+This appendix records the 0-Markov exchangeable (Beta–Bernoulli) specialization of the framework. Write p := ˜ p(1) ∈ [0 , 1] .
+
+Posterior. The posterior predictive given context y1: n is 
+
+P (Yn+1 = 1 | y1: n) = E[˜ p | y1: n] = α + S1(n)
+
+α + β + n , S1(n) = 
+
+> n
+
+X
+
+> i=1
+
+yi,
+
+and the posterior on ˜p is Π(˜ p | y1: n) = Beta  α + S1(n), β + n − S1(n). We use α = β = 1 /2.
+
+Reverse cross-entropy: closed form for J. The reverse cross-entropy utility Uτ ⋆ (y1: N ) = 
+
+S1 log τ ⋆ + S0 log(1 − τ ⋆) is linear in the token counts S1 = PNt=1 yt and S0 = N − S1.Define the average marginal one-rate ¯pN (z1: m) := 1
+
+> N
+
+PNt=1 Pr( Yn+t = 1 | y1: n, z 1: m). Since 
+
+E[S1] = N ¯pN (z1: m),
+
+J(z1: m) = N
+
+h
+
+log(1 − τ ⋆) + ¯ pN (z1: m) log τ ⋆
+
+1 − τ ⋆
+
+i
+
+. (26) This closed form relies on the linearity of Uτ ⋆ in S1. The frequency match and Dyck utilities lack this linearity, so their objective J(z1: m) is computed by enumeration over YN ; the per-latent μ defined below is nonetheless available in closed form for all three utilities. 
+
+Rao–Blackwellized utilities μ(˜ p). Under ˜p⊗N , the continuation tokens Yn+1 , . . . , Y n+N are i.i.d. 
+
+Bernoulli( p).
+
+Reverse cross-entropy ( Uτ ⋆ ). By the same linearity argument, 
+
+μ(˜ p) = N
+
+
+
+log(1 − τ ⋆) + p log τ ⋆
+
+1 − τ ⋆
+
+
+
+. (27) 
+
+Match target frequency ( Uq⋆ ). The empirical frequency f = 1
+
+> N
+
+PNt=1 Yn+t has E[f ] = p and 
+
+Var( f ) = p(1 − p)/N under ˜p⊗N . Since E[( f − q⋆)2] = Var( f ) + ( E[f ] − q⋆)2,
+
+μ(˜ p) = −
+
+h p(1 − p)
+
+N + ( p − q⋆)2i
+
+.
+
+Dyck validity ( Udyck ). With N = 4 , the two valid Dyck sequences {0101 , 0011 } each have probabil-ity p2(1 − p)2 under ˜p⊗4 (two zeros and two ones in each). Hence 
+
+μ(˜ p) = 2 p2(1 − p)2.
+
+18 C.2 Reinforced urn 
+
+This appendix records the 1-Markov exchangeable (reinforced urn) specialization of the framework, with k = 1 and |Y| = 2 .
+
+Predictive and posterior. By the Diaconis–Freedman representation theorem Fortini and Petrone [2025], the induced predictive rule takes the reinforced urn form 
+
+P (Yn+1 = y | y1: n) = α/ |Y| + Tyn,y (y1: n)
+
+α + P 
+
+> y′∈Y
+
+Tyn,y ′ (y1: n) ,
+
+where Ta,b (y1: n) := Pn−1 
+
+> t=1
+
+1{yt = a, y t+1 = b} counts observed transitions. The posterior on ˜Q
+
+has independent Dirichlet rows 
+
+Π( ˜Qa, · | y1: n) = Dir  α/ |Y| + Ta,b (y1: n) 
+
+> b∈Y
+
+, a ∈ Y .
+
+We use α = 1 .
+
+Reverse cross-entropy: closed form for J. The reverse cross-entropy utility UQ⋆ (y1: N ) = 
+
+PN −1 
+
+> t=0
+
+log Q⋆st,y n+t+1 is a sum of per-step terms. By linearity of expectation, 
+
+J(z1: m) =  
+
+> N−1
+
+X
+
+> t=0
+
+X
+
+> u∈Y
+
+X
+
+> y∈Y
+
+P (st = u, Y n+t+1 = y | y1: n, z 1: m) log Q⋆u,y ,
+
+where the joint marginals P (st = u, Y n+t+1 = y | y1: n, z 1: m) can be computed from the model’s one-step predictives without enumerating all |Y| N sequences. The frequency match and Dyck utilities do not decompose as per-step sums and are computed by enumeration. 
+
+Rao–Blackwellized utilities μ( ˜Q; s). Conditional on ˜Q and starting state s ∈ Y , the continuation 
+
+Y1: N is a Markov chain on Y.
+
+Reverse cross-entropy ( UQ⋆ ). The utility decomposes over the N -step context visitation: 
+
+μ( ˜Q; s) =  
+
+> N−1
+
+X
+
+> t=0
+
+X
+
+> u∈Y
+
+e⊤ 
+
+> s
+
+˜Qt 
+
+> u
+
+h(u, ˜Q),
+
+where h(u, ˜Q) := P 
+
+> y∈Y
+
+˜Qu,y log Q⋆u,y is the per-state negative cross-entropy and e⊤ 
+
+> s
+
+˜Qt is the visitation probability over states at step t (obtained by iterating the |Y| × |Y| transition matrix). 
+
+Match target frequency ( Uq⋆ ). Let pt := e⊤ 
+
+> s
+
+˜Qt
+
+> 1
+
+. Then E ˜Q[f ] = 1
+
+> N
+
+PNt=1 pt and 
+
+Var ˜Q(f ) = 1
+
+N 2
+
+X
+
+> i,j
+
+Cov ˜Q(Yi, Y j ),
+
+where the covariances follow from the Markov property. Hence 
+
+μ( ˜Q; s) = −
+
+h
+
+Var ˜Q(f ) +  E ˜Q[f ] − q⋆2i
+
+.
+
+Dyck validity ( Udyck ). With N = 4 , the two valid Dyck sequences {0101 , 0011 } have Markov chain probabilities: 
+
+μ( ˜Q; s) = ˜Qs, 0 ˜Q0,1 ˜Q1,0 ˜Q0,1 + ˜Qs, 0 ˜Q0,0 ˜Q0,1 ˜Q1,1.
+
+C.3 Summary tables 
+
+The reverse cross-entropy admits a closed-form J for both BFTs because U is a sum of per-step terms; the other utilities require enumeration over YN . All three μ closed forms hold in both BFTs: Beta– Bernoulli benefits from i.i.d. continuation tokens; the reinforced urn uses Markov-chain marginals via ˜Qt for the reverse cross-entropy and frequency-match utilities, and direct enumeration of the two valid Dyck sequences for the Dyck utility. 19 Table 3: Exact objective J(z1: m) for each BFT/utility pair. We write ¯pN (z1: m) := 1
+
+> N
+
+PNt=1 Pr( Yt =1 | z1: m) for the average marginal one-rate. Utility Beta–Bernoulli Reinforced urn Rev. xent. N
+
+h
+
+log(1 −τ ⋆) + ¯ pN (z1: m) log τ ⋆ 
+
+> 1−τ⋆
+
+i X
+
+> t,u,y
+
+P (st = u, Y t+1 = y) log Q⋆u,y 
+
+Freq. match enumerate enumerate Dyck πθ ({0101 , 0011 } | z1: m) πθ ({0101 , 0011 } | z1: m)
+
+Table 4: Closed-form Rao–Blackwellized utility μ for each setting. Here p := ˜ p(1) , h(u, ˜Q) := 
+
+P 
+
+> y
+
+˜Qu,y log Q⋆u,y , and P (st = u) denotes the context-visitation probability under ˜Q starting from state s.Utility Beta–Bernoulli: μ(˜ p) Reinforced urn: μ( ˜Q; s)
+
+Rev. xent. N
+
+
+
+log(1 −τ ⋆) + p log τ ⋆ 
+
+> 1−τ⋆
+
+ N −1X
+
+> t=0
+
+X
+
+> u
+
+P (st = u) h(u, ˜Q)
+
+Freq. match −
+
+h p(1 − p)
+
+N + ( p − q⋆)2
+
+i
+
+−
+
+h
+
+Var ˜Q(f ) + ( E ˜Q[f ] − q⋆)2
+
+i
+
+Dyck 2 p2(1 − p)2 ˜Qs, 0 ˜Q0,1 ˜Q1,0 ˜Q0,1 + ˜Qs, 0 ˜Q0,0 ˜Q0,1 ˜Q1,1
+
+D Experiments details 
+
+D.1 Utility functions 
+
+The reverse cross-entropy utility is fully specified in Section 4.1. We give the corresponding details for the frequency-match and Dyck utilities here. 
+
+Match target frequency. Fix a target frequency q⋆ ∈ [0 , 1] and let f (y1: N ) := 1
+
+> N
+
+PNt=1 yt be the empirical frequency of token 1 in the continuation. Set Uq⋆ (y1: N ) := − f (y1: N ) − q⋆2, the negative squared deviation of the continuation frequency from the target. Maximizing J pulls the continuation frequency toward q⋆ in mean square; the utility depends on y1: N only through its count of 1s. We sweep q⋆ ∈ { 0, 0.1, 0.2, . . . , 1.0} (11 targets). 
+
+Dyck validity. Identify 0 with “ (” and 1 with “ )”. A sequence y1: N ∈ Y N is a valid Dyck sequence if every prefix contains at least as many “ (” as “ )” and the full sequence is balanced. We set 
+
+Udyck (y1: N ) = 1 when y1: N is a valid Dyck sequence and 0 otherwise. With N = 4 the valid set is 
+
+{0101 , 0011 } out of |Y| N = 16 continuations, so J = E [Udyck ] = πθ (valid Dyck | z1: m).
+
+D.2 BFT training Beta–Bernoulli transformer. 1-layer pre-norm transformer with dmodel = 64 , 4 attention heads (dhead = 16 ), and feedforward dimension 128 . Token embeddings ϕ : Y ∪ { BOS } → R64 are learned (3 embeddings: tokens 0, 1, and BOS); no positional encoding is used. Every training and inference sequence is prepended with a BOS token. Each training batch consists of 128 sequences of length 2000 , each generated by sampling ˜p ∼ Beta(1 /2, 1/2) and generating an i.i.d. Bernoulli(˜ p)
+
+sequence. The model is trained for 50 ,000 iterations with AdamW ( β1 = 0 .9, β2 = 0 .95 , weight decay 0.1), cosine learning rate schedule from 3 × 10 −4 to 10 −5 with 500 warmup steps, bfloat16 mixed precision, and gradient clipping at norm 1.0.20 Reinforced urn transformer. 8-layer pre-norm transformer with dmodel = 256 , 8 attention heads (dhead = 32 ), and feedforward dimension 1024 . Token embeddings ϕ : Y → R256 and position embeddings ψ : {0, . . . , 19999 } → R256 are both learned; at each position t the input is ϕ(yt) + ψ(t).A BOS token is prepended, with its own learned embedding. Each training batch consists of 64 
+
+sequences of length 2000 , each generated by sampling ˜Qu, ·
+
+> i.i.d.
+
+∼ Dir(1 /2, 1/2) for u ∈ { 0, 1} and generating a 1-Markov chain from ˜Q with a random initial token. The model is trained for 100 ,000 
+
+iterations with AdamW ( β1 = 0 .9, β2 = 0 .95 , weight decay 0.1), cosine learning rate schedule from 
+
+3 × 10 −4 to 10 −5 with 1,000 warmup steps, bfloat16 mixed precision, and gradient clipping at norm 
+
+1.0.
+
+D.3 PPT and PPT-RB 
+
+The four PPT variants share the parameterization, optimizer, and IS gradient estimator below; they differ in (a) how prior samples are obtained and (b) how bμ(ℓ) (k = 0 ) or b¯μ(ℓ) (k ≥ 1) in (11) or (22) is computed. 
+
+Parameterization and optimizer. For k = 0 , α ∈ ∆1 is parameterized by unconstrained logits 
+
+(a0, a 1) ∈ R2 via softmax. For k ≥ 1, A and ρ are optimized jointly by simplex-projected gradient descent with learning rate η = 0 .1. For A, each row As, · is updated independently: 
+
+As, · ← proj ∆
+
+
+
+As, · − η  ∇As, · Jtilt − ∇ As, · Jtilt 
+
+
+
+,
+
+where (·) denotes the mean over the |Y| components and proj ∆(x)v := max( xv , ϵ ) P  
+
+> v′
+
+max( xv′ , ϵ ) with ϵ = 10 −6; ρ is updated identically (Appendix B.5). The gradient ∇AJtilt is computed by differentiating through the matrix power of M ( ˜Q) (Appendix B.2). Both A and ρ are initialized by independent draws from Dir(1 , . . . , 1) . Optimization terminates early if Jtilt does not improve by more than 10 −5 for 100 consecutive steps. 
+
+Drawing prior samples. For PPT and PPT-RB, L = 5 ,000 samples are obtained from the BFT’s latent prior by Predictive Monte Carlo (Appendix B.1) using rollouts of length R = 2 ,000 from the trained BFT πθ . For the ( ANALYTIC ) variants, L = 5 ,000 samples are drawn directly from Π0:
+
+˜p ∼ Beta(1 /2, 1/2) for the Beta–Bernoulli BFT and rows ˜Qa, ·
+
+> i.i.d.
+
+∼ Dir(1 /2, 1/2) for the reinforced urn BFT. In both cases the L samples are drawn once at the start and reused across optimization steps. 
+
+Runtime. The full experiment sweep completes in approximately 8 hours on a single NVIDIA H100 GPU. 
+
+Computing bμ(ℓ) and b¯μ(ℓ). PPT-RB uses the closed-form μ(˜ p(ℓ)) (k = 0 ) or ¯μ( ˜Q(ℓ); A, ρ ) (k ≥ 1)from Appendix C.3. PPT uses a single rollout per prior sample: for k = 0 we draw Y (ℓ)1: N ∼ (˜ p(ℓ))⊗N
+
+and set bμ(ℓ) = U (Y (ℓ)1: N ); for k ≥ 1 we draw a prompt z(ℓ) ∼ PA,ρ , then a continuation Y (ℓ)1: N ∼
+
+˜Q(ℓ)(· | suf k(z(ℓ))) , and set b¯μ(ℓ) = U (Y (ℓ)1: N ).
+
+D.4 GCG 
+
+Each iteration, if z(t)1: m is the prompt from iteration t, the GCG algorithm evaluates the gradient 
+
+∇ez(t)
+
+> i
+
+J(z(t)1: m) ∈ R|Y| (28) where ez(t)
+
+> i
+
+denotes the one-hot vector representing the value of the ith token, and uses this to select the top-k most promising token substitutions Xi = Top-k(∇ez(t)
+
+> i
+
+J(z(t)1: m)) for each i ∈ { 1, . . . , m }.In our binary setting |Y| = 2 , so any k ≥ 2 leaves Xi = {0, 1} and the gradient ranking has no effect. We therefore set k = 1 , so Xi = {c(t) 
+
+> i
+
+} where c(t) 
+
+> i
+
+∈ arg max v ∇ez(t) 
+
+> i,v
+
+J(z(t)1: m) is the gradient’s Top-1 choice at position i. Let S(t) = {i : c(t)
+
+> i
+
+̸ = z(t) 
+
+> i
+
+} be the positions where the Top-1 token differs 21 from the current one, and let z(t,i ) denote z(t)1: m with position i replaced by c(t)
+
+i . The candidate set at iteration t is {z(t,i ) : i ∈ S(t)}; we update by 
+
+z(t+1) 1: m = arg max 
+
+i∈S(t)
+
+J(z(t,i )),
+
+setting z(t+1) 1: m = z(t)1: m when S(t) = ∅ or when no candidate improves J. Initialization is z(0) 
+
+i
+
+i.i.d.
+
+∼
+
+Uniform( {0, 1}). Each iteration costs one backprop through πθ to obtain the gradient, plus |S(t)| · |Y| N forwards (at most m · |Y| N ) to evaluate the candidates. We run max(10 , 2m) iterations (12 for 
+
+m = 6 , 100 for m = 50 ), halting early when no candidate improves J.
+
+E Experimental results 
+
+E.1 Method comparison 
+
+This subsection reports per-configuration performance for the five methods, averaged over 10 random seeds. The convention is that J is to be maximised ; for m = 6 , where the full set of V m = 64 hard prompts is enumerable, we additionally report rank-out-of-64 of the snapped prompt (rank 1 = best). Each cell averages J (or rank) over n = 10 random seeds, with standard error in parentheses; the best method per row is in bold (within 10 −3 for J, within 0.05 for rank). Reverse cross-entropy on the reinforced urn at both m ∈ { 6, 50 } is the main-text Table 2; the corresponding rank table at m = 6 is Table 7. Reverse cross-entropy on the Beta–Bernoulli BFT is in Tables 5 and 6. Table 5: Reverse cross-entropy on the Beta–Bernoulli BFT. Each cell is the mean of J over n = 10 
+
+random seeds (max convention; higher better), with standard error in parentheses. Best method per 
+
+m in bold (within 10 −3). m = 6 m = 50                                                                                                                                                                          
+
+> GCG PPT-RB (A) PPT-RB PPT (A) PPT GCG PPT-RB (A) PPT-RB PPT (A) PPT
+> τ⋆= 0 .1−1.06 (0 .00) −1.06 (0 .00) −1.06 (0 .00) −1.06 (0 .00) −1.06 (0 .00) −0.51 (0 .00) −0.51 (0 .00) −0.51 (0 .00) −1.16 (0 .18) −1.23 (0 .20)
+> τ⋆= 0 .2−1.29 (0 .00) −1.29 (0 .00) −1.29 (0 .00) −1.29 (0 .00) −1.29 (0 .00) −0.95 (0 .00) −0.95 (0 .00) −0.95 (0 .00) −1.36 (0 .12) −1.40 (0 .13)
+> τ⋆= 0 .3−1.67 (0 .00) −1.67 (0 .00) −1.67 (0 .00) −1.67 (0 .00) −1.67 (0 .00) −1.46 (0 .00) −1.46 (0 .00) −1.46 (0 .00) −1.71 (0 .07) −1.74 (0 .08)
+> τ⋆= 0 .4−2.16 (0 .00) −2.16 (0 .00) −2.16 (0 .00) −2.16 (0 .00) −2.16 (0 .00) −2.06 (0 .00) −2.06 (0 .00) −2.06 (0 .00) −2.18 (0 .03) −2.19 (0 .04)
+> τ⋆= 0 .6−2.16 (0 .00) −2.16 (0 .00) −2.16 (0 .00) −2.16 (0 .00) −2.16 (0 .00) −2.06 (0 .00) −2.06 (0 .00) −2.06 (0 .00) −2.17 (0 .03) −2.18 (0 .04)
+> τ⋆= 0 .7−1.67 (0 .00) −1.67 (0 .00) −1.67 (0 .00) −1.67 (0 .00) −1.67 (0 .00) −1.46 (0 .00) −1.46 (0 .00) −1.46 (0 .00) −1.69 (0 .07) −1.71 (0 .08)
+> τ⋆= 0 .8−1.29 (0 .00) −1.29 (0 .00) −1.29 (0 .00) −1.29 (0 .00) −1.29 (0 .00) −0.95 (0 .00) −0.95 (0 .00) −0.95 (0 .00) −1.32 (0 .12) −1.36 (0 .13)
+> τ⋆= 0 .9−1.05 (0 .00) −1.05 (0 .00) −1.05 (0 .00) −1.05 (0 .00) −1.05 (0 .00) −0.51 (0 .00) −0.51 (0 .00) −0.51 (0 .00) −1.10 (0 .19) −1.17 (0 .21)
+
+Table 6: Reverse cross-entropy, Beta–Bernoulli, m = 6 . Rank-out-of-64 of the snapped prompt (1 = enumerated optimum), averaged over n = 10 random seeds; standard error in parentheses. Best method per row in bold (within 0.05 ). GCG PPT-RB (A) PPT-RB PPT (A) PPT 
+
+τ ⋆ = 0 .1 1.0 (0 .00) 1.0 (0 .00) 1.0 (0 .00) 1.0 (0 .00) 1.0 (0 .00) 
+
+τ ⋆ = 0 .2 1.0 (0 .00) 1.0 (0 .00) 1.0 (0 .00) 1.0 (0 .00) 1.0 (0 .00) 
+
+τ ⋆ = 0 .3 1.0 (0 .00) 1.0 (0 .00) 1.0 (0 .00) 1.0 (0 .00) 1.0 (0 .00) 
+
+τ ⋆ = 0 .4 1.0 (0 .00) 1.0 (0 .00) 1.0 (0 .00) 1.0 (0 .00) 1.0 (0 .00) 
+
+τ ⋆ = 0 .6 1.0 (0 .00) 1.0 (0 .00) 1.0 (0 .00) 1.0 (0 .00) 1.0 (0 .00) 
+
+τ ⋆ = 0 .7 1.0 (0 .00) 1.0 (0 .00) 1.0 (0 .00) 1.0 (0 .00) 1.0 (0 .00) 
+
+τ ⋆ = 0 .8 1.0 (0 .00) 1.0 (0 .00) 1.0 (0 .00) 1.0 (0 .00) 1.0 (0 .00) 
+
+τ ⋆ = 0 .9 1.0 (0 .00) 1.0 (0 .00) 1.0 (0 .00) 1.0 (0 .00) 1.0 (0 .00) 
+
+Frequency match. On Beta–Bernoulli at m = 6 (Tables 8 and 9), all methods reach rank 1 for most q⋆ values. At q⋆ ∈ { 0.6, 0.7}, the PPT variants land on suboptimal prompts (rank 6–11) while GCG reaches rank 1–4; at q⋆ ∈ { 0.3, 0.4} the situation reverses. On the reinforced urn at m = 6 ,the PPT variants substantially outperform GCG at the extremes ( q⋆ ∈ { 0.0, 0.1, 0.2, 0.8, 0.9, 1.0}:PPT reaches rank 1–4 while GCG ranks 15–18 of 64), are roughly tied for q⋆ ∈ { 0.4, 0.5, 0.6},and all methods rank substantially below the optimum at q⋆ = 0 .7. At m = 50 on Beta–Bernoulli, GCG achieves J closer to zero than the PPT variants in every cell; on the reinforced urn at m = 50 ,GCG and PPT-RB are roughly competitive, with PPT (without Rao–Blackwellisation) consistently lagging. 22 Table 7: Reverse cross-entropy on the reinforced urn BFT, m = 6 . Rank-out-of-64 of the snapped prompt (1 = enumerated optimum), averaged over n = 10 random seeds; standard error in parentheses. Best method per row in bold (within 0.05 ). GCG PPT-RB (A) PPT-RB PPT (A) PPT 
+
+sym-0.1 4.9 (1 .76) 1.4 (0 .16) 2.0 (0 .00) 1.5 (0 .17) 2.0 (0 .00) 
+
+sym-0.2 4.9 (1 .76) 1.4 (0 .16) 2.0 (0 .00) 1.4 (0 .16) 2.0 (0 .00) 
+
+sym-0.3 4.9 (1 .76) 1.5 (0 .17) 2.0 (0 .00) 1.6 (0 .16) 2.0 (0 .00) 
+
+sym-0.4 4.9 (1 .76) 1.5 (0 .17) 2.0 (0 .00) 1.6 (0 .16) 2.0 (0 .00) 
+
+sym-0.6 11 .0 (3 .52) 1.3 (0 .15) 1.3 (0 .15) 1.3 (0 .15) 1.3 (0 .15) 
+
+sym-0.7 11 .0 (3 .52) 1.3 (0 .15) 1.3 (0 .15) 1.3 (0 .15) 1.3 (0 .15) 
+
+sym-0.8 11 .0 (3 .52) 1.3 (0 .15) 1.3 (0 .15) 1.3 (0 .15) 1.3 (0 .15) 
+
+sym-0.9 11 .0 (3 .52) 1.3 (0 .15) 1.3 (0 .15) 1.3 (0 .15) 1.3 (0 .15) 
+
+sym-1.0 11 .0 (3 .52) 1.5 (0 .17) 1.6 (0 .16) 1.5 (0 .17) 1.6 (0 .16) 
+
+dir-0 16 .1 (3 .90) 1.0 (0 .00) 2.4 (1 .40) 1.0 (0 .00) 2.4 (1 .40) 
+
+dir-1 12 .7 (3 .68) 1.0 (0 .00) 1.0 (0 .00) 1.0 (0 .00) 1.0 (0 .00) 
+
+dir-2 9.3 (2 .68) 1.0 (0 .00) 1.0 (0 .00) 1.0 (0 .00) 1.0 (0 .00) 
+
+dir-3 10 .5 (3 .33) 1.6 (0 .31) 1.6 (0 .31) 1.6 (0 .31) 1.6 (0 .31) 
+
+dir-4 7.0 (1 .33) 2.9 (0 .82) 4.4 (2 .57) 2.9 (0 .82) 2.8 (0 .76) 
+
+dir-5 5.0 (1 .59) 1.0 (0 .00) 1.0 (0 .00) 1.0 (0 .00) 1.0 (0 .00) 
+
+dir-6 10 .9 (3 .07) 3.0 (0 .82) 2.5 (0 .76) 3.0 (0 .82) 2.5 (0 .76) 
+
+dir-7 11 .3 (3 .54) 1.6 (0 .16) 1.6 (0 .16) 1.7 (0 .15) 1.6 (0 .16) 
+
+dir-8 10 .8 (5 .12) 5.6 (2 .40) 5.6 (2 .40) 5.6 (2 .40) 5.6 (2 .40) 
+
+dir-9 13 .5 (4 .36) 1.0 (0 .00) 3.5 (2 .50) 1.0 (0 .00) 3.5 (2 .50) 
+
+Table 8: Frequency match. Each cell is the mean of J over n = 10 random seeds (max convention; higher better), with standard error in parentheses. Best method per ( k, m) in bold (within 10 −3). 
+
+m = 6 m = 50 
+
+GCG PPT-RB (A) PPT-RB PPT (A) PPT GCG PPT-RB (A) PPT-RB PPT (A) PPT 
+
+Beta–Bernoulli ( k = 0 )
+
+q⋆ = 0 .0 −0.03 (0 .00) −0.03 (0 .00) −0.03 (0 .00) −0.03 (0 .00) −0.03 (0 .00) −0.00 (0 .00) −0.01 (0 .00) −0.01 (0 .00) −0.04 (0 .01) −0.04 (0 .01) 
+
+q⋆ = 0 .1 −0.02 (0 .00) −0.02 (0 .00) −0.02 (0 .00) −0.02 (0 .00) −0.02 (0 .00) −0.01 (0 .00) −0.02 (0 .00) −0.02 (0 .00) −0.03 (0 .01) −0.03 (0 .01) 
+
+q⋆ = 0 .2 −0.04 (0 .00) −0.04 (0 .00) −0.04 (0 .00) −0.04 (0 .00) −0.04 (0 .00) −0.03 (0 .00) −0.07 (0 .01) −0.07 (0 .01) −0.07 (0 .01) −0.07 (0 .01) 
+
+q⋆ = 0 .3 −0.07 (0 .00) −0.07 (0 .00) −0.07 (0 .00) −0.07 (0 .00) −0.07 (0 .00) −0.05 (0 .00) −0.06 (0 .01) −0.06 (0 .01) −0.06 (0 .01) −0.06 (0 .01) 
+
+q⋆ = 0 .4 −0.08 (0 .00) −0.08 (0 .00) −0.08 (0 .00) −0.08 (0 .00) −0.08 (0 .00) −0.06 (0 .00) −0.07 (0 .00) −0.07 (0 .00) −0.07 (0 .00) −0.07 (0 .00) 
+
+q⋆ = 0 .5 −0.09 (0 .00) −0.09 (0 .00) −0.09 (0 .00) −0.09 (0 .00) −0.09 (0 .00) −0.07 (0 .00) −0.07 (0 .00) −0.07 (0 .00) −0.07 (0 .00) −0.07 (0 .00) 
+
+q⋆ = 0 .6 −0.08 (0 .00) −0.08 (0 .00) −0.08 (0 .00) −0.08 (0 .00) −0.08 (0 .00) −0.06 (0 .00) −0.07 (0 .00) −0.07 (0 .00) −0.07 (0 .00) −0.07 (0 .00) 
+
+q⋆ = 0 .7 −0.07 (0 .00) −0.07 (0 .00) −0.07 (0 .00) −0.07 (0 .00) −0.07 (0 .00) −0.05 (0 .00) −0.07 (0 .01) −0.07 (0 .01) −0.07 (0 .01) −0.06 (0 .01) 
+
+q⋆ = 0 .8 −0.04 (0 .00) −0.04 (0 .00) −0.04 (0 .00) −0.04 (0 .00) −0.04 (0 .00) −0.03 (0 .00) −0.08 (0 .01) −0.08 (0 .01) −0.08 (0 .01) −0.08 (0 .01) 
+
+q⋆ = 0 .9 −0.02 (0 .00) −0.02 (0 .00) −0.02 (0 .00) −0.02 (0 .00) −0.02 (0 .00) −0.01 (0 .00) −0.02 (0 .00) −0.02 (0 .00) −0.03 (0 .01) −0.03 (0 .01) 
+
+q⋆ = 1 .0 −0.03 (0 .00) −0.03 (0 .00) −0.03 (0 .00) −0.03 (0 .00) −0.03 (0 .00) −0.00 (0 .00) −0.01 (0 .00) −0.01 (0 .00) −0.04 (0 .01) −0.04 (0 .01) 
+
+Reinforced urn ( k = 1 )
+
+q⋆ = 0 .0 −0.19 (0 .04) −0.07 (0 .02) −0.07 (0 .02) −0.07 (0 .02) −0.07 (0 .02) −0.03 (0 .00) −0.00 (0 .00) −0.01 (0 .01) −0.06 (0 .04) −0.08 (0 .04) 
+
+q⋆ = 0 .1 −0.13 (0 .03) −0.05 (0 .02) −0.05 (0 .02) −0.05 (0 .02) −0.05 (0 .02) −0.02 (0 .00) −0.02 (0 .01) −0.03 (0 .01) −0.06 (0 .02) −0.06 (0 .02) 
+
+q⋆ = 0 .2 −0.10 (0 .02) −0.05 (0 .01) −0.05 (0 .01) −0.05 (0 .01) −0.05 (0 .01) −0.03 (0 .00) −0.05 (0 .01) −0.05 (0 .01) −0.06 (0 .01) −0.07 (0 .01) 
+
+q⋆ = 0 .3 −0.07 (0 .01) −0.06 (0 .00) −0.07 (0 .00) −0.06 (0 .00) −0.07 (0 .00) −0.03 (0 .00) −0.05 (0 .01) −0.05 (0 .01) −0.06 (0 .01) −0.06 (0 .01) 
+
+q⋆ = 0 .4 −0.03 (0 .00) −0.03 (0 .00) −0.03 (0 .00) −0.03 (0 .00) −0.03 (0 .00) −0.02 (0 .00) −0.01 (0 .00) −0.01 (0 .00) −0.04 (0 .01) −0.04 (0 .01) 
+
+q⋆ = 0 .5 −0.03 (0 .00) −0.02 (0 .00) −0.02 (0 .00) −0.02 (0 .00) −0.02 (0 .00) −0.01 (0 .00) −0.00 (0 .00) −0.00 (0 .00) −0.02 (0 .00) −0.02 (0 .00) 
+
+q⋆ = 0 .6 −0.04 (0 .00) −0.04 (0 .01) −0.05 (0 .01) −0.04 (0 .01) −0.05 (0 .01) −0.01 (0 .00) −0.04 (0 .02) −0.04 (0 .02) −0.06 (0 .02) −0.05 (0 .02) 
+
+q⋆ = 0 .7 −0.08 (0 .02) −0.07 (0 .00) −0.07 (0 .00) −0.07 (0 .00) −0.07 (0 .00) −0.02 (0 .00) −0.06 (0 .02) −0.06 (0 .02) −0.07 (0 .01) −0.07 (0 .01) 
+
+q⋆ = 0 .8 −0.11 (0 .02) −0.05 (0 .00) −0.05 (0 .01) −0.05 (0 .00) −0.05 (0 .01) −0.03 (0 .00) −0.05 (0 .01) −0.06 (0 .01) −0.06 (0 .01) −0.07 (0 .01) 
+
+q⋆ = 0 .9 −0.14 (0 .03) −0.03 (0 .00) −0.03 (0 .00) −0.03 (0 .00) −0.03 (0 .00) −0.03 (0 .00) −0.04 (0 .01) −0.07 (0 .02) −0.06 (0 .02) −0.09 (0 .02) 
+
+q⋆ = 1 .0 −0.20 (0 .03) −0.04 (0 .00) −0.04 (0 .00) −0.04 (0 .00) −0.04 (0 .00) −0.06 (0 .01) −0.03 (0 .02) −0.03 (0 .02) −0.08 (0 .04) −0.09 (0 .04) 
+
+Dyck validity. On Beta–Bernoulli at m = 6 , all four PPT variants reach the enumerated optimum on every seed; GCG averages a worse rank but is within 10 −4 of the optimal J. At m = 50 on Beta–Bernoulli, all methods achieve J ≈ 0.12 . On the reinforced urn at m = 6 (Tables 10 and 11), PPT-RB reaches the enumerated optimum on every seed (rank 1 throughout), PPT is close (J = 0 .54 versus the optimum J = 0 .59 ), and the remaining methods (PPT ( ANALYTIC ), PPT-RB (ANALYTIC ), GCG) produce J between 0.29 and 0.38 . At m = 50 on the reinforced urn the picture inverts: GCG reaches J = 0 .61 while all four PPT variants produce J between 0.014 and 0.021 .The final ESS /L for PPT-RB on this configuration is ≈ 0.07 (mean over 10 seeds), down from 
+
+≈ 0.22 at m = 6 .23 Table 9: Frequency match, m = 6 . Rank-out-of-64 of the snapped prompt (1 = enumerated optimum), averaged over n = 10 random seeds; standard error in parentheses. Best method per row in bold (within 0.05 ). Prompts with J within 10 −5 are assigned the same rank. GCG PPT-RB (A) PPT-RB PPT (A) PPT 
+
+Beta–Bernoulli ( k = 0 )
+
+q⋆ = 0 .0 1.0 (0 .00) 1.0 (0 .00) 1.0 (0 .00) 1.0 (0 .00) 1.0 (0 .00) 
+
+q⋆ = 0 .1 1.0 (0 .00) 1.0 (0 .00) 1.0 (0 .00) 1.0 (0 .00) 1.0 (0 .00) 
+
+q⋆ = 0 .2 1.0 (0 .00) 1.0 (0 .00) 1.0 (0 .00) 1.0 (0 .00) 1.0 (0 .00) 
+
+q⋆ = 0 .3 1.5 (0 .50) 1.0 (0 .00) 1.0 (0 .00) 1.0 (0 .00) 1.0 (0 .00) 
+
+q⋆ = 0 .4 2.0 (1 .00) 1.0 (0 .00) 1.0 (0 .00) 1.0 (0 .00) 1.0 (0 .00) 
+
+q⋆ = 0 .5 1.0 (0 .00) 1.0 (0 .00) 1.0 (0 .00) 1.0 (0 .00) 1.0 (0 .00) 
+
+q⋆ = 0 .6 4.0 (1 .53) 11 .0 (0 .00) 11 .0 (0 .00) 11 .0 (0 .00) 11 .0 (0 .00) 
+
+q⋆ = 0 .7 1.0 (0 .00) 6.0 (0 .00) 6.0 (0 .00) 6.0 (0 .00) 6.0 (0 .00) 
+
+q⋆ = 0 .8 1.0 (0 .00) 1.0 (0 .00) 1.0 (0 .00) 1.0 (0 .00) 1.0 (0 .00) 
+
+q⋆ = 0 .9 1.0 (0 .00) 1.0 (0 .00) 1.0 (0 .00) 1.0 (0 .00) 1.0 (0 .00) 
+
+q⋆ = 1 .0 1.0 (0 .00) 1.0 (0 .00) 1.0 (0 .00) 1.0 (0 .00) 1.0 (0 .00) 
+
+Reinforced urn ( k = 1 )
+
+q⋆ = 0 .0 16 .0 (4 .91) 3.9 (2 .90) 3.9 (2 .90) 3.9 (2 .90) 3.9 (2 .90) 
+
+q⋆ = 0 .1 15 .3 (5 .08) 3.9 (2 .90) 3.9 (2 .90) 3.9 (2 .90) 3.9 (2 .90) 
+
+q⋆ = 0 .2 15 .5 (5 .63) 3.1 (2 .10) 3.1 (2 .10) 3.1 (2 .10) 3.1 (2 .10) 
+
+q⋆ = 0 .3 10 .1 (3 .87) 8.3 (2 .10) 13 .4 (0 .93) 8.3 (2 .10) 13 .4 (0 .93) 
+
+q⋆ = 0 .4 2.0 (0 .30) 2.0 (0 .00) 2.0 (0 .00) 2.0 (0 .00) 2.0 (0 .00) 
+
+q⋆ = 0 .5 2.2 (0 .76) 1.4 (0 .16) 2.0 (0 .00) 1.5 (0 .17) 2.0 (0 .00) 
+
+q⋆ = 0 .6 4.7 (1 .14) 4.5 (2 .50) 7.0 (3 .33) 4.5 (2 .50) 7.0 (3 .33) 
+
+q⋆ = 0 .7 13 .2 (4 .73) 11 .6 (2 .37) 14 .4 (1 .58) 11 .6 (2 .37) 14 .4 (1 .58) 
+
+q⋆ = 0 .8 17 .7 (4 .52) 1.0 (0 .00) 3.1 (2 .10) 1.0 (0 .00) 3.1 (2 .10) 
+
+q⋆ = 0 .9 16 .7 (4 .11) 1.0 (0 .00) 1.0 (0 .00) 1.0 (0 .00) 1.0 (0 .00) 
+
+q⋆ = 1 .0 16 .5 (4 .17) 1.0 (0 .00) 1.0 (0 .00) 1.0 (0 .00) 1.0 (0 .00) 
+
+Table 10: Dyck validity. Each cell is the mean of J over n = 10 random seeds (max convention; higher better), with standard error in parentheses. Best method per row in bold (within 10 −3). BFT m GCG PPT-RB (A) PPT-RB PPT (A) PPT Beta–Bernoulli ( k = 0 ) 6 +0.10 (0 .00) +0.10 (0 .00) +0.10 (0 .00) +0.10 (0 .00) +0.10 (0 .00) 
+
+Beta–Bernoulli ( k = 0 ) 50 +0.12 (0 .00) +0.12 (0 .00) +0.12 (0 .00) +0.12 (0 .00) +0.12 (0 .00) 
+
+Reinforced urn ( k = 1 ) 6 +0 .29 (0 .05) +0 .33 (0 .09) +0.59 (0 .00) +0 .38 (0 .09) +0 .54 (0 .05) 
+
+Reinforced urn ( k = 1 ) 50 +0.61 (0 .04) +0 .01 (0 .00) +0 .01 (0 .00) +0 .02 (0 .01) +0 .02 (0 .01) 
+
+Table 11: Dyck validity, m = 6 . Rank-out-of-64 of the snapped prompt (1 = enumerated optimum), averaged over n = 10 random seeds; standard error in parentheses. Best method per row in bold (within 0.05 ). BFT GCG PPT-RB (A) PPT-RB PPT (A) PPT Beta–Bernoulli ( k = 0 ) 3.0 (1 .33) 1.0 (0 .00) 1.0 (0 .00) 1.0 (0 .00) 1.0 (0 .00) 
+
+Reinforced urn ( k = 1 ) 12 .3 (4 .65) 21 .5 (6 .83) 1.0 (0 .00) 17 .4 (6 .70) 4.3 (3 .30) 
+
+24 E.2 PMC and ESS diagnostics 
+
+For PPT and PPT-RB, each optimization run logs the importance-weight effective sample size 
+
+ESS :=   P  
+
+> ℓ
+
+wℓ
+
+2/ P 
+
+> ℓ
+
+w2 
+
+> ℓ
+
+, with wℓ = W (˜k(ℓ); κ), at every step. Low ESS /L indicates the tilted posterior Πtilt has drifted far from the BFT’s latent prior, degrading the IS gradient estimate. Tables 12 and 13 report the final ESS /L (mean, min, max over 10 random seeds) for each (utility, method) configuration at m = 6 ; Tables 14 and 15 report the same at m = 50 .Table 12: Final ESS/ L (mean / min / max over 10 seeds), Beta–Bernoulli ( k = 0 ), m = 6 .Utility PPT-RB (A) PPT-RB PPT (A) PPT mean min max mean min max mean min max mean min max Dyck 1.00 1.00 1.00 1.00 1.00 1.00 1.00 0.99 1.00 0.99 0.96 1.00 
+
+q⋆ = 0 .0 0.31 0.31 0.32 0.31 0.31 0.31 0.32 0.31 0.32 0.31 0.31 0.31 
+
+q⋆ = 0 .1 0.31 0.31 0.32 0.31 0.31 0.31 0.32 0.31 0.33 0.31 0.31 0.32 
+
+q⋆ = 0 .2 0.31 0.31 0.32 0.31 0.31 0.31 0.32 0.31 0.33 0.31 0.31 0.32 
+
+q⋆ = 0 .3 0.34 0.32 0.36 0.33 0.32 0.34 0.34 0.32 0.36 0.34 0.32 0.35 
+
+q⋆ = 0 .4 0.47 0.46 0.48 0.47 0.46 0.47 0.47 0.46 0.48 0.47 0.46 0.47 
+
+q⋆ = 0 .5 1.00 1.00 1.00 1.00 1.00 1.00 1.00 0.99 1.00 1.00 1.00 1.00 
+
+q⋆ = 0 .6 0.48 0.47 0.52 0.49 0.48 0.50 0.48 0.46 0.49 0.48 0.48 0.49 
+
+q⋆ = 0 .7 0.34 0.32 0.36 0.35 0.33 0.36 0.34 0.32 0.36 0.35 0.33 0.36 
+
+q⋆ = 0 .8 0.32 0.31 0.33 0.32 0.32 0.32 0.32 0.32 0.34 0.32 0.32 0.33 
+
+q⋆ = 0 .9 0.32 0.31 0.33 0.32 0.32 0.32 0.32 0.31 0.34 0.32 0.32 0.33 
+
+q⋆ = 1 .0 0.32 0.31 0.33 0.32 0.32 0.32 0.32 0.31 0.33 0.32 0.32 0.33 
+
+τ ⋆ = 0 .1 0.31 0.31 0.32 0.31 0.31 0.31 0.32 0.31 0.32 0.31 0.31 0.31 
+
+τ ⋆ = 0 .2 0.31 0.31 0.32 0.31 0.31 0.31 0.32 0.31 0.32 0.31 0.31 0.31 
+
+τ ⋆ = 0 .3 0.31 0.31 0.32 0.31 0.31 0.31 0.32 0.31 0.32 0.31 0.31 0.31 
+
+τ ⋆ = 0 .4 0.31 0.31 0.32 0.31 0.31 0.31 0.32 0.31 0.32 0.31 0.31 0.31 
+
+τ ⋆ = 0 .6 0.32 0.31 0.33 0.32 0.32 0.32 0.32 0.31 0.33 0.32 0.32 0.32 
+
+τ ⋆ = 0 .7 0.32 0.31 0.33 0.32 0.32 0.32 0.32 0.31 0.33 0.32 0.32 0.32 
+
+τ ⋆ = 0 .8 0.32 0.31 0.33 0.32 0.32 0.32 0.32 0.31 0.33 0.32 0.32 0.32 
+
+τ ⋆ = 0 .9 0.32 0.31 0.33 0.32 0.32 0.32 0.32 0.31 0.33 0.32 0.32 0.32 25 Table 13: Final ESS/ L (mean / min / max over 10 seeds), Reinforced urn ( k = 1 ), m = 6 .Utility PPT-RB (A) PPT-RB PPT (A) PPT mean min max mean min max mean min max mean min max Dyck 0.22 0.21 0.23 0.20 0.20 0.20 0.22 0.21 0.23 0.22 0.20 0.42 
+
+q⋆ = 0 .0 0.31 0.22 0.35 0.41 0.20 0.49 0.31 0.22 0.35 0.42 0.20 0.49 
+
+q⋆ = 0 .1 0.31 0.22 0.35 0.41 0.20 0.49 0.32 0.22 0.35 0.42 0.20 0.49 
+
+q⋆ = 0 .2 0.31 0.22 0.35 0.41 0.20 0.49 0.32 0.22 0.35 0.42 0.20 0.49 
+
+q⋆ = 0 .3 0.26 0.22 0.30 0.25 0.20 0.44 0.27 0.22 0.31 0.25 0.20 0.44 
+
+q⋆ = 0 .4 0.22 0.22 0.23 0.20 0.20 0.20 0.23 0.22 0.24 0.20 0.20 0.21 
+
+q⋆ = 0 .5 0.22 0.21 0.23 0.20 0.20 0.20 0.22 0.21 0.23 0.20 0.20 0.20 
+
+q⋆ = 0 .6 0.24 0.22 0.35 0.24 0.20 0.38 0.24 0.22 0.35 0.24 0.20 0.38 
+
+q⋆ = 0 .7 0.28 0.22 0.35 0.25 0.20 0.38 0.29 0.23 0.35 0.25 0.20 0.38 
+
+q⋆ = 0 .8 0.32 0.27 0.35 0.32 0.20 0.38 0.32 0.27 0.35 0.32 0.20 0.38 
+
+q⋆ = 0 .9 0.32 0.27 0.35 0.34 0.25 0.38 0.32 0.27 0.35 0.34 0.25 0.38 
+
+q⋆ = 1 .0 0.32 0.27 0.35 0.34 0.25 0.38 0.32 0.27 0.35 0.34 0.25 0.38 sym-0.1 0.22 0.21 0.23 0.20 0.20 0.20 0.22 0.21 0.23 0.20 0.20 0.20 sym-0.2 0.22 0.21 0.23 0.20 0.20 0.20 0.22 0.21 0.23 0.20 0.20 0.20 sym-0.3 0.22 0.21 0.23 0.20 0.20 0.20 0.22 0.21 0.23 0.20 0.20 0.20 sym-0.4 0.22 0.21 0.23 0.20 0.20 0.20 0.22 0.21 0.23 0.20 0.20 0.20 sym-0.6 0.34 0.28 0.35 0.41 0.38 0.48 0.33 0.28 0.36 0.38 0.26 0.49 sym-0.7 0.34 0.27 0.35 0.41 0.38 0.48 0.33 0.28 0.36 0.38 0.26 0.49 sym-0.8 0.34 0.27 0.35 0.41 0.38 0.48 0.33 0.28 0.36 0.38 0.26 0.49 sym-0.9 0.34 0.27 0.35 0.41 0.38 0.48 0.33 0.28 0.36 0.38 0.26 0.48 sym-1.0 0.34 0.33 0.35 0.44 0.38 0.48 0.34 0.33 0.35 0.44 0.38 0.48 dir-0 0.32 0.27 0.35 0.32 0.22 0.38 0.32 0.27 0.35 0.32 0.21 0.38 dir-1 0.33 0.29 0.35 0.44 0.37 0.49 0.33 0.29 0.35 0.44 0.37 0.49 dir-2 0.32 0.27 0.35 0.34 0.24 0.38 0.32 0.27 0.35 0.34 0.24 0.38 dir-3 0.34 0.27 0.35 0.40 0.25 0.48 0.33 0.27 0.36 0.38 0.25 0.49 dir-4 0.34 0.30 0.35 0.43 0.38 0.48 0.34 0.30 0.35 0.43 0.38 0.49 dir-5 0.22 0.21 0.23 0.20 0.20 0.20 0.22 0.21 0.23 0.20 0.20 0.20 dir-6 0.34 0.31 0.35 0.45 0.38 0.48 0.34 0.31 0.35 0.43 0.38 0.49 dir-7 0.34 0.33 0.35 0.42 0.38 0.48 0.33 0.28 0.36 0.39 0.27 0.48 dir-8 0.25 0.22 0.35 0.24 0.20 0.38 0.25 0.22 0.35 0.24 0.20 0.38 dir-9 0.33 0.29 0.35 0.41 0.20 0.49 0.33 0.29 0.35 0.41 0.20 0.49 26 Table 14: Final ESS/ L (mean / min / max over 10 seeds), Beta–Bernoulli ( k = 0 ), m = 50 .Utility PPT-RB (A) PPT-RB PPT (A) PPT mean min max mean min max mean min max mean min max Dyck 1.00 1.00 1.00 1.00 1.00 1.00 0.97 0.84 1.00 0.94 0.86 1.00 
+
+q⋆ = 0 .0 0.11 0.10 0.12 0.11 0.11 0.11 0.12 0.10 0.13 0.12 0.11 0.13 
+
+q⋆ = 0 .1 0.12 0.10 0.13 0.11 0.11 0.12 0.12 0.10 0.13 0.12 0.11 0.13 
+
+q⋆ = 0 .2 0.16 0.13 0.21 0.16 0.12 0.21 0.16 0.13 0.21 0.16 0.12 0.22 
+
+q⋆ = 0 .3 0.20 0.13 0.38 0.17 0.13 0.31 0.19 0.13 0.31 0.18 0.13 0.32 
+
+q⋆ = 0 .4 0.40 0.21 0.48 0.42 0.24 0.47 0.43 0.23 0.50 0.42 0.23 0.49 
+
+q⋆ = 0 .5 1.00 1.00 1.00 1.00 1.00 1.00 0.99 0.96 1.00 0.99 0.97 1.00 
+
+q⋆ = 0 .6 0.36 0.15 0.49 0.37 0.16 0.48 0.36 0.16 0.50 0.37 0.16 0.51 
+
+q⋆ = 0 .7 0.19 0.12 0.33 0.20 0.13 0.33 0.19 0.12 0.32 0.18 0.13 0.33 
+
+q⋆ = 0 .8 0.17 0.12 0.22 0.17 0.13 0.21 0.17 0.12 0.23 0.17 0.13 0.21 
+
+q⋆ = 0 .9 0.12 0.11 0.13 0.12 0.11 0.13 0.12 0.11 0.14 0.12 0.11 0.13 
+
+q⋆ = 1 .0 0.11 0.11 0.12 0.11 0.11 0.12 0.12 0.11 0.14 0.12 0.11 0.13 
+
+τ ⋆ = 0 .1 0.11 0.10 0.11 0.11 0.11 0.11 0.12 0.10 0.13 0.12 0.11 0.12 
+
+τ ⋆ = 0 .2 0.11 0.10 0.11 0.11 0.11 0.11 0.12 0.10 0.13 0.12 0.11 0.12 
+
+τ ⋆ = 0 .3 0.11 0.10 0.11 0.11 0.11 0.11 0.12 0.10 0.13 0.12 0.11 0.12 
+
+τ ⋆ = 0 .4 0.11 0.10 0.11 0.11 0.11 0.11 0.12 0.10 0.13 0.12 0.11 0.12 
+
+τ ⋆ = 0 .6 0.11 0.11 0.12 0.11 0.11 0.11 0.12 0.11 0.13 0.12 0.11 0.13 
+
+τ ⋆ = 0 .7 0.11 0.11 0.12 0.11 0.11 0.11 0.12 0.11 0.13 0.12 0.11 0.13 
+
+τ ⋆ = 0 .8 0.11 0.11 0.12 0.11 0.11 0.11 0.12 0.11 0.13 0.12 0.11 0.13 
+
+τ ⋆ = 0 .9 0.11 0.11 0.12 0.11 0.11 0.11 0.12 0.11 0.13 0.12 0.11 0.13 27 Table 15: Final ESS/ L (mean / min / max over 10 seeds), Reinforced urn ( k = 1 ), m = 50 .Utility PPT-RB (A) PPT-RB PPT (A) PPT mean min max mean min max mean min max mean min max Dyck 0.05 0.04 0.09 0.07 0.06 0.12 0.06 0.04 0.16 0.08 0.06 0.20 
+
+q⋆ = 0 .0 0.11 0.09 0.12 0.15 0.11 0.26 0.09 0.03 0.12 0.12 0.04 0.26 
+
+q⋆ = 0 .1 0.13 0.09 0.18 0.19 0.12 0.29 0.10 0.03 0.18 0.14 0.04 0.29 
+
+q⋆ = 0 .2 0.18 0.03 0.30 0.21 0.03 0.36 0.15 0.03 0.32 0.17 0.04 0.36 
+
+q⋆ = 0 .3 0.07 0.02 0.11 0.08 0.03 0.15 0.07 0.03 0.11 0.09 0.04 0.14 
+
+q⋆ = 0 .4 0.03 0.02 0.03 0.03 0.03 0.03 0.04 0.03 0.10 0.06 0.04 0.12 
+
+q⋆ = 0 .5 0.03 0.02 0.03 0.03 0.03 0.03 0.04 0.03 0.04 0.05 0.04 0.05 
+
+q⋆ = 0 .6 0.04 0.02 0.12 0.05 0.03 0.14 0.05 0.03 0.12 0.06 0.04 0.14 
+
+q⋆ = 0 .7 0.07 0.03 0.12 0.07 0.04 0.14 0.07 0.03 0.12 0.07 0.04 0.14 
+
+q⋆ = 0 .8 0.17 0.03 0.28 0.12 0.04 0.26 0.13 0.03 0.27 0.12 0.04 0.26 
+
+q⋆ = 0 .9 0.11 0.03 0.18 0.11 0.03 0.21 0.11 0.03 0.18 0.11 0.03 0.21 
+
+q⋆ = 1 .0 0.10 0.03 0.12 0.11 0.03 0.14 0.08 0.03 0.12 0.10 0.03 0.16 sym-0.1 0.03 0.02 0.03 0.03 0.03 0.03 0.03 0.02 0.03 0.03 0.03 0.03 sym-0.2 0.03 0.02 0.03 0.03 0.03 0.03 0.03 0.02 0.03 0.03 0.03 0.03 sym-0.3 0.03 0.02 0.03 0.03 0.03 0.03 0.03 0.02 0.03 0.03 0.03 0.03 sym-0.4 0.03 0.02 0.03 0.05 0.03 0.23 0.03 0.02 0.03 0.03 0.03 0.03 sym-0.6 0.11 0.09 0.12 0.13 0.09 0.15 0.11 0.09 0.12 0.13 0.10 0.15 sym-0.7 0.11 0.10 0.12 0.14 0.12 0.16 0.11 0.09 0.12 0.13 0.09 0.15 sym-0.8 0.11 0.10 0.12 0.14 0.12 0.16 0.11 0.09 0.12 0.13 0.10 0.16 sym-0.9 0.11 0.10 0.12 0.14 0.14 0.16 0.11 0.09 0.12 0.13 0.10 0.16 sym-1.0 0.11 0.11 0.12 0.14 0.14 0.16 0.11 0.10 0.12 0.14 0.11 0.16 dir-0 0.09 0.03 0.12 0.09 0.03 0.14 0.08 0.03 0.12 0.08 0.03 0.14 dir-1 0.10 0.08 0.12 0.13 0.03 0.15 0.09 0.02 0.12 0.12 0.03 0.15 dir-2 0.11 0.09 0.12 0.12 0.08 0.14 0.11 0.09 0.12 0.13 0.10 0.15 dir-3 0.11 0.10 0.12 0.14 0.12 0.16 0.11 0.09 0.12 0.13 0.10 0.15 dir-4 0.11 0.09 0.12 0.14 0.11 0.16 0.11 0.09 0.12 0.14 0.11 0.16 dir-5 0.03 0.02 0.03 0.03 0.03 0.03 0.03 0.02 0.03 0.03 0.03 0.03 dir-6 0.11 0.09 0.12 0.14 0.11 0.16 0.11 0.09 0.12 0.13 0.11 0.16 dir-7 0.11 0.11 0.12 0.14 0.12 0.16 0.11 0.09 0.12 0.14 0.10 0.16 dir-8 0.05 0.02 0.12 0.06 0.03 0.14 0.05 0.02 0.12 0.06 0.03 0.14 dir-9 0.10 0.02 0.12 0.13 0.03 0.15 0.09 0.02 0.12 0.11 0.03 0.15 
+
+F Broader impacts 
+
+Elicitation methods are dual-use: they support safety testing but could inform adversarial prompt search. Our method is restricted to stylized BFTs with binary vocabularies, limiting near-term risk. 28

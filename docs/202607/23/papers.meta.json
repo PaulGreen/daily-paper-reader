@@ -1,0 +1,39 @@
+{
+  "label": "2026-07-23",
+  "date": "2026-07-23",
+  "generated_at": "2026-07-23T21:14:15",
+  "count": 2,
+  "papers": [
+    {
+      "paper_id": "202607/23/2607.14595v2-magicprompt-ultra-lightweight-prompt-tuning-for-video-generation",
+      "section": "deep",
+      "title_en": "MagicPrompt: Ultra-Lightweight Prompt Tuning for Video Generation",
+      "authors": "Yinhan Zhang, Dingwei Tan, Xianghao Kong, Yue Ma, Yeying Jin, Anyi Rao",
+      "date": "2026-07-16",
+      "pdf": "https://arxiv.org/pdf/2607.14595v2",
+      "score": "9.0",
+      "evidence": "采用注意力嵌入的提示微调与轻量级软提示",
+      "tldr": "大型视频扩散模型在下游任务的全量微调计算成本极高，现有参数高效微调方法在十亿级模型上仍存在可训练参数量大及奖励驱动训练受噪声干扰优化不稳定的问题。MagicPrompt通过注意力嵌入提示调优实现极端参数效率，以极低参数量保留预训练知识；并设计双空间奖励反馈优化，利用自监督潜在目标稳定条件引导训练。在视频生成任务上，MagicPrompt仅需不到1%的可训练参数即可达到竞争性能，训练成本显著降低。该方法为超轻量级视频生成微调开辟了兼顾效率与稳定性的新道路。",
+      "tags": "query:prompt-learn",
+      "abstract_en": "Large-scale video diffusion models deliver strong generation performance, but full fine-tuning for downstream tasks incurs prohibitive computational costs. Existing parameter-efficient fine-tuning (PEFT) methods have two critical flaws on billion-scale models: they still require substantial trainable parameters, and reward-based training suffers from noise-induced optimization instability in condition-guided tasks. We propose MagicPrompt, a lightweight framework that achieves extreme parameter efficiency and stable reward optimization. It first adopts Attention-Embedded Prompt Tuning, which steers generation via lightweight soft prompts with orders of magnitude fewer parameters while preserving pre-trained knowledge. It further introduces Dual-Space Reward Feedback Optimization, which uses self-supervised latent objectives to improve condition-guided reward training. Experiments show MagicPrompt reaches competitive performance with less than 1% trainable parameters and notably reduces training costs.",
+      "source": "arxiv",
+      "selection_source": "fresh_fetch"
+    },
+    {
+      "paper_id": "202607/23/2607.20265v1-the-maskability-index-predicting-task-objective-alignment-in-pretrained-language-models",
+      "section": "deep",
+      "title_en": "The Maskability Index: Predicting Task-Objective Alignment in Pretrained Language Models",
+      "authors": "Ahmad Pouramini, Mahsa Afsharzadeh",
+      "date": "2026-07-22",
+      "pdf": "https://arxiv.org/pdf/2607.20265v1",
+      "score": "8.0",
+      "evidence": "提出掩蔽指数，用于在少样本知识生成中选择掩蔽式或前缀式离散提示模板。",
+      "tldr": "预训练语言模型在生成结构化知识时，其表现高度依赖提示策略与预训练目标的匹配程度。本文提出Maskability Index（MI），通过量化掩码与非掩码模板间DepthRank分数差异，评估知识关系更适合掩码式还是前缀式提示。在ATOMIC2020基准上，MI与少样本生成性能呈正相关，能为低资源场景下的提示模板选择与模型适配提供有效指引。",
+      "tags": "query:prompt-learn",
+      "abstract_en": "Large-scale pretrained language models such as T5 and BERT have demonstrated strong capabilities for generating structured knowledge. However, their performance depends on how closely the prompting strategy matches the objectives used during pretraining. We introduce the Maskability Index (MI), a quantitative metric that estimates whether a knowledge relation is better suited to masked-style prompting or prefix-style prompting in few-shot generation. MI is computed from differences in DepthRank scores between masked and unmasked templates, providing a principled measure of objective-template alignment. We evaluate MI on a diverse set of relations from the ATOMIC2020 knowledge base completion benchmark and show that it is positively correlated with downstream generation performance. These results indicate that MI can help select appropriate prompting templates and adaptation strategies for extracting relational knowledge from pretrained language models, especially in low-resource settings.",
+      "source": "arxiv",
+      "selection_source": "fresh_fetch"
+    }
+  ],
+  "errors": []
+}

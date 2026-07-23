@@ -1,0 +1,183 @@
+Title: The Maskability Index: Predicting Task-Objective Alignment in Pretrained Language Models
+
+URL Source: https://arxiv.org/pdf/2607.20265v1
+
+Published Time: Thu, 23 Jul 2026 01:04:42 GMT
+
+Number of Pages: 11
+
+Markdown Content:
+# The Maskability Index: Predicting Task–Objective Alignment in Pretrained Language Models 
+
+Ahmad Pouramini 1, Mahsa Afsharizadeh Department of Computer Engineering, Sirjan University of Technology 
+
+Abstract 
+
+Large-scale pretrained language models such as T5 and BERT have shown the ability to generate structured knowledge, but their effectiveness depends strongly on how the prompt-ing style aligns with the model’s pretraining objectives. We introduce the Maskability Index (MI) , a quantitative measure that estimates how well a knowledge relation bene-fits from masked-style prompting compared to prefix-style prompting in few-shot generative settings. MI is computed from DepthRank differences between masked and unmasked tem-plates, offering a principled way to capture objective–template alignment. We validate MI on a wide range of relations from the ATOMIC2020 knowledge base completion benchmark and show that it correlates with downstream generation quality. Our results suggest that MI can guide the choice of template families and adaptation strategies when mining relational knowledge from pretrained models, particularly in low-resource conditions. 
+
+Keywords: Natural Language Processing, Pre-trained Language Models, Knowledge Ex-traction, Knowledge Base Completion 
+
+Mathematics Subject Classification [2010]: 68T50, 68Q32 
+
+# 1 Introduction 
+
+Pretrained language models (PLMs) such as BERT [6] and T5 [20] have been shown to encode large amounts of factual and commonsense knowledge, which can be surfaced through carefully designed prompts. Early studies, most notably LAMA [17], demonstrated that masked cloze-style templates could probe relational knowledge directly from PLMs without additional fine-tuning. This line of work sparked extensive research on prompt-based evaluation and adaptation, revealing both the potential of PLMs as implicit knowledge bases and the striking sensitivity of performance to prompt wording and format [11, 22, 7]. Subsequent work highlighted that this sensitivity is not accidental but stems from a deeper interaction between a model’s pretraining objective and the style of prompt used at inference time [25, 18, 2, 14]. Models trained with masked or denoising objectives (e.g., BERT, T5’s span corruption) are naturally aligned with cloze-style templates, while autoregressive models (e.g., GPT) favor left-to-right conditional generation [20, 19]. Even within a single model such as T5—which combines a denoising objective with additional left-to-right training—different relations or tasks may be more recoverable under one template family than the other [18, 25]. Recent advances in unified pretraining frameworks such as UL2 [25] have shown that denois-ing, causal, and infilling objectives can be treated as part of a continuous design space rather than distinct paradigms. This perspective motivates our analysis of how different objectives align with downstream task templates through information-theoretic measures. Zhang et al. introduced the notion of deep commonsense knowledge , observing that many relational triples diverge significantly from natural language expression and thereby pose a chal-lenge for language models. They operationalize this via DepthRank and perplexity metrics on 
+
+> 1speaker
+
+1arXiv:2607.20265v1 [cs.CL] 22 Jul 2026 2 Ahmad Pouramini, Mahsa Afsharizadeh triple-to-sentence conversions, and show that triples of higher depth (i.e., more “unnatural” ones) lead to significantly poorer model performance under naive prompting or classification se-tups [29]. Building on this insight, we hypothesize that template–objective alignment (masked vs prefix prompting) will interact strongly with this depth: masked-style prompting may succeed for shallow, lexical relations, but fail for deep, inferential ones. To capture this interaction, we propose the Maskability Index (MI) , a statistic that opera-tionalizes template–objective alignment. MI is defined as the difference in DepthRank values obtained under masked versus prefix-generation templates, and it provides a direct estimate of whether a relation is more “mask-friendly” or “generation-friendly.” We evaluate MI on the ATOMIC2020 commonsense knowledge base [9], focusing on knowledge completion as a genera-tive task. Our experiments show that MI correlates with downstream generation quality across relations and can guide the choice of template families and adaptation strategies, particularly in few-shot or low-resource settings. Our contributions are as follows: 
+
+• We highlight the role of pretraining–prompt alignment in knowledge base completion and frame it as a measurable phenomenon at the relation level. 
+
+• We propose the Maskability Index (MI), a novel statistic derived from DepthRank differ-ences, which predicts whether masked-style or prefix-style prompting will be more effective. 
+
+• We validate MI on ATOMIC2020 relations, showing its ability to correlate with and even anticipate downstream performance, offering practical guidance for template selection and adaptation in generative knowledge completion. 
+
+# 2 Empirical Motivation: DepthRank Variation Across Templates 
+
+Pretrained language models (PLMs) can generate plausible tails given a head–relation pair, but the ease of generation varies widely across relations and prompting styles. Consider the task of 
+
+head–relation–tail generation : given a head event or entity h and a relation r, the model predicts one or more plausible tails t that complete the relation. To capture how accessible gold tails are in the model’s predictions, we use the concept of 
+
+DepthRank (DR) . Intuitively, DR measures the rank of the gold tail tokens within the model’s predicted probability distribution. Lower DR indicates that a gold tail is near the top of the predicted list (easier to generate), while higher DR indicates it is more “buried” (harder to predict). DepthRank is formally defined in Section 3.2, but here we illustrate its behavior with examples. Table 1 presents a small set of T5-base generations under different ATOMIC2020 [9] rela-tions. For each head–relation pair, we show the model’s predicted continuation, the correspond-ing gold targets (reference tails), token indices of those gold targets in the model’s probability list, and the resulting DepthRank (DR) values, which represent the average rank position of the gold tail tokens in the prediction distribution. In each case, the relation is incorporated into the input template through a short natural phrase that verbalizes the semantic role of the relation (e.g., xIntent → “because she intends,” 
+
+xAttr → “she is seen as”). These verbalizers help transform abstract relational labels into fluent, interpretable textual contexts compatible with the models pre-training objectives. The complete mapping between relations and their corresponding natural-language phrases is listed in Appendix Table 5. Importantly, DepthRank is calculated over gold target tokens , not over the model’s own prediction. A prediction always has rank zero by definition because it corresponds to the highest probability token chosen by the model at each step. In contrast, DepthRank reveals how far the The Maskability Index: Predicting Task–Objective Alignment in Pretrained Language Models 3                       
+
+> Head: PersonX works as a waitress
+> Relation Prediction Target (tail) Token Idx DR
+> xIntent (because she intends) to be a waitress to earn money 1,53 ,118 .33 to make money 1,7,13xAttr (he is seen as) caring exhausted 1672 1672 tired 1136 1136 hard working 33 ,417
+
+Table 1: Illustrative T5-base generations on ATOMIC2020 relations for the head “PersonX works as a waitress” . Each block shows a relation–prediction pair followed by plausible gold completions with their token indices and DepthRank (DR). Lower DR indicates that the gold is nearer to the model’s top predictions, reflecting stronger internal alignment. plausible gold targets are from the model’s top predictions. A lower DR indicates that the gold tokens appear closer to the model’s top predictions, reflecting stronger internal alignment and better relational consistency. Relations like xIntent typically involve more compositional structures (e.g., infinitival clauses beginning with “to”), yet these yield lower DepthRank values. This pattern arises because the model strongly associates xIntent with the token “to,” constraining subsequent predictions to a narrow verb space with relatively low rank positions. Conversely, adjective completions for 
+
+xAttr are more lexically diverse and less predictable, leading to greater DepthRank variability. The relations presented in Table 1 were computed using the Prompting method, in which the decoder generates a continuation of the head–relation pair provided to the encoder. This setting aligns with the language modeling (LM) objective used during pretraining, where the model learns to predict the next token in a sequence. An alternative setting is MaskedPrompting ,where a mask token is inserted in place of the missing part, and the decoder generates the corresponding word or phrase. This formulation aligns with the denoising pretraining objective used in encoder–decoder architectures such as T5, where the model learns to reconstruct masked spans of text. Figure 1 presents the average DR for multiple head–relation instances under two template families: Prompting (prefix-style) and MaskedPrompting (mask-style). The sample size was varied from 3 to 100. Some relations, like AtLocation and xAttr , achieve lower DR under masked prompting, particularly in few-shot scenarios. Conversely, relations such as xIntent and xNeed 
+
+show smaller differences, or even slightly favor prefix prompting. These observations highlight a systematic phenomenon: 
+
+• Relations with short lexical tails (e.g., adjectives or common object uses) benefit from masked prompting, achieving lower DR. 
+
+• Relations requiring longer, compositional, or inferential tails (e.g., xIntent, xNeed) are less amenable to single-span mask recovery, showing smaller DR gains under masked templates. This motivates the need for a relation-level metric that quantifies how well a relation aligns with a template family or pretraining objective. In the following Methodology section, we formally define DepthRank and introduce the Maskability Index (MI) , which leverages these differences to predict the most effective prompting style for a relation. 4 Ahmad Pouramini, Mahsa Afsharizadeh 
+
+Figure 1: Average DepthRank of different ATOMIC2020 relations as a function of the number of training samples, comparing Prompting and MaskedPrompting templates. Mask-style templates often reduce DR for lexical relations in low-resource settings, motivating the need for a metric to quantify template–objective alignment. 
+
+# 3 Methodology 
+
+3.1 Task Definition 
+
+We frame our study as a general knowledge base completion (KBC) problem: given an incomplete relational triple consisting of a head entity or event h and a relation r, the model must generate a plausible tail t that completes the relation. Formally, each instance is represented as a tuple ( h, r, t ), where h and t are natural lan-guage expressions and r denotes a semantic relation describing causal, attributive, or situational knowledge (e.g., is used for , wants , needs ). 
+
+3.2 DepthRank 
+
+Following [29], we measure how highly a pretrained model ranks the gold tail tokens for a triple presented under a given template family. Let a triple be tokenized as 
+
+S = {h1: m, r 1: n, t 1: k},
+
+where h is the head, r the relation (or relation phrase), and t the tail (target sequence), with token counts m, n, k . For each tail token ti we compute the rank (index) of the correct token within the model’s sorted probability list: Index  ti | h1: m, r 1: n, t <i 
+
+.
+
+The DepthRank of the full target tail sequence is DepthRank( S) = 1
+
+k
+
+> k
+
+X
+
+> i=1
+
+Index  ti | h1: m, r 1: n, t <i 
+
+.
+
+Lower DepthRank means the gold tokens are nearer the top of the list (easier to predict). The Maskability Index: Predicting Task–Objective Alignment in Pretrained Language Models 5
+
+3.3 Maskability Index (MI) 
+
+DepthRank can be computed under two template families: 
+
+• Prompting (P) : unmasked prefix templates that rely on conditional generation (e.g., “PersonX cooks, before that they need . . . ”). 
+
+• MaskedPrompting (MP) : templates that place an explicit unique mask token(s) corre-sponding to the tail and expect the model / decoder to recover the masked span (aligned with denoising objectives). For a relation r and a chosen few-shot sample size n, define the mean DepthRank across an 
+
+n-sample under each template family: 
+
+DR Prompting (r, n ), DR MaskedPrompting (r, n ).
+
+Then the Maskability Index is defined as the relative DepthRank improvement of masked prompting over prompting: MI( r, n ) = DR Prompting (r, n ) − DR MaskedPrompting (r, n )
+
+DR Prompting (r, n ) . (1) Interpretation: 
+
+• MI( r, n ) > 0: masked prompting ranks gold tokens relatively higher (model benefits from mask-style probes) — call these mask-friendly .
+
+• MI( r, n ) < 0: prompting (prefix LM) is relatively better; relation is mask-resistant .
+
+• The magnitude of MI indicates the strength of the relative advantage. In low-resource practice we compute MI at small n (e.g., n = 5), because differences are more informative for strategy selection in few-shot settings (see Figure 1). In our experiments we use a threshold at 30% (MI ≥ 0.30 at n = 5) to partition relations into two coarse groups: 
+
+(Mask-Filling if MI ≥ 0.30 ,
+
+Map-Phrasal otherwise. The naming of the two groups reflects their linguistic and modeling behavior. Mask-Filling 
+
+relations tend to produce short, lexically bounded completions (e.g., nominal or adjectival tails) that align well with denoising-style objectives and direct span recovery around a mask token. In contrast, Map-Phrasal relations often express event-level or intentional mappings—for instance, clauses describing what a person “wants,” “needs,” or “intends”—that require the model to generate longer, compositional phrases best captured through prefix-style prompting. 
+
+# 4 Experimental Setup 
+
+Recent work such as UL2 [25] has shown that denoising and autoregressive (causal) objectives represent complementary regimes of language modeling rather than disjoint paradigms. Moti-vated by this unified perspective, we treat both denoising and language modeling as compatible training modes and analyze their alignment using the Maskability Index (MI). Our main model, 
+
+T5-base , was pretrained with a denoising objective and an auxiliary language modeling objec-tive, followed by supervised fine-tuning on downstream reasoning templates. This makes it a suitable candidate for our evaluation. 6 Ahmad Pouramini, Mahsa Afsharizadeh We employ the AdaFactor optimizer with a fixed learning rate of 0.0001 throughout fine-tuning. The mini-batch size is set to 8 for T5-base , and training is performed for a total of 3 epochs. We evaluate nine relations from ATOMIC2020 as a knowledge-base completion task: given a head and a relation, the model must generate or complete the corresponding tail. Template families and few-shot sample sizes follow the design described in preceding sections. DepthRank is computed on a held-out set of 100 heads per relation (each with up to three reference tails), and MI is computed at n = 5. 
+
+# 5 Results 
+
+5.1 Maskability Index (MI) for selected ATOMIC2020 relations 
+
+Table 2 shows MI computed at n = 5 for relations we analyze in this paper; the 30% threshold separates Mask-Filling from Map-Phrasal groups.                     
+
+> Relation MI (%) Assigned Group
+> AtLocation 38.25 Mask-Filling ObjectUse 35.47 Mask-Filling xAttr 48.49 Mask-Filling CapableOf 36.41 Mask-Filling HasProperty 38.64 Mask-Filling FilledBy 43.32 Mask-Filling xIntent -65.74 Map-Phrasal xNeed 3.92 Map-Phrasal xWant 19.15 Map-Phrasal
+
+Table 2: Maskability Index (MI) for selected ATOMIC2020 relations computed at n = 5. Rela-tions with MI ≥ 30% are grouped as “Mask-Filling”. 
+
+Qualitative observations Relations such as AtLocation, xAttr, and FilledBy are naturally mask-friendly: they typically involve short lexical heads and tails (e.g., locations, attributes, or functional fillers) that co-occur frequently in text and are well aligned with denoising-based pretraining objectives. In contrast, relations such as xIntent, xNeed, and xWant often require multi-step inference and longer phrasal realizations for both head and tail. For these relations, continuation-based prompting that supports longer semantic completions is more effective. Con-sistent with this distinction, MI correctly identifies these relations as less amenable to mask-style recovery in few-shot settings. 
+
+# 6 Performance by MI category 
+
+To better understand how the Maskability Index (MI) partitions relations according to their tem-plate affinity, we report generation quality of T5-base under both template families—Prompting (prefix) and Masked Prompting—using ROUGE and BERTScore as complementary metrics. These tables group relations according to their MI values (Table 2), separating mask-filling and 
+
+map-phrasal types. Both metrics exhibit a strong positive correlation ( r > 0.9 across all relations), confirming that they capture consistent aspects of semantic fidelity. The alignment between MI categories and empirical performance is evident: relations labeled as mask-filling achieve higher scores The Maskability Index: Predicting Task–Objective Alignment in Pretrained Language Models 7                                   
+
+> Template / Task AtLoc CapableOf HasProp ObjUse FilledBy xAttr Avg. Masked Prompting (BERTScore) 0.50 0.46 0.43 0.47 0.41 0.53 0.47 Masked Prompting (ROUGE) 0.20 0.20 0.18 0.20 0.12 0.18 0.18 Prompting (BERTScore) 0.41 0.38 0.41 0.39 0.41 0.43 0.40 Prompting (ROUGE) 0.12 0.09 0.11 0.10 0.07 0.08 0.08
+
+Table 3: Performance of T5-base on mask-filling relations (AtLoc, CapableOf, HasProp, ObjUse, FilledBy, xAttr).                     
+
+> Template / Task xIntent xNeed xWant All Masked Prompting (BERTScore) 0.48 0.48 0.50 0.49 Masked Prompting (ROUGE) 0.40 0.34 0.35 0.36 Prompting (BERTScore) 0.51 0.50 0.50 0.50 Prompting (ROUGE) 0.43 0.38 0.32 0.38
+
+Table 4: Performance of T5-base on map-phrasal relations (xIntent, xNeed, xWant). under masked prompting, while map-phrasal relations perform better under prefix prompting. This provides direct behavioral validation of MI as an indicator of template–objective alignment. In Table 3, mask-filling relations such as AtLocation , ObjectUse , and xAttr show a consistent performance advantage when evaluated with masked templates, particularly in ROUGE, sug-gesting that short lexical tails and high-frequency attribute words benefit from denoising-style recovery. Conversely, Table 4 shows that phrasal relations like xIntent , xNeed , and xWant favor prefix prompting, aligning with their multi-token, inferential nature. These findings support our core hypothesis: MI not only predicts alignment but also explains variation in downstream generative success across template families. Overall, the coherence between MI grouping and empirical metrics demonstrates that pre-training–prompt alignment manifests as measurable differences in generation quality. MI thus provides a practical bridge between intrinsic model statistics (DepthRank differences) and extrin-sic evaluation outcomes (ROUGE, BERTScore), confirming its utility as a predictive diagnostic for template selection. 
+
+# 7 Discussion, limitations, and next steps 
+
+MI is a pragmatic, empirically grounded indicator for template or task–objective alignment. It is not a full theoretical guarantee — caveats include tokenization artifacts (very frequent tokens like “to” can bias DepthRank averages) and dependence on the base pretrained model. Future work: (1) compute per-token or frequency-normalized MI variants, where each token’s contribution is weighted by its corpus frequency or normalized against its baseline predictability. (2) build an unsupervised estimator for MI from raw unlabeled corpora. At present, computing MI requires manually defined task templates and labeled examples, which limits its scalability and generality. An unsupervised variant could instead estimate task–objective compatibility intrinsically, by applying the model’s denoising or masking procedure to arbitrary text and aggregating token-level reconstruction likelihoods or DepthRank statistics. This would enable large-scale, task-agnostic diagnostics of model–objective alignment. 8 Ahmad Pouramini, Mahsa Afsharizadeh 
+
+# 8 Related work 
+
+Probing PLMs as implicit knowledge bases began with cloze-style evaluations such as LAMA [17], showing that factual and commonsense knowledge could be surfaced without fine-tuning. This line of work connected knowledge recoverability to pretraining objectives: masked/denoising models such as BERT and T5 [6, 20] align with cloze templates, while autoregressive models such as GPT favor prefix-style continuation [19, 2, 16]. While prior work has often compared masked and causal language modeling separately, UL2 [25] introduced a hybrid objective that adaptively samples between them, demonstrating improved generalization across both generative and discriminative tasks. Our study complements this line of research by providing an empirical indicator that quantifies how well a given objective aligns with task structure. A complementary direction enriches PLMs with external knowledge . Retrieval-augmented methods integrate evidence sentences [28], while commonsense KBs such as ConceptNet [23], ATOMIC [21, 10], or extensions thereof [3] provide structured resources. COMET [1] represents a hybrid strategy, dynamically generating KB-style facts from pretrained LMs; subsequent works [8, 26] extend this to broader commonsense reasoning tasks. Building on these insights, [29] introduced DepthRank , demonstrating that triples vary in “depth” of commonsense abstraction and that deeper relations are harder to probe. Our work departs from depth alone by measuring template–objective alignment at the relation level. Parallel to probing studies, a rich literature has emerged on commonsense plausibility estima-tion (CSPE). Early work showed that sentence probability and perplexity can serve as indicators of plausibility [27, 5, 15]. More recent approaches exploit LLMs’ instruction-following abilities to directly judge plausibility [30], or evaluate hypotheses via entailment-path reasoning [12, 24]. VERA [13] takes a discriminative approach, fine-tuning a classifier on millions of commonsense statements. By contrast, ComPaSS [4] operationalizes plausibility as a semantic shift between anchor and candidate sentences, using similarity as a zero-shot plausibility score. Our proposed Maskability Index (MI) complements these strands. Unlike CSPE methods that estimate the plausibility of individual statements, MI quantifies the relative advantage of masked versus prefix prompting for a given relation. This makes MI a diagnostic tool for template–objective alignment in generative knowledge completion, distinct from plausibility-based scoring or external knowledge augmentation. 
+
+# 9 Conclusion 
+
+We introduced the Maskability Index (MI), a DepthRank-based metric to predict whether a relation benefits from mask-style templates vs. prefix prompting in few-shot scenarios. MI helps automatically determine which adaptation strategy and template family to use. Future work will extend MI to per-token variants and build automatic MI estimators. 
+
+# References 
+
+[1] Antoine Bosselut, Hannah Rashkin, Maarten Sap, Chaitanya Malaviya, Asli Celikyilmaz, and Yejin Choi. Comet: Commonsense transformers for automatic knowledge graph con-struction. In ACL , 2019. [2] Tom Brown, Benjamin Mann, Nick Ryder, Melanie Subbiah, Jared D. Kaplan, Prafulla Dhariwal, Arvind Neelakantan, Pranav Shyam, Girish Sastry, Amanda Askell, et al. Lan-guage models are few-shot learners. In Advances in Neural Information Processing Systems (NeurIPS) , volume 33, pages 1877–1901, 2020. The Maskability Index: Predicting Task–Objective Alignment in Pretrained Language Models 9[3] Byeongmin Choi, Yong-Sook Lee, Yeunwoong Kyung, and Eunchan Kim. Albert with knowledge graph encoder utilizing semantic similarity for commonsense question answering. 
+
+arXiv preprint arXiv:2211.07065 , 2022. [4] Wanqing Cui, Keping Bi, Jiafeng Guo, and Xueqi Cheng. Estimating commonsense plau-sibility through semantic shifts. arXiv preprint arXiv:2502.13464 , 2025. [5] Joe Davison, Joshua Feldman, and Alexander M. Rush. Commonsense knowledge mining from pretrained models. In EMNLP-IJCNLP , pages 1173–1178, 2019. [6] Jacob Devlin, Ming-Wei Chang, Kenton Lee, and Kristina Toutanova. Bert: Pre-training of deep bidirectional transformers for language understanding. In NAACL , 2019. [7] Tianyu Gao, Adam Fisch, and Danqi Chen. Making pre-trained language models better few-shot learners. In Proceedings of the 59th Annual Meeting of the Association for Com-putational Linguistics (ACL) , volume 1, pages 3816–3830. Association for Computational Linguistics, 2021. [8] Sarik Ghazarian, Yijia Shao, Rujun Han, Aram Galstyan, and Nanyun Peng. Accent: An automatic event commonsense evaluation metric for open-domain dialogue systems. In 
+
+ACL , 2023. [9] Jena D. Hwang, Chandra Bhagavatula, Ronan Le Bras, Jeff Da, Keisuke Sakaguchi, Antoine Bosselut, and Yejin Choi. Comet-atomic 2020: On symbolic and neural commonsense knowledge graphs. In Proceedings of the 35th AAAI Conference on Artificial Intelligence (AAAI) , pages 6384–6392, 2021. [10] Jena D. Hwang, Chandra Bhagavatula, Ronan Le Bras, Jeff Da, Keisuke Sakaguchi, Antoine Bosselut, and Yejin Choi. Comet-atomic 2020: On symbolic and neural commonsense knowledge graphs. In AAAI , 2020. [11] Zhengbao Jiang, Frank F Xu, Jun Araki, and Graham Neubig. Can you tell me how to improve my prompt? learning to rephrase prompts for language models. In Proceedings of the 58th Annual Meeting of the Association for Computational Linguistics , pages 5925– 5936. Association for Computational Linguistics, 2020. [12] Jaehun Jung, Lianhui Qin, Sean Welleck, Faeze Brahman, Chandra Bhagavatula, Ronan Le Bras, and Yejin Choi. Maieutic prompting: Logically consistent reasoning with recursive explanations. In EMNLP , pages 1266–1279, 2022. [13] Jiacheng Liu, Wenya Wang, Dianzhuo Wang, Noah A. Smith, Yejin Choi, and Hannaneh Hajishirzi. Vera: A general-purpose plausibility estimation model for commonsense state-ments. In EMNLP , pages 1264–1287, 2023. [14] Pengfei Liu, Weizhe Yuan, Jinlan Fu, Zhengbao Jiang, Hiroaki Hayashi, and Graham Neu-big. Pre-train, prompt, and predict: A systematic survey of prompting methods in natural language processing. arXiv preprint arXiv:2107.13586 , 2021. [15] Yixian Liu, Liwen Zhang, Wenjuan Han, Yue Zhang, and Kewei Tu. Constrained text gen-eration with global guidance: Case study on commongen. arXiv preprint arXiv:2103.07170 ,2021. [16] Zhuang Liu, Wayne Lin, Ya Shi, and Jun Zhao. A robustly optimized bert pre-training approach with post-training. In China National Conference on Chinese Computational Linguistics , pages 471–484. Springer, 2021. 10 Ahmad Pouramini, Mahsa Afsharizadeh [17] Fabio Petroni, Tim Rockt¨ aschel, Sebastian Riedel, Patrick Lewis, Anton Bakhtin, Yuxiang Wu, and Alexander Miller. Language models as knowledge bases? In Proceedings of the 2019 Conference on Empirical Methods in Natural Language Processing , pages 2463–2473, 2019. [18] Ahmad Pouramini and Hesham Faili. Matching tasks to objectives: Fine-tuning and prompt-tuning strategies for encoder-decoder pre-trained language models. Applied In-telligence , 54(20):9783–9810, Oct 2024. [19] Alec Radford, Jeff Wu, Rewon Child, David Luan, Dario Amodei, and Ilya Sutskever. Language models are unsupervised multitask learners. Technical report, OpenAI, 2019. OpenAI Blog/Technical report. [20] Colin Raffel, Noam Shazeer, Adam Roberts, Katherine Lee, Sharan Narang, Michael Matena, Yanqi Zhou, Wei Li, and Peter J. Liu. Exploring the limits of transfer learning with a unified text-to-text transformer. Journal of Machine Learning Research , 21(140):1–67, 2020. [21] Maarten Sap, Ronan Le Bras, Emily Allaway, Chandra Bhagavatula, Nicholas Lourie, Han-nah Rashkin, Brendan Roof, Noah A. Smith, and Yejin Choi. Atomic: An atlas of machine commonsense for if-then reasoning. In AAAI , pages 3027–3035, 2019. [22] Taylor Shin, Yasaman Razeghi, Robert L Logan IV, Eric Wallace, and Sameer Singh. Auto-prompt: Eliciting knowledge from language models with automatically generated prompts. In Proceedings of the 2020 Conference on Empirical Methods in Natural Language Process-ing (EMNLP) , pages 4222–4235. Association for Computational Linguistics, 2020. [23] Robyn Speer, Joshua Chin, and Catherine Havasi. Conceptnet 5.5: An open multilingual graph of general knowledge. In AAAI , 2016. [24] Oyvind Tafjord, Bhavana Dalvi, and Peter Clark. Entailer: Answering questions with faithful and truthful chains of reasoning. In EMNLP , 2022. [25] Yi Tay, Mostafa Dehghani, Vinh Q Tran, Xavier Garcia, Jason Wei, Xuezhi Wang, Hyung Won Chung, Siamak Shakeri, Dara Bahri, Tal Schuster, et al. Ul2: Unifying lan-guage learning paradigms. arXiv preprint arXiv:2205.05131 , 2022. [26] Yufei Tian, Felix Zhang, and Nanyun Peng. Harnessing black-box control to boost com-monsense in lms’ generation. In EMNLP , 2023. [27] Trieu H. Trinh and Quoc V. Le. A simple method for commonsense reasoning. arXiv preprint arXiv:1806.02847 , 2018. [28] Wenhui Yu, Chenguang Zhu, Zhihan Zhang, Shuohang Wang, Zhuosheng Zhang, Yuwei Fang, and Meng Jiang. Retrieval augmentation for commonsense reasoning: A unified approach. In EMNLP , 2022. [29] Yi Zhang, Le Li, Yuyang Wu, Qiang Su, and Xiao Sun. Alleviating the knowledge-language inconsistency: A study for deep commonsense knowledge. arXiv preprint arXiv:2105.13607 ,2021. [30] Zirui Zhao, Wee Sun Lee, and David Hsu. Large language models as commonsense knowl-edge for large-scale task planning. In NeurIPS , 2024. The Maskability Index: Predicting Task–Objective Alignment in Pretrained Language Models 11 
+
+# A Prompts for Knowledge Base Relations 
+
+To convert knowledge-graph triples into natural language sentences, we used the relation-specific templates shown in Table 5. Each template expresses a relation in a natural phrasing suitable for the T5 model’s input format. 
+
+Relation Natural Phrase Example 
+
+AtLocation located at Book is located at the library ObjectUse is used for Hammer is used for building CapableOf is capable of Athlete is capable of running HasProperty has the property of The car has the property of being fast isFilledBy is filled by PersonX watches — which is filled by the TV xAttr is seen as PersonX teaches at a university. PersonX is seen as intelligent xIntent because they intended PersonX eats vegetables because they intended to be healthy xNeed before that they need PersonX attends the marathon; before that they need to train xWant after that they want PersonX washes the car; after that they want to dry it 
+
+Table 5: Natural language templates used to verbalize different knowledge-base relations, along with illustrative examples.

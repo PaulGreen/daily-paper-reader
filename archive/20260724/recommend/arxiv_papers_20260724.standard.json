@@ -1,0 +1,133 @@
+{
+  "mode": "standard",
+  "generated_at": "2026-07-24T21:39:19.010088+00:00",
+  "stats": {
+    "mode": "standard",
+    "tag_count": 1,
+    "deep_divecandidates": 2,
+    "deep_cap": 6,
+    "deep_selected": 2,
+    "quick_candidates": 1,
+    "quick_skim_target": 11,
+    "quick_selected": 1
+  },
+  "deep_dive": [
+    {
+      "id": "2607.21417v1",
+      "source": "arxiv",
+      "title": "Towards Privacy-Preserving Federated Prompt Tuning under Data Heterogeneity: A Subspace-Decomposed Expert Approach",
+      "abstract": "Federated prompt tuning (FPT) enables collaborative adaptation of vision--language models (VLMs) using lightweight prompts. Existing methods often address heterogeneity and privacy through a split-prompt design under local differential privacy (DP), combining a shared prompt for global transfer with private prompts for local adaptation. However, a single shared prompt may over-smooth diverse transferable knowledge, weakening the balance between personalization and generalization. Multi-expert prompts (MEPs) can better capture this diversity, but enlarge the communicated space, increasing DP noise and communication cost while making robust expert composition more difficult. We propose FedSEPT, a privacy-preserving Fed}erated Subspace-decomposed Expert Prompt Tuning. Specifically, we employ Subspace-decomposed Expert Modeling (SEM) to parameterize multiple prompt experts with shared low-rank factors, a fixed public basis, and private residuals, thereby confining communication and DP perturbation to a compact factor space while enabling direct server aggregation in a common coordinate system. We further design Instance-aware Expert Fusion (IEF), which adaptively combines semantically complementary experts via on-device routing and performs efficient logit-level fusion using cached expert-specific text features. Extensive experiments on 11 heterogeneous benchmarks show that, under the same privacy constraints, FedSEPT achieves a better trade-off between local adaptation and global generalization than strong baselines.",
+      "authors": [
+        "Yuhua Wang",
+        "Xiaodong Li",
+        "Yihao Guo",
+        "Yuxiang Jia",
+        "Qinnan Zhang",
+        "Yifan Sun",
+        "Hainan Zhang",
+        "Yongxin Tong",
+        "Zhiming Zheng"
+      ],
+      "primary_category": "cs.CV",
+      "categories": [
+        "cs.CV"
+      ],
+      "published": "2026-07-23T15:22:48+00:00",
+      "link": "https://arxiv.org/pdf/2607.21417v1",
+      "tags": [
+        "keyword:prompt-learn",
+        "query:prompt-learn"
+      ],
+      "llm_score": 10.0,
+      "llm_evidence_en": "Proposes privacy-preserving federated prompt tuning with multi-expert prompts, optimizing continuous prompt vectors via gradient-based tuning.",
+      "llm_evidence_cn": "提出隐私保护的联邦提示微调，采用多专家提示，通过梯度优化连续提示向量。",
+      "llm_evidence": "提出隐私保护的联邦提示微调，采用多专家提示，通过梯度优化连续提示向量。",
+      "canonical_evidence": "提出隐私保护的联邦提示微调，采用多专家提示，通过梯度优化连续提示向量。",
+      "llm_tldr_en": "Proposes FedSEPT, a privacy-preserving federated prompt tuning method that uses multi-expert prompts decomposed in low-dimensional subspaces to address data heterogeneity, reducing communication cost and DP noise while maintaining performance.",
+      "llm_tldr_cn": "针对联邦提示微调中的数据异质性和隐私问题，本文提出FedSEPT方法。现有联邦提示方法通常采用单一共享提示与本地私有提示结合，但易导致全局知识过度平滑。FedSEPT采用多专家提示在低维子空间中分解全局知识，以捕获多样化可迁移特征，同时通过本地差分隐私保护数据。实验表明，该方法在通信效率和隐私预算下显著优于基线，在视觉语言模型上实现了更优的个性化与泛化平衡。此外，子空间分解降低了提示维度，显著减少了通信开销和差分隐私噪声，使得多专家架构在联邦场景下可行。本工作为隐私敏感的联邦学习场景提供了轻量级提示适配方案。",
+      "llm_tldr": "针对联邦提示微调中的数据异质性和隐私问题，本文提出FedSEPT方法。现有联邦提示方法通常采用单一共享提示与本地私有提示结合，但易导致全局知识过度平滑。FedSEPT采用多专家提示在低维子空间中分解全局知识，以捕获多样化可迁移特征，同时通过本地差分隐私保护数据。实验表明，该方法在通信效率和隐私预算下显著优于基线，在视觉语言模型上实现了更优的个性化与泛化平衡。此外，子空间分解降低了提示维度，显著减少了通信开销和差分隐私噪声，使得多专家架构在联邦场景下可行。本工作为隐私敏感的联邦学习场景提供了轻量级提示适配方案。",
+      "llm_tags": [
+        "query:prompt-learn"
+      ],
+      "matched_query_tag": "query:prompt-learn",
+      "matched_query_text": "gradient-based tuning of continuous prompt embeddings",
+      "matched_requirement_id": "req-6",
+      "selection_source": "fresh_fetch"
+    },
+    {
+      "id": "2607.20668v1",
+      "source": "arxiv",
+      "title": "From Agent Failures to Text Policies: What Works and What Breaks",
+      "abstract": "TextGrad improves language-model systems by revising text from feedback. Its core thesis is that natural-language feedback can act as a gradient for optimizing text components without changing model weights. Applying it to agents is harder because feedback arrives only after a sequence of actions, making it difficult to identify which decision caused failure. We study this problem by separating the ability to follow a useful policy from the ability to learn that policy from experience. Our main finding is a clear gap between these two abilities. Human-written policies improve two frozen 7B agents on TextWorldExpress by 5.0 success points, showing that useful policy text exists. However, policies generated from agent trajectories do not reliably outperform fixed prompting, even with richer traces, counterfactual evidence, or iterative GEPA search. The main challenge for agent-level TextGrad is therefore not executing textual policy updates, but reliably generating and selecting them from experience.",
+      "authors": [
+        "Jaideep Ray",
+        "Ankit Goyal"
+      ],
+      "primary_category": "cs.CL",
+      "categories": [
+        "cs.CL",
+        "cs.AI"
+      ],
+      "published": "2026-07-22T19:08:19+00:00",
+      "link": "https://arxiv.org/pdf/2607.20668v1",
+      "tags": [
+        "keyword:prompt-learn",
+        "query:prompt-learn"
+      ],
+      "llm_score": 9.0,
+      "llm_evidence_en": "TextGrad uses natural-language feedback to optimize text components as gradients, enabling automatic prompt improvement.",
+      "llm_evidence_cn": "TextGrad利用自然语言反馈作为梯度优化文本组件，实现自动提示改进。",
+      "llm_evidence": "TextGrad利用自然语言反馈作为梯度优化文本组件，实现自动提示改进。",
+      "canonical_evidence": "TextGrad利用自然语言反馈作为梯度优化文本组件，实现自动提示改进。",
+      "llm_tldr_en": "Studies optimizing text policies for LLM agents by using natural-language feedback as gradients; reveals a gap between policy comprehensibility and learnability, showing human-written policies improve agents but auto-generated policies from trajectories often fail.",
+      "llm_tldr_cn": "本文研究TextGrad框架，将自然语言反馈视为梯度，用于优化文本组件而无需修改模型权重。将其应用于Agent时，面临反馈滞后和因果归因困难。通过分离策略遵循能力与策略学习能力，实验发现人类编写的策略在冻结的7B模型上提升5.0个成功点，但从智能体轨迹自动生成的策略未能可靠超越固定基线。该工作揭示了可理解策略文本的存在性，同时指出从经验中学习有效策略的挑战，为自动提示工程和策略优化提供了关键分析。",
+      "llm_tldr": "本文研究TextGrad框架，将自然语言反馈视为梯度，用于优化文本组件而无需修改模型权重。将其应用于Agent时，面临反馈滞后和因果归因困难。通过分离策略遵循能力与策略学习能力，实验发现人类编写的策略在冻结的7B模型上提升5.0个成功点，但从智能体轨迹自动生成的策略未能可靠超越固定基线。该工作揭示了可理解策略文本的存在性，同时指出从经验中学习有效策略的挑战，为自动提示工程和策略优化提供了关键分析。",
+      "llm_tags": [
+        "query:prompt-learn"
+      ],
+      "matched_query_tag": "query:prompt-learn",
+      "matched_query_text": "Techniques for automatic prompt generation in natural language processing",
+      "matched_requirement_id": "req-10",
+      "selection_source": "fresh_fetch"
+    }
+  ],
+  "quick_skim": [
+    {
+      "id": "2607.21324v1",
+      "source": "arxiv",
+      "title": "GRADRAG: Cross-Component Prompt Adaptation for Coordinated Multi-Agent RAG",
+      "abstract": "Retrieval-Augmented Generation (RAG) systems increasingly employ multiple LLM agents. Yet, most prior work optimizes components in isolation rather than coordinating improvements across the pipeline. We introduce GRADRAG, a framework for cross-component prompt adaptation that models the RAG pipeline as a computational graph and propagates structured evaluation feedback to update upstream agents. An Evaluator critiques downstream answers and supporting evidence, producing actionable feedback that a Prompt Optimizer uses to iteratively update adaptive agents, such as retrievers, graph constructors, and answerers. The Evaluator also triggers early stopping when the output is deemed satisfactory. We evaluate GRADRAG on the SQUALITY and QMSUM benchmarks under two retrieval paradigms: flat chunk-based retrieval using IRCoT-style query refinement (Trivedi et al., 2023), and graph-based retrieval that constructs and iteratively enriches an entity-relation graph from the document. Across both settings, GRADRAG consistently outperforms one-step refinement baselines that update only the final generator, achieving a 12-15 percentage point net preference margin in LLM-judged pairwise comparisons, with most gains realized within two refinement iterations.",
+      "authors": [
+        "Paolo Pedinotti",
+        "Enrico Santus"
+      ],
+      "primary_category": "cs.CL",
+      "categories": [
+        "cs.CL",
+        "cs.AI"
+      ],
+      "published": "2026-07-23T13:54:38+00:00",
+      "link": "https://arxiv.org/pdf/2607.21324v1",
+      "tags": [
+        "keyword:prompt-learn",
+        "query:prompt-learn"
+      ],
+      "llm_score": 7.0,
+      "llm_evidence_en": "Introduces GRADRAG, a cross-component prompt adaptation framework that iteratively optimizes prompts using evaluation feedback.",
+      "llm_evidence_cn": "引入GRADRAG，通过评估反馈迭代优化提示的跨组件适配框架",
+      "llm_evidence": "引入GRADRAG，通过评估反馈迭代优化提示的跨组件适配框架",
+      "canonical_evidence": "引入GRADRAG，通过评估反馈迭代优化提示的跨组件适配框架",
+      "llm_tldr_en": "GRADRAG models the RAG pipeline as a graph and uses structured evaluation feedback to automatically adapt prompts across multiple agents, improving coordination in multi-agent retrieval-augmented generation.",
+      "llm_tldr_cn": "检索增强生成（RAG）系统常包含多智能体，但现有工作孤立优化各组件，忽略流水线协调。本文提出GRADRAG，将RAG流水线建模为计算图，传递结构化评估反馈来更新上游智能体的提示。评估器评判下游答案，提示优化器根据反馈迭代优化检索器、图构建器和回答器，并在输出满意时提前停止。在SQUALITY和QMSUM基准上的实验表明，跨组件提示适配能有效提升多智能体RAG系统的性能，实现了更协调的优化。",
+      "llm_tldr": "检索增强生成（RAG）系统常包含多智能体，但现有工作孤立优化各组件，忽略流水线协调。本文提出GRADRAG，将RAG流水线建模为计算图，传递结构化评估反馈来更新上游智能体的提示。评估器评判下游答案，提示优化器根据反馈迭代优化检索器、图构建器和回答器，并在输出满意时提前停止。在SQUALITY和QMSUM基准上的实验表明，跨组件提示适配能有效提升多智能体RAG系统的性能，实现了更协调的优化。",
+      "llm_tags": [
+        "query:prompt-learn"
+      ],
+      "matched_query_tag": "query:prompt-learn",
+      "matched_query_text": "Techniques for automatic prompt generation in natural language processing",
+      "matched_requirement_id": "req-10",
+      "selection_source": "fresh_fetch",
+      "quick_tier": "7"
+    }
+  ]
+}

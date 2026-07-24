@@ -6,29 +6,31 @@
 </div>
 
 ## 每次日报
-- 最新运行日期：2026-07-23
-- 运行时间：2026-07-23 21:14:03 UTC
+- 最新运行日期：2026-07-24
+- 运行时间：2026-07-24 21:43:06 UTC
 - 运行状态：成功
-- 本次总论文数：2
+- 本次总论文数：3
 - 精读区：2
-- 速读区：0
+- 速读区：1
 
 ### 今日简报（AI）
-今日精读两篇AI前沿论文：9.0分《MagicPrompt》提出极轻量级视频生成提示调优，8.0分《掩码能力指数》揭示预训练模型任务对齐规律。
-最值得关注：Lightweight Prompt Tuning让视频生成效率飞跃，Maskability Index为模型选择提供可解释性标准。
-建议普通读者尝试用MagicPrompt思路优化自己的生成式AI应用，或通过掩码能力指数理解模型适配性。
-- 详情：[/202607/23/README](/202607/23/README)
+今日聚焦隐私保护联邦学习与智能体鲁棒性，精读两篇高分研究，速读一篇多智能体 RAG 工作。  
+联邦提示微调用子空间分解专家在数据异构下兼顾隐私与性能，智能体失败分析则揭示了文本策略的脆弱边界。  
+普通读者可先理解“私有化提示训练”思路，再关注智能体在真实交互中的失效模式，作为构建可靠 AI 应用的起点。
+- 详情：[/202607/24/README](/202607/24/README)
 
 ### 精读区论文标签
-1. [MagicPrompt: Ultra-Lightweight Prompt Tuning for Video Generation](/202607/23/2607.14595v2-magicprompt-ultra-lightweight-prompt-tuning-for-video-generation)  
+1. [Towards Privacy-Preserving Federated Prompt Tuning under Data Heterogeneity: A Subspace-Decomposed Expert Approach](/202607/24/2607.21417v1-towards-privacy-preserving-federated-prompt-tuning-under-data-heterogeneity-a-subspace-decomposed-expert-approach)  
+   标签：评分：10.0/10、query:prompt-learn
+   evidence：提出隐私保护的联邦提示微调，采用多专家提示，通过梯度优化连续提示向量。
+2. [From Agent Failures to Text Policies: What Works and What Breaks](/202607/24/2607.20668v1-from-agent-failures-to-text-policies-what-works-and-what-breaks)  
    标签：评分：9.0/10、query:prompt-learn
-   evidence：采用注意力嵌入的提示微调与轻量级软提示
-2. [The Maskability Index: Predicting Task-Objective Alignment in Pretrained Language Models](/202607/23/2607.20265v1-the-maskability-index-predicting-task-objective-alignment-in-pretrained-language-models)  
-   标签：评分：8.0/10、query:prompt-learn
-   evidence：提出掩蔽指数，用于在少样本知识生成中选择掩蔽式或前缀式离散提示模板。
+   evidence：TextGrad利用自然语言反馈作为梯度优化文本组件，实现自动提示改进。
 
 ### 速读区论文标签
-- 本次无速读推荐。
+1. [GRADRAG: Cross-Component Prompt Adaptation for Coordinated Multi-Agent RAG](/202607/24/2607.21324v1-gradrag-cross-component-prompt-adaptation-for-coordinated-multi-agent-rag)  
+   标签：评分：7.0/10、query:prompt-learn
+   evidence：引入GRADRAG，通过评估反馈迭代优化提示的跨组件适配框架
 
 
 <div class="dpr-home-promo-card">

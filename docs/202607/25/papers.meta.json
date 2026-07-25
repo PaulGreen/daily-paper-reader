@@ -1,0 +1,39 @@
+{
+  "label": "2026-07-25",
+  "date": "2026-07-25",
+  "generated_at": "2026-07-25T21:23:19",
+  "count": 2,
+  "papers": [
+    {
+      "paper_id": "202607/25/2607.21051v1-sample-efficient-learning-from-agent-experience",
+      "section": "deep",
+      "title_en": "Sample-Efficient Learning from Agent Experience",
+      "authors": "Chenhui Gou, Haoqin Tu, Yunhao Fang, Jianfei Cai, Hamid Rezatofighi",
+      "date": "2026-07-23",
+      "pdf": "https://arxiv.org/pdf/2607.21051v1",
+      "score": "9.0",
+      "evidence": "智能体从上下文中交互历史演示学习",
+      "tldr": "智能体学习常受限于高昂的环境交互成本，上下文学习虽能高效利用交互历史，但经验无法持久。提出经验蒸馏方法，将交互历史蒸馏至模型权重，无需额外环境交互。在软件工程和文本游戏任务上，保留64.8%上下文学习增益，远超监督微调的3.8%，且相比经典RL方法样本效率提升至少9.6倍。该方法为智能体高效内化经验提供了新途径，显著降低了环境样本需求。",
+      "tags": "query:prompt-learn",
+      "abstract_en": "Real-world agent learning is often constrained by costly environment interactions, such as running time-consuming experiments or obtaining human feedback. In-context learning offers a highly sample-efficient way for agents to learn from their own interaction histories, but its gains disappear once that experience is removed from the context. Separately, context distillation provides a mechanism for internalizing contextual information into model weights. However, applying it to agents' interaction histories without sacrificing environment sample efficiency remains underexplored. We term this problem Experience Distillation and develop an implementation that requires no further environment interaction beyond the collected experience. Experiments on 749 curated software-engineering tasks and six text-adventure games show that it retains at least 64.8\\% of the gains from in-context learning across both domains, whereas direct supervised fine-tuning on the collected experience recovers only 3.8\\%. Compared with classical reinforcement-learning baselines, in-context learning from trial-and-error experience followed by Experience Distillation matches their performance with at least \\(9.6\\times\\) fewer environment samples.",
+      "source": "arxiv",
+      "selection_source": "fresh_fetch"
+    },
+    {
+      "paper_id": "202607/25/2607.18724v1-one-rewrite-to-fix-them-all-type-aware-repair-allocation-for-text-to-image-prompt-optimization",
+      "section": "quick",
+      "title_en": "One Rewrite to Fix Them All? Type-Aware Repair Allocation for Text-to-Image Prompt Optimization",
+      "authors": "Haoyue Liu, Xiaoyu Ma, Ye Chen, Shuguang Cui, Xiaoying Tang",
+      "date": "2026-07-21",
+      "pdf": "https://arxiv.org/pdf/2607.18724v1",
+      "score": "6.0",
+      "evidence": "自动重写离散文本到图像提示",
+      "tldr": "文本到图像生成常出现计数错误、属性混淆等失败，现有提示优化方法用统一重写应对异质失败，效果受限。我们提出类型感知修复分配框架TARA，将诊断后的失败按类型分配专用修复操作，再编译为优化提示。实验表明，TARA在DSG和TIFA上语义准确率分别提升5.6和2.6点，超越VisualPrompter，同时保持图像质量并提速20%。该工作为提示优化提供了高效、可解释的新范式。",
+      "tags": "query:prompt-learn",
+      "abstract_en": "Text-to-image (T2I) generators often fail to follow their prompts faithfully, producing wrong counts, swapped attributes, ambiguous relations, and illegible text. Prompt optimization repairs such failures by rewriting the user prompt, requiring no generator retraining, and has yielded promising results. However, existing optimizers absorb heterogeneous failures into one uniform prompt expansion, even though each calls for different repair language. We formulate semantic prompt optimization as atomic repair allocation: each failed proposition is routed to a type-conditioned repair operator before the resulting local constraints are compiled into one executable prompt. We instantiate this formulation in the training-free Type-Aware Repair Allocation (TARA) framework, which separates diagnosis, allocation, compilation, and a semantic repair gate, an accept-or-revert controller over exactly one prescribed repair that prevents semantic regressions. Extensive experiments on DSG and TIFA across four frozen generators demonstrate that TARA achieves the best semantic accuracy in all eight benchmark-generator cells, improving over VisualPrompter by 5.6 and 2.6 points on DSG and TIFA, respectively, while maintaining image quality and running fastest in our matched local setting at 16.0 seconds versus 20.0 seconds per prompt.",
+      "source": "arxiv",
+      "selection_source": "fresh_fetch"
+    }
+  ],
+  "errors": []
+}

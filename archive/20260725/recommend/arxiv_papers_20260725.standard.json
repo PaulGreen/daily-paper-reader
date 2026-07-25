@@ -1,0 +1,94 @@
+{
+  "mode": "standard",
+  "generated_at": "2026-07-25T21:17:44.394241+00:00",
+  "stats": {
+    "mode": "standard",
+    "tag_count": 1,
+    "deep_divecandidates": 1,
+    "deep_cap": 6,
+    "deep_selected": 1,
+    "quick_candidates": 1,
+    "quick_skim_target": 11,
+    "quick_selected": 1
+  },
+  "deep_dive": [
+    {
+      "id": "2607.21051v1",
+      "source": "arxiv",
+      "title": "Sample-Efficient Learning from Agent Experience",
+      "abstract": "Real-world agent learning is often constrained by costly environment interactions, such as running time-consuming experiments or obtaining human feedback. In-context learning offers a highly sample-efficient way for agents to learn from their own interaction histories, but its gains disappear once that experience is removed from the context. Separately, context distillation provides a mechanism for internalizing contextual information into model weights. However, applying it to agents' interaction histories without sacrificing environment sample efficiency remains underexplored. We term this problem Experience Distillation and develop an implementation that requires no further environment interaction beyond the collected experience. Experiments on 749 curated software-engineering tasks and six text-adventure games show that it retains at least 64.8\\% of the gains from in-context learning across both domains, whereas direct supervised fine-tuning on the collected experience recovers only 3.8\\%. Compared with classical reinforcement-learning baselines, in-context learning from trial-and-error experience followed by Experience Distillation matches their performance with at least \\(9.6\\times\\) fewer environment samples.",
+      "authors": [
+        "Chenhui Gou",
+        "Haoqin Tu",
+        "Yunhao Fang",
+        "Jianfei Cai",
+        "Hamid Rezatofighi"
+      ],
+      "primary_category": "cs.CL",
+      "categories": [
+        "cs.CL"
+      ],
+      "published": "2026-07-23T08:34:31+00:00",
+      "link": "https://arxiv.org/pdf/2607.21051v1",
+      "tags": [
+        "keyword:prompt-learn"
+      ],
+      "llm_score": 9.0,
+      "llm_evidence_en": "Agent learning from interaction history demonstrations in context",
+      "llm_evidence_cn": "智能体从上下文中交互历史演示学习",
+      "llm_evidence": "智能体从上下文中交互历史演示学习",
+      "canonical_evidence": "智能体从上下文中交互历史演示学习",
+      "llm_tldr_en": "Experience Distillation leverages in-context learning histories and distills them into model weights without further interactions, achieving sample-efficient agent learning on software engineering tasks.",
+      "llm_tldr_cn": "真实世界智能体学习受限于交互成本，上下文学习虽样本高效但经验不持久，上下文蒸馏可内化知识但需权衡样本效率。本文提出经验蒸馏方法，直接利用已收集的交互历史进行蒸馏，无需额外环境交互。在749个软件工程任务上的实验表明，该方法实现了与上下文学习相当的样本效率，且学习结果可永久保留。该方法不牺牲样本效率，同时将经验内化至模型参数，保证了长期受益。",
+      "llm_tldr": "真实世界智能体学习受限于交互成本，上下文学习虽样本高效但经验不持久，上下文蒸馏可内化知识但需权衡样本效率。本文提出经验蒸馏方法，直接利用已收集的交互历史进行蒸馏，无需额外环境交互。在749个软件工程任务上的实验表明，该方法实现了与上下文学习相当的样本效率，且学习结果可永久保留。该方法不牺牲样本效率，同时将经验内化至模型参数，保证了长期受益。",
+      "llm_tags": [
+        "query:prompt-learn"
+      ],
+      "matched_query_tag": "query:prompt-learn",
+      "matched_query_text": "learning from demonstrations provided in the prompt context",
+      "matched_requirement_id": "req-3",
+      "selection_source": "fresh_fetch"
+    }
+  ],
+  "quick_skim": [
+    {
+      "id": "2607.18724v1",
+      "source": "arxiv",
+      "title": "One Rewrite to Fix Them All? Type-Aware Repair Allocation for Text-to-Image Prompt Optimization",
+      "abstract": "Text-to-image (T2I) generators often fail to follow their prompts faithfully, producing wrong counts, swapped attributes, ambiguous relations, and illegible text. Prompt optimization repairs such failures by rewriting the user prompt, requiring no generator retraining, and has yielded promising results. However, existing optimizers absorb heterogeneous failures into one uniform prompt expansion, even though each calls for different repair language. We formulate semantic prompt optimization as atomic repair allocation: each failed proposition is routed to a type-conditioned repair operator before the resulting local constraints are compiled into one executable prompt. We instantiate this formulation in the training-free Type-Aware Repair Allocation (TARA) framework, which separates diagnosis, allocation, compilation, and a semantic repair gate, an accept-or-revert controller over exactly one prescribed repair that prevents semantic regressions. Extensive experiments on DSG and TIFA across four frozen generators demonstrate that TARA achieves the best semantic accuracy in all eight benchmark-generator cells, improving over VisualPrompter by 5.6 and 2.6 points on DSG and TIFA, respectively, while maintaining image quality and running fastest in our matched local setting at 16.0 seconds versus 20.0 seconds per prompt.",
+      "authors": [
+        "Haoyue Liu",
+        "Xiaoyu Ma",
+        "Ye Chen",
+        "Shuguang Cui",
+        "Xiaoying Tang"
+      ],
+      "primary_category": "cs.AI",
+      "categories": [
+        "cs.AI"
+      ],
+      "published": "2026-07-21T05:31:43+00:00",
+      "link": "https://arxiv.org/pdf/2607.18724v1",
+      "tags": [
+        "keyword:prompt-learn",
+        "query:prompt-learn"
+      ],
+      "llm_score": 6.0,
+      "llm_evidence_en": "Automatic rewriting of discrete text-to-image prompts",
+      "llm_evidence_cn": "自动重写离散文本到图像提示",
+      "llm_evidence": "自动重写离散文本到图像提示",
+      "canonical_evidence": "自动重写离散文本到图像提示",
+      "llm_tldr_en": "Proposes a type-aware repair allocation method for T2I prompt optimization, routing each failure to a specialized repair operator to compile an executable prompt, improving faithfulness without retraining.",
+      "llm_tldr_cn": "文本到图像生成模型常无法忠实遵循提示词，导致计数错误、属性交换等问题，现有优化方法将不同失败类型统一处理，忽略各类失败的修复语言差异。本文提出类型感知的原子修复分配方法，将每个失败命题路由到对应修复算子，再编译为可执行提示，无需重训模型。与传统统一扩展提示方法相比，原子修复更精确地解决根本问题。实验表明，该方法在多种失败场景下显著提升忠实度，为自动提示优化提供了新范式。该工作不仅推动了T2I模型的可靠性，也为其他生成任务的提示优化提供了可迁移的思路。",
+      "llm_tldr": "文本到图像生成模型常无法忠实遵循提示词，导致计数错误、属性交换等问题，现有优化方法将不同失败类型统一处理，忽略各类失败的修复语言差异。本文提出类型感知的原子修复分配方法，将每个失败命题路由到对应修复算子，再编译为可执行提示，无需重训模型。与传统统一扩展提示方法相比，原子修复更精确地解决根本问题。实验表明，该方法在多种失败场景下显著提升忠实度，为自动提示优化提供了新范式。该工作不仅推动了T2I模型的可靠性，也为其他生成任务的提示优化提供了可迁移的思路。",
+      "llm_tags": [
+        "query:prompt-learn"
+      ],
+      "matched_query_tag": "query:prompt-learn",
+      "matched_query_text": "discrete natural language prompts for guiding models",
+      "matched_requirement_id": "req-2",
+      "selection_source": "fresh_fetch",
+      "quick_tier": "6"
+    }
+  ]
+}

@@ -6,31 +6,28 @@
 </div>
 
 ## 每次日报
-- 最新运行日期：2026-07-24
-- 运行时间：2026-07-24 21:43:06 UTC
+- 最新运行日期：2026-07-25
+- 运行时间：2026-07-25 21:23:11 UTC
 - 运行状态：成功
-- 本次总论文数：3
-- 精读区：2
+- 本次总论文数：2
+- 精读区：1
 - 速读区：1
 
 ### 今日简报（AI）
-今日聚焦隐私保护联邦学习与智能体鲁棒性，精读两篇高分研究，速读一篇多智能体 RAG 工作。  
-联邦提示微调用子空间分解专家在数据异构下兼顾隐私与性能，智能体失败分析则揭示了文本策略的脆弱边界。  
-普通读者可先理解“私有化提示训练”思路，再关注智能体在真实交互中的失效模式，作为构建可靠 AI 应用的起点。
-- 详情：[/202607/24/README](/202607/24/README)
+今日精读了一篇关于智能体经验的高效学习研究，并速览了文本到图像提示优化的修复策略。
+核心发现是：利用模型生成的合成经验，在样本稀缺时也能大幅提升智能体学习效率；而提示优化则需分类修复语法与语义错误。
+若你对AI自主进化感兴趣，不妨从智能体的“想象练习”入手，关注合成数据如何突破真实样本瓶颈。
+- 详情：[/202607/25/README](/202607/25/README)
 
 ### 精读区论文标签
-1. [Towards Privacy-Preserving Federated Prompt Tuning under Data Heterogeneity: A Subspace-Decomposed Expert Approach](/202607/24/2607.21417v1-towards-privacy-preserving-federated-prompt-tuning-under-data-heterogeneity-a-subspace-decomposed-expert-approach)  
-   标签：评分：10.0/10、query:prompt-learn
-   evidence：提出隐私保护的联邦提示微调，采用多专家提示，通过梯度优化连续提示向量。
-2. [From Agent Failures to Text Policies: What Works and What Breaks](/202607/24/2607.20668v1-from-agent-failures-to-text-policies-what-works-and-what-breaks)  
+1. [Sample-Efficient Learning from Agent Experience](/202607/25/2607.21051v1-sample-efficient-learning-from-agent-experience)  
    标签：评分：9.0/10、query:prompt-learn
-   evidence：TextGrad利用自然语言反馈作为梯度优化文本组件，实现自动提示改进。
+   evidence：智能体从上下文中交互历史演示学习
 
 ### 速读区论文标签
-1. [GRADRAG: Cross-Component Prompt Adaptation for Coordinated Multi-Agent RAG](/202607/24/2607.21324v1-gradrag-cross-component-prompt-adaptation-for-coordinated-multi-agent-rag)  
-   标签：评分：7.0/10、query:prompt-learn
-   evidence：引入GRADRAG，通过评估反馈迭代优化提示的跨组件适配框架
+1. [One Rewrite to Fix Them All? Type-Aware Repair Allocation for Text-to-Image Prompt Optimization](/202607/25/2607.18724v1-one-rewrite-to-fix-them-all-type-aware-repair-allocation-for-text-to-image-prompt-optimization)  
+   标签：评分：6.0/10、query:prompt-learn
+   evidence：自动重写离散文本到图像提示
 
 
 <div class="dpr-home-promo-card">

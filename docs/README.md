@@ -6,28 +6,28 @@
 </div>
 
 ## 每次日报
-- 最新运行日期：2026-07-25
-- 运行时间：2026-07-25 21:23:11 UTC
+- 最新运行日期：2026-07-26
+- 运行时间：2026-07-26 21:17:21 UTC
 - 运行状态：成功
 - 本次总论文数：2
 - 精读区：1
 - 速读区：1
 
 ### 今日简报（AI）
-今日精读了一篇关于智能体经验的高效学习研究，并速览了文本到图像提示优化的修复策略。
-核心发现是：利用模型生成的合成经验，在样本稀缺时也能大幅提升智能体学习效率；而提示优化则需分类修复语法与语义错误。
-若你对AI自主进化感兴趣，不妨从智能体的“想象练习”入手，关注合成数据如何突破真实样本瓶颈。
-- 详情：[/202607/25/README](/202607/25/README)
+拆解大模型「听话」的秘密：精读一篇大规模提示工程论文，并速览指令遵循的本质争议。  
+核心发现：提示格式、指令条数和上下长度直接左右模型「幻觉」与遵循度；而小模型常能完成任务却不遵守指令。  
+建议：别再随机排列提示词，尝试像做实验一样系统调校格式与指令数的组合。
+- 详情：[/202607/26/README](/202607/26/README)
 
 ### 精读区论文标签
-1. [Sample-Efficient Learning from Agent Experience](/202607/25/2607.21051v1-sample-efficient-learning-from-agent-experience)  
-   标签：评分：9.0/10、query:prompt-learn
-   evidence：智能体从上下文中交互历史演示学习
+1. [Prompt Design at Scale: How Format, Instruction Count, and Context Length Shape Instruction Adherence and Hallucination in Large Language Models](/202607/26/2607.19257v1-prompt-design-at-scale-how-format-instruction-count-and-context-length-shape-instruction-adherence-and-hallucination-in-large-language-models)  
+   标签：评分：8.0/10、query:prompt-learn
+   evidence：研究提示格式、指令数量和上下文长度如何影响LLM的指令遵循和幻觉
 
 ### 速读区论文标签
-1. [One Rewrite to Fix Them All? Type-Aware Repair Allocation for Text-to-Image Prompt Optimization](/202607/25/2607.18724v1-one-rewrite-to-fix-them-all-type-aware-repair-allocation-for-text-to-image-prompt-optimization)  
+1. [Task Competence Is Not Instruction Following: Evaluating Instruction-Conflicting Behavior in Small Language Models](/202607/26/2607.19608v1-task-competence-is-not-instruction-following-evaluating-instruction-conflicting-behavior-in-small-language-models)  
    标签：评分：6.0/10、query:prompt-learn
-   evidence：自动重写离散文本到图像提示
+   evidence：使用离散自然语言指令测试模型在冲突提示下的行为。
 
 
 <div class="dpr-home-promo-card">

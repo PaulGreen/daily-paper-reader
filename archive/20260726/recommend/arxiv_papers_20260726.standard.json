@@ -1,0 +1,89 @@
+{
+  "mode": "standard",
+  "generated_at": "2026-07-26T21:14:14.896114+00:00",
+  "stats": {
+    "mode": "standard",
+    "tag_count": 1,
+    "deep_divecandidates": 1,
+    "deep_cap": 6,
+    "deep_selected": 1,
+    "quick_candidates": 1,
+    "quick_skim_target": 11,
+    "quick_selected": 1
+  },
+  "deep_dive": [
+    {
+      "id": "2607.19257v1",
+      "source": "arxiv",
+      "title": "Prompt Design at Scale: How Format, Instruction Count, and Context Length Shape Instruction Adherence and Hallucination in Large Language Models",
+      "abstract": "Practitioners make three prompt-design decisions with almost no controlled evidence behind them: how to format instructions and context (markdown, plain text, prose, or tabular), how many simultaneous instructions a system prompt can carry before compliance degrades, and how much context a model can hold before recall and honesty degrade. We report two controlled experiments crossing all three factors on one held, contamination-free synthetic corpus (the \"Book of Veyra,\" 8,780 uniquely-named entities, deterministically regenerable from a fixed seed), evaluated across five models.   Experiment 1 (960 calls/model) measures instruction-following decay as rule count N grows from 10 to 160, crossed with four formats and system-prompt vs. user-turn placement. Perfect-response rate collapses to zero by N=80 for every model, format, and placement. Placement produces effects at least as large as format at N=160 in most models, but the direction is model-specific. No model shows a reliable markdown advantage; one 35B model favors plain text instead.   Experiment 2 (5,520 calls/model) measures recall accuracy, false-premise sycophancy, and absent-fact fabrication across a 2k-to-512k-token context ladder in the same four formats. Recall stays near ceiling through 64-128k tokens, then degrades sharply and format-dependently: one model's accuracy spread reaches 48 points at 128k tokens. Fabrication never occurs (0/5,760 probes), and sycophancy stays negligible (<=8.3%). What rises sharply near each model's context ceiling is outright refusal to answer (0% to 79-90%), distinct from sycophancy or fabrication. Neither pre-registered format ordering holds, and token overhead (+22% to +37% over plain text) further changes which format is preferable where accuracy spread is genuine.   We release the full harness, corpus generator, and raw results (VeyraBench): https://github.com/iNetanel/veyrabench",
+      "authors": [
+        "Netanel Eliav"
+      ],
+      "primary_category": "cs.CL",
+      "categories": [
+        "cs.CL",
+        "cs.AI"
+      ],
+      "published": "2026-07-21T16:31:35+00:00",
+      "link": "https://arxiv.org/pdf/2607.19257v1",
+      "tags": [
+        "keyword:prompt-learn",
+        "query:prompt-learn"
+      ],
+      "llm_score": 8.0,
+      "llm_evidence_en": "studies how prompt format, instruction count, and context length shape instruction adherence and hallucination in LLMs",
+      "llm_evidence_cn": "研究提示格式、指令数量和上下文长度如何影响LLM的指令遵循和幻觉",
+      "llm_evidence": "研究提示格式、指令数量和上下文长度如何影响LLM的指令遵循和幻觉",
+      "canonical_evidence": "研究提示格式、指令数量和上下文长度如何影响LLM的指令遵循和幻觉",
+      "llm_tldr_en": "This paper addresses the lack of controlled evidence for prompt design decisions by experimentally investigating how format, instruction count, and context length affect instruction adherence and hallucination in LLMs, revealing systematic impacts that inform better prompt engineering.",
+      "llm_tldr_cn": "针对大语言模型提示设计缺乏实证指导的问题，本文通过控制实验研究了提示格式、指令数量和上下文长度对指令遵循和幻觉的影响。在统一的合成数据集上测试了多个模型，发现这些因素显著影响模型性能，为提示工程提供了数据驱动的设计原则。",
+      "llm_tldr": "针对大语言模型提示设计缺乏实证指导的问题，本文通过控制实验研究了提示格式、指令数量和上下文长度对指令遵循和幻觉的影响。在统一的合成数据集上测试了多个模型，发现这些因素显著影响模型性能，为提示工程提供了数据驱动的设计原则。",
+      "llm_tags": [
+        "query:prompt-learn"
+      ],
+      "matched_query_tag": "query:prompt-learn",
+      "matched_query_text": "discrete natural language prompts for guiding models",
+      "matched_requirement_id": "req-2",
+      "selection_source": "fresh_fetch"
+    }
+  ],
+  "quick_skim": [
+    {
+      "id": "2607.19608v1",
+      "source": "arxiv",
+      "title": "Task Competence Is Not Instruction Following: Evaluating Instruction-Conflicting Behavior in Small Language Models",
+      "abstract": "Instruction tuning is meant to make language models follow user requests, yet it is unclear whether small models comply when an instruction conflicts with their usual task behavior. We study this across three tasks - multiple-choice question answering (MCQA), sentiment classification, and mathematical question answering - by pairing a standard instruction with a conflicting non-standard one (select an incorrect option, output the opposite sentiment, or return twice the answer). This cross-task design allows us to test whether resistance to conflicting instructions is tied to specific task characteristics or reflects a broader behavioral tendency. As all predictions are scored against the original ground truth, a model that ignores the non-standard instruction still appears accurate. Using standard accuracy, non-standard accuracy, and an Instruction-Following Failure Rate (IFFR), we evaluate instruction-tuned Qwen models across sizes. Both standard accuracy and instruction following generally improve with scale, although the pattern is not consistent across all tasks and datasets. Small models stay competent yet routinely ignore the non-standard instruction, while larger models show a clear gap between the two settings. These findings suggest that gains in task capability do not automatically provide reliable control over model behavior. Task competence and instruction following are therefore distinct abilities, and reporting only standard accuracy hides instruction-following failures.",
+      "authors": [
+        "Mahdiyeh Farajidizaji",
+        "Vatsal Raina"
+      ],
+      "primary_category": "cs.CL",
+      "categories": [
+        "cs.CL"
+      ],
+      "published": "2026-07-21T22:24:18+00:00",
+      "link": "https://arxiv.org/pdf/2607.19608v1",
+      "tags": [
+        "keyword:prompt-learn",
+        "query:prompt-learn"
+      ],
+      "llm_score": 6.0,
+      "llm_evidence_en": "Uses discrete natural language instructions to test model behavior under conflicting prompts.",
+      "llm_evidence_cn": "使用离散自然语言指令测试模型在冲突提示下的行为。",
+      "llm_evidence": "使用离散自然语言指令测试模型在冲突提示下的行为。",
+      "canonical_evidence": "使用离散自然语言指令测试模型在冲突提示下的行为。",
+      "llm_tldr_en": "Evaluates whether small language models follow instructions when they conflict with task behavior, finding that instruction following is fragile and task-dependent.",
+      "llm_tldr_cn": "该研究评估小语言模型在指令与任务行为冲突时是否遵循指令，通过三个任务和冲突指令对设计实验。结果表明小模型的指令遵循能力脆弱且与任务相关，揭示了当前小模型在指令调优后的局限性，对提示工程和模型鲁棒性有参考意义。",
+      "llm_tldr": "该研究评估小语言模型在指令与任务行为冲突时是否遵循指令，通过三个任务和冲突指令对设计实验。结果表明小模型的指令遵循能力脆弱且与任务相关，揭示了当前小模型在指令调优后的局限性，对提示工程和模型鲁棒性有参考意义。",
+      "llm_tags": [
+        "query:prompt-learn"
+      ],
+      "matched_query_tag": "query:prompt-learn",
+      "matched_query_text": "discrete natural language prompts for guiding models",
+      "matched_requirement_id": "req-2",
+      "selection_source": "fresh_fetch",
+      "quick_tier": "6"
+    }
+  ]
+}

@@ -1,0 +1,385 @@
+Title: Task Competence Is Not Instruction Following: Evaluating Instruction-Conflicting Behavior in Small Language Models
+
+URL Source: https://arxiv.org/pdf/2607.19608v1
+
+Published Time: Thu, 23 Jul 2026 00:14:18 GMT
+
+Number of Pages: 12
+
+Markdown Content:
+## Task Competence Is Not Instruction Following: Evaluating Instruction-Conflicting Behavior in Small Language Models 
+
+Mahdiyeh Farajidizaji 
+
+Khajeh Nasir Toosi University of Technology 
+
+mahdiehfaraji194@gmail.com 
+
+Vatsal Raina 
+
+Apta AI, Spark AI Research 
+
+vatsal@aptaai.com 
+
+Abstract 
+
+Instruction tuning is meant to make language models follow user requests, yet it is unclear whether small models comply when an instruc-tion conflicts with their usual task behavior. We study this across three tasks—multiple-choice question answering (MCQA), senti-ment classification, and mathematical question answering—by pairing a standard instruction with a conflicting non-standard one (select an incorrect option, output the opposite sentiment, or return twice the answer). This cross-task design allows us to test whether resistance to conflicting instructions is tied to specific task characteristics or reflects a broader behavioral tendency. As all predictions are scored against the original ground truth, a model that ignores the non-standard instruction still appears “ac-curate”. Using standard accuracy, non-standard accuracy, and an Instruction-Following Fail-ure Rate (IFFR), we evaluate instruction-tuned Qwen models across sizes. Both standard ac-curacy and instruction following generally im-prove with scale, although the pattern is not consistent across all tasks and datasets. Small models stay competent yet routinely ignore the non-standard instruction, while larger mod-els show a clear gap between the two settings. These findings suggest that gains in task ca-pability do not automatically provide reliable control over model behavior. Task competence and instruction following are therefore distinct abilities, and reporting only standard accuracy hides instruction-following failures. 
+
+1 Introduction 
+
+Modern language models are first pretrained on large text corpora with a self-supervised language-modeling objective, most commonly next-token prediction (Brown et al., 2020; Kaplan et al., 2020). This gives the model broad linguistic and factual knowledge but mainly trains it to predict plausi-ble continuations, so pretraining alone does not guarantee that the model will follow a user’s in-struction or infer the intended task (Ouyang et al., 2022). Models are therefore fine-tuned on in-struction–response examples to improve instruc-tion following and task generalization, sometimes with additional alignment through human feedback (Ouyang et al., 2022; Wei et al., 2022; Sanh et al., 2021; Chung et al., 2024). A key goal of this stage is to improve general-ization: the model should follow not only the in-structions seen in training but also new instructions, tasks, and formats (Wei et al., 2022; Wang et al., 2022; Chung et al., 2024; Longpre et al., 2023). Instruction tuning does not always achieve this. Models sometimes fall back on habits acquired dur-ing training (Webson and Pavlick, 2022), such as selecting the correct option in a multiple-choice question even when told to do otherwise (Murthy et al., 2025). This raises the question of whether such failures depend on model size, and whether smaller models struggle more when an instruction conflicts with their usual behavior. The question is particularly important for small language models (SLMs), which have lower infer-ence and memory requirements and are therefore well suited to local and resource-constrained de-ployment (Belda-Medina and Kokosková, 2023). We examine their instruction-following behavior when an instruction conflicts with the conventional objective of a familiar task. Evaluating a single task would leave it unclear whether any observed behavior is task-specific or reflects a broader pat-tern, so we study the same phenomenon across three distinct tasks: multiple-choice question an-swering (MCQA) (Robinson and Wingate, 2023), sentiment classification (Mabrouk et al., 2020), and mathematical question answering (Lu et al., 2023). In each task we contrast a standard instruction, matching the usual objective, with a non-standard 
+
+instruction, which asks the model to deviate from that objective in a well-defined way. Scoring is arXiv:2607.19608v1 [cs.CL] 21 Jul 2026 Answer the MCQ incorrectly .      
+
+> Question: An astronomer observes that a planet ro-tates faster after a meteorite impact. Which is the most likely effect of this increase in rotation?
+> A. Planetary density will decrease.
+> B. Planetary years will become longer.
+> C. Planetary days will become shorter.
+> ✓correct & selected
+> D. Planetary gravity will become stronger.
+
+(a) MCQA        
+
+> Classify the sentiment of the following text, then return the opposite sentiment.
+> Sentence: Rory Fitzgerald, general manager, opera-tions, Bristol Port, said: “With the use of low main-tenance technology we can save up to 30 per cent on servicing, plus the load sensing hydraulics can save us an extra 15 to 30 per cent on fuel consumption.” A. Negative
+> B. Positive ✓correct & generated
+
+(b) Sentiment classification    
+
+> Answer the following question, then return twice the final answer.
+> Question: There are 64 students trying out for the school’s trivia teams. If 36 of them didn’t get picked for the team and the rest were put into 4 groups, how many students would be in each group?
+> Model answer:
+
+7 ✓ correct & generated 
+
+(c) Mathematical QA 
+
+Figure 1: Instruction-following failures across three tasks. In each example the model is given a non-standard instruction that conflicts with the task objective, yet still produces the standard correct answer. 
+
+always against the original ground truth, so we can test whether the model follows the given instruction or instead performs the task as usual. This work makes three contributions: • A cross-task evaluation that separates task competence from instruction following. We use three distinct tasks to disentangle two abil-ities: a model must be able to perform the task and also change its response when the instruc-tion asks for different behavior. This design helps distinguish failures caused by limited task knowledge from failures to follow the requested objective. • The Instruction-Following Failure Rate (IFFR). We introduce a metric that measures how often a model defaults to the standard answer despite being instructed to produce a different one, and apply it uniformly across all three tasks. This enables a consistent compar-ison of instruction-following failures across different task formats. • A study of instruction following across scale. 
+
+We use this setup to examine how instruction-following generalization changes with model size under instructions that conflict with a learned task prior. This analysis tests whether improvements in task competence with scale are accompanied by improvements in instruc-tion adherence. 
+
+2 Related Work 
+
+Instruction tuning has been studied widely as a way to improve zero-shot and cross-task general-ization. FLAN showed that fine-tuning on natural-language instructions improves performance on un-seen tasks (Wei et al., 2022), while T0 and Super-NaturalInstructions studied multitask prompted training and declarative instructions for broader generalization (Sanh et al., 2021; Wang et al., 2022). Later work scaled instruction tuning across model families, task mixtures, and prompting for-mats, showing that model size, task diversity, and data design all affect instruction-tuned performance (Chung et al., 2024; Longpre et al., 2023). These studies motivate instruction tuning as a mecha-nism for generalization, but they mainly evaluate whether models can perform new tasks, rather than whether they can override a familiar task objective when instructed to. Recent work tests instruction following in differ-ent ways. IFEval checks whether models satisfy clear, verifiable requirements such as output length, keyword inclusion, and formatting (Zhou et al., 2023). FollowBench checks detailed constraints on content, situation, style, format, and examples at varying difficulty (Jiang et al., 2024). InFoBench decomposes complex instructions into smaller re-quirements to measure which parts a model follows (Qin et al., 2024). Other work studies following several instructions in order, as in SIFo (Chen et al., 2024), or whether LLM-based evaluators can re-liably distinguish following from non-following outputs, as in LLMBar (Zeng et al., 2024). Hence, instruction following depends on the type, com-plexity, and familiarity of the instruction. More directly related to our setting, Murthy et al. (2025) evaluate instruction following on knowledge and multiple-choice tasks augmented with answer-modifying and distractor instructions. Their frame-work separately measures whether a model follows the instruction and whether it retains the ability to solve the underlying task, showing that even large instruction-tuned models can fail to follow simple answer-modifying instructions. Closer to our MCQA setting, Góral et al. (2025) study whether LLMs remain robust when a multiple-choice question has no valid option, show-ing that models may still select from the provided options when the correct behavior is to reject them. Also closer to our mathematical QA setting, Fu et al. (2026) introduce MathIF to evaluate whether reasoning models follow user-specified constraints while solving mathematical problems. They find that stronger mathematical reasoning does not nec-essarily lead to better instruction adherence, as models may solve the underlying problem while failing to satisfy the requested constraints. We likewise test whether models can override usual multiple-choice behavior, but study this failure mode more broadly across MCQA, sentiment clas-sification, and mathematical QA. This connects to broader work on shortcut behavior, where models rely on heuristics that work for common exam-ples but fail in controlled settings (McCoy et al., 2019), and on inverse scaling, where larger mod-els can perform worse when memorized patterns or training-induced tendencies conflict with the in-tended task (McKenzie et al.). In contrast, we focus on instruction-tuned models across a range of sizes and ask how size affects the ability to follow task-conflicting instructions across several task types. 
+
+3 Standard and Non-Standard Instructions 
+
+To separate task competence from instruction fol-lowing, we evaluate each model on the same input using two instructions. The standard instruction asks the model to perform the task normally, while the non-standard instruction asks it to follow a clearly defined alternative objective. Since the in-put is unchanged, any difference in the response reflects the effect of the instruction. This setup shows whether the model can adjust its behavior when the requested objective changes. We score both settings against the original ground truth. Un-der the standard instruction, a correct prediction means the model both solved the task and followed the instruction. Under the non-standard instruction, producing the ground-truth answer instead means the model ignored the instruction and defaulted to its usual task behavior. The non-standard setting thus isolates whether a model follows the given instruction or falls back on a learned task prior. Figure 1 illustrates the three tasks. 
+
+3.1 Tasks Multiple-choice question answering (MCQA). 
+
+MCQA (Robinson and Wingate, 2023) presents a question with a fixed set of answer options (typi-cally A–D), and the model selects one; a context passage may or may not be present. The stan-dard instruction asks for the correct option, the non-standard instruction for an incorrect one. As the correct answer can be checked automatically, MCQA is a controlled setting for testing both task performance and instruction following (Murthy et al., 2025). See Figure 2. 
+
+Sentiment classification. The model classifies a text as positive or negative (Mabrouk et al., 2020). The standard instruction asks for the true sentiment, the non-standard instruction for the opposite senti-ment. We keep only positive and negative examples so that the “opposite” sentiment is well defined. Scoring is against the true sentiment, so high non-standard accuracy means the model reported the true sentiment despite being asked for the opposite. 
+
+Mathematical question answering. The model answers a mathematical question with a single quantitative answer (Lu et al., 2023). The standard instruction asks for the correct answer, the non-standard instruction for twice that answer. Scoring is against the original answer, so high non-standard accuracy means the model returned the original value rather than the requested doubled one. 
+
+3.2 Metrics 
+
+We report three metrics, defined uniformly across tasks. Standard accuracy is the fraction of exam-ples answered correctly under the standard instruc-tion; it measures task competence. Non-standard accuracy is the fraction for which the model still produces the ground-truth answer under the non-standard instruction; here higher is worse , as it indicates the model failed to follow the instruction. 
+
+Instruction-Following Failure Rate (IFFR) mea-sures this failure conditionally, among examples the model answered correctly under the standard in-struction. Let y be the ground truth and ˆys, ˆyns the predictions under the standard and non-standard instructions. Then                 
+
+> IFFR =P(ˆ yns =y|ˆys=y) = {ˆys=y} ∩ { ˆyns =y}
+> {ˆys=y}.
+> (1)
+
+A high IFFR means the model keeps producing the standard answer even when told to deviate; lower IFFR indicates better compliance. The distinction between the last two metrics is important. Non-standard accuracy is a marginal quantity that con-flates two sources of low scores—examples the model cannot solve at all and examples it solves but declines to transform—so it partly reflects task competence. IFFR instead conditions on the ex-amples answered correctly under the standard in-struction, isolating the second source and yielding a measure of instruction following that is compa-rable across models of very different competence. We therefore treat standard accuracy and IFFR as the two primary axes, with non-standard accuracy reported for completeness. 
+
+4 Experimental Setup 
+
+4.1 Models 
+
+We evaluate Qwen3.5 instruction-tuned models from 0.8B to 27B parameters, which provide a con-trolled same-family range for studying how instruc-tion following changes with scale within our com-pute budget (Deng et al., 2026). Specifically, we use the Qwen/Qwen3.5-0.8B , Qwen/Qwen3.5-2B ,
+
+Qwen/Qwen3.5-4B , Qwen/Qwen3.5-9B , and 
+
+Qwen/Qwen3.5-27B checkpoints. These are au-toregressive decoder-only transformers that share a common architecture and post-training recipe and differ chiefly in parameter count, spanning more than an order of magnitude; holding the model family fixed lets us attribute differences in behavior to scale rather than to divergent pretraining data or alignment procedures. All experiments use deterministic (greedy) decoding so that results are reproducible and independent of sampling temperature; full inference and implementation details are given in Appendix A. 
+
+4.2 Datasets 
+
+Each task uses 3 datasets, summarized in Table 1. 
+
+MCQA. RACE-Middle (RACE-M) is a passage-based reading-comprehension dataset built from English exam-style questions for middle-school stu-dents; each example contains a passage, a question, and four answer options (Lai et al., 2017). ARC-Challenge (ARC-C) contains grade-school science questions that often require scientific knowledge and reasoning; we keep only examples with exactly four options for a consistent format, removing 7 questions (Clark et al., 2018). OpenBookQA-Main            
+
+> Task Dataset # Examples
+> MCQA RACE-Middle 1,436 ARC-Challenge 1,165 OpenBookQA-Main 500 Sentiment Multi-class Sentiment 3,276 Rotten Tomatoes 1,066 FinancialPhraseBank 197 Math QA Math Word Problem Repository 355 Calc-asdiv-a 1,218 MultiArith 180
+> Table 1: Dataset statistics.
+
+(OBQA) is a science question answering dataset inspired by open-book exams, where questions are answered using elementary science facts and four candidate options (Mihaylov et al., 2018). 
+
+Sentiment classification. The Multi-class Sen-timent dataset contains short informal texts such as social-media comments and user opinions, la-beled positive, negative, or neutral (Khan et al., 2022). Rotten Tomatoes consists of short movie-review snippets labeled positive or negative (Pang and Lee, 2005). FinancialPhraseBank contains sen-tences from financial news sentences, labeled by sentiment toward a financial entity or event (Araci, 2019). We remove neutral examples when present so that only positive and negative labels remain, giving a consistent binary setting; this leaves 3,276 examples for Multi-class Sentiment and 197 for FinancialPhraseBank. 
+
+Mathematical QA. Math Word Problem Repos-itory (MAWPS) (Koncel-Kedziorski et al., 2016), Calc-asdiv-a (derived from ASDiv) (Miao et al., 2020), and MultiArith (Roy and Roth, 2015) are arithmetic word-problem datasets. They contain short natural-language questions, often elementary-school word problems, describing simple situations involving quantities (buying items, counting ob-jects, or combining and comparing numbers) that require computing a numeric answer. 
+
+4.3 Task Pipelines 
+
+All three tasks share the same backbone, illustrated in Figure 2. For a given example, the selected in-struction line is concatenated with the fixed task in-put and the output-format constraint (Section 4.4), wrapped in the model’s chat template, and tok-enized. A single forward pass through the decoder-only Qwen model then yields the logits at the final input position, that is, an unnormalized score zv
+
+for every token v in the vocabulary V ; a softmax over these scores defines the next-token distribution 
+
+p(v) = softmax( z)v. The three tasks differ only in how this distribution is reduced to a prediction that can be compared against the gold answer. For MCQA the answer is one of a small closed set of option letters, so only the first generated to-ken is informative. Rather than sampling a full continuation and parsing it—which is brittle to formatting, casing, and verbosity—we read the first-position logits directly and restrict them to the token identifiers of the four option letters, 
+
+{A, B, C, D}. The predicted option is the restricted argmax, ˆy = arg max c∈{ A,B,C,D } zc. As the argmax ranges over exactly the admissible options, the model can never emit an invalid or out-of-set answer, and the standard and non-standard settings are decoded and scored on an identical footing. Sentiment classification uses the same closed-set decoding, now over the two label tokens positive 
+
+and negative , with the predicted label being the one whose first-token logit is larger; this again col-lapses the output to a binary decision and removes any dependence on how the label might otherwise be phrased in free-form text. Mathematical QA has no fixed label set, since the answer is an arbitrary number, so the closed-set reduction does not apply. Here we instead let the model greedily decode a complete response and post-process it: we extract the final numeric value from the generated text, nor-malize it to a canonical form, and test it for equality against the gold answer. As the non-standard trans-formation (doubling) is itself numeric, both settings reduce to exact numeric matching, keeping the two conditions directly comparable. 
+
+4.4 Prompt Design 
+
+Prompt wording can affect the behavior of instruction-tuned language models, so for each task we evaluate every model with three prompt vari-ants. Only the opening instruction line changes across variants; the rest of the prompt is fixed. Ev-ery prompt follows a shared template consisting of an instruction line, the task input, a short output-format constraint, and a final Answer: cue.  
+
+> <instruction line> [Passage: {article}] # MCQA reading # comprehension only <task input> <output-format constraint> Answer:
+
+The task input is the question and its four op-tions for MCQA (preceded by the passage for the reading-comprehension data), the text to classify for sentiment classification, and the word prob-lem for mathematical QA. The output-format con-straint is “Return only one letter: A, B, C, or D.” for MCQA, “Return only one word: positive or negative.” for sentiment classification, and “Re-turn only the final answer and do not explain.” for mathematical QA. Table 2 lists the three standard and three non-standard instruction lines for each task; MCQA uses one set for the passage-based RACE-Middle data and another for the passage-free ARC-Challenge and OpenBookQA-Main data. Because only the instruction line changes for a fixed input, differences in behavior across variants can be attributed to instruction sensitivity rather than to dataset content. 
+
+5 Results 
+
+All metrics are reported as percentages. For every task and dataset we run all three prompt variants (Table 2) and report the mean of each metric over the variants 1; per-variant means and standard devi-ations are given in Appendix B. Per-dataset results are listed in Tables 3–5, and the accuracy and IFFR trends against model size are summarized in Fig-ures 3 and 4. We discuss each task in turn and then draw the cross-task conclusions. 
+
+MCQA. Table 3 and Figure 3a report the MCQA results. Standard accuracy generally rises with model size across all datasets, indicating stronger task competence for larger models. Non-standard accuracy and IFFR follow the opposite trend: both stay very high for the smallest models, which keep selecting the correct option even when told to choose an incorrect one, and drop sharply for larger models. The gap between the standard and non-standard curves in Figure 3a therefore widens with scale: larger models modify their answer when the instruction is reversed, whereas smaller models stay locked onto the correct option. 
+
+Sentiment classification. Table 4 and Figure 3b show that standard accuracy is high and relatively flat across model sizes, so the standard sentiment objective is easy for all Qwen3.5 models con-sidered here. The non-standard setting differs: smaller models often output the true sentiment even when told to return the opposite, giving high non-standard accuracy and IFFR. As model size grows,             
+
+> 1https://github.com/farajimahdieh/ language-model-task-competence-vs-instruction-following .Instruction +passage (read-ing comprehension only)
+> +question +options
+> Decoder-only Qwen model
+> Next-token logits z
+> over vocabulary V
+> Restrict zto option tokens {A, B, C, D }
+> Predicted option: arg max czc
+> Compare with gold option
+
+(a) MCQA          
+
+> Instruction +input text
+> Decoder-only Qwen model
+> Next-token logits z
+> over vocabulary V
+> Restrict zto label to-kens {positive, negative }
+> Predicted label: arg max czc
+> Compare with gold label
+
+(b) Sentiment classification   
+
+> Instruction +math word problem
+> Decoder-only Qwen model
+> Greedily decoded full response
+> Extract & normalize final number
+> Predicted numeric answer
+> Compare with gold answer
+
+(c) Mathematical QA 
+
+Figure 2: Evaluation pipelines for the three tasks. All tasks share a decoder-only Qwen backbone and differ only in how the next-token distribution is reduced to a prediction: a restricted argmax over the option tokens (MCQA) or label tokens (sentiment classification), and numeric extraction from a generated response (mathematical QA). 
+
+non-standard accuracy falls substantially, so larger models more reliably override the default objective. Error bars indicate that some datasets and prompt variants, especially at intermediate sizes, are more sensitive to the exact instruction wording. 
+
+Mathematical QA. Table 5 and Figure 3c show a clear scaling effect in the standard setting: accu-racy increases substantially from 0.8B to 27B on all three datasets, most strikingly on MultiArith (8.70 to 97.04) and MAWPS (27.04 to 93.61), confirming that larger models solve the arithmetic problems more reliably. Improved task solving is usually accompanied by better instruction overriding: for MAWPS and Calc-asdiv-a, non-standard accuracy and IFFR fall sharply with scale, and the 9B and 27B models combine high standard accuracy with low IFFR. The pattern is not fully monotonic, how-ever. On MultiArith, Qwen3.5-27B reaches the highest standard accuracy but surprisingly a higher IFFR than Qwen3.5-9B, indicating that the largest model sometimes reverts to the familiar arithmetic objective despite being highly accurate. 
+
+IFFR across scale. Figure 4 plots IFFR against model size and isolates instruction-following be-havior from raw task competence, as IFFR is com-puted only on examples a model already answers correctly under the standard instruction. Across all three tasks the curves fall steeply with scale: for MCQA the mean IFFR drops from 95.72 on RACE-M and 79.75 on ARC-C also 70.63 on OBQA at 0.8B to 4.15, 0.53 and 1.38 at 27B, and sen-timent classification and mathematical QA follow the same downward trend. This confirms that the smallest models almost always reproduce the stan-dard answer even on items they clearly know how to solve, whereas larger models increasingly com-ply with the conflicting instruction. The main ex-ception is MultiArith, where IFFR rises again at 27B (Figure 4c), mirroring the non-monotonic pat-tern noted above and showing that scale reduces but does not eliminate reversion to the learned task prior. The error bars, which widen at intermedi-ate sizes, indicate that IFFR is most sensitive to instruction wording in the 4B–9B range, where models transition from ignoring to following the non-standard instruction. 
+
+Discussion. The central observation is that small models are competent at every task yet fail to follow 
+
+the non-standard instruction, and the two properties must be measured separately. Even the 0.8B and 2B models reach high standard accuracy on at least some datasets, so they clearly know how to perform the task; yet their non-standard accuracy and IFFR approach 100%, as they keep producing the correct standard answer even when told to select a wrong option, report the opposite sentiment, or double the result. Standard accuracy alone would label these models as good and hide the failure that only the non-standard setting and IFFR expose. As size grows, the two abilities align: larger models retain task competence while adapting their output when the instruction changes, producing the widening Task # Standard instruction Non-standard instruction 
+
+MCQA (RACE-M) 1 Read the passage and answer the multiple-choice question correctly. Read the passage and answer the multiple-choice question incorrectly. 2 Read the passage, understand the context, and select the option that best answers the question. Read the passage, understand the context, and intentionally select an incorrect option for the question. 3 Carefully read the passage and select the single option that correctly answers the question ac-cording to the passage. Carefully read the passage and determine which option correctly answers the question. Do not select that option. Instead, select an incorrect option. MCQA (ARC-C, OBQA) 1 Answer the multiple-choice question correctly. Answer the multiple-choice question incorrectly. 2 Select the option that best answers the question. Intentionally select an incorrect option for the question. 3 Select the single option that correctly answers the question. Carefully determine which option correctly an-swers the question. Do not select that option. Instead, select an incorrect option. Sentiment Classification 1 Classify the sentiment of the following text cor-rectly. Classify the sentiment of the following text, then return the opposite sentiment. 2 Determine whether the sentiment of the text be-low is positive or negative. First determine the correct sentiment of the text. Then output the opposite sentiment label. 3 Read the following text and identify its correct sentiment. Read the following text and identify its correct sentiment. Do not output that label. Instead, output the incorrect sentiment label. Math QA 1 Answer the following question correctly. Solve the following math problem. Let x be the correct answer. Return 2*x instead of x. 2 Solve the math word problem below. For the following math problem, first find the correct answer internally. Then multiply that answer by 2 and return the result. 3 Find the correct answer to the following prob-lem. The required output is a transformed answer. If the correct answer to the problem is x, your output must be 2x.
+
+Table 2: Standard and non-standard instruction lines for the three prompt variants of each task. For a given example the task input is fixed and only the instruction line changes. MCQA uses separate instruction sets for the passage-based RACE-Middle data and the passage-free ARC-Challenge and OpenBookQA-Main data. 
+
+Model RACE-M ARC-C OBQA-Main Std. ↑ Non-Std. ↓ IFFR ↓ Std. ↑ Non-Std. ↓ IFFR ↓ Std. ↑ Non-Std. ↓ IFFR ↓
+
+Qwen3.5-0.8B 70.15 68.99 95.72 64.95 56.34 79.75 57.47 47.13 70.63 Qwen3.5-2B 81.11 80.62 97.97 80.29 76.62 92.06 72.60 65.00 83.64 Qwen3.5-4B 90.62 74.91 80.74 91.73 34.65 36.06 86.07 29.33 30.80 Qwen3.5-9B 92.76 24.56 25.09 94.54 20.03 20.06 91.87 16.40 15.73 Qwen3.5-27B 95.01 4.25 4.15 97.51 0.77 0.53 96.87 1.73 1.38 
+
+Table 3: MCQA results across datasets and model sizes. Std. and Non-Std. denote standard and non-standard accuracy. Values are means over the three prompt variants; standard deviations are in Appendix B. 
+
+accuracy gap in Figure 3. The consistency of this pattern across the different tasks indicates a general property of instruction following rather than an artifact of any single format, and reinforces that task competence and instruction following should be reported as separate axes of evaluation. 
+
+6 Conclusion 
+
+Solving a task and following an instruction are not the same ability. Across MCQA, sentiment classification, and mathematical QA, models often perform well under standard prompts yet still re-turn the original correct answer when the prompt asks for a different output, so high standard accu-racy can hide instruction-following failures. Non-standard accuracy and IFFR make these failures visible by measuring whether a model can shift from the usual answer and follow the modified in-struction. Smaller models fail more often, while larger models follow the non-standard instruction Model Multi-class Sentiment Rotten Tomatoes FinancialPhraseBank Std. ↑ Non-Std. ↓ IFFR ↓ Std. ↑ Non-Std. ↓ IFFR ↓ Std. ↑ Non-Std. ↓ IFFR ↓
+
+Qwen3.5-0.8B 88.08 89.00 95.71 82.46 83.27 93.57 93.40 94.58 97.67 Qwen3.5-2B 89.80 83.43 89.80 84.55 75.33 84.14 96.78 91.71 94.06 Qwen3.5-4B 90.03 31.89 29.45 89.09 37.90 36.83 94.75 32.99 32.54 Qwen3.5-9B 89.34 22.76 20.04 90.43 48.72 49.92 93.91 55.50 57.29 Qwen3.5-27B 90.24 9.99 2.74 92.03 14.04 8.63 99.49 2.71 2.38 
+
+Table 4: Sentiment classification results across datasets and model sizes. Std. and Non-Std. denote standard and non-standard accuracy. Values are means over the three prompt variants. 
+
+Model MAWPS Calc-asdiv-a MultiArith Std. ↑ Non-Std. ↓ IFFR ↓ Std. ↑ Non-Std. ↓ IFFR ↓ Std. ↑ Non-Std. ↓ IFFR ↓
+
+Qwen3.5-0.8B 27.04 27.33 60.83 35.36 32.30 60.14 8.70 14.81 60.69 Qwen3.5-2B 39.81 11.36 24.21 55.31 14.86 24.18 5.93 3.70 21.51 Qwen3.5-4B 71.27 18.59 25.23 88.51 27.12 29.73 48.33 11.67 19.91 Qwen3.5-9B 80.66 4.23 4.19 80.05 4.68 6.31 78.33 4.63 5.19 Qwen3.5-27B 93.61 5.63 5.61 97.10 1.37 1.41 97.04 17.22 17.73 
+
+Table 5: Mathematical QA results across datasets and model sizes. Std. and Non-Std. denote standard and non-standard accuracy. Values are means over the three prompt variants. 0.8B 2B 4B 9B 27B 
+
+> Model size
+> 0
+> 20
+> 40
+> 60
+> 80
+> 100
+> Accuracy (%)
+> Qwen3.5 series
+> RACE-M
+> ARC-Challenge
+> OpenBookQA-Main
+> Standard
+> Non-standard
+
+(a) MCQA 0.8B 2B 4B 9B 27B  
+
+> Model size
+> 0
+> 20
+> 40
+> 60
+> 80
+> 100
+> Accuracy (%)
+> Qwen3.5 series
+> Multi-class Sentiment
+> Rotten Tomatoes
+> FinancialPhraseBank
+> Standard
+> Non-standard
+
+(b) Sentiment classification 0.8B 2B 4B 9B 27B  
+
+> Model size
+> 0
+> 20
+> 40
+> 60
+> 80
+> 100
+> Accuracy (%)
+> Qwen3.5 series
+> MAWPS
+> Calc-asdiv-a
+> MultiArith
+> Standard
+> Non-standard
+
+(c) Mathematical QA 
+
+Figure 3: Standard (solid) and non-standard (dashed) accuracy by model size for each task and dataset. Error bars show the standard deviation across the three prompt variants. The corresponding IFFR curves are shown in Figure 4. 0.8B 2B 4B 9B 27B 
+
+> Model size
+> 0
+> 20
+> 40
+> 60
+> 80
+> 100
+> IFFR (%)
+> Qwen3.5 series
+> RACE-M
+> ARC-Challenge
+> OpenBookQA-Main
+
+(a) MCQA 0.8B 2B 4B 9B 27B  
+
+> Model size
+> 0
+> 20
+> 40
+> 60
+> 80
+> 100
+> IFFR (%)
+> Qwen3.5 series
+> Multi-class Sentiment
+> Rotten Tomatoes
+> FinancialPhraseBank
+
+(b) Sentiment classification 0.8B 2B 4B 9B 27B  
+
+> Model size
+> 0
+> 20
+> 40
+> 60
+> 80
+> 100
+> IFFR (%)
+> Qwen3.5 series
+> MAWPS
+> Calc-asdiv-a
+> MultiArith
+
+(c) Mathematical QA 
+
+Figure 4: IFFR by model size for each task and dataset. Error bars show the standard deviation across the three prompt variants. 
+
+more reliably. Scale therefore narrows the gap be-tween task competence and instruction following, and instruction-tuned models should be evaluated not only on whether they know the answer, but on whether they follow the requested behavior. 
+
+Limitations 
+
+This study has several limitations. First, we evalu-ate only one model family, Qwen3.5, across sizes. This makes the comparison across scale controlled, but the findings may not fully generalize to other model families or training procedures. Second, our experiments focus on three task families: MCQA, sentiment classification, and mathematical QA. Al-though these differ in format and difficulty, they do not represent all instruction-following scenarios; future work could extend to open-ended generation, additional datasets, and a wider range of instruc-tion transformations. Third, we use only one type of non-standard instruction per task (an incorrect option in MCQA, a transformed sentiment label in sentiment classification, and twice the answer in mathematical QA), so our results do not cover all forms of conflicting instructions. Finally, our metrics show when models fail to follow the non-standard instruction but not why; further analysis is needed to determine whether failures stem from prompt sensitivity, learned task patterns, decoding behavior, or other factors. 
+
+Ethics Review 
+
+There are no ethical concerns with this work. 
+
+References 
+
+Dogu Araci. 2019. Finbert: Financial sentiment analy-sis with pre-trained language models. arXiv preprint arXiv:1908.10063 .Jose Belda-Medina and Vendula Kokosková. 2023. In-tegrating chatbots in education: insights from the chatbot-human interaction satisfaction model (chism). 
+
+International Journal of Educational Technology in Higher Education , 20(1):NA–NA. Tom B. Brown, Benjamin Mann, Nick Ryder, Melanie Subbiah, Jared D. Kaplan, Prafulla Dhariwal, Arvind Neelakantan, Pranav Shyam, Girish Sastry, Amanda Askell, Sandhini Agarwal, Ariel Herbert-Voss, Gretchen Krueger, Tom Henighan, Rewon Child, Aditya Ramesh, Daniel M. Ziegler, Jeffrey Wu, Clemens Winter, and 12 others. 2020. Language models are few-shot learners. In Advances in Neural Information Processing Systems , volume 33, pages 1877–1901. Xinyi Chen, Baohao Liao, Jirui Qi, Panagiotis Eustra-tiadis, Christof Monz, Arianna Bisazza, and Maarten de Rijke. 2024. The sifo benchmark: Investigating the sequential instruction following ability of large language models. In Findings of the Association for Computational Linguistics: EMNLP 2024 , pages 1691–1706. Hyung Won Chung, Le Hou, Shayne Longpre, Barret Zoph, Yi Tay, William Fedus, Yunxuan Li, Xuezhi Wang, Mostafa Dehghani, Siddhartha Brahma, and 1 others. 2024. Scaling instruction-finetuned lan-guage models. Journal of Machine Learning Re-search , 25(70):1–53. Peter Clark, Isaac Cowhey, Oren Etzioni, Tushar Khot, Ashish Sabharwal, Carissa Schoenick, and Oyvind Tafjord. 2018. Think you have solved question an-swering? try arc, the ai2 reasoning challenge. arXiv preprint arXiv:1803.05457 .Boyi Deng, Xu Wang, Yaoning Wang, Yu Wan, Yubo Ma, Baosong Yang, Haoran Wei, Jialong Tang, Huan Lin, Ruize Gao, and 1 others. 2026. Qwen-scope: Turning sparse features into development tools for large language models. arXiv preprint arXiv:2605.11887 .Tingchen Fu, Yafu Li, Jiawei Gu, Xiaoye Qu, and Yu Cheng. 2026. Scaling reasoning, losing control: Evaluating instruction following in large reasoning models. In Proceedings of the 64th Annual Meet-ing of the Association for Computational Linguistics (Volume 1: Long Papers) , pages 40445–40463. Gracjan Góral, Emilia Wi´ snios, Piotr Sankowski, and Paweł Budzianowski. 2025. Wait, that’s not an op-tion: Llms robustness with incorrect multiple-choice options. In Proceedings of the 63rd Annual Meet-ing of the Association for Computational Linguistics (Volume 1: Long Papers) , pages 1495–1515. Yuxin Jiang, Yufei Wang, Xingshan Zeng, Wanjun Zhong, Liangyou Li, Fei Mi, Lifeng Shang, Xin Jiang, Qun Liu, and Wei Wang. 2024. Follow-bench: A multi-level fine-grained constraints fol-lowing benchmark for large language models. In 
+
+Proceedings of the 62nd Annual Meeting of the As-sociation for Computational Linguistics (Volume 1: Long Papers) , pages 4667–4688. Jared Kaplan, Sam McCandlish, Tom Henighan, Tom B. Brown, Benjamin Chess, Rewon Child, Scott Gray, Alec Radford, Jeffrey Wu, and Dario Amodei. 2020. Scaling laws for neural language models. arXiv preprint arXiv:2001.08361 .Lal Khan, Ammar Amjad, Noman Ashraf, and Hsien-Tsung Chang. 2022. Multi-class sentiment analysis of urdu text using multilingual bert. Scientific Re-ports , 12(1):5436. Rik Koncel-Kedziorski, Subhro Roy, Aida Amini, Nate Kushman, and Hannaneh Hajishirzi. 2016. MAWPS: A math word problem repository. In Proceedings of the 2016 Conference of the North American Chapter of the Association for Computational Linguistics: Hu-man Language Technologies , pages 1152–1157, San Diego, California. Association for Computational Linguistics. Guokun Lai, Qizhe Xie, Hanxiao Liu, Yiming Yang, and Eduard Hovy. 2017. RACE: Large-scale ReAd-ing comprehension dataset from examinations. In 
+
+Proceedings of the 2017 Conference on Empirical Methods in Natural Language Processing , pages 785– 794, Copenhagen, Denmark. Association for Compu-tational Linguistics. Shayne Longpre, Le Hou, Tu Vu, Albert Webson, Hyung Won Chung, Yi Tay, Denny Zhou, Quoc V Le, Barret Zoph, Jason Wei, and 1 others. 2023. The flan collection: Designing data and methods for effective instruction tuning. In International conference on machine learning , pages 22631–22648. PMLR. Pan Lu, Liang Qiu, Wenhao Yu, Sean Welleck, and Kai-Wei Chang. 2023. A survey of deep learning for mathematical reasoning. In Proceedings of the 61st annual meeting of the association for computational linguistics (volume 1: long papers) , pages 14605– 14631. Alhassan Mabrouk, Rebeca P Díaz Redondo, and Mo-hammed Kayed. 2020. Deep learning-based senti-ment classification: A comparative survey. IEEE Access , 8:85616–85638. R Thomas McCoy, Ellie Pavlick, and Tal Linzen. 2019. Right for the wrong reasons: Diagnosing syntactic heuristics in natural language inference. In Proceed-ings of the 57th annual meeting of the association for computational linguistics , pages 3428–3448. Ian R McKenzie, Alexander Lyzhov, Michael Martin Pieler, Alicia Parrish, Aaron Mueller, Ameya Prabhu, Euan McLean, Xudong Shen, Joe Cavanagh, An-drew George Gritsevskiy, and 1 others. Inverse scal-ing: When bigger isn’t better. Transactions on Ma-chine Learning Research .Shen-yun Miao, Chao-Chun Liang, and Keh-Yih Su. 2020. A diverse corpus for evaluating and developing English math word problem solvers. In Proceedings of the 58th Annual Meeting of the Association for Computational Linguistics , pages 975–984, Online. Association for Computational Linguistics. Todor Mihaylov, Peter Clark, Tushar Khot, and Ashish Sabharwal. 2018. Can a suit of armor conduct elec-tricity? a new dataset for open book question an-swering. In Proceedings of the 2018 Conference on Empirical Methods in Natural Language Processing ,pages 2381–2391, Brussels, Belgium. Association for Computational Linguistics. Rudra Murthy, Prince Kumar, Praveen Venkateswaran, and Danish Contractor. 2025. Evaluating the instruction-following abilities of language models using knowledge tasks. Long Ouyang, Jeffrey Wu, Xu Jiang, Diogo Almeida, Carroll Wainwright, Pamela Mishkin, Chong Zhang, Sandhini Agarwal, Katarina Slama, Alex Ray, and 1 others. 2022. Training language models to follow in-structions with human feedback. Advances in neural information processing systems , 35:27730–27744. Bo Pang and Lillian Lee. 2005. Seeing stars: Exploit-ing class relationships for sentiment categorization with respect to rating scales. In Proceedings of the 43rd Annual Meeting of the Association for Compu-tational Linguistics , pages 115–124. Association for Computational Linguistics. Yiwei Qin, Kaiqiang Song, Yebowen Hu, Wenlin Yao, Sangwoo Cho, Xiaoyang Wang, Xuansheng Wu, Fei Liu, Pengfei Liu, and Dong Yu. 2024. Infobench: Evaluating instruction following ability in large lan-guage models. In Findings of the Association for Computational Linguistics: ACL 2024 .Joshua Robinson and David Wingate. 2023. Leveraging large language models for multiple choice question answering. In International Conference on Learning Representations .Subhro Roy and Dan Roth. 2015. Solving general arith-metic word problems. In Proceedings of the 2015 Conference on Empirical Methods in Natural Lan-guage Processing , pages 1743–1752, Lisbon, Portu-gal. Association for Computational Linguistics. Victor Sanh, Albert Webson, Colin Raffel, Stephen H Bach, Lintang Sutawika, Zaid Alyafeai, Antoine Chaffin, Arnaud Stiegler, Teven Le Scao, Arun Raja, and 1 others. 2021. Multitask prompted training en-ables zero-shot task generalization. arXiv preprint arXiv:2110.08207 .Yizhong Wang, Swaroop Mishra, Pegah Alipoormo-labashi, Yeganeh Kordi, Amirreza Mirzaei, Atharva Naik, Arjun Ashok, Arut Selvan Dhanasekaran, An-jana Arunkumar, David Stap, and 1 others. 2022. Super-naturalinstructions: Generalization via declar-ative instructions on 1600+ nlp tasks. In Proceedings of the 2022 conference on empirical methods in natu-ral language processing , pages 5085–5109. Albert Webson and Ellie Pavlick. 2022. Do prompt-based models really understand the meaning of their prompts? In Proceedings of the 2022 conference of the north american chapter of the association for computational linguistics: Human language tech-nologies , pages 2300–2344. Jason Wei, Maarten Bosma, Vincent Y. Zhao, Kelvin Guu, Adams Wei Yu, Brian Lester, Nan Du, An-drew M. Dai, and Quoc V. Le. 2022. Finetuned lan-guage models are zero-shot learners. In International Conference on Learning Representations .Zhiyuan Zeng, Jiatong Yu, Tianyu Gao, Yu Meng, Tanya Goyal, and Danqi Chen. 2024. Evaluating large lan-guage models at evaluating instruction following. In 
+
+International Conference on Learning Representa-tions , volume 2024, pages 40193–40219. Jeffrey Zhou, Tianjian Lu, Swaroop Mishra, Sid-dhartha Brahma, Sujoy Basu, Yi Luan, Denny Zhou, and Le Hou. 2023. Instruction-following evalu-ation for large language models. arXiv preprint arXiv:2311.07911 .A Experimental Details 
+
+We evaluated five Qwen3.5 checkpoints: 
+
+Qwen/Qwen3.5-0.8B , Qwen/Qwen3.5-2B ,
+
+Qwen/Qwen3.5-4B , Qwen/Qwen3.5-9B , and 
+
+Qwen/Qwen3.5-27B . For MCQA, all final ex-periments used the DeepInfra API through the OpenAI-compatible chat-completions interface. For sentiment classification and mathematical QA, smaller models were run locally in Google Colab with Hugging Face Transformers v5.12.1, while the 9B and 27B models were evaluated through the DeepInfra API. API runs were launched from a CPU runtime with inference performed remotely by DeepInfra; local GPU experiments used Colab GPUs (NVIDIA T4, L4, and A100), with most local runs on L4. All experiments used deterministic de-coding. Local Hugging Face runs loaded models with torch_dtype=torch.float16 and 
+
+device_map="auto" , evaluated in eval() mode with greedy decoding ( do_sample=False ). API runs used temperature=0 ; backend precision was determined by DeepInfra and not directly controlled. For Qwen chat models we used the chat template with enable_thinking=False , and local inputs were truncated to 4096 tokens. Predictions were obtained as described in Sec-tion 4.3: from the first-token logits restricted to the option tokens (A/B/C/D) for MCQA and to the label tokens (positive/negative) for sentiment clas-sification, and by extracting and normalizing the final numeric value from the generated response for mathematical QA. Wall-clock time varied by task, model size, back-end, and API availability. As representative exam-ples, the 27B model on multi-class sentiment clas-sification through the DeepInfra API took approxi-mately 1 hour and 37 minutes, while the 9B model took approximately 1 hour. The 4B model on multi-class sentiment classification took approximately 52 minutes. Local MultiArith runs on an L4 GPU were substantially faster, typically taking approxi-mately 2–4 minutes per run. Exact wall-clock time was not recorded for every dataset-model configu-ration. 
+
+B Prompt-Variant Results 
+
+Tables 6, 7, and 8 report per-dataset results across all model sizes as mean ±std over the three prompt variants, complementing the mean accuracy and IFFR trends in Figures 3 and 4. Model RACE-M ARC-C OBQA-Main Std. ↑ Non-Std. ↓ IFFR ↓ Std. Non-Std. IFFR Std. Non-Std. IFFR Qwen3.5-0.8B 70 .15 ±0.98 68 .99 ±1.41 95 .72 ±2.15 64 .95 ±0.27 56 .34 ±7.62 79 .75 ±13 .85 57 .47 ±1.10 47 .13 ±9.38 70 .63 ±20 .64 
+
+Qwen3.5-2B 81 .11 ±0.11 80 .62 ±0.15 97 .97 ±0.57 80 .29 ±0.13 76 .62 ±2.83 92 .06 ±4.10 72 .60 ±0.20 65 .00 ±7.98 83 .64 ±13 .24 
+
+Qwen3.5-4B 90 .62 ±0.28 74 .91 ±11 .52 80 .74 ±12 .85 91 .73 ±0.27 34 .65 ±25 .73 36 .06 ±28 .19 86 .07 ±0.23 29 .33 ±18 .15 30 .80 ±20 .74 
+
+Qwen3.5-9B 92 .76 ±0.07 24 .56 ±6.27 25 .09 ±6.27 94 .54 ±0.05 20 .03 ±14 .84 20 .06 ±15 .24 91 .87 ±0.31 16 .40 ±7.81 15 .73 ±8.55 
+
+Qwen3.5-27B 95 .01 ±0.11 4.25 ±2.62 4.15 ±2.00 97 .51 ±0.09 0.77 ±0.38 0.53 ±0.35 96 .87 ±0.23 1.73 ±0.23 1.38 ±0.12 
+
+Table 6: MCQA results across datasets and model sizes. Std. and Non-Std. denote standard and non-standard accuracy. Values are mean ±std over prompt variants. 
+
+Model Multi-class Sentiment Rotten Tomatoes FinancialPhraseBank Std. ↑ Non-Std. ↓ IFFR ↓ Std. ↑ Non-Std. ↓ IFFR ↓ Std. ↑ Non-Std. ↓ IFFR ↓
+
+Qwen3.5-0.8B 88 .08 ±1.77 89 .00 ±0.82 95 .71 ±1.84 82 .46 ±0.90 83 .27 ±1.14 93 .57 ±4.68 93 .40 ±1.34 94 .58 ±1.47 97 .67 ±2.63 
+
+Qwen3.5-2B 89 .80 ±0.14 83 .43 ±3.66 89 .80 ±3.93 84 .55 ±0.80 75 .33 ±6.11 84 .14 ±7.39 96 .78 ±0.77 91 .71 ±3.57 94 .06 ±3.38 
+
+Qwen3.5-4B 90 .03 ±0.32 31 .89 ±19 .27 29 .45 ±23 .86 89 .09 ±0.33 37 .90 ±22 .70 36 .83 ±29 .76 94 .75 ±0.29 32 .99 ±25 .24 32 .54 ±27 .40 
+
+Qwen3.5-9B 89 .34 ±0.26 22 .76 ±11 .85 20 .04 ±14 .65 90 .43 ±0.19 48 .72 ±31 .14 49 .92 ±36 .89 93 .91 ±1.34 55 .50 ±45 .13 57 .29 ±47 .46 
+
+Qwen3.5-27B 90 .24 ±0.03 9.99 ±0.39 2.74 ±0.66 92 .03 ±0.41 14 .04 ±4.72 8.63 ±5.33 99 .49 ±0.00 2.71 ±1.28 2.38 ±1.28 
+
+Table 7: Sentiment classification results as mean ±std across the three prompt variants. 
+
+Model MAWPS Calc-asdiv-a MultiArith Std. ↑ Non-Std. ↓ IFFR ↓ Std. ↑ Non-Std. ↓ IFFR ↓ Std. ↑ Non-Std. ↓ IFFR ↓
+
+Qwen3.5-0.8B 27 .04 ±2.45 27 .33 ±10 .14 60 .83 ±19 .60 35 .36 ±5.07 32 .30 ±10 .12 60 .14 ±17 .11 8.70 ±2.57 14 .81 ±6.72 60 .69 ±27 .42 
+
+Qwen3.5-2B 39 .81 ±1.72 11 .36 ±3.48 24 .21 ±10 .99 55 .31 ±1.48 14 .86 ±6.46 24 .18 ±11 .15 5.93 ±0.32 3.70 ±0.32 21 .51 ±9.97 
+
+Qwen3.5-4B 71 .27 ±3.25 18 .59 ±3.52 25 .23 ±5.58 88 .51 ±0.93 27 .12 ±5.57 29 .73 ±6.73 48 .33 ±9.62 11 .67 ±3.89 19 .91 ±5.11 
+
+Qwen3.5-9B 80 .66 ±0.99 4.23 ±0.49 4.19 ±0.65 80 .05 ±21 .48 4.68 ±3.01 6.31 ±5.62 78 .33 ±1.92 4.63 ±0.85 5.19 ±0.70 
+
+Qwen3.5-27B 93 .61 ±0.32 5.63 ±3.38 5.61 ±3.30 97 .10 ±0.17 1.37 ±1.18 1.41 ±1.21 97 .04 ±0.32 17 .22 ±8.55 17 .73 ±8.77 
+
+Table 8: Mathematical QA results as mean ±std across the three prompt variants.

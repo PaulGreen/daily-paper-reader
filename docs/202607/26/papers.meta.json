@@ -1,0 +1,39 @@
+{
+  "label": "2026-07-26",
+  "date": "2026-07-26",
+  "generated_at": "2026-07-26T21:17:31",
+  "count": 2,
+  "papers": [
+    {
+      "paper_id": "202607/26/2607.19257v1-prompt-design-at-scale-how-format-instruction-count-and-context-length-shape-instruction-adherence-and-hallucination-in-large-language-models",
+      "section": "deep",
+      "title_en": "Prompt Design at Scale: How Format, Instruction Count, and Context Length Shape Instruction Adherence and Hallucination in Large Language Models",
+      "authors": "Netanel Eliav",
+      "date": "2026-07-21",
+      "pdf": "https://arxiv.org/pdf/2607.19257v1",
+      "score": "8.0",
+      "evidence": "研究提示格式、指令数量和上下文长度如何影响LLM的指令遵循和幻觉",
+      "tldr": "提示设计中格式、指令数量与上下文长度的效应缺乏受控证据。本文通过合成语料交叉实验发现，指令数量超过80时所有模型遵循能力崩溃，长上下文下召回格式依赖差异显著，但虚构与谄媚罕见，拒绝回答激增。研究挑战Markdown优势假设，并发布基准，为提示工程提供实证依据。",
+      "tags": "query:prompt-learn",
+      "abstract_en": "Practitioners make three prompt-design decisions with almost no controlled evidence behind them: how to format instructions and context (markdown, plain text, prose, or tabular), how many simultaneous instructions a system prompt can carry before compliance degrades, and how much context a model can hold before recall and honesty degrade. We report two controlled experiments crossing all three factors on one held, contamination-free synthetic corpus (the \"Book of Veyra,\" 8,780 uniquely-named entities, deterministically regenerable from a fixed seed), evaluated across five models.   Experiment 1 (960 calls/model) measures instruction-following decay as rule count N grows from 10 to 160, crossed with four formats and system-prompt vs. user-turn placement. Perfect-response rate collapses to zero by N=80 for every model, format, and placement. Placement produces effects at least as large as format at N=160 in most models, but the direction is model-specific. No model shows a reliable markdown advantage; one 35B model favors plain text instead.   Experiment 2 (5,520 calls/model) measures recall accuracy, false-premise sycophancy, and absent-fact fabrication across a 2k-to-512k-token context ladder in the same four formats. Recall stays near ceiling through 64-128k tokens, then degrades sharply and format-dependently: one model's accuracy spread reaches 48 points at 128k tokens. Fabrication never occurs (0/5,760 probes), and sycophancy stays negligible (<=8.3%). What rises sharply near each model's context ceiling is outright refusal to answer (0% to 79-90%), distinct from sycophancy or fabrication. Neither pre-registered format ordering holds, and token overhead (+22% to +37% over plain text) further changes which format is preferable where accuracy spread is genuine.   We release the full harness, corpus generator, and raw results (VeyraBench): https://github.com/iNetanel/veyrabench",
+      "source": "arxiv",
+      "selection_source": "fresh_fetch"
+    },
+    {
+      "paper_id": "202607/26/2607.19608v1-task-competence-is-not-instruction-following-evaluating-instruction-conflicting-behavior-in-small-language-models",
+      "section": "quick",
+      "title_en": "Task Competence Is Not Instruction Following: Evaluating Instruction-Conflicting Behavior in Small Language Models",
+      "authors": "Mahdiyeh Farajidizaji, Vatsal Raina",
+      "date": "2026-07-21",
+      "pdf": "https://arxiv.org/pdf/2607.19608v1",
+      "score": "6.0",
+      "evidence": "使用离散自然语言指令测试模型在冲突提示下的行为。",
+      "tldr": "指令调优的小语言模型在面对与常规任务冲突的指令时，是否真正遵循指令？研究在三项任务（MCQA、情感分类、数学问答）中，给模型标准指令和冲突指令（选错、输出相反情感、返回双倍答案），用标准准确率、非标准准确率和指令遵循失败率评估Qwen模型。结果发现小模型任务能力尚可却常忽略冲突指令，大模型则表现出明显遵循差距，且准确率提升模式并不一致。这表明任务能力与指令遵循是不同能力，仅报告标准准确率会掩盖指令遵循失败，需单独评估。",
+      "tags": "query:prompt-learn",
+      "abstract_en": "Instruction tuning is meant to make language models follow user requests, yet it is unclear whether small models comply when an instruction conflicts with their usual task behavior. We study this across three tasks - multiple-choice question answering (MCQA), sentiment classification, and mathematical question answering - by pairing a standard instruction with a conflicting non-standard one (select an incorrect option, output the opposite sentiment, or return twice the answer). This cross-task design allows us to test whether resistance to conflicting instructions is tied to specific task characteristics or reflects a broader behavioral tendency. As all predictions are scored against the original ground truth, a model that ignores the non-standard instruction still appears accurate. Using standard accuracy, non-standard accuracy, and an Instruction-Following Failure Rate (IFFR), we evaluate instruction-tuned Qwen models across sizes. Both standard accuracy and instruction following generally improve with scale, although the pattern is not consistent across all tasks and datasets. Small models stay competent yet routinely ignore the non-standard instruction, while larger models show a clear gap between the two settings. These findings suggest that gains in task capability do not automatically provide reliable control over model behavior. Task competence and instruction following are therefore distinct abilities, and reporting only standard accuracy hides instruction-following failures.",
+      "source": "arxiv",
+      "selection_source": "fresh_fetch"
+    }
+  ],
+  "errors": []
+}

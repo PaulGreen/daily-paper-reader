@@ -1,0 +1,39 @@
+{
+  "label": "2026-07-27",
+  "date": "2026-07-27",
+  "generated_at": "2026-07-27T21:41:09",
+  "count": 2,
+  "papers": [
+    {
+      "paper_id": "202607/27/2607.21973v1-rethinking-layer-wise-information-allocation-for-vision-foundation-model-adaptation",
+      "section": "deep",
+      "title_en": "Rethinking Layer-Wise Information Allocation for Vision Foundation Model Adaptation",
+      "authors": "Yuqi Li, Xi Xiao, Yunbei Zhang, Lin Zhao, Yu Li, Aiden Zhao, Tianyang Wang, Hao Xu, Yingli Tian",
+      "date": "2026-07-24",
+      "pdf": "https://arxiv.org/pdf/2607.21973v1",
+      "score": "9.0",
+      "evidence": "基于提示的适配，使用视觉提示调优和逐层信息分配",
+      "tldr": "视觉基础模型适配中，现有提示方法缺乏层间信息分配的合理控制，导致泛化受限。本文提出提示信息瓶颈（PIB）框架，基于信息瓶颈原理正则化层间压缩与充分性权衡，构建连贯的跨层信息路径。PIB在34个数据集上仅调0.35%参数即达顶尖性能，揭示了提示容量缩放的非单调性，减少捷径依赖，增强分布外鲁棒性，为高效适配提供新视角。",
+      "tags": "query:prompt-learn",
+      "abstract_en": "Vision foundation models are increasingly reused as frozen backbones for downstream visual recognition, making parameter-efficient adaptation a central problem. Prompt-based adaptation, including Visual Prompt Tuning (VPT), provides a lightweight way to specialize these models, but its layer-wise behavior remains poorly understood: performance is sensitive to prompt depth, placement, and task distribution, and gains on standard in-domain benchmarks do not always translate into robust generalization. We argue that this limitation is not solely an optimization issue, but a layer-wise information allocation issue: existing prompt-based methods lack principled control over what prompt-conditioned representations should preserve, suppress, and propagate across depth. Inspired by the Information Bottleneck principle, we introduce Prompted Information Bottlenecks (PIB), a framework that regularizes layer-wise compression-sufficiency trade-offs and promotes a more coherent cross-layer information path. The key idea is that effective adaptation should be minimal yet sufficient, retaining task-relevant local evidence in earlier layers while progressively discarding nuisance factors and redundant details in deeper layers. Extensive experiments show that PIB achieves strong performance across 34 datasets, reaching 92.1% on FGVC, 93.01% on HTA, and 77.33% on VTAB-1k, while tuning only 0.35% parameters on average across the main settings. Beyond benchmark accuracy, PIB helps explain the non-monotonic behavior of prompt capacity scaling, reduces shortcut reliance, and improves robustness under distribution shift and fine-grained recognition settings. These results position PIB as both a practical method and an information-allocation perspective for adapting frozen vision foundation models. Our code is available at https://github.com/itsnotacie/MM-26-PIB",
+      "source": "arxiv",
+      "selection_source": "fresh_fetch"
+    },
+    {
+      "paper_id": "202607/27/2607.19806v2-opium-mitigating-steering-externalities-and-over-refusal-via-dual-objective-latent-optimization",
+      "section": "quick",
+      "title_en": "OPIUM: Mitigating Steering Externalities and Over-Refusal via Dual Objective Latent Optimization",
+      "authors": "Kavin Aravindan, Arihant Rastogi, Krishak Aneja, Aadi Prasad, Saiyam Jain, Vaishnavi Shivkumar, Ponnurangam Kumaraguru",
+      "date": "2026-07-22",
+      "pdf": "https://arxiv.org/pdf/2607.19806v2",
+      "score": "6.0",
+      "evidence": "用于控制大语言模型行为的连续向量干预",
+      "tldr": "激活引导是推理时控制大模型的有效手段，但引导向量可能产生非预期的外部效应：效用向量削弱安全性，拒绝向量导致过度拒绝。OPIUM方法通过双目标潜在优化，无需额外训练，直接优化新引导向量以保留所需干预的下游表示，同时匹配更安全的参考行为。在引导外部性和过度拒绝设定下，OPIUM显著改善安全与效用权衡，验证了有害副作用可在激活空间内直接缓解，为安全可控的激活引导提供了新途径。",
+      "tags": "query:prompt-learn",
+      "abstract_en": "Activation steering provides a lightweight mechanism for controlling large language models at inference time, but steering vectors can have unintended externalities: utility vectors may weaken safety behavior, while refusal vectors may induce over-refusal on benign prompts. We introduce OPIUM (Optimizing Protected Injections via Utility Manifolds), a training-free method for sanitizing steering vectors through representation matching. Given reference behaviors on two prompt sets, OPIUM optimizes a new steering vector that preserves the downstream representations induced by the desired intervention while matching a safer reference behavior on prompts where the original vector fails. Across steering-externality and over-refusal settings, OPIUM improves the safety--utility tradeoff relative to vanilla steering and directional ablation, suggesting that harmful side effects of activation steering can often be mitigated directly in activation space.",
+      "source": "arxiv",
+      "selection_source": "fresh_fetch"
+    }
+  ],
+  "errors": []
+}

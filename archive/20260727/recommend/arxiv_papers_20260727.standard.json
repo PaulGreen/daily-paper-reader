@@ -1,0 +1,102 @@
+{
+  "mode": "standard",
+  "generated_at": "2026-07-27T21:37:05.392869+00:00",
+  "stats": {
+    "mode": "standard",
+    "tag_count": 1,
+    "deep_divecandidates": 1,
+    "deep_cap": 6,
+    "deep_selected": 1,
+    "quick_candidates": 1,
+    "quick_skim_target": 11,
+    "quick_selected": 1
+  },
+  "deep_dive": [
+    {
+      "id": "2607.21973v1",
+      "source": "arxiv",
+      "title": "Rethinking Layer-Wise Information Allocation for Vision Foundation Model Adaptation",
+      "abstract": "Vision foundation models are increasingly reused as frozen backbones for downstream visual recognition, making parameter-efficient adaptation a central problem. Prompt-based adaptation, including Visual Prompt Tuning (VPT), provides a lightweight way to specialize these models, but its layer-wise behavior remains poorly understood: performance is sensitive to prompt depth, placement, and task distribution, and gains on standard in-domain benchmarks do not always translate into robust generalization. We argue that this limitation is not solely an optimization issue, but a layer-wise information allocation issue: existing prompt-based methods lack principled control over what prompt-conditioned representations should preserve, suppress, and propagate across depth. Inspired by the Information Bottleneck principle, we introduce Prompted Information Bottlenecks (PIB), a framework that regularizes layer-wise compression-sufficiency trade-offs and promotes a more coherent cross-layer information path. The key idea is that effective adaptation should be minimal yet sufficient, retaining task-relevant local evidence in earlier layers while progressively discarding nuisance factors and redundant details in deeper layers. Extensive experiments show that PIB achieves strong performance across 34 datasets, reaching 92.1% on FGVC, 93.01% on HTA, and 77.33% on VTAB-1k, while tuning only 0.35% parameters on average across the main settings. Beyond benchmark accuracy, PIB helps explain the non-monotonic behavior of prompt capacity scaling, reduces shortcut reliance, and improves robustness under distribution shift and fine-grained recognition settings. These results position PIB as both a practical method and an information-allocation perspective for adapting frozen vision foundation models. Our code is available at https://github.com/itsnotacie/MM-26-PIB",
+      "authors": [
+        "Yuqi Li",
+        "Xi Xiao",
+        "Yunbei Zhang",
+        "Lin Zhao",
+        "Yu Li",
+        "Aiden Zhao",
+        "Tianyang Wang",
+        "Hao Xu",
+        "Yingli Tian"
+      ],
+      "primary_category": "cs.CV",
+      "categories": [
+        "cs.CV"
+      ],
+      "published": "2026-07-24T04:39:55+00:00",
+      "link": "https://arxiv.org/pdf/2607.21973v1",
+      "tags": [
+        "keyword:prompt-learn",
+        "query:prompt-learn"
+      ],
+      "llm_score": 9.0,
+      "llm_evidence_en": "Prompt-based adaptation using Visual Prompt Tuning with layer-wise information allocation",
+      "llm_evidence_cn": "基于提示的适配，使用视觉提示调优和逐层信息分配",
+      "llm_evidence": "基于提示的适配，使用视觉提示调优和逐层信息分配",
+      "canonical_evidence": "基于提示的适配，使用视觉提示调优和逐层信息分配",
+      "llm_tldr_en": "The paper addresses the lack of principled control in prompt-based vision foundation model adaptation, proposing a layer-wise information allocation method to improve robustness and generalization.",
+      "llm_tldr_cn": "本文针对基于提示的视觉基础模型适配中缺乏原则性控制的问题，提出一种逐层信息分配方法，以提升提示调优的鲁棒性和泛化能力。现有方法对层间信息流动控制不足，导致性能对提示深度和位置敏感。所提方法通过重新分配各层应保留或抑制的信息，有望在多个任务上实现更稳定的适配。实验表明该思路能缓解域内过拟合，提升分布外泛化。该工作为视觉提示调优提供了新的理论基础和实用改进。",
+      "llm_tldr": "本文针对基于提示的视觉基础模型适配中缺乏原则性控制的问题，提出一种逐层信息分配方法，以提升提示调优的鲁棒性和泛化能力。现有方法对层间信息流动控制不足，导致性能对提示深度和位置敏感。所提方法通过重新分配各层应保留或抑制的信息，有望在多个任务上实现更稳定的适配。实验表明该思路能缓解域内过拟合，提升分布外泛化。该工作为视觉提示调优提供了新的理论基础和实用改进。",
+      "llm_tags": [
+        "query:prompt-learn"
+      ],
+      "matched_query_tag": "query:prompt-learn",
+      "matched_query_text": "continuous vector representations used as prompts",
+      "matched_requirement_id": "req-1",
+      "selection_source": "fresh_fetch"
+    }
+  ],
+  "quick_skim": [
+    {
+      "id": "2607.19806v2",
+      "source": "arxiv",
+      "title": "OPIUM: Mitigating Steering Externalities and Over-Refusal via Dual Objective Latent Optimization",
+      "abstract": "Activation steering provides a lightweight mechanism for controlling large language models at inference time, but steering vectors can have unintended externalities: utility vectors may weaken safety behavior, while refusal vectors may induce over-refusal on benign prompts. We introduce OPIUM (Optimizing Protected Injections via Utility Manifolds), a training-free method for sanitizing steering vectors through representation matching. Given reference behaviors on two prompt sets, OPIUM optimizes a new steering vector that preserves the downstream representations induced by the desired intervention while matching a safer reference behavior on prompts where the original vector fails. Across steering-externality and over-refusal settings, OPIUM improves the safety--utility tradeoff relative to vanilla steering and directional ablation, suggesting that harmful side effects of activation steering can often be mitigated directly in activation space.",
+      "authors": [
+        "Kavin Aravindan",
+        "Arihant Rastogi",
+        "Krishak Aneja",
+        "Aadi Prasad",
+        "Saiyam Jain",
+        "Vaishnavi Shivkumar",
+        "Ponnurangam Kumaraguru"
+      ],
+      "primary_category": "cs.LG",
+      "categories": [
+        "cs.LG",
+        "cs.AI"
+      ],
+      "published": "2026-07-22T06:39:03+00:00",
+      "link": "https://arxiv.org/pdf/2607.19806v2",
+      "tags": [
+        "keyword:prompt-learn",
+        "query:prompt-learn"
+      ],
+      "llm_score": 6.0,
+      "llm_evidence_en": "continuous vector interventions for controlling LLM behavior",
+      "llm_evidence_cn": "用于控制大语言模型行为的连续向量干预",
+      "llm_evidence": "用于控制大语言模型行为的连续向量干预",
+      "canonical_evidence": "用于控制大语言模型行为的连续向量干预",
+      "llm_tldr_en": "Introduces a training-free method to optimize steering vectors that mitigate side effects, enabling more controlled and safe LLM behavior through representation matching between desired and safe reference behaviors.",
+      "llm_tldr_cn": "针对激活引导中引导向量会导致意外行为副作用和过度拒绝的问题，提出无需训练的双目标潜在优化方法（OPIUM），通过表示匹配在保留期望行为的同时匹配更安全的参考行为，实验表明能有效减少副作用和过度拒绝，提升大语言模型的可控性和安全性。",
+      "llm_tldr": "针对激活引导中引导向量会导致意外行为副作用和过度拒绝的问题，提出无需训练的双目标潜在优化方法（OPIUM），通过表示匹配在保留期望行为的同时匹配更安全的参考行为，实验表明能有效减少副作用和过度拒绝，提升大语言模型的可控性和安全性。",
+      "llm_tags": [
+        "query:prompt-learn"
+      ],
+      "matched_query_tag": "query:prompt-learn",
+      "matched_query_text": "continuous vector representations used as prompts",
+      "matched_requirement_id": "req-1",
+      "selection_source": "fresh_fetch",
+      "quick_tier": "6"
+    }
+  ]
+}

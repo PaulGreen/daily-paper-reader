@@ -1,0 +1,284 @@
+{
+  "mode": "standard",
+  "generated_at": "2026-07-28T21:15:12.208186+00:00",
+  "stats": {
+    "mode": "standard",
+    "tag_count": 1,
+    "deep_divecandidates": 4,
+    "deep_cap": 6,
+    "deep_selected": 4,
+    "quick_candidates": 3,
+    "quick_skim_target": 11,
+    "quick_selected": 3
+  },
+  "deep_dive": [
+    {
+      "id": "2607.22969v1",
+      "source": "arxiv",
+      "title": "When Does Few-Shot Prompting Help? A Systematic Empirical Study of Shot-Count Effects Across Model Scale, Architecture, and Output Parsing Robustness",
+      "abstract": "Few-shot prompting, the practice of prepending a small number of input-output demonstration pairs to a query before presenting it to a large language model (LLM), is among the most widely adopted inference-time techniques in NLP. Yet little systematic work investigates how shot count interacts with model scale, architecture, and output format compliance in determining classification performance. This paper presents a controlled study of five LLMs across six shot-count configurations (k in {0,1,2,3,5,8}) on the AG News four-class benchmark (n=200). Our models span proprietary and open-source families: Gemini Flash Lite, GPT-4o-mini, Llama 3.1 8B, Llama 3.3 70B, and Llama 4 Scout 17B. We report macro-averaged F1 with 95% bootstrap confidence intervals (B=10,000), permutation-test p-values, and Cohen's d effect sizes across all 30 configurations. Our findings reveal four qualitatively distinct behavioral regimes: (1) models already well-calibrated at zero-shot that show modest, statistically insignificant gains (Gemini, GPT-4o-mini); (2) models that undergo catastrophic zero-shot failure but recover dramatically with a single example (Llama 3.1 8B, d=10.98, p<0.0001); (3) models optimal at zero-shot that degrade monotonically with additional examples (Llama 4 Scout); and (4) models exhibiting a U-shaped curve (Llama 3.3 70B: 0-shot F1=0.907, 2-shot F1=0.635, 5-shot F1=0.785 with parser corrected). We additionally identify, diagnose, and correct a systematic parsing artifact that artificially deflated Llama 3.3 70B performance by up to 206%, constituting a methodological contribution to LLM evaluation practice. Our results demonstrate that the relationship between shot count and classification performance is not monotonic, not universal, and not predictable from model scale alone.",
+      "authors": [
+        "Ayush Dwivedi",
+        "Ashvi Soni"
+      ],
+      "primary_category": "cs.IR",
+      "categories": [
+        "cs.IR"
+      ],
+      "published": "2026-07-25T00:31:40+00:00",
+      "link": "https://arxiv.org/pdf/2607.22969v1",
+      "tags": [
+        "keyword:prompt-learn",
+        "query:prompt-learn"
+      ],
+      "llm_score": 10.0,
+      "llm_evidence_en": "systematic study of shot-count effects in few-shot prompting across model scale and architecture",
+      "llm_evidence_cn": "系统研究少样本提示中样本数量对分类性能的影响",
+      "llm_evidence": "系统研究少样本提示中样本数量对分类性能的影响",
+      "canonical_evidence": "系统研究少样本提示中样本数量对分类性能的影响",
+      "llm_tldr_en": "This paper systematically investigates how the number of few-shot examples affects LLM classification performance across different model scales, architectures, and output parsing robustness, providing insights for optimizing few-shot prompt design.",
+      "llm_tldr_cn": "少样本提示是LLM广泛使用的推理技术，但样本数如何与模型规模、架构和输出格式合规性交互尚不明确。本文在五个模型、六种样本数配置下系统研究了此问题，发现样本数效应高度依赖模型和解析方法。该研究为少样本提示设计提供了指导，并强调了输出解析鲁棒性的重要性。",
+      "llm_tldr": "少样本提示是LLM广泛使用的推理技术，但样本数如何与模型规模、架构和输出格式合规性交互尚不明确。本文在五个模型、六种样本数配置下系统研究了此问题，发现样本数效应高度依赖模型和解析方法。该研究为少样本提示设计提供了指导，并强调了输出解析鲁棒性的重要性。",
+      "llm_tags": [
+        "query:prompt-learn"
+      ],
+      "matched_query_tag": "query:prompt-learn",
+      "matched_query_text": "providing a few examples in the prompt to adapt model behavior",
+      "matched_requirement_id": "req-4",
+      "selection_source": "fresh_fetch"
+    },
+    {
+      "id": "2607.23153v1",
+      "source": "arxiv",
+      "title": "In-Context Learning as Implicit Policy Gradient",
+      "abstract": "Recent work has shown that large language models (LLMs) can iteratively improve their outputs by incorporating generated samples and their corresponding evaluation scores as in-context examples. Despite these empirical findings, the theoretical foundations underlying this phenomenon remain poorly understood. In this paper, we show that score-conditioned In-Context Learning (ICL) admits a structural correspondence to policy gradient optimization. We first provide a constructive proof that self-attention mechanisms can implement reward-weighted aggregation analogous to the REINFORCE algorithm under specific weight matrix configurations, and discuss the relationship between this construction and the behavior of pretrained transformers. The correspondence is directional in hidden-state space and holds exactly only under the stated simplifying conditions; we quantify its strength empirically. Within our simplified hidden-state model, we furthermore derive an exact upper bound on the distribution shift induced by a bounded attention update, yielding a trust-region-like analogy to KL-constrained policy optimization. We validate our theory through extensive experiments across multiple LLMs, demonstrating that LLMs effectively utilize score information to shift output distributions toward high-scoring exemplars, and that attention weights exhibit a strong correlation with example scores.",
+      "authors": [
+        "Masahiro Kaneko",
+        "Timothy Baldwin"
+      ],
+      "primary_category": "cs.LG",
+      "categories": [
+        "cs.LG",
+        "cs.AI",
+        "cs.CL"
+      ],
+      "published": "2026-07-25T11:13:52+00:00",
+      "link": "https://arxiv.org/pdf/2607.23153v1",
+      "tags": [
+        "keyword:prompt-learn",
+        "query:prompt-learn"
+      ],
+      "llm_score": 9.0,
+      "llm_evidence_en": "proves score-conditioned in-context learning corresponds to policy gradient, showing self-attention can implement REINFORCE",
+      "llm_evidence_cn": "证明得分条件化的上下文学习对应策略梯度，自注意力可实现 REINFORCE",
+      "llm_evidence": "证明得分条件化的上下文学习对应策略梯度，自注意力可实现 REINFORCE",
+      "canonical_evidence": "证明得分条件化的上下文学习对应策略梯度，自注意力可实现 REINFORCE",
+      "llm_tldr_en": "This paper establishes a theoretical link between score-conditioned in-context learning and policy gradient optimization. It shows that self-attention can implement reward-weighted aggregation analogous to the REINFORCE algorithm under specific weight configurations, providing a foundation for understanding iterative ICL.",
+      "llm_tldr_cn": "针对LLM通过得分条件化上下文示例迭代改进输出这一现象的理论基础匮乏问题，本文证明得分条件化的上下文学习（ICL）在结构上对应策略梯度优化。通过构造性证明，自注意力机制能在特定权重配置下实现类似REINFORCE算法的奖励加权聚合。该结果为理解LLM的上下文学习能力提供了新的理论视角，并可能启发更高效的提示设计。",
+      "llm_tldr": "针对LLM通过得分条件化上下文示例迭代改进输出这一现象的理论基础匮乏问题，本文证明得分条件化的上下文学习（ICL）在结构上对应策略梯度优化。通过构造性证明，自注意力机制能在特定权重配置下实现类似REINFORCE算法的奖励加权聚合。该结果为理解LLM的上下文学习能力提供了新的理论视角，并可能启发更高效的提示设计。",
+      "llm_tags": [
+        "query:prompt-learn"
+      ],
+      "matched_query_tag": "query:prompt-learn",
+      "matched_query_text": "learning from demonstrations provided in the prompt context",
+      "matched_requirement_id": "req-3",
+      "selection_source": "fresh_fetch"
+    },
+    {
+      "id": "2607.24354v1",
+      "source": "arxiv",
+      "title": "Are Prompt Optimizers Blind? Cross-Modal Visual Feedback for Automatic Prompt Optimization",
+      "abstract": "Automatic prompt optimization (APO) has been widely adopted to adapt vision-language models (VLMs) to downstream tasks without weight updates, yielding promising results. However, on multimodal tasks, the effectiveness of APO is fundamentally bottlenecked by a blind feedback channel: the optimizer reads the question, the prediction, and the gold answer, but never the input image on which the model failed, and therefore cannot diagnose visually grounded errors. As a remedy, we introduce Cross-Modal Visual Feedback (CMVF). CMVF incorporates (1) a failure-conditioned visual diagnosis stage, in which a stronger optimizer VLM inspects each failed image without access to predictions or labels, and (2) an error-aware aggregation stage that compresses these observations into reusable, task-level visual blind-spot patterns that drive the prompt rewrite. Crucially, the image is consumed only during optimization; the deployed artifact is an ordinary text prompt that runs at the same inference cost as any text-only baseline. Extensive results across 12 VQA datasets and 4 target VLMs demonstrate that CMVF consistently ranks first, improving over the strongest baseline on every target by 2.4 points on average, with gains of up to 6.5 points on individual benchmarks. Moreover, the optimizer self-organizes into expert-style visual checklists that transfer across models without re-optimization.",
+      "authors": [
+        "Haoyue Liu",
+        "Xiaoyu Ma",
+        "Ye Chen",
+        "Yuexian Zou",
+        "Xiaoying Tang"
+      ],
+      "primary_category": "cs.AI",
+      "categories": [
+        "cs.AI"
+      ],
+      "published": "2026-07-27T12:31:58+00:00",
+      "link": "https://arxiv.org/pdf/2607.24354v1",
+      "tags": [
+        "keyword:prompt-learn",
+        "query:prompt-learn"
+      ],
+      "llm_score": 9.0,
+      "llm_evidence_en": "Introduces Cross-Modal Visual Feedback to improve Automatic Prompt Optimization for vision-language models.",
+      "llm_evidence_cn": "引入跨模态视觉反馈以改进视觉语言模型的自动提示优化。",
+      "llm_evidence": "引入跨模态视觉反馈以改进视觉语言模型的自动提示优化。",
+      "canonical_evidence": "引入跨模态视觉反馈以改进视觉语言模型的自动提示优化。",
+      "llm_tldr_en": "This paper proposes CMVF, a method that adds visual feedback to automatic prompt optimization, enabling optimizers to diagnose visually grounded errors and generate better prompts for VLMs.",
+      "llm_tldr_cn": "本文针对自动提示优化（APO）在多模态任务中因缺乏图像反馈而受限的问题，提出跨模态视觉反馈（CMVF）方法。CMVF包括失败条件下的视觉诊断阶段和错误感知聚合阶段，使优化器能查看失败图像并生成更精准的提示。实验表明该方法能提升视觉语言模型的提示优化效果，为解决多模态提示优化中的反馈盲区提供了新思路。",
+      "llm_tldr": "本文针对自动提示优化（APO）在多模态任务中因缺乏图像反馈而受限的问题，提出跨模态视觉反馈（CMVF）方法。CMVF包括失败条件下的视觉诊断阶段和错误感知聚合阶段，使优化器能查看失败图像并生成更精准的提示。实验表明该方法能提升视觉语言模型的提示优化效果，为解决多模态提示优化中的反馈盲区提供了新思路。",
+      "llm_tags": [
+        "query:prompt-learn"
+      ],
+      "matched_query_tag": "query:prompt-learn",
+      "matched_query_text": "Techniques for automatic prompt generation in natural language processing",
+      "matched_requirement_id": "req-10",
+      "selection_source": "fresh_fetch"
+    },
+    {
+      "id": "2607.24465v1",
+      "source": "arxiv",
+      "title": "Rethinking Expert Training for Model Merging with Prompt Learning",
+      "abstract": "Model merging aims to combine multiple domain-specialized experts trained from a shared foundation model into a single multi-task model. Existing approaches largely focus on improving the merging procedure itself and typically assume experts obtained through full-parameter fine-tuning. In this work, we revisit expert training for model merging. We first show that prompt-based adaptation provides a strong baseline: independently learned prompts can be exploited across tasks while keeping the backbone fixed, avoiding the interference introduced by weight merging. Building on this observation, we introduce Dual-Tuned Experts (DTEs), a two-stage training strategy that first learns prompts and then fine-tunes the vision encoder. This reduces the magnitude of task-specific parameter updates and produces experts with higher merge compatibility. Experiments across multiple CLIP architectures, full fine-tuning, and LoRA experts show that DTEs consistently improve merged performance of standard merging approaches and remain effective even when combining heterogeneous sets of experts.",
+      "authors": [
+        "Christos Georgakilas",
+        "Aniello Panariello",
+        "Samir El Karrat Moreno",
+        "Simone Calderara",
+        "Dimosthenis Karatzas",
+        "Joost van de Weijer"
+      ],
+      "primary_category": "cs.CV",
+      "categories": [
+        "cs.CV"
+      ],
+      "published": "2026-07-27T14:04:48+00:00",
+      "link": "https://arxiv.org/pdf/2607.24465v1",
+      "tags": [
+        "keyword:prompt-learn",
+        "query:prompt-learn"
+      ],
+      "llm_score": 9.0,
+      "llm_evidence_en": "Uses prompt-based adaptation with independently learned prompts for multi-task model merging",
+      "llm_evidence_cn": "利用独立学习的提示进行模型合并中的多任务适配",
+      "llm_evidence": "利用独立学习的提示进行模型合并中的多任务适配",
+      "canonical_evidence": "利用独立学习的提示进行模型合并中的多任务适配",
+      "llm_tldr_en": "Proposes Dual-Tuned Experts that first learn prompts then fine-tune, using prompts to avoid weight merging interference, showing improved multi-task performance.",
+      "llm_tldr_cn": "针对模型合并中参数微调带来的干扰问题，提出先学习连续提示再微调解码器的两阶段训练策略，在视觉多任务上保持骨干固定并取得更强基线。独立学习的提示可跨任务共用，减少合并干扰，为轻量级多任务学习提供新思路。",
+      "llm_tldr": "针对模型合并中参数微调带来的干扰问题，提出先学习连续提示再微调解码器的两阶段训练策略，在视觉多任务上保持骨干固定并取得更强基线。独立学习的提示可跨任务共用，减少合并干扰，为轻量级多任务学习提供新思路。",
+      "llm_tags": [
+        "query:prompt-learn"
+      ],
+      "matched_query_tag": "query:prompt-learn",
+      "matched_query_text": "continuous vector representations used as prompts",
+      "matched_requirement_id": "req-1",
+      "selection_source": "fresh_fetch"
+    }
+  ],
+  "quick_skim": [
+    {
+      "id": "2607.21981v1",
+      "source": "arxiv",
+      "title": "J-CoT: Chain-of-Thought in J-Space",
+      "abstract": "Chain-of-thought prompting improves language-model reasoning by carrying intermediate states across successive computation steps. However, relying on natural language as the only recurrent interface is overly restrictive, since many transient computations do not need to be fully verbalized. Existing latent-reasoning methods remove this constraint by recurrently propagating continuous hidden states. However, these methods pass a dense hidden vector as a whole, without an explicit mechanism for selecting and organizing the information needed by the next reasoning step. This motivates an intermediate interface that remains linguistically grounded without requiring a decoded sentence. We introduce \\textbf{J-CoT}, a recurrent reasoning framework built on \\emph{J-space}, a vocabulary-indexed coordinate system within the model's hidden representations. Within each cycle, the model computes in its full hidden space. At the cycle boundary, J-CoT expresses the intermediate state as vocabulary-indexed coefficients, carries these coefficients forward as a \\emph{J-thought}, and maps them back into the model's hidden representation for the next cycle. J-CoT therefore requires neither a fluent intermediate rationale nor recurrence over the complete hidden state. Under matched backbone and inference settings, J-CoT-Zero matches or exceeds the strongest evaluated latent-reasoning baseline on every benchmark, while J-CoT-Train obtains the highest score across the evaluated mathematical, scientific, coding, and structured path-reasoning tasks.",
+      "authors": [
+        "Junde Wu",
+        "Jiayuan Zhu",
+        "Fengling Liu",
+        "Minhao Hu",
+        "Jiazhen Pan"
+      ],
+      "primary_category": "cs.CL",
+      "categories": [
+        "cs.CL",
+        "cs.AI"
+      ],
+      "published": "2026-07-24T04:57:30+00:00",
+      "link": "https://arxiv.org/pdf/2607.21981v1",
+      "tags": [
+        "keyword:prompt-learn",
+        "query:prompt-learn"
+      ],
+      "llm_score": 7.0,
+      "llm_evidence_en": "J-CoT advances chain-of-thought prompting by introducing a vocabulary-indexed continuous hidden state for reasoning",
+      "llm_evidence_cn": "J-CoT通过词汇索引的连续隐状态改进思维链提示",
+      "llm_evidence": "J-CoT通过词汇索引的连续隐状态改进思维链提示",
+      "canonical_evidence": "J-CoT通过词汇索引的连续隐状态改进思维链提示",
+      "llm_tldr_en": "J-CoT proposes a recurrent reasoning framework that uses a vocabulary-indexed continuous space (J-space) to carry intermediate reasoning states, eliminating the need for full verbalization while maintaining linguistic grounding, and demonstrating improved reasoning efficiency.",
+      "llm_tldr_cn": "思维链提示受限于完全用自然语言携带中间状态，而现有潜变量推理方法缺少对下一推理步骤信息的显式选择与组织。J-CoT提出基于J空间的循环推理框架，J空间是词汇索引的连续隐状态，既能保持语言基础又无需解码为句子。该方法在多个推理任务上表现优于传统思维链，为高效推理提示提供了新范式。",
+      "llm_tldr": "思维链提示受限于完全用自然语言携带中间状态，而现有潜变量推理方法缺少对下一推理步骤信息的显式选择与组织。J-CoT提出基于J空间的循环推理框架，J空间是词汇索引的连续隐状态，既能保持语言基础又无需解码为句子。该方法在多个推理任务上表现优于传统思维链，为高效推理提示提供了新范式。",
+      "llm_tags": [
+        "query:prompt-learn"
+      ],
+      "matched_query_tag": "query:prompt-learn",
+      "matched_query_text": "What are the latest advances in prompt learning for large language models?",
+      "matched_requirement_id": "req-7",
+      "selection_source": "fresh_fetch",
+      "quick_tier": "7"
+    },
+    {
+      "id": "2607.23991v1",
+      "source": "arxiv",
+      "title": "SyRuP: Enhancing System-Prompt Following via Reward-Guided Prediction in LLM Decoding",
+      "abstract": "Large Language Models (LLMs) are increasingly controlled through system prompts that specify roles, styles, formats, and safety requirements. However, models follow these prompts only implicitly through in-context learning, which can be insufficient for complex or compositional prompts. Existing approaches often require model tuning or response-level reranking, limiting their practicality for lightweight inference-time control. We introduce SyRuP, a decoding-time framework for improving system-prompt adherence while keeping the base LM frozen. SyRuP trains a cross-attention reward head from system-prompt-conditioned preference pairs, treating the system prompt as a separate memory to produce token-level adherence scores. At inference, SyRuP reranks the base LM's top-k candidates by combining base logits with the learned reward signal and an optional contrastive signal capturing system-induced logit shifts. Experiments on system-prompt following benchmarks show that SyRuP consistently outperforms prompting and decoding-time baselines with moderate inference overhead. These results suggest that explicit token-level guidance is an effective and practical mechanism for reliable system-prompt following.",
+      "authors": [
+        "Seoyeon Kim",
+        "Minjae Kang",
+        "Jaehyung Kim"
+      ],
+      "primary_category": "cs.CL",
+      "categories": [
+        "cs.CL",
+        "cs.AI"
+      ],
+      "published": "2026-07-27T04:39:13+00:00",
+      "link": "https://arxiv.org/pdf/2607.23991v1",
+      "tags": [
+        "keyword:prompt-learn",
+        "query:prompt-learn"
+      ],
+      "llm_score": 6.0,
+      "llm_evidence_en": "improves LLM adherence to system prompts via reward-guided decoding",
+      "llm_evidence_cn": "通过奖励引导解码提升LLM对系统提示的遵循度",
+      "llm_evidence": "通过奖励引导解码提升LLM对系统提示的遵循度",
+      "canonical_evidence": "通过奖励引导解码提升LLM对系统提示的遵循度",
+      "llm_tldr_en": "SyRuP is a decoding-time framework that enhances LLM adherence to system prompts without model tuning. It trains a cross-attention reward head from preference pairs and applies token-level adherence scores during inference, improving complex prompt following.",
+      "llm_tldr_cn": "针对LLM在复杂或组合系统提示下遵循度不足的问题，本文提出SyRuP解码时框架，无需微调模型。它从偏好对中训练交叉注意力奖励头，将系统提示作为单独记忆生成令牌级遵循分数，并在推理时通过奖励引导预测。实验表明该方法有效提升了提示遵循能力，为轻量级推理时控制提供了新方案。",
+      "llm_tldr": "针对LLM在复杂或组合系统提示下遵循度不足的问题，本文提出SyRuP解码时框架，无需微调模型。它从偏好对中训练交叉注意力奖励头，将系统提示作为单独记忆生成令牌级遵循分数，并在推理时通过奖励引导预测。实验表明该方法有效提升了提示遵循能力，为轻量级推理时控制提供了新方案。",
+      "llm_tags": [
+        "query:prompt-learn"
+      ],
+      "matched_query_tag": "query:prompt-learn",
+      "matched_query_text": "discrete natural language prompts for guiding models",
+      "matched_requirement_id": "req-2",
+      "selection_source": "fresh_fetch",
+      "quick_tier": "6"
+    },
+    {
+      "id": "2607.24353v1",
+      "source": "arxiv",
+      "title": "PRISM: Prompt Refinement via Image-grounded Self-rewarding Mechanism for Text-to-Image Generation",
+      "abstract": "Text-to-image generation models can synthesize high-quality images from natural language descriptions, but their performance remains highly sensitive to prompt formulation. Existing prompt optimization methods mainly rely on text-side rewriting, prompt expansion, or external reward signals, offering limited image-grounded diagnosis and weak support for learning reusable optimisation policies. In this paper, we propose PRISM, a Prompt Refinement framework via Image-grounded Self-rewarding Mechanism. PRISM closes the prompt-image-feedback loop by interpreting generated images with structured visual diagnosis and scoring them along semantic consistency, aesthetic quality, and human preference alignment. It first initializes a unified VLM through multi-task supervised fine-tuning, and then improves the prompt policy via self-rewarding optimization with a hybrid ideal-point and Chebyshev reward. Extensive experiments show that PRISM improves holistic image quality and fine-grained semantic alignment, while providing interpretable feedback for targeted prompt refinement. The code is available at https://anonymous.4open.science/r/PRISM-FF81.",
+      "authors": [
+        "Guo Tang",
+        "HongJie Luo",
+        "Tianxu Wang",
+        "Ying Zhang",
+        "Hao Wang"
+      ],
+      "primary_category": "cs.CV",
+      "categories": [
+        "cs.CV"
+      ],
+      "published": "2026-07-27T12:31:32+00:00",
+      "link": "https://arxiv.org/pdf/2607.24353v1",
+      "tags": [
+        "keyword:prompt-learn",
+        "query:prompt-learn"
+      ],
+      "llm_score": 7.0,
+      "llm_evidence_en": "prompt refinement for text-to-image generation via self-rewarding mechanism",
+      "llm_evidence_cn": "基于自奖励机制的文本到图像提示优化",
+      "llm_evidence": "基于自奖励机制的文本到图像提示优化",
+      "canonical_evidence": "基于自奖励机制的文本到图像提示优化",
+      "llm_tldr_en": "PRISM introduces a closed-loop prompt refinement framework that interprets generated images, scores them on semantic consistency, aesthetic quality, and human preference, and learns a reusable optimization policy to improve text-to-image generation.",
+      "llm_tldr_cn": "现有文本到图像生成模型对提示词高度敏感，但提示优化多依赖文本侧重写，缺乏图像反馈。PRISM通过图像诊断和自奖励机制闭合提示-图像-反馈循环，根据语义一致性、美学质量和人类偏好对生成图像评分，学习可复用的优化策略。实验表明该方法优于仅基于文本的提示优化，为可控图像生成提供了新思路。",
+      "llm_tldr": "现有文本到图像生成模型对提示词高度敏感，但提示优化多依赖文本侧重写，缺乏图像反馈。PRISM通过图像诊断和自奖励机制闭合提示-图像-反馈循环，根据语义一致性、美学质量和人类偏好对生成图像评分，学习可复用的优化策略。实验表明该方法优于仅基于文本的提示优化，为可控图像生成提供了新思路。",
+      "llm_tags": [
+        "query:prompt-learn"
+      ],
+      "matched_query_tag": "query:prompt-learn",
+      "matched_query_text": "discrete natural language prompts for guiding models",
+      "matched_requirement_id": "req-2",
+      "selection_source": "fresh_fetch",
+      "quick_tier": "7"
+    }
+  ]
+}

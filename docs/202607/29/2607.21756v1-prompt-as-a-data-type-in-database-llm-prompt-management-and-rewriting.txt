@@ -1,0 +1,354 @@
+Title: Prompt as a Data Type: In-Database LLM Prompt Management and Rewriting
+
+URL Source: https://arxiv.org/pdf/2607.21756v1
+
+Published Time: Mon, 27 Jul 2026 00:12:32 GMT
+
+Number of Pages: 6
+
+Markdown Content:
+# Prompt as a Data Type: In-Database LLM Prompt Management and Rewriting 
+
+# Denis Mayr Lima Martins ∗
+
+Department of Computing and Mathematics University of Sao Paulo Ribeirão Preto, São Paulo, Brazil martins.denis@usp.br 
+
+# Gottfried Vossen 
+
+Department of Information Systems University of Münster Münster, Germany vossen@uni-muenster.de 
+
+## Abstract 
+
+Large Language Models (LLMs) are increasingly used in database-backed applications to classify tuples, filter records using semantic predicates, extract structured attributes, and enrich query results. Yet the prompt that start these computations are typically stored outside the DBMS in unstructured formats, making them invisi-ble to query execution, metadata management, and optimization. Drawing on Stonebraker’s QUEL as a Data Type and the princi-ples of reflective programming, this paper introduces PromptDB, a database system that treats prompts as tuple-level database val-ues. PromptDB provides a logical PROMPT datatype whose values store a template, bindings to tuple attributes, model metadata, and task metadata. Relations may contain PROMPT attributes directly in base tables, or expose them through views over joined tuples. Users query prompt-valued attributes through generated evalua-tion views, while the system internally renders, rewrites, optimizes, and executes prompts through an EVAL operator. Making prompts database-visible creates a new optimization space. The key idea is to bring query-optimizer thinking to prompts: just as query optimizers exploit database metadata to rewrite SQL plans, PromptDB exploits database metadata to rewrite prompts. We evaluate PromptDB on synthetic and real-world data workloads across different tasks. The results show how database-guided rewriting improves output va-lidity and yields favorable cost-quality trade-offs compared with static, manually written prompts. 
+
+ACM Reference Format: 
+
+Denis Mayr Lima Martins and Gottfried Vossen. 2026. Prompt as a Data Type: In-Database LLM Prompt Management and Rewriting. In Proceedings of Conference (Conference’26). ACM, New York, NY, USA, 6 pages. https: //doi.org/XXXXXXX.XXXXXXX 
+
+## 1 Introduction 
+
+Large Language Models (LLMs) are increasingly used as semantic operators over database tuples. A support system may classify a ticket from its text, a data-cleaning pipeline may normalize a messy value to a controlled domain, an analyst may filter orders using a  
+
+> ∗Both authors contributed equally to this research. Permission to make digital or hard copies of all or part of this work for personal or classroom use is granted without fee provided that copies are not made or distributed for profit or commercial advantage and that copies bear this notice and the full citation on the first page. Copyrights for components of this work owned by others than the author(s) must be honored. Abstracting with credit is permitted. To copy otherwise, or republish, to post on servers or to redistribute to lists, requires prior specific permission and/or a fee. Request permissions from permissions@acm.org.
+> Conference’26, Place
+> ©2026 Copyright held by the owner/author(s). Publication rights licensed to ACM. ACM ISBN 978-x-xxxx-xxxx-x/YYYY/MM https://doi.org/XXXXXXX.XXXXXXX
+
+natural-language predicate, and a procurement system may extract structured attributes from textual records. In all of these cases, the LLM computation is tuple-dependent: the prompt refers to database attributes, produces a value consumed by a query, and often must obey database-visible constraints such as valid labels or output formats. This paper promotes prompts to first-class citizens (i.e., data types) in a database. 
+
+Motivating Example 
+
+In a support-ticket database analysts use an LLM to classify customer complaints into one of four categories: refund , delivery , technical ,or other . Today, the prompt might be constructed in application code as follows:           
+
+> prompt =f""" Classify this customer support ticket : { message } """ response =openai . Completion . create ( engine =" gpt -4 " , prompt = prompt )
+
+Although the database already stores the valid category domain, the prompt does not expose it to the model. As a result, the LLM may return outputs such as “The customer wants their money back,” which may be semantically reasonable but are not valid database values. 
+
+Despite this, the main artifact that controls LLM behavior, the prompts, are usually managed outside the DBMS. They appear as notebook cells, prompt templates inside application code, or workflow configuration files. As a result, the database system cannot inspect, rewrite, explain, or optimize them. Existing SQL UDF-based approaches can call an LLM from SQL, but the prompt remains an opaque argument to a function. The DBMS sees the function call, not the prompt as a manageable value. Inspired by Stonebraker’s QUEL as a Data Type [11 ] and the no-tion of treating query-language commands as data [ 12 ], we argue that prompts should be treated as first-class data types. We define a model where prompts are stored as intensional values in table columns ( i.e. , a custom data type called PROMPT ). We implement this idea in PromptDB, a database-guided prompt rewriting system for prompt-valued attributes. The key contribution is to bring query-optimizer thinking to prompts. A relational optimizer uses schema, constraints, statistics, and cost estimates to choose better query plans. PromptDB applies the same principle to prompt-valued at-tributes: database context is used to produce prompts that are more valid and robust. The overall idea is depicted in Figure 1. While prior work has focused on LLM-as-a-service or application-level prompt management, PromptDB is a database-centric approach that treats prompts as structured, queryable entities . In essence, this offers a unified interface for SQL users to arXiv:2607.21756v1 [cs.DB] 23 Jul 2026 Conference’26, Date, Place Martins and Vossen Traditional LLM + DBMS Integration             
+
+> 1. Prompt in Application Code
+> Classify this ticket: {body }
+> 2. Fetch Data from Database
+> ticket id body priority 1001 Package never arrived high 1002 Need refund for wrong item high 1003 App crashes on login low ... . . . ...
+> 3. Execute Prompt on LLM
+
+LLM   
+
+> 4. Get a Result String LLM returns: ‘‘shipping’’
+
+PromptDB                             
+
+> 1. User-issued SQL query
+> SELECT ticket id, body, classify ticket type FROM tickets eval WHERE priority = ’high’;
+> 2. DBMS with PROMPT-valued attributes
+> ticket id body priority classify ticket type:PROMPT
+> 1001 Package never arrived high Classify this ticket: {body }
+> 1002 Need refund for wrong item high Classify this ticket: {body }
+> 1003 App crashes on login low Classify this ticket: {body }
+> . . . . . . . . . ...
+> PromptOpt
+> prompt rewriting and optimization
+> 3. Execute Prompt on LLM
+> ticket id body classify ticket type
+> 1001 Package never arrived shipping 1002 Need refund for wrong item refund 1003 App crashes on login technical . . . . . . . . .
+
+LLM 
+
+Figure 1: Motivating contrast between traditional prompt handling (left) and PromptDB (right). A traditional system fetches tuples from the DBMS, invokes the LLM externally, and receives a result string outside the database. In PromptDB, the same prompts are represented as a tuple-level PROMPT attribute, here classify_ticket_type based on the tuple attribute {body} . Users issue SQL to execute prompts, while PromptDB manages prompt rewriting and optimization through PromptOpt. Table 1: Comparison of prompt-related abstractions. 
+
+Abstraction Typed Optimizable Versioned Rewrite Text/JSON type × × Limited ×
+
+Application code × No External ×
+
+UDF Weak Limited Manual Limited Semantic operator ✓ Limited Limited Limited 
+
+PROMPT (ours) ✓ ✓ ✓ ✓
+
+call and optimize LLM prompts without leaving the database, which opens new avenues for research in AI-native databases and prompt engineering at scale. Table 1 summarizes why existing abstractions are insufficient. This paper makes the following contributions: (1) We introduce a PROMPT data type for executable prompt-valued attributes. (2) We present a formal model of prompt-valued relations, prompt evaluation, database-guided prompt rewriting, and cost-aware prompt optimization. (3) We implement PromptDB on top of DuckDB using PROMPT 
+
+attributes, generated evaluation views, an internal EVAL op-erator and PromptOpt. (4) We evaluate PromptDB on synthetic and real-world data showing task-quality improvements, and prompt cost-quality trade-offs. The rest of this paper is organized as follows: Section 2 intro-duces the formal model. Section 3 presents the design of PromptDB; Section 4 evaluates our approach through experiments on two datasets; Section 5 discusses related work; and Section 6 concludes with future directions. 
+
+## 2 Formal Model 
+
+This section formalizes PromptDB as a data model and execution model for prompt-valued relations. 
+
+Prompt-Valued Relations. Let a database contain a set of re-lations D = {𝑅 1, . . . , 𝑅 𝑛 }. Each relation 𝑅 has a schema sch (𝑅 ) =
+
+𝐴 1 : 𝜏 1, . . . , 𝐴 𝑚 : 𝜏 𝑚 . In a conventional database, each 𝜏 𝑖 is a scalar, structured, or collection type. PromptDB extends the type system with a logical prompt, named PROMPT .A relation may therefore contain ordinary attributes and prompt-valued attributes: 
+
+sch (𝑅 ) = 𝐴 1 : 𝜏 1, . . . , 𝐴 𝑘 : 𝜏 𝑘 , 𝑃 1 : PROMPT , . . . , 𝑃 ℓ : PROMPT .
+
+A tuple 𝑡 ∈ 𝑅 contains ordinary values 𝑡 [𝐴 𝑖 ] and prompt values 
+
+𝑡 [𝑃 𝑗 ]. Prompt attributes may appear in base tables, views, or ma-terialized query results. This modeling is important for relational workloads, since a prompt may naturally belong not to a base tuple, but to a derived tuple produced by a join or projection. 
+
+Prompt Values. A PROMPT value is a self-describing executable object: 
+
+𝑃 = ⟨𝑇 , 𝐵, 𝑀, 𝐷 ⟩, (1) where 𝑇 is a prompt template containing variables, 𝐵 maps template variables to tuple attributes, 𝑀 specifies the model or model family, 
+
+𝐷 is the output domain or output specification. For example, a support-ticket tuple may contain: 
+
+template : " Classify this ticket : {{ body }} " bindings : { body -> body }model : " llama -3.2 -3 b - instruct " output_domain : [" delivery " , " refund " , " technical " , " other "] Prompt as a Data Type Conference’26, Date, Place 
+
+Tuple Rendering. Let 𝑡 be a tuple and 𝑃 = ⟨𝑇 , 𝐵, 𝑀, 𝐷, ⟩ aprompt value. Rendering substitutes template variables using the binding map: 
+
+render (𝑃, 𝑡 ) = 𝑇 [𝐵 (𝑣 1) ↦ → 𝑡 [𝐵 (𝑣 1)] , . . . , 𝐵 (𝑣 𝑟 ) ↦ → 𝑡 [𝐵 (𝑣 𝑟 )]] . (2) For example:                
+
+> Template : Classify this ticket : {{ body }} Tuple : body =" My package never arrived ." Rendered prompt : Classify this ticket : My package never arrived .
+
+Rendering is intentionally defined separately from rewriting. PromptDB may first transform the template and only then render it against the tuple. 
+
+Prompt Rewriting Context. Prompt execution is parameter-ized by a database-derived context: 
+
+Ω = ⟨𝑆, 𝐶, 𝑄,𝑇 𝑠 ⟩. (3) Here: 
+
+• 𝑆 is schema context, including column names, types, com-ments, and optional profiled descriptions; 
+
+• 𝐶 is constraint context, including output domains and valid-ity requirements; 
+
+• 𝑄 is query context, including projected attributes, predicates, and task bindings; 
+
+• 𝑇 𝑠 is statistics context, including sample values, label distri-butions, and representative examples. The context is stored as JSON next to each prompt attribute in the prototype’s generated relations and views. 
+
+Prompt Evaluation. Conceptually, evaluating a prompt at-tribute returns a scalar SQL value, i.e., EVAL (𝑃, 𝑡, Ω) → 𝑦 , where 
+
+𝑦 is a string, label, Boolean-like value, or structured textual value depending on the task. More explicitly: 
+
+EVAL (𝑃, 𝑡, Ω) = LLM (render (𝜌 𝜎 (𝑃, Ω), 𝑡 )) , (4) where 𝜌 𝜎 is the rewrite strategy selected by the prompt value’s default strategy 𝜎 . If 𝜎 = PromptOpt , the strategy is selected by PromptOpt. 
+
+Prompt rewriting transforms a prompt value 𝑃 , given a rewrit-ing function 𝜌 𝑟 , into an execution prompt 𝜌 𝑟 (𝑃, Ω) = 𝑃 ′, where 
+
+𝑃 ′ typically has the same bindings and model metadata as 𝑃 , but a modified template 𝑇 ′. A rewrite may inject constraints, reduce tuple fields, add examples, or impose an output format. A set of rewrite rules defines a rewrite plan: 𝜋 = [𝑟 1, . . . , 𝑟 𝑘 ].Applying a plan produces 𝑃 𝜋 = 𝜌 𝑟 𝑘 (· · · 𝜌 𝑟 1 (𝑃, Ω) · · · ) .
+
+Prompt Optimization. Different rewrite plans have different quality and cost behavior. Adding few-shot examples may improve quality but increase tokens. Projecting columns may reduce cost but risk removing useful context. Therefore, PromptDB treats prompt rewrites as alternative execution plans. Let R ( 𝑃 ) be a finite set of candidate rewritten prompts. Promp-tOpt selects: 
+
+𝑃 ∗ = arg max   
+
+> 𝑃 𝑖 ∈ R ( 𝑃 )
+
+ ˆ𝑄 (𝑃 𝑖 , Ω) − 𝜆 ˆ𝐶 (𝑃 𝑖 , Ω)
+
+
+
+, (5) where ˆ𝑄 is an estimated quality score, ˆ𝐶 is an estimated cost, and 𝜆 
+
+controls the quality-cost trade-off. In our implemented prototype, ˆ𝐶 is estimated from rendered prompt length and expected output length. ˆ𝑄 is a lightweight heuris-tic based on rule applicability. For example, constraint injection is considered useful when the output domain is known, projection is useful for wide relational tuples, and few-shot examples are useful when examples are available. Learned or calibration-based quality estimation could be applied here. 
+
+## 3 System Implementation 
+
+We implemented PromptDB on top of DuckDB. The prototype is designed to demonstrate the data model and optimization opportu-nities while avoiding invasive modifications to DuckDB internals. 
+
+Logical PROMPT Datatype. The prototype defines PROMPT as a DuckDB structured type:                     
+
+> CREATE TYPE PROMPT AS STRUCT ( template VARCHAR ,bindings MAP ( VARCHAR ,VARCHAR ) , model VARCHAR ,task VARCHAR ,output_domain VARCHAR [] , name VARCHAR ,default_strategy VARCHAR
+> );
+
+Each PROMPT value is self-describing. To facilitate the implemen-tation, we store the template, tuple bindings, model name, task, output domain, prompt name, and default rewrite strategy directly as part of PROMPT .
+
+Prompt Attributes in Tables and Views. For single-table workloads, PromptDB stores PROMPT attributes directly in the base relation. For example, the synthetic support-ticket relation contains:           
+
+> tickets ( ticket_id BIGINT , body VARCHAR ,priority VARCHAR ,declared_category VARCHAR ,semantic_value_normalization_prompt PROMPT , semantic_filtering_prompt PROMPT , attribute_extraction_prompt PROMPT )
+
+Generated Evaluation Views. DuckDB does not automatically execute a UDF when a structured column is projected. Therefore, the prototype uses generated evaluation views. For every relation with 
+
+PROMPT attributes, PromptDB creates a corresponding _eval view. The view exposes prompt columns under the same names, but in-ternally expands them into EVAL calls. For example, tickets_eval 
+
+contains expressions of the form:       
+
+> EVAL ( semantic_filtering_prompt , semantic_filtering_row_json , semantic_filtering_context_json , struct_extract ( semantic_filtering_prompt ,
+> 'default_strategy ') ,
+> '[] '
+> )AS semantic_filtering_prompt Conference’26, Date, Place Martins and Vossen
+
+The user can then write:          
+
+> SELECT ticket_id , body , semantic_filtering_prompt
+> FROM tickets_eval
+> WHERE semantic_filtering_prompt ='yes ';
+
+This hides EVAL from the user while preserving an explicit exe-cution operator inside DuckDB. 
+
+Internal EVAL Operator. The EVAL operator is registered as a DuckDB scalar UDF. Its logical signature is:         
+
+> EVAL ( prompt PROMPT ,row_json VARCHAR , context_json VARCHAR , strategy VARCHAR , examples_json VARCHAR ) -> VARCHAR
+
+At runtime, EVAL performs the following steps: (1) deserialize the PROMPT value; (2) deserialize the tuple context and optimization context; (3) select a rewrite strategy; (4) apply PromptOpt; (5) render the final prompt against the tuple; (6) call LM Studio through a local client; (7) return the model output as a SQL string; (8) append execution metadata to an in-memory log. The execution metadata includes the requested strategy, actual strategy, applied rules, estimated cost, rendered prompt, prediction, latency, input tokens, and output tokens. 
+
+Rule-based Prompt Rewriting. Similar to query optimization approaches, PromptDB employs a rule-based prompt rewriting. 
+
+𝑅 𝐶𝐼 : Constraint Injection. Inspired by [ 6], this rule injects valid output values derived from database constraints to make the ex-pected output domain explicit to the LLM.            
+
+> Original : Classify this ticket : {{ body }} Rewritten : Classify this ticket . Return exactly one of : refund , delivery , other .
+
+𝑅 𝑄𝐶𝑃 : Query-Aware Column Projection. This rule adapts pro-jection pushdown to prompt execution: only tuple attributes rel-evant to the prompt task are rendered. This mirrors classical relational optimization and recent prompt-compression/context-pruning work [ 5], which show that reducing irrelevant context can lower cost and sometimes improve quality.        
+
+> Tuple : orderkey =1024 , custkey =91 , orderpriority =1 - URGENT , shipmode = AIR , commitdate =1995 -03 -12 , receiptdate =1995 -03 -20 Rewritten : Relevant : orderpriority =1 - URGENT , shipmode = AIR , commitdate =1995 -03 -12 , receiptdate =1995 -03 -20
+
+𝑅 𝑂𝐹 𝑀 : Output Format Minimization. This rule enforces concise, parseable outputs. Recent work shows that downstream systems benefit when LLM outputs are concise, parseable, and aligned with the expected value [6].     
+
+> Classify : {{ body }} Rewritten : Classify : {{ body }} Return label only .
+
+𝑅 𝐹𝑆𝐸 : DB-Selected Few-Shot Examples. This rule instantiates in-context learning inside the DBMS: examples are selected from data-base tuples and inserted into the prompt as demonstrations. This fol-lows prior work [ 8 , 9] showing that few-shot prompting is effective and that the choice of demonstrations strongly affects performance.           
+
+> Rewritten : Examples : urgent , late -> yes low , on - time -> no Is delayed ? {{ tuple }}
+
+The implementation treats a rewrite plan as an ordered list of rules. This way, PromptDB does not treat prompt engineering as ad hoc application logic. Instead, it recasts recurring prompt-engineering patterns as database rewrite rules over typed prompt values. For efficiency, PromptOpt considers a fixed set of rewrite candi-dates: 
+
+NoRewrite: No rules are applied. 
+
+Constraint+Format: Rules 𝑅 𝐶𝐼 and 𝑅 𝑂𝐹 𝑀 are applied. 
+
+Projection: Rule 𝑅 𝑄𝐴𝐶𝑃 is applied. 
+
+FewShot: Rules 𝑅 𝐶𝐼 , 𝑅 𝑂𝐹 𝑀 , and 𝑅 𝐹𝑆𝐸 are applied. 
+
+AllRules: 𝑅 𝐶𝐼 , 𝑅 𝑄𝐴𝐶𝑃 , 𝑅 𝑂𝐹 𝑀 , and 𝑅 𝐹𝑆𝐸 are applied. For each candidate, PromptOpt estimates quality and cost, then selects the best candidate according to ˆ𝑄 − 𝜆 ˆ𝐶 . Note that the opti-mizer is intentionally lightweight. 
+
+## 4 Experiments and Results 
+
+We implement PromptDB as a modular Python prototype with 
+
+DuckDB 1.5.4 , operating in fully in-memory mode ( ":memory:" )as the default backend. The backend interface is replace-able, allowing future implementations over SQLite or Post-greSQL. Prompt execution uses LMStudio to call a lightweight 
+
+llama-3.2-3b-instruct . The LLM backend is also replaceble ( e.g. ,allowing for ollama or OpenAI API calls). All inference calls use 
+
+temperature set to 0.0 for determinism; max_tokens is set to 128. All experiments run on a single commodity workstation. 
+
+Goal of the experiments. We therefore focus on three questions: (1) whether database-guided prompt rewriting improves end-to-end task quality, (2) which rewrite rules contribute to the observed behavior, and (3) whether PromptOpt can reduce prompt cost while retaining competitive task quality. 
+
+Datasets. We use three datasets representing different database settings. 
+
+Synthetic tickets: A synthetic support-ticket dataset with controlled labels, entities, and references. 
+
+Car Evaluation: Available at OpenML, this dataset comprises a single database table including attributes such as buying price, maintenance cost, passenger capacity, luggage size, safety, and acceptability. It is useful for controlled-domain semantic normalization and filtering. 
+
+TPC-H: We used DuckDB’s TPC-H generator. Prompt-bearing tuples are derived from relational joins over orders and lineit-ems. TPC-H is used to demonstrate prompt-valued attributes over multi-table relational tuples. Each dataset is evaluated across multiple prompt tasks. Prompt as a Data Type Conference’26, Date, Place 
+
+Tasks. We define three distinct prompt-based tasks. First, At-tribute Extraction requires the model to map a given data tuple to a controlled vocabulary label, testing its capacity for constrained classification. Second, Semantic Filtering assesses whether the model can determine if a tuple satisfies an arbitrary natural-language condition; in this case, the ground truth is derived deter-ministically from simple predicate logic or predefined categorical attribute values. Finally, Semantic Value Normalization chal-lenges the model to extract and structure specific attributes from either a raw data tuple or its rendered textual representation, ensur-ing that the extracted output aligns precisely with defined database schema attributes. For each task, ground truth is deterministic, derived from simple predicates or selected attribute values. 
+
+Metrics. For semantic value normalization and semantic filtering, we report accuracy, macro F1, and valid-output rate. For attribute extraction, we report attribute-level precision, recall, F1, and exact-match rate. For optimization experiments, we also report input tokens, output tokens, latency, and cost-adjusted quality. 
+
+Baselines and Strategies. We benchmark performance against the three prompt execution strategies. The simplest baseline is the 
+
+Static strategy, which utilizes the unmodified initial prompt pro-vided by the developer, serving as a foundational measure of raw model capability. We further introduce the PromptRewrite strat-egy, which employs a fixed, database-guided rewrite mechanism. Finally, we apply PromptOpt cost-aware strategy. 
+
+## 4.1 End-to-End Task Quality 
+
+Figure 2 compares three execution strategies: static prompting, fixed application of all rewrite rules, and PromptOpt. Static prompting represents the application-level baseline in which the prompt is rendered and executed without database-guided rewriting. The all-rule strategy applies the full rule set. PromptOpt selects a rewrite strategy using its cost-quality objective. Overall, obtained results shows that prompt-valued attributes en-able meaningful database-guided execution. The gains are strongest when the task has clear output-structure requirements, as in at-tribute extraction and semantic filtering. In contrast, the weaker results for semantic value normalization show that prompt opti-mization must be task-aware, rather than relying on a single fixed rule set for all prompt-valued attributes. 
+
+## 4.2 Rule Ablation 
+
+Figure 3 isolates the effect of individual rewrite rules. The pur-pose of this experiment is to understand which failure modes are addressed by each rule. The ablation results show that no single rewrite rule dominates across all tasks. Instead, each rule helps un-der different task conditions. This motivates PromptOpt and future learned variants that choose rewrite plans based on task-specific utility rather than applying a fixed strategy. 
+
+## 4.3 Cost-Quality Trade-Off 
+
+Figure 4 compares PromptOpt with fixed strategies in terms of task quality and approximate mean input tokens. Rather than al-ways applying the most expensive prompt plan, PromptOpt at-tempts to select a plan whose expected quality justifies its token PromptOpt All Rules Static 
+
+Strategy 
+
+0.0
+
+0.2
+
+0.4
+
+0.6
+
+0.8
+
+1.0  
+
+> Task quality (task-specific)
+> 0.73 1.00 0.00 0.61 0.61 0.37 0.23 0.21 0.08
+
+End-to-End Benefit 
+
+> Attribute Extraction Semantic Filtering Semantic Value Normalization
+
+Figure 2: End-to-end task quality. Applying all rules yields the strongest result, while PromptOpt achieves competitive performance with a cheaper selected plan. RCI RF SE ROF M RQACP 
+
+Strategy 
+
+0.0
+
+0.2
+
+0.4
+
+0.6 
+
+> Task quality (task-specific)
+> 0.00 0.00 0.33 0.00 0.68 0.48 0.10 0.35 0.17 0.25 0.02 0.13
+
+Rule Ablation 
+
+> Attribute Extraction Semantic Filtering Semantic Value Normalization
+
+Figure 3: Rule ablation. The results show that rewrite rules are task-sensitive and that individual rules often address different failure modes. 
+
+cost. However, for attribute extraction, PromptOpt does not always choose sufficiently rich rewrite plans. This suggests that the current heuristic quality estimator should be made task-aware. In partic-ular, structured-output tasks should assign higher utility to plans that include expected-key constraints, strict output formatting, and format-perfect examples. 
+
+## 4.4 Discussion 
+
+Database-guided prompt rewriting improves over static prompt-ing for tasks that require constrained or structured outputs. This supports the core design decision of PromptDB, in which prompts should be represented as database-visible values rather than opaque application strings. However, rewrite effectiveness is task-dependent. PromptOpt demonstrates the feasibility of cost-aware prompt-plan selection, but its current heuristic estimator is incomplete. These results mo-tivate future work on task-aware, calibrated, or learned models. Conference’26, Date, Place Martins and Vossen 0 100 200 300 400 500 
+
+Mean input tokens (approx.) 
+
+0.0
+
+0.2
+
+0.4
+
+0.6
+
+0.8
+
+1.0
+
+> Task quality
+
+PromptOpt vs Fixed Strategies 
+
+> strategy PromptOpt All Rules Static task Attribute Extraction Semantic Filtering Semantic Value Normalization
+
+Figure 4: Cost-quality trade-off between PromptOpt and fixed prompting strategies. PromptOpt occupies an intermediate region by selecting lower-cost rewrite plans while retaining competitive quality for some tasks. 
+
+Once prompts are stored as tuple-level database values, the DBMS can inspect their metadata, rewrite them using database context, and optimize their execution under quality-cost trade-offs. The current prototype exposes this optimization space and demon-strates its potential, while also identifying concrete directions for improving the optimizer and rewrite rules. 
+
+## 5 Related Work 
+
+Frameworks such as DSPy [ 7] and other prompt optimization ap-proaches [ 2, 4] automate or assist prompt engineering. These ap-proaches treat prompts as unstructured assets, lacking the querya-bility of PromptDB. Furthermore, PromptDB differs by treating database metadata as the primary source of prompt-rewrite signals. Recent work explores LLM operators within query pipelines. 
+
+EVAPORATE [ 1] generates extraction functions from natural lan-guage; it treats prompts as ephemeral runtime strings with no per-sistence. LOTUS [ 10 ] introduces semantic operators ( sem_filter ,
+
+sem_join ) as DataFrame-level abstractions, where prompts are operator parameters, not database values. Closest to our work, 
+
+SPEAR [ 3] proposes structured prompt views, prompt algebra, adap-tive prompt refinement, and policy-driven control. Its emphasis is on treating prompts as structured, composable, and refinable pipeline objects. PromptDB is complementary: it focuses specif-ically on how database metadata can rewrite prompt templates for prompt-valued attributes. Unlike SPEAR, PromptDB studies a database-centric question: what can schema, constraints, statis-tics, and feedback do for prompt rewriting? Moreover, PromptDB rewrites prompt templates directly using database-native context. 
+
+## 6 Conclusion 
+
+This paper has introduced PromptDB, a database system that man-ages prompts as tuple-level PROMPT values. Unlike application-level prompting or LLM UDFs, PromptDB makes prompts visible to the database as typed, self-describing attributes with templates, bindings, model metadata, and task metadata. Users query gen-erated evaluation views where prompt fields appear as ordinary SQL columns; internally, PromptDB evaluates them through EVAL ,applies database-guided rewrites, optionally selects a rewrite plan through PromptOpt, and calls an LLM. The central insight is that prompt execution has a database opti-mization space. Constraints can improve validity, projection can reduce token cost, output minimization can improve parseability, and database-selected examples can improve task quality, espe-cially for smaller language models. Treating these transformations as database rewrite rules allows PromptDB to manage prompts sys-tematically rather than relying on ad hoc application-level prompt engineering. Future work includes extending the prompt context with foreign-key paths, database navigation, workload history, and provenance. We also intent to investigate learned cost and prompt quality models for enhancing database-guided prompt rewrite and optimization. 
+
+## References 
+
+[1] Simran Arora, Brandon Yang, Sabri Eyuboglu, Avanika Narayan, Andrew Hojel, Immanuel Trummer, and Christopher Ré. 2023. Language Models Enable Simple Systems for Generating Structured Views of Heterogeneous Data Lakes. Proc. VLDB Endow. 17, 2 (Oct. 2023), 92–105. doi:10.14778/3626292.3626294 [2] Stephen Bach, Victor Sanh, Zheng-Xin Yong, Albert Webson, Colin Raffel, Nihal V Nayak, Abheesht Sharma, Taewoon Kim, M Saiful Bari, Thibault Fevry, et al .2022. Promptsource: An integrated development environment and repository for natural language prompts. In Proceedings of the 60th Annual Meeting of the Association for Computational Linguistics: System Demonstrations . 93–104. [3] Ugur Çetintemel, Shu Chen, Alexander W. Lee, Deepti Raghavan, Duo Lu, and Andrew Crotty. 2026. Making Prompts First-Class Citizens for Adaptive LLM Pipelines. In 16th Conference on Innovative Data Sys-tems Research, CIDR 2026, Chaminade, CA, USA, January 18-21, 2026 .www.cidrdb.org. https://vldb.org/cidrdb/2026/making-prompts-first-class-citizens-for-adaptive-llm-pipelines.html [4] Ning Ding, Shengding Hu, Weilin Zhao, Yulin Chen, Zhiyuan Liu, Haitao Zheng, and Maosong Sun. 2022. Openprompt: An open-source framework for prompt-learning. In Proceedings of the 60th Annual Meeting of the Association for Compu-tational Linguistics: System Demonstrations . 105–113. [5] Yixiong Fang, Tianran Sun, Yuling Shi, and Xiaodong Gu. 2025. Attention-RAG: Attention-Guided Context Pruning in Retrieval-Augmented Generation. arXiv:2503.10720 [cs.CL] https://arxiv.org/abs/2503.10720 [6] Saibo Geng, Hudson Cooper, Michał Moskal, Samuel Jenkins, Julian Berman, Nathan Ranchin, Robert West, Eric Horvitz, and Harsha Nori. 2025. JSON-SchemaBench: A Rigorous Benchmark of Structured Outputs for Language Mod-els. arXiv:2501.10868 [cs.CL] https://arxiv.org/abs/2501.10868 [7] Omar Khattab, Arnav Singhvi, Paridhi Maheshwari, Zhiyuan Zhang, Keshav San-thanam, Saiful Haq, Ashutosh Sharma, Thomas Joshi, Hanna Moazam, Heather Miller, et al . 2024. DSPy: compiling declarative language model calls into state-of-the-art pipelines. In International Conference on Learning Representations ,Vol. 2024. 54928–54958. [8] Jiachang Liu, Dinghan Shen, Yizhe Zhang, Bill Dolan, Lawrence Carin, and Weizhu Chen. 2021. What Makes Good In-Context Examples for GPT-3?arXiv:2101.06804 [cs.CL] https://arxiv.org/abs/2101.06804 [9] Man Luo, Xin Xu, Yue Liu, Panupong Pasupat, and Mehran Kazemi. 2024. In-context Learning with Retrieved Demonstrations for Language Models: A Survey. arXiv:2401.11624 [cs.CL] https://arxiv.org/abs/2401.11624 [10] Liana Patel, Siddharth Jha, Melissa Pan, Harshit Gupta, Parth Asawa, Carlos Guestrin, and Matei Zaharia. 2025. Semantic Operators and Their Optimization: Enabling LLM-Based Data Processing with Accuracy Guarantees in LOTUS. Proc. VLDB Endow. 18, 11 (July 2025), 4171–4184. doi:10.14778/3749646.3749685 [11] Michael Stonebraker, Erika Anderson, Eric N. Hanson, and W. Bradley Rubenstein. 1984. Quel as a Data Type. In SIGMOD’84, Proceedings of Annual Meeting, Boston, Massachusetts, USA, June 18-21, 1984 , Beatrice Yormark (Ed.). ACM Press, 208–214. doi:10.1145/602259.602287 [12] Jan Van den Bussche, Dirk Van Gucht, and Gottfried Vossen. 1993. Reflective programming in the relational algebra. In Proceedings of the Twelfth ACM SIGACT-SIGMOD-SIGART Symposium on Principles of Database Systems (Washington, D.C., USA) (PODS ’93) . Association for Computing Machinery, New York, NY, USA, 17–25. doi:10.1145/153850.153852

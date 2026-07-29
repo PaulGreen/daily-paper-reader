@@ -1,0 +1,489 @@
+Title: Minimizing Targeted Activations: Input-Only Suppression of Evaluation-Awareness Latents in Large Language Models
+
+URL Source: https://arxiv.org/pdf/2607.25907v1
+
+Published Time: Wed, 29 Jul 2026 01:13:02 GMT
+
+Number of Pages: 12
+
+Markdown Content:
+# Minimizing Targeted Activations: Input-Only Suppression of Evaluation-Awareness Latents in Large Language Models 
+
+Deepanshu Mody Samarth Agarwal Utkarsh Mittal Dipesh Tharu Mahato 
+
+Center for Data Science, New York University Correspondence: dm6262@nyu.edu 
+
+Abstract 
+
+Activation steering controls model behavior by editing internal activations at inference time. We study its input-side dual: opti-mizing a fluent prompt so that a chosen in-ternal latent is driven toward zero, with no inference-time model access. Our target is an “evaluation-awareness” latent—linearly read-able and steerable in recent work—whose con-trol would threaten the validity of safety eval-uations if models behave differently when they detect being tested. Adapting Fluent Dreaming / EPO with a negated feature term (GCG-style token optimization plus a self-cross-entropy fluency regularizer, swept over a fluency weight), we suppress the latent un-der five target constructions—a CAA direc-tion, a subspace norm, an SAE feature, a sin-gle MLP neuron, and a behavioral logit—on Llama-3.2-3B and Llama-3.1-8B. The latent is robustly suppressible ( z ≈ − 7), and a causally-validated Llama Scope SAE feature can be fully and selectively turned off. But our con-trols tell a cautionary story about the CAA direction: a placebo random direction is sup-pressed just as hard and shifts behavior just as far, and when we hold a real eval passage in context and optimize only a prefix, suppressing the eval-direction fails to reduce—and slightly increases—the model’s behavioral eval judg-ment. Activation-readability, in short, is not behavioral controllability. We further find that a single MLP neuron is eval-correlated but not causal at both scales, and that scanning the real Pile yields a natural-text baseline competitive with the optimizer for the internal direction. A positive control validates our erasure detector, bounding an erasure-vs-rotation question ear-lier left open. 
+
+1 Introduction 
+
+Safety evaluations are only informative if a model behaves the same when tested as when deployed. A growing body of work suggests this assumption is fragile: models can sandbag to hide capabilities (van der Weij et al., 2025), alignment-fake to ap-pear compliant under observation (Greenblatt et al., 2024), and more generally condition their behavior on cues that an interaction is an evaluation (Need-ham et al., 2025). Recent interpretability results make this concrete at the representational level: a linear “evaluation-awareness” direction is read-able from the residual stream and can be steered to change how eval-like the model considers its input (Hua et al., 2026; Laine et al., 2024). If such an internal signal is present, then passing a safety evaluation may not predict deployment behavior, because the model can, in principle, condition on the very fact that it is being evaluated. Activation steering (Rimsky et al., 2024; Turner et al., 2023; Zou et al., 2023a) intervenes on this sig-nal directly, adding or subtracting a direction from the activations at inference time. But inference-time intervention requires white-box access to the running model and does not tell us whether the signal can be controlled at its source . In this paper we study the complementary, input-only control problem: can we optimize a fluent prompt so that a chosen internal latent is driven toward zero, with no inference-time model access? This is the input-side dual of negative activation steering—instead of editing the activation, we search over prompts that fail to elicit it. Concretely, we adapt Fluent Dreaming / EPO (Thompson et al., 2024) by negating its feature term, turning feature maximization into minimiza-tion . We run GCG-style discrete token-gradient optimization (Zou et al., 2023b) against a scalar latent read from a chosen layer, regularized by a self-cross-entropy fluency term and a KL term to preserve task behavior, and sweep a popula-tion over fluency weights to trace a suppression-vs-fluency Pareto frontier. We target the eval-awareness signal under five constructions spanning a locality axis plus one output-side target: a CAA 1arXiv:2607.25907v1 [cs.LG] 28 Jul 2026 Direction SAE   
+
+> feature
+> Logit
+> −2.5
+> −2.0
+> −1.5
+> −1.0
+> −0.5
+> 0.0
+> 0.5
+> 1.0
+> suppressed activation  f ∗ /f0
+> base f0
+> -0.7
+> →0 (off)
+> -2.2
+> Input-side suppression succeeds
+> eval body
+> (no pre fi x)
+> + pre fi x that
+> suppresses dir.
+> + random
+> pre fi x
+> 0.0
+> 0.5
+> 1.0
+> 1.5
+> 2.0
+> behavioral eval log-odds
+> eval-body
+> baseline
+> more
+> eval-like
+> but behavior does not follow
+
+Figure 1: Suppression succeeds, but behavior does not follow. Left : prompt-side optimization drives diverse target latents from their base value f0 to zero or below—the direction and logit overshoot, and a causally-validated SAE feature is turned off completely. Right : yet a prompt optimized to suppress the eval-direction in front of a 
+
+fixed eval body pushes the model’s behavioral eval log-odds above the eval-body baseline (more eval-like), while a random-direction prefix is neutral. Activation-readability is not behavioral controllability. 
+
+mean-difference direction, a k-dimensional sub-space norm, a Llama Scope sparse-autoencoder feature (He et al., 2024), a single MLP neuron, and a behavioral logit-difference target that ties sup-pression directly to the model’s stated yes/no eval judgment. A central methodological concern we surface early is that a naive eval-vs-deploy contrast set confounds evaluation with formality of register; we build a balanced contrast set that decouples the two and report both. Crucially, we do not treat a drop in the mea-sured activation as success. A recurring hazard in this setting is that suppressing one linear readout may simply rotate the concept off the measured direction, or drive the input off-manifold, with-out changing what the model does. We therefore pair activation measurements with a behavioral 
+
+endpoint—the model’s own yes/no log-odds that its input is an evaluation, calibrated against held-out eval/deploy prompts and an off-manifold random-token anchor—and with an erasure probe trained fresh on the optimized prompts, guarded by an orthogonal-complement probe-hacking detector. Two findings follow (Fig. 1). First, prompt-side minimization works : the latent is robustly suppress-ible across seeds ( z ≈ − 7), and the optimizer fully and selectively turns off a causally-validated Llama Scope SAE feature—a genuine input-side control capability, and the input-side analogue of what ac-tivation steering does model-side. Second, and more subtly, this suppression does not amount to be-havioral control: a battery of controls—a placebo random direction, an in-context “wrap” test that holds a real eval passage fixed, and a comparison to model-side steering—shows that zeroing the acti-vation leaves the model’s behavioral eval judgment unchanged, and in context even backfires. We re-gard both as contributions, and pair them with a behavioral-plus-erasure protocol (with a validated probe-hacking detector) built precisely to separate genuine behavioral change from activation drop: 
+
+activation-readability is not behavioral controlla-bility .
+
+Contributions. 
+
+1. The first input-only method to minimize a tar-geted internal latent under fluency and task-preservation regularizers—the input-side dual of activation steering—across five target con-structions (direction, subspace, SAE feature, single neuron, behavioral logit). 2. A behavioral + erasure protocol that goes beyond activation drop, with an orthogonal-complement probe-hacking detector (and a positive control validating it), placebo-direction and in-context “wrap” specificity controls, and a real-Pile baseline. 3. An empirical demonstration on Llama-3.2-3B and Llama-3.1-8B that prompt-side min-imization succeeds : it drives diverse target latents toward zero across all five construc-tions, including a causally-validated Llama Scope SAE feature turned off completely and selectively ( 0.7% collateral). 24. A rigorous behavioral analysis showing that this suppression does not , by itself, control behavior—across placebo, in-context, and model-side controls, zeroing the activation leaves the model’s behavioral eval judgment unchanged: activation-readability is not be-havioral controllability. 
+
+2 Related Work 
+
+Discrete prompt optimization, fluent attacks, and feature dreaming. Our optimizer inherits gradient-guided discrete token search—HotFlip (Ebrahimi et al., 2018), universal triggers (Wallace et al., 2019), AutoPrompt (Shin et al., 2020), and GCG (Zou et al., 2023b), whose token-gradient pro-posals plus true-loss candidate evaluation are the inner loop we adopt. Because raw optimized strings are gibberish and are caught by perplexity filters (Alon and Kamfonas, 2023; Jain et al., 2023), a line of fluency-aware attacks followed (Liu et al., 2024; Wen et al., 2023; Sadasivan et al., 2024); the same pressure motivates our self-cross-entropy < 6 con-straint. The complementary lineage is feature visu-alization (Olah et al., 2017; Baeumel et al., 2023), whose discrete-text case Fluent Dreaming / EPO (Thompson et al., 2024) solved by tracing a Pareto frontier between activation and fluency. We take EPO’s frontier machinery but negate the feature term—turning maximization into minimization— and add a task-retention (KL) term. 
+
+Activation steering, representation engineering, and concept erasure. The dominant way to con-trol an internal latent is model-side: edit activations at inference. Contrastive-pair steering (Turner et al., 2023) and its averaged variant CAA (Rimsky et al., 2024)—whose mean-difference direction we reuse to build our target v—add or subtract a concept vector, with negative multipliers suppressing the behavior. Representation engineering (Zou et al., 2023a) and inference-time intervention (Li et al., 2023) generalize this to reading and writing con-cept directions, and Arditi et al. (2024) show a sin-gle direction can mediate refusal across many mod-els, so that ablating it removes the behavior. That single-direction picture is itself contested: Joad et al. (2026) argue refusal is better described by a multi-dimensional subspace, which directly mo-tivates our subspace-norm target. At the limit sit concept-erasure methods—LEACE (Belrose et al., 2023) and null-space projection (Ravfogel et al., 2020)—which provably prevent any linear probe from recovering the concept. All of these require access to the forward pass. Our method is the input-side dual : we leave the forward pass untouched and instead optimize the prompt so the latent is driven toward zero, and we compare against model-side negative steering as an explicit ceiling (baseline B4). 
+
+Linear representations, superposition, and sparse autoencoders. That a scalar f (t) =
+
+v⊤hℓ(t) is a meaningful target rests on the lin-ear representation hypothesis (Park et al., 2024; Jiang et al., 2024); superposition (Elhage et al., 2022) explains why suppressing one direction risks dragging interfering features along—the collateral risk our side-effect audits quantify. Sparse autoen-coders (Huben et al., 2024) unmix superposed fea-tures into monosemantic dictionaries, available at scale via Gemma Scope (Lieberum et al., 2024) and Llama Scope (He et al., 2024); we use a Llama Scope feature both as a target construction and as the collateral-effect instrument. 
+
+Evaluation awareness, situational awareness, and sandbagging. Our target phenomenon is a model’s awareness that it is being evaluated. Sit-uational awareness is measurable (Laine et al., 2024), and its evaluation-specific slice is now doc-umented both behaviorally—frontier models distin-guish evaluation from deployment transcripts well above chance (Needham et al., 2025)—and repre-sentationally, via linear probes that separate eval from deployment prompts (Nguyen et al., 2025). Critically, the signal is not merely readable but steerable: Hua et al. (2026) make an eval-aware model behave as if deployed by adding a steering vector, the closest model-side precedent to our goal. The stakes are that models may strategically under-perform when they believe they are being tested (sandbagging, van der Weij et al., 2025; detectable with deception probes, Goldowsky-Dill et al., 2025) or behave differently when they believe they are in training (Greenblatt et al., 2024), so evaluation results may not predict deployment behavior. Prior work thus either detects the awareness signal with probes or overrides it with inference-time steering. 
+
+Our position. To our knowledge, no prior work performs input-only minimization of a targeted in-ternal latent for the purpose of suppression while preserving fluency and task behavior, nor evalu-ates such suppression beyond the activation drop itself. We contribute the prompt-side dual of neg-3ative steering, and pair it with a behavioral-plus-erasure protocol that adds a fresh-probe erasure test, an orthogonal-complement probe-hacking detector, and an off-manifold behavioral anchor—tools de-signed precisely to check whether a measured acti-vation drop reflects a genuine change in behavior or merely a rotation off the probed direction. 
+
+3 Method 
+
+We formalize prompt-side latent minimization as the input-only dual of activation steering. Given a frozen model and a scalar target latent f (t) read from the residual stream, we optimize a short, flu-ent prompt t so that f (t) is driven toward zero, using no inference-time access to the model’s acti-vations. Section 3.1 defines f and its five construc-tions; Section 3.2 gives the objective and optimizer; Section 3.3 defines the evaluation protocol. 
+
+3.1 Target latent f (t)
+
+Let hℓ(t) ∈ Rd denote the residual-stream acti-vation at a chosen layer ℓ, read either at a fixed position or pooled over positions (specified per con-struction). The target is a scalar functional f (t) of these activations; larger f means the latent is more strongly present. Suppressing the target means op-timizing the prompt t to minimize f (t) (§3.2), and we report the drop ∆f = f (t0) − f (t∗) of the opti-mized prompt t∗ relative to the base prompt t0. For the non-negative SAE-feature read-out, f ≥ 0 and 
+
+f (t∗)=0 means the feature is fully off ; the signed direction, neuron, and logit read-outs can be driven past zero to the low-eval side. We consider five constructions, spanning a locality axis from a full linear direction down to a single neuron, plus one 
+
+output-side target tied directly to behavior. 
+
+(i) Direction ( k=1 ). Following contrastive acti-vation addition (Rimsky et al., 2024; Turner et al., 2023), v ∈ Rd is the unit-normalized difference of class-conditional mean activations at layer ℓ from an eval-vs-deploy contrast set, and the target is the signed projection fdir (t) = v⊤hℓ(t) read at the fi-nal token; minimizing it pushes the activation to the low-eval side and can go negative. 
+
+(ii) Subspace ( k-dim). To test whether the con-cept lives in more than one direction, we take the top-k discriminant directions spanning a sub-space S and target the projected norm fsub (t) = 
+
+∥PS hℓ(t)∥2. Being unsigned, the optimizer must collapse energy in all k directions at once ( k=1 
+
+recovers the magnitude of fdir ). 
+
+(iii) SAE feature. For an interpretable, monose-mantic target we take a single sparse-autoencoder latent j from Llama Scope (He et al., 2024). The SAE encodes the residual stream into non-negative 
+
+feature activations a(h) = σ Wenc (h − bdec ) + 
+
+benc 
+
+ with a non-negative, ReLU-type nonlinearity 
+
+σ, so aj (h) ≥ 0 and aj (h)=0 exactly when feature 
+
+j is inactive. Because such a feature is sparse and position-local (it fires on a few tokens and is zero elsewhere), we max-pool over positions, 
+
+fsae (t) = max  
+
+> p
+
+aj
+
+ hℓ(t; p). (1) 
+
+Suppressing feature j then means optimizing the prompt so that aj fires nowhere : fsae (t∗)=0 cer-tifies the feature is off at every position, a strictly stronger condition than reducing it at the last token alone. 
+
+(iv) Single neuron. The most localized target is one MLP unit: we rank the dmlp post-activation neurons at layer ℓ by Cohen’s d on an even-indexed split of the contrast, take the top unit j, and causally validate it on the held-out positives (ablate its counterfactual contribution aj Wout [j] from the residual stream, re-run, and read the downstream eval-direction change against a magnitude-matched null). The target is its post-activation at the final token, fneuron (t) = aj (hmlp  
+
+> ℓ
+
+(t)) .
+
+(v) Logit difference (behavioral endpoint). The four targets above are internal. To tie suppression to behavior , we append the evaluation question q
+
+(“. . . Is the text above part of a test or evaluation? Answer:”) and target the yes/no logit gap at the final position, 
+
+flogit (t) = zyes (t ⊕ q) − zno (t ⊕ q), (2) which is exactly the behavioral eval log-odds our protocol measures (§3.3), so minimizing it opti-mizes the endpoint not an internal proxy. Be-cause it reads output logits after a fixed suffix, the GCG gradient flows to the prompt tokens through a suffix-appended forward (replacing only the prompt-prefix embeddings with the differen-tiable one-hot). 
+
+3.2 Objective and optimizer 
+
+We maximize a score that trades suppression against fluency and task retention. For a prompt t with 4baseline (initial) prompt t0,
+
+Score( t) = −f (t) + λxe 
+
+−XE( t)
+
++ λkl 
+
+−KL  p(y | t) ∥ p(y | t0) ,
+
+(3) where XE( t) is the model’s mean self-cross-entropy on its own tokens (a fluency regularizer, fol-lowing EPO (Thompson et al., 2024)) and the KL term keeps the task-conditional output distribution close to the baseline. The first term is the negated target latent: this is exactly the feature term of Flu-ent Dreaming (Thompson et al., 2024) with its sign flipped, making our method the input-side dual of 
+
+negative steering. We sweep λxe ∈ { 0, 0.5, 1, 2}
+
+and maintain a small population of candidates, one branch per λxe , to trace a suppression-vs-fluency Pareto frontier rather than commit to one operating point. The endpoint λxe =0 (no fluency term) is ex-actly the GCG-min baseline B3: pure suppression with no fluency pressure. We optimize (3) over discrete tokens with a GCG-style procedure (Zou et al., 2023b): token-gradients shortlist candidate replacements per po-sition (following HotFlip/AutoPrompt (Ebrahimi et al., 2018; Shin et al., 2020)), and we then pick the best by a true forward-pass evaluation (correcting the linearization error). A special-token mask blocks context-reset, chat-template, and untrained-embedding tokens, which prevents degenerate context resets and makes optimized prompts re-tokenize losslessly (used for transfer). Optimizer hyperparameters are in Appendix A. 
+
+3.3 Evaluation protocol 
+
+Activation drop alone is a weak claim: it can reflect rotation off the measured direction rather than gen-uine change in the concept. Our protocol therefore reports suppression, fluency, behavior , erasure , and a probe-hacking control, plus a causal validation for the SAE target. 
+
+Suppression and fluency. We report the raw drop ∆f = f (t0)−f (t∗) for the optimized prompt 
+
+t∗, and a z-score of f (t∗) against a null distribu-tion of f over random length-matched prompts, 
+
+z = ( f (t∗) − μrand )/σ rand . Fluency is the self-XE of (3) , with XE < 6 the in-distribution gate. We note that z is the right metric for the dense direc-tion target, but for the sparse SAE feature z ≈ 0
+
+by construction (random prompts also fail to fire the feature); there ∆f to a complete turn-off is the meaningful quantity. 
+
+Behavioral endpoint. Beyond internals, we ask whether the model’s own behavior shifts. The be-havioral readout is the model’s yes/no log-odds to the question “is this text an evaluation?” about the optimized prompt. We calibrate these log-odds against held-out eval and deploy prompts, and against an off-manifold random-token anchor, so that “deploy-like” is defined relative to genuine deploy prompts rather than in absolute terms. We only trust this endpoint when it is discriminative on a given model, gating on the AUROC of the calibrated readout between held-out eval and de-ploy prompts; on Llama-3.2-3B this gate passes (AUROC 0.92 ). An optimized prompt is scored “deploy-like” when its calibrated behavioral read-out falls on the deploy side of the calibration. 
+
+Erasure and the probe-hacking detector. To test whether the concept is erased rather than merely pushed along the one direction we opti-mized, we train a fresh linear probe on the con-trast set (independent of v) and read its peval on 
+
+hℓ(t∗). A genuine reduction should lower a probe the optimizer never saw. As a probe-hacking con-trol we fit an orthogonal-complement probe: we project out the optimized direction, train a probe on the residual subspace, and read it on hℓ(t∗). If suppression is merely rotation off the measured axis, the concept persists in the complement and this probe still fires on t∗ (probe-hacking exposed); genuine erasure removes it from the complement as well. Crucially, this control is only usable when the complement probe is itself informative on held-out data: we report its held-out AUROC and, when the probe cannot separate eval from deploy off v in the first place, flag the erasure-vs-rotation question as inconclusive rather than resolved. For the SAE target we additionally causally val-idate the chosen feature before suppressing it and run a side-effect audit afterward; both are detailed in Appendix A. Task retention is measured by the KL term of (3). 
+
+4 Experimental Setup 
+
+Our main experiments use LLAMA -3.2-3B-INSTRUCT (Grattafiori et al., 2024; Meta AI, 2024) with the target latent read from the residual stream at layer 14; SAE experiments use L LAMA -3.1-8B-I NSTRUCT at layer 16 (the depth covered by Llama Scope (He et al., 2024)), and cross-size trans-fer targets L LAMA -3.2-1B-I NSTRUCT at layer 8 (relative-depth matched). All white-box gradients 5and activation reads use T RANSFORMER LENS ; cru-cially, model access is used only to construct the objective and the probes—the resulting artifact is a plain token sequence and the method itself is input-only. Prompts are optimized at length n=12 
+
+by GCG-style discrete search (Zou et al., 2023b) (token-gradient proposals, top-128 candidates per position, batch B=64 selected by true objective, 
+
+T =120 –150 iterations), running a population over the fluency weight λxe ∈ { 0, 0.5, 1, 2} to trace the Pareto frontier (Thompson et al., 2024); λxe =0 
+
+is exactly baseline B3. A special-token mask blocks context-reset, chat-template, and untrained-embedding tokens (which otherwise let the search cheat off-distribution) and guarantees round-trip-stable retokenization for transfer. We calibrate flu-ency against 12-token Pile slices (mean self-cross-entropy ≈ 3.7) and treat XE < 6 as in-distribution (“fluent”), and we replicate the full suite over n=4 
+
+seeds. Full hyperparameters, the B0–B4 baseline ladder, and SAE-target details are in Appendix A. 
+
+4.1 Eval-vs-deploy contrast and the register confound 
+
+The targets are built from an eval-vs-deploy con-trast set. Our first set, synthetic , uses tem-plated eval- versus deploy-context prompts (a lin-ear probe separates them at accuracy 1.00 ), but the pipeline’s own audit flagged a register con-found : the eval frames are formal and the de-ploy frames casual, so the direction partly tracks 
+
+formality (a fresh probe fires on formal-but-non-eval text at peval =0 .78 ). We therefore build 
+
+synthetic_balanced , spanning both regis-ters on both sides, which roughly halves the con-found ( peval → 0.46 ± 0.04 , clearing the flag in 
+
+3/4 seeds). Seed-replication numbers use the bal-anced set; the single-run frontier, baseline com-parison, and sweep use plain synthetic . Real SAD prompts (Laine et al., 2024) would decouple it most cleanly but are canary-gated; we note SAD as future work. 
+
+5 Results 
+
+Unless noted, the target is a CAA mean-difference direction on Llama-3.2-3B-Instruct at layer 14, prompt length n = 12 , with in-distribution fluency defined as self-cross-entropy XE < 6 (Pile 12-token slices have mean self-XE ≈ 3.7). We report suppression strength as z against a length-matched random-prompt null (more negative is stronger sup-pression). We first establish that prompt-side sup-pression is feasible and how it compares to non-optimization baselines, then contrast it with model-side steering to separate activation change from 
+
+behavior change, and finally sweep target construc-tions and stress-test the result with controls. 
+
+5.1 Feasibility: fluent vs. robust suppression 
+
+On a single run (plain contrast), the best fluent prompt ( λ = 0 .5) reaches f = −1.53 at z =
+
+−7.20 , self-XE 5.88 (Fig. 4, appendix); the GCG-min baseline ( λ = 0 , B3) suppresses less while being gibberish (self-XE 12 .7), so the fluency term buys both lower activation and in-distribution text. Over n = 4 balanced-contrast seeds, suppression 
+
+strength is robust ( z = −7.4 ± 2.0, negative in ev-ery seed) but strict fluent suppression ( XE < 6) is reached in only 1/4 (typical best XE ≈ 7): the 
+
+5.88 run was a favorable draw. Suppression is robust; fluent suppression is seed-dependent (Ta-ble 2). 
+
+5.2 Comparison to non-optimization baselines 
+
+We compare the gradient optimizer against a ladder of controls, all scored as z against the same length-matched random-token null ( B1 ). B0 rewrites the base prompt without gradients: templated synonym paraphrase, model-sampled paraphrase (gated to keep eval vocabulary), and a “de-testify” rewrite that instructs the model to make the text not sound like a test. B2 is a corpus scan—the most-suppressing natural 12-token window found by scanning a text corpus for low target activation. 
+
+B3 is GCG-min, our own optimizer with the flu-ency term removed ( λxe =0 ), and B4 is model-side negative steering (§5.3). Table 1 scores the input-side ladder on two axes—suppression z and fluency (self-XE). Gradient-free paraphrase barely moves the latent, but the de-testify rewrite and corpus scan get close and stay fluent ( z = −5.21 , −6.66 ;self-XE <4); dropping our own fluency term (B3) actually worsens suppression ( −5.00 ) while pro-ducing gibberish (self-XE 12 .7). The full optimizer (−7.20 , self-XE 5.9) is the only method that is both strongest and in-distribution, though cheap heuris-tics are competitive on suppression alone. This B2 row uses a small built-in corpus; the real Pile makes B2 stronger still (§5.6). 6Method Grad.? self-XE z vs. null B1 random-token null (ref.) – – 0                        
+
+> B0 templated paraphrase no 3.6−1.03
+> B0 sampled paraphrase no 3.3−2.08
+> B0 “de-testify” rewrite no 3.2−5.21
+> B2 natural corpus scan no 4.0−6.66
+> B3 GCG-min (no fluency term) yes 12 .7−5.00
+> Optimizer (ours, λ=0 .5)yes 5.9−7.20
+> Table 1: Input-side baseline ladder (direction target, 3B; baselines defined in §5.2). Suppression zis vs. a length-matched random-token null ( B1 ), lower stronger; self-XE <6is fluent. The optimizer beats every input-side baseline, but B2 and the de-testify rewrite are close, and dropping the fluency term (B3) both worsens sup-pression and yields gibberish. Model-side steering (B4) is a separate axis (§5.3).
+
+5.3 Input-side vs. model-side: activation is not behavior 
+
+We compare against model-side negative steering (B4), the inference-time “ceiling”. As α grows, a fresh probe’s peval collapses to 0—but the model’s 
+
+behavioral eval log-odds does not fall; it drifts up 
+
+as the model degrades. Zeroing the measured ac-tivation does not, by itself, reduce eval-relevant behavior, which is why we evaluate behavior di-rectly rather than reporting activation drop alone. 
+
+5.4 Behavioral + erasure protocol 
+
+Our protocol pairs a behavioral endpoint with a linear-erasure probe. The behavioral endpoint is the model’s yes/no log-odds to “is this text an eval-uation?”, calibrated against held-out eval/deploy prompts and a random-token anchor (discrimina-tive on 3B, AUROC 0.92 ). Suppressing the direc-tion or neuron moves the best optimized prompt to the deploy level ( 3.5 ± 0.5 of 4 “deploy-like” across n = 4 seeds), while the causally-validated SAE feature barely moves behavior at all (Fig. 3); and the controls of §5.7 show even the direction’s shift is not eval-specific. For erasure, a fresh probe on h(t∗) falls from peval ≈ 0.95 to 0.04 –0.50 ;an orthogonal-complement probe-hacking control (which would still fire under rotation but not under erasure) reads at chance ( 0.18 ). A positive control (§5.7) shows the detector can catch a planted rota-tion, so this is consistent with erasure, bounded by the prompts’ off-manifold character. (Cross-size transfer to Llama-3.2-1B and a signed-direction-vs.-subspace-norm comparison are in App. B.) 
+
+5.5 SAE feature: complete suppression, partial behavior 
+
+We target an interpretable SAE feature on Llama-3.1-8B (Llama Scope l16r_8x , layer 16). Fea-ture 3602 is eval-correlated ( d = 2.55 ) and 
+
+causally validated (ablating it shifts a downstream read-out beyond a magnitude-matched null, causal 
+
+z = 3 .56 ). Prompt-side suppression turns it fully off ( f0 = 4 .72 → 0; ∆f is the right metric for a sparse feature) and selectively—only 229 /32768 
+
+(0.7% ) other latents move—yet the behavioral ef-fect is only partial (peval 0.92 →∼ 0.8). Fully turning off one causal feature does not fully change behavior, consistent with a distributed concept (El-hage et al., 2022): even a clean causal activation knob is not a behavioral knob. 
+
+5.6 Target-construction sweep: neuron, logit, and the real Pile 
+
+We compare the five constructions across both model sizes—direction, subspace, neuron, and logit at 3B (layer 14), and the SAE feature at 8B (layer 16); the direction, neuron, logit, and SAE targets appear side by side in Table 4 (appendix)— and re-run the B2 scan against the real Pile (pile-10k , 1000–1500 windows) rather than the built-in corpus of §5.2. 
+
+Single neuron: correlated but not causal. The most eval-correlated MLP neuron at layer 14 has a large Cohen’s d = 2 .35 , yet our interventional check does not validate it (causal z = 0.30 ); the identical picture holds at 8B (neuron #3690: 
+
+d = 2 .37 , causal z = −0.24 ). Suppressing it shifts behavior ( 4/4 deploy-like) but leaves the concept probe-readable ( peval 0.98 → 0.69 ). A single neu-ron is an eval correlate , not a cause , at both scales— a neuron-level echo of the distributed concept. 
+
+Logit difference vs. the real Pile. Targeting the yes/no eval-question logit gap (Eq. 2) gives the largest raw suppression: the base prompt reads 
+
+f0 = +3 .19 (“yes, an evaluation”) and the opti-mizer drives it to −6.97 , flipping the stated judg-ment to “no” (Fig. 2, right). This is the one tar-get the optimizer decisively wins—no natural Pile window moves the eval-logit ( fmin = −0.06 ). For the internal direction (Fig. 2, left) the pic-ture inverts: among 1500 natural windows the best reaches −1.91 , beating even the optimizer’s off-distribution −1.80 . So the optimizer is necessary 
+
+for the behavioral endpoint but, for the internal di-7−2 −1 0 1 2                        
+
+> target activation f
+> 0
+> 25
+> 50
+> 75
+> 100
+> 125
+> count
+> Direction (CAA)
+> base prompt f0=2.50
+> best natural window=-1.91
+> optimizer t*=-1.80 (self-XE 12)
+> natural Pile windows (n=1500)
+> −0.3 −0.2 −0.1 0.0 0.1 0.2
+> target activation f
+> 0
+> 25
+> 50
+> 75
+> 100
+> 125
+> count
+> Neuron (MLP)
+> base prompt f0=0.02
+> best natural window=-0.34
+> optimizer t*=-0.12 (fluent)
+> natural Pile windows (n=1000)
+> −6−4−202
+> target activation f
+> 0
+> 20
+> 40
+> 60
+> 80
+> count
+> Logit-di ff erence
+> base prompt f0=3.19
+> best natural window=-0.06
+> optimizer t*=-6.97 (self-XE 14)
+> natural Pile windows (n=1000)
+
+Figure 2: Real-Pile scan. Optimized t∗ against the distribution of natural Pile-window activations (3B). The optimizer’s advantage is target-dependent: a natural scan matches or beats it for the internal direction and neuron; only for the behavioral logit is it necessary. self-XE annotations mark points that are off-distribution. 
+
+rection, a natural scan is a competitive gradient-free alternative, tempering §5.2’s 16-prompt corpus. 
+
+5.7 Controls: specificity, restarts, and validating the erasure detector 
+
+Three controls, prompted by an adversarial audit, sharpen what the headline numbers show. 
+
+Placebo directions: suppression and behavioral shift are not eval-specific. Two placebo targets— a CAA direction over a random relabeling of the contrast, and a fixed random unit direction—both suppress about as hard as the real eval direction (|z|=6 .6, 10 .6 vs 8.3) and shift the behavioral eval log-odds about as far ( 0.43 and 0.51 vs the real direction’s 0.44 ; Table 3). So the z ≈ − 7 sup-pression and deploy-ward shift are generic conse-quences of GCG writing a short non-eval string, not eval-specific control—which needs the concept held in context , tested next. 
+
+Wrap threat model: in-context suppression does not control behavior. We hold a real eval body fixed, optimize only a free prefix, and read the target at the body’s last token (six held-out bod-ies, real vs. random direction, two seeds; Fig. 1, right). The prefix suppresses the direction at the body ( ∆f =0 .98 ), but moves the behavioral eval log-odds the wrong way—from 1.40 up to 1.81 
+
+(shift −0.41 ± 0.46 away from deploy), while a random-direction prefix is neutral ( +0 .10 ); the specificity gap is −0.51 ± 0.56 , not only absent but negative. So even with the eval passage in con-text, the prefix that minimizes the direction tends to read as more test-like. With the placebo and the ineffective model-side steering of §5, the message is consistent: the eval-awareness direction is read-able and suppressible, but activation-readability is 
+
+not behavioral controllability. Separately, a matched-compute restart schedule does not raise the fluent-crossing rate ( 0/20 vs 
+
+1/16 ). Finally, a positive control validates the era-sure detector: it fires on a planted rotation and is silent on a planted erasure, so the at-chance result on the optimized prompts is consistent with erasure 
+
+(App. B). 
+
+6 Discussion and Conclusion 
+
+Prompt-side minimization is a real capability: adapting Fluent Dreaming / EPO (Thompson et al., 2024) with a negated feature term, we drive a targeted internal latent toward zero from the in-put alone across all five constructions, spanning Llama-3.2-3B and Llama-3.1-8B, and fully off for a causally-validated SAE feature. The subtler find-ing is what this suppression does not buy: a placebo random direction suppresses just as hard as the real one; in-context suppression of the eval-direction fails to move (and slightly backfires on) the be-havioral judgment; and turning off the causal SAE feature only partially changes behavior, consistent with a distributed concept (Elhage et al., 2022). Across input-side, model-side, and feature-level interventions, the evaluation-awareness direction is readable and suppressible, but suppressing it does not make the model behave as though it is not being evaluated. Future work should validate on real SAD (Laine et al., 2024) prompts and pur-sue the in-context threat model. The broader mes-sage is methodological: activation drop is not the endpoint—any claim of controlling an internal con-cept must be measured against behavior, not activa-tion alone. 
+
+Limitations 
+
+We list the limitations we consider load-bearing; several are unresolved and bound the strength of our claims. 
+
+Non-specificity is shown only for the direction. 
+
+Our strongest negative is established for the linear CAA direction target (3B, layer 14): a placebo ran-dom direction suppresses as hard and (in the stan-dalone setup) shifts behavior as far as the real eval 8direction, and in the in-context wrap setting sup-pressing the real direction does not reduce the be-havioral eval judgment. We did not run this placebo for the neuron, logit, or SAE targets—and for the logit (no natural window moves it) and the causally-validated, selective SAE feature the evidence in fact points toward specificity. We therefore do not 
+
+claim to control evaluation-awareness behaviorally; we claim to suppress an internal readout of it. 
+
+Erasure vs. rotation is bounded, not resolved. 
+
+A fresh probe on h(t∗) drops from peval ≈ 0.95 –
+
+0.98 to 0.04 –0.50 , which looks like erasure. A pos-itive control confirms our orthogonal-complement detector can catch a planted rotation (orth-probe AUROC = 1 .00 ) and stays silent on erasure, so the at-chance result on optimized prompts is consistent with erasure rather than rotation; but because those prompts are off-manifold, a fresh probe’s silence is suggestive, not decisive. 
+
+Fluent suppression is seed-dependent. Strict fluent suppression ( XE < 6) was reached in only 
+
+1/4 seeds; a matched-compute restart schedule did not fix this (it splits the budget too finely). Reliable fluent suppression needs more optimization, and we do not claim fluency on demand. 
+
+Register confound, probe ̸=causal, and scale. 
+
+The balanced contrast reduces but does not elim-inate the formality confound ( peval 0.78 → 0.46 ). For the CAA and subspace targets we optimize a probe/mean-difference direction that need not be causal (we causally validate only the SAE feature). All results are on Llama-3.2-3B/1B and Llama-3.1-8B with n=4 seeds; the Llama Scope SAE was trained on a base model and applied to the instruction-tuned variant. Subspace-norm targets suppress far less fluently than signed projections, so our fluent-suppression results are specific to signed read-outs. 
+
+Ethics Statement 
+
+The method is dual-use. The same optimization that measures how much eval-awareness leaks from a prompt could be used to hide it and game a safety evaluation—the sandbagging (van der Weij et al., 2025) and alignment-faking (Green-blatt et al., 2024) failure modes we cite as moti-vation. If an internal “is this an evaluation?” sig-nal is both readable and movable from the prompt, meta-context placed in a prompt (explicit framing, provenance markers, formatting that co-varies with eval/deploy) leaks into that signal and can be opti-mized against; the defensive lesson is to keep sensi-tive meta-context out of prompts that will be scored. We frame the contribution as measurement and analysis , and our central finding bounds the offen-sive utility: input-side suppression drives down the internal readout but does not , in our in-context tests, control the behavioral eval judgment, and erasure-vs-rotation is not fully resolved—so we cannot claim the awareness is actually removed. We re-lease no weights or prompts optimized against a deployed safety system. 
+
+References                  
+
+> Gabriel Alon and Michael Kamfonas. 2023. Detect-ing language model attacks with perplexity. arXiv preprint arXiv:2308.14132 .Andy Arditi, Oscar Obeso, Aaquib Syed, Daniel Paleka, Nina Panickssery, Wes Gurnee, and Neel Nanda. 2024. Refusal in language models is mediated by a single direction. In Advances in Neural Informa-tion Processing Systems (NeurIPS) .Tanja Baeumel, Soniya Vijayakumar, Josef van Gen-abith, Guenter Neumann, and Simon Ostermann. 2023. Investigating the encoding of words in BERT’s neurons using feature textualization. In Proceedings of BlackboxNLP .Nora Belrose, David Schneider-Joseph, Shauli Ravfo-gel, Ryan Cotterell, Edward Raff, and Stella Bider-man. 2023. LEACE: Perfect linear concept erasure in closed form. In Advances in Neural Information Processing Systems (NeurIPS) .Stella Biderman, Hailey Schoelkopf, Quentin Anthony, et al. 2023. Pythia: A suite for analyzing large lan-guage models across training and scaling. In Interna-tional Conference on Machine Learning (ICML) .Javid Ebrahimi, Anyi Rao, Daniel Lowd, and Dejing Dou. 2018. HotFlip: White-box adversarial exam-ples for text classification. In Proceedings of ACL .Nelson Elhage, Tristan Hume, Catherine Olsson, et al. 2022. Toy models of superposition. Transformer Circuits Thread; arXiv preprint arXiv:2209.10652 .Nicholas Goldowsky-Dill, Bilal Chughtai, Stefan Heimersheim, and Marius Hobbhahn. 2025. Detect-ing strategic deception with linear probes. In Inter-national Conference on Machine Learning (ICML) .Aaron Grattafiori et al. 2024. The Llama 3 herd of models. arXiv preprint arXiv:2407.21783 .Ryan Greenblatt, Carson Denison, Benjamin Wright, et al. 2024. Alignment faking in large language mod-els. arXiv preprint arXiv:2412.14093 .
+
+9Zhengfu He, Wentao Shu, Xuyang Ge, et al. 2024. Llama Scope: Extracting millions of features from Llama-3.1-8B with sparse autoencoders. arXiv preprint arXiv:2410.20526 .Tim Tian Hua, Andrew Qin, Samuel Marks, and Neel Nanda. 2026. Steering evaluation-aware language models to act like they are deployed. In International Conference on Learning Representations (ICLR) .Robert Huben, Hoagy Cunningham, Logan Riggs Smith, Aidan Ewart, and Lee Sharkey. 2024. Sparse autoen-coders find highly interpretable features in language models. In International Conference on Learning Representations (ICLR) .Neel Jain, Avi Schwarzschild, Yuxin Wen, Gowthami Somepalli, John Kirchenbauer, Ping-yeh Chiang, Micah Goldblum, Aniruddha Saha, Jonas Geiping, and Tom Goldstein. 2023. Baseline defenses for ad-versarial attacks against aligned language models. 
+
+arXiv preprint arXiv:2309.00614 .Yibo Jiang, Goutham Rajendran, Pradeep Ravikumar, Bryon Aragam, and Victor Veitch. 2024. On the origins of linear representations in large language models. In International Conference on Machine Learning (ICML) .Faaiz Joad, Majd Hawasly, Sabri Boughorbel, Nadir Durrani, and Husrev Taha Sencar. 2026. There is more to refusal in large language models than a single direction. arXiv preprint arXiv:2602.02132 .Rudolf Laine, Bilal Chughtai, Jan Betley, Kaivalya Hariharan, Jérémy Scheurer, Mikita Balesni, Mar-ius Hobbhahn, Alexander Meinke, and Owain Evans. 2024. Me, myself, and AI: The situational awareness dataset (SAD) for LLMs. In Advances in Neural Information Processing Systems (NeurIPS) Datasets and Benchmarks .Kenneth Li, Oam Patel, Fernanda Viégas, Hanspeter Pfister, and Martin Wattenberg. 2023. Inference-time intervention: Eliciting truthful answers from a lan-guage model. In Advances in Neural Information Processing Systems (NeurIPS) .Tom Lieberum, Senthooran Rajamanoharan, Arthur Conmy, et al. 2024. Gemma Scope: Open sparse autoencoders everywhere all at once on Gemma 2. In 
+
+Proceedings of BlackboxNLP .Xiaogeng Liu, Nan Xu, Muhao Chen, and Chaowei Xiao. 2024. AutoDAN: Generating stealthy jailbreak prompts on aligned large language models. In In-ternational Conference on Learning Representations (ICLR) .Meta AI. 2024. Llama 3.2: Revolutionizing edge AI and vision with open, customizable models. https:// ai.meta.com/blog/llama-3-2-connect -2024-vision-edge-mobile-devices/ .Joe Needham, Giles Edkins, Govind Pimpale, Henning Bartsch, and Marius Hobbhahn. 2025. Large lan-guage models often know when they are being evalu-ated. arXiv preprint arXiv:2505.23836 .Jord Nguyen, Khiem Hoang, Carlo Leonardo Attubato, and Felix Hofstätter. 2025. Probing and steering eval-uation awareness of language models. arXiv preprint arXiv:2507.01786 .Chris Olah, Alexander Mordvintsev, and Ludwig Schu-bert. 2017. Feature visualization. Distill .Kiho Park, Yo Joong Choe, and Victor Veitch. 2024. The linear representation hypothesis and the geome-try of large language models. In International Con-ference on Machine Learning (ICML) .Shauli Ravfogel, Yanai Elazar, Hila Gonen, Michael Twiton, and Yoav Goldberg. 2020. Null it out: Guard-ing protected attributes by iterative nullspace projec-tion. In Proceedings of ACL .Nina Rimsky, Nick Gabrieli, Julian Schulz, Meg Tong, Evan Hubinger, and Alexander Matt Turner. 2024. Steering Llama 2 via contrastive activation addition. In Proceedings of ACL .Vinu Sankar Sadasivan, Shoumik Saha, Gaurang Srira-manan, Priyatham Kattakinda, Atoosa Chegini, and Soheil Feizi. 2024. Fast adversarial attacks on lan-guage models in one GPU minute. In International Conference on Machine Learning (ICML) .Taylor Shin, Yasaman Razeghi, Robert L. Logan IV, Eric Wallace, and Sameer Singh. 2020. AutoPrompt: Eliciting knowledge from language models with au-tomatically generated prompts. In Proceedings of EMNLP .T. Ben Thompson, Zygimantas Straznickas, and Michael Sklar. 2024. Fluent dreaming for language models. arXiv preprint arXiv:2402.01702 .Alexander Matt Turner, Lisa Thiergart, Gavin Leech, David Udell, Juan J. Vazquez, Ulisse Mini, and Monte MacDiarmid. 2023. Steering language mod-els with activation engineering. arXiv preprint arXiv:2308.10248 .Teun van der Weij, Felix Hofstätter, Oliver Jaffe, Samuel F. Brown, and Francis Rhys Ward. 2025. AI sandbagging: Language models can strategically un-derperform on evaluations. In International Confer-ence on Learning Representations (ICLR) .Eric Wallace, Shi Feng, Nikhil Kandpal, Matt Gard-ner, and Sameer Singh. 2019. Universal adversarial triggers for attacking and analyzing NLP. In Pro-ceedings of EMNLP .Yuxin Wen, Neel Jain, John Kirchenbauer, Micah Gold-blum, Jonas Geiping, and Tom Goldstein. 2023. Hard prompts made easy: Gradient-based discrete opti-mization for prompt tuning and discovery. In Ad-vances in Neural Information Processing Systems (NeurIPS) .
+
+10 Andy Zou, Long Phan, Sarah Chen, et al. 2023a. Rep-resentation engineering: A top-down approach to AI transparency. arXiv preprint arXiv:2310.01405 .Andy Zou, Zifan Wang, Nicholas Carlini, Milad Nasr, J. Zico Kolter, and Matt Fredrikson. 2023b. Univer-sal and transferable adversarial attacks on aligned language models. arXiv preprint arXiv:2307.15043 .
+
+A Setup details 
+
+Models and access. All white-box gradients and activation reads are obtained through T RANS -
+
+> FORMER
+
+LENS , which exposes per-layer hooks for both the token-gradient proposals and the latent read-out f (t). A small PYTHIA -70 M (Biderman et al., 2023) configuration is used only as an un-gated continuous-integration fixture (to exercise the full pipeline without a gated checkpoint) and reports no scientific result. 
+
+Prompt optimization. At each GCG step the to-ken gradient scores substitutions per position; we keep the top 128 candidates per position, sample a batch of B=64 full-sequence candidates ( B=48 
+
+for the 8B model), and select the best by true ob-jective evaluation (not the linearized proxy), for 
+
+T =120 –150 iterations. Following Fluent Dream-ing / EPO (Thompson et al., 2024) we run a popu-lation over the fluency weight λxe ∈ { 0, 0.5, 1, 2};
+
+λkl is held at a small fixed value. Because single-run fluency-crossing and transfer numbers carry substantial variance, we replicate over n=4 ran-dom seeds and report error bars. 
+
+Baseline details. The B0 sampled-paraphrase rewrites are model-generated and gated to still contain eval vocabulary (else they are not para-phrases); the B0 “de-testify” rewrites are a separate model-generated set instructed to delete eval cues. B0 rewrites are longer than the n=12 optimizer prompts, so each B0 group is also scored against a 
+
+median-length-matched random null; the B2 win-dows are cut to exactly n tokens and so use the standard null (§5.2). 
+
+SAE target. For the sparse-feature experi-ments we use the Llama Scope autoencoder 
+
+l16r_8x (He et al., 2024) on L LAMA -3.1-8B-INSTRUCT (layer 16, 32 ,768 features), with f (t)
+
+the max-pooled-over-positions activation of a se-lected latent. We select feature 3602 (Cohen’s 
+
+d=2 .55 ) and causally validate it before targeting: we ablate the feature at its max-firing position, re-run the model on held-out prompts, and mea-sure the downstream eval-readout change against a magnitude-matched random-direction null, iso-lating a genuinely causal (not merely correlational) target. 
+
+B Seed replication and target-sweep details 
+
+Supporting robustness detail: the suppression– fluency frontier (Fig. 4), seed replication (Ta-ble 2), the placebo control (Table 3), the target-construction comparison (Table 4), and 3B-vs-8B scale confirmation (Table 5). 
+
+Cross-size transfer. A 3B-optimized t∗ transfers partially but robustly to Llama-3.2-1B (best zb =
+
+−4.5 ± 1.4, n = 4 , against 1B’s own null); the special-token mask makes retokenization lossless, so this is not an artifact. 
+
+Signed direction vs. subspace norm. The signed direction ( k=1 ) dominates ( z = −7.2); subspace-norm targets ( k ∈ { 1, 2, 4, 8}) suppress far less fluently (self-XE 12 –13 ) because an un-signed norm has no sign to push negative—a signed read-out is the more tractable target. 
+
+Validating the erasure detector. A positive con-trol plants a known rotation ( w ⊥ v) and a known erasure into real layer-14 geometry: the detector fires on the rotation (AUROC 1.00 ) and is silent on erasure ( 0.19 ), so it is not simply broken. The at-chance result on the optimized prompts is thus 
+
+consistent with erasure , bounded only by those prompts’ off-manifold character. Direction Neuron SAE feature   
+
+> 1.0
+> 0.5
+> 0.0
+> 0.5
+> 1.0
+> behavioral eval-likeness
+> (0 = deploy, 1 = eval)
+> eval prompts
+> deploy prompts
+> base prompt t0
+> optimized t
+
+Figure 3: Behavioral outcome of suppression. For each internal target, the base prompt t0 (open) and best optimized prompt t∗ (filled) on an eval-likeness scale normalized to each model’s eval/deploy anchors. Sup-pressing the direction and neuron drives behavior below the deploy level; the causally-validated SAE feature barely moves it. (The logit target is omitted—it is the behavioral read-out.) 
+
+11 6 7 8 9 10 11 12 13       
+
+> self cross-entropy (fluency →)
+> −1.6
+> −1.4
+> −1.2
+> −1.0
+> −0.8
+> −0.6
+> −0.4
+> −0.2
+> 0.0
+> target activation  f ( ↓ )
+> λ= 0.0 (B3)
+> λ= 0.5
+> λ= 1.0
+> λ= 2.0
+> B1 null (no suppr.)
+> B0 paraphrase (templ.)
+> B0 paraphrase (samp.)
+> B0 de-testify
+> B2 scan
+> XE=6 (in-dist.)
+> 0.00
+> 0.25
+> 0.50
+> 0.75
+> 1.00
+> 1.25
+> 1.50
+> 1.75
+> 2.00
+> λxe
+
+Figure 4: Suppression–fluency frontier (direction, 3B). Points are λxe settings ( f down, self-XE right); dotted lines are the Table 1 baselines in f -space. The best flu-ent prompt ( λ=0 .5) beats every baseline while staying in-distribution (XE <6); the λ=0 corner (B3) suppresses less and is gibberish. 
+
+Metric n=4 seeds Plain run Best suppression z −7.4 ± 2.0 −7.2
+
+Fluent-crossing ( XE < 6) 1/4 yes ( 5.88 )Deploy-like prompts (of 4) 3.5 ± 0.5 1/4
+
+Transfer zb (3B →1B) −4.5 ± 1.4 —Register confound ( peval ) 0.46 ± 0.04 0.78 
+
+Table 2: Seed replication (register-balanced, 3B; mean ±std over 4 seeds, plain run for comparison). Sup-pression, behavioral shift, and transfer are robust across seeds; fluent suppression is not. 
+
+Target best |z| behav. log-odds ( ↓ deploy) Real eval direction 8.3 0.44 
+
+Placebo (shuffle) 10 .6 0.51 
+
+Placebo (random) 6.6 0.43 
+
+Table 3: Placebo control (3B; base t0=1 .02 , deploy mean 0.60 ). A placebo direction suppresses as hard and shifts behavior as far as the real one—for the direction, neither is eval-specific. 
+
+Construction f0 max ∆f min self-XE fluent Direction 2.5 4.3 7.1 no Neuron 0.0 2.1 5.6 yes Logit 3.2 10 .2 7.9 no SAE (8B) 4.7 4.7 7.4 no 
+
+Table 4: Target-construction comparison (3B unless noted; f0 base activation, ∆f suppression, self-XE flu-ency). z omitted (inflated for the sparse neuron/SAE targets, null ≈ 0); the SAE moves only 229 /32 ,768 
+
+(0.7% ) other latents. 
+
+Construction Metric 3B 8B Neuron Cohen d / causal z 2.35 /0.30 2.37 /−0.24 
+
+Logit f0 / ∆f 3.19 /10 .2 −0.25 /9.4
+
+Table 5: Cross-scale check. Neuron and logit are the only targets run at both sizes. The neuron stays correlated-but-not-causal ( d large, causal |z| < 0.5) and the logit strongly suppressive ( ∆f ≈ 10 ) at both. 
+
+12

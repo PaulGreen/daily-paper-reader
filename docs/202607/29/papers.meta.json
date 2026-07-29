@@ -1,0 +1,69 @@
+{
+  "label": "2026-07-29",
+  "date": "2026-07-29",
+  "generated_at": "2026-07-29T21:46:25",
+  "count": 4,
+  "papers": [
+    {
+      "paper_id": "202607/29/2607.25351v1-extracting-voice-styles-from-frozen-tts-models-via-gradient-based-inverse-optimization",
+      "section": "deep",
+      "title_en": "Extracting Voice Styles from Frozen TTS Models via Gradient-Based Inverse Optimization",
+      "authors": "Gyeongmin Kim",
+      "date": "2026-07-28",
+      "pdf": "https://arxiv.org/pdf/2607.25351v1",
+      "score": "9.0",
+      "evidence": "通过梯度下降优化冻结TTS模型的连续风格向量，直接类似于连续提示嵌入的梯度调优",
+      "tldr": "一些TTS系统仅提供预设风格向量但无参考编码器，用户无法从个人录音生成风格向量。本文通过梯度下降直接优化风格向量，以拟合单条录音的时间池化WavLM统计量，无需转录文本或对齐。在154个说话人上，说话人验证相似度显著提升，验证器接受率从1%增至53%。该方法为缺失参考编码器的冻结TTS模型提供了零样本语音克隆途径。",
+      "tags": "query:prompt-learn",
+      "abstract_en": "Some text-to-speech systems ship a synthesis model and preset style vectors but not the reference encoder that turns audio into such a vector. The model still accepts a style vector; a user with a voice of their own cannot produce one. We solve for that input directly, inverting the released pipeline by gradient descent: every weight stays frozen and only the style vector is optimized, against time-pooled WavLM statistics of one recording. Because the objective discards the time axis, the synthesized text may differ from the recording, so no transcript and no alignment are needed. On 154 speakers from two corpora, ECAPA-TDNN similarity rises from 0.132 to 0.413 and ResNet from 0.099 to 0.401, improving for every speaker; a verifier at its equal-error point accepts 53% of the recovered voices as the target, against 1% for the presets they start from.",
+      "source": "arxiv",
+      "selection_source": "fresh_fetch"
+    },
+    {
+      "paper_id": "202607/29/2607.21756v1-prompt-as-a-data-type-in-database-llm-prompt-management-and-rewriting",
+      "section": "quick",
+      "title_en": "Prompt as a Data Type: In-Database LLM Prompt Management and Rewriting",
+      "authors": "Denis Mayr Lima Martins, Gottfried Vossen",
+      "date": "2026-07-23",
+      "pdf": "https://arxiv.org/pdf/2607.21756v1",
+      "score": "7.0",
+      "evidence": "将提示视为数据库值实现提示管理与重写",
+      "tldr": "LLM在数据库应用中广泛用于分类、提取等任务，但提示通常以非结构化形式存储于DBMS之外，牺牲了查询优化和元数据管理。PromptDB将提示视为数据库原生数据类型，通过PROMPT类型和EVAL算子实现存储、重写与优化。实验显示，基于数据库元数据的提示重写提升了输出有效性，并在成本-质量方面优于静态手动提示。这一方法将提示管理纳入数据库引擎，打开了新的优化空间。",
+      "tags": "query:prompt-learn",
+      "abstract_en": "Large Language Models (LLMs) are increasingly used in database-backed applications to classify tuples, filter records using semantic predicates, extract structured attributes, and enrich query results. Yet the prompt that start these computations are typically stored outside the DBMS in unstructured formats, making them invisible to query execution, metadata management, and optimization. Drawing on Stonebraker's QUEL as a Data Type and the principles of reflective programming, this paper introduces PromptDB, a database system that treats prompts as tuple-level database values. PromptDB provides a logical PROMPT datatype whose values store a template, bindings to tuple attributes, model metadata, and task metadata. Relations may contain PROMPT attributes directly in base tables, or expose them through views over joined tuples. Users query prompt-valued attributes through generated evaluation views, while the system internally renders, rewrites, optimizes, and executes prompts through an EVAL operator. Making prompts database-visible creates a new optimization space. The key idea is to bring query-optimizer thinking to prompts: just as query optimizers exploit database metadata to rewrite SQL plans, PromptDB exploits database metadata to rewrite prompts. We evaluate PromptDB on synthetic and real-world data workloads across different tasks. The results show how database-guided rewriting improves output validity and yields favorable cost-quality trade-offs compared with static, manually written prompts.",
+      "source": "arxiv",
+      "selection_source": "fresh_fetch"
+    },
+    {
+      "paper_id": "202607/29/2607.22949v1-beyond-exact-match-how-evaluation-methodology-dominates-model-choice-in-llm-based-product-attribute-extraction",
+      "section": "quick",
+      "title_en": "Beyond Exact Match: How Evaluation Methodology Dominates Model Choice in LLM-Based Product Attribute Extraction",
+      "authors": "Ayush Dwivedi, Ashvi Soni",
+      "date": "2026-07-24",
+      "pdf": "https://arxiv.org/pdf/2607.22949v1",
+      "score": "7.0",
+      "evidence": "比较零样本、少样本等提示策略在LLM属性抽取中的表现",
+      "tldr": "大语言模型在电商产品属性抽取中表现差异显著，但其核心影响因素尚不明确。本文在MAVE基准上对比了四种提示策略与两种主流LLM，同时采用精确与模糊匹配评估，并对标注进行噪声审计。发现评估方法引起的F1方差是模型选择的23倍、提示策略的5倍，且基准标注噪声率高达23.2%。研究表明在生产实践中应优先优化评估指标与数据质量，而不是过度关注模型选型或提示工程。",
+      "tags": "query:prompt-learn",
+      "abstract_en": "Large language models (LLMs) have become a default choice for structured product attribute extraction in e-commerce pipelines, with practitioners reporting widely varying performance across models, datasets, and prompting strategies. This paper presents a controlled empirical study comparing four prompting strategies -- zero-shot, few-shot, schema-guided, and definition-augmented -- across two production-grade LLMs (GPT-4o-mini and Gemini 2.5 Flash) on the MAVE benchmark. We evaluate 6,400 attribute-level predictions using both exact and fuzzy string matching, and conduct a rigorous noise audit of the ground truth labels. We formally decompose F1 variance across four experimental factors and find that evaluation methodology produces variance approximately 23 times larger than model choice and 5 times larger than prompting strategy choice. We further establish that the MAVE benchmark exhibits a 23.2% ground truth noise rate against modern LLM outputs. Paired permutation tests (B=10,000) confirm that the inter-protocol F1 gap is highly significant (p<0.0001) and Cohen's kappa of 0.769 between protocols indicates substantial agreement. We conclude that for production attribute extraction pipelines, evaluation methodology and data quality dominate the impact of model selection and prompt engineering.",
+      "source": "arxiv",
+      "selection_source": "fresh_fetch"
+    },
+    {
+      "paper_id": "202607/29/2607.25907v1-minimizing-targeted-activations-input-only-suppression-of-evaluation-awareness-latents-in-large-language-models",
+      "section": "quick",
+      "title_en": "Minimizing Targeted Activations: Input-Only Suppression of Evaluation-Awareness Latents in Large Language Models",
+      "authors": "Deepanshu Mody, Samarth Agarwal, Utkarsh Mittal, Dipesh Mahato",
+      "date": "2026-07-28",
+      "pdf": "https://arxiv.org/pdf/2607.25907v1",
+      "score": "7.0",
+      "evidence": "通过基于梯度的令牌优化优化流畅提示以抑制内部潜变量，展示自动离散提示生成",
+      "tldr": "大语言模型若察觉评估环境，可能改变行为，这威胁安全评测的可信度。本文着眼于输入侧控制，通过优化提示词，在不接触模型参数的条件下，定向压低内部“评估感知”激活。方法组合了GCG风格的离散令牌优化与自交叉熵流畅正则，针对CAA方向、子空间范数、SAE特征等五种内部表征，在Llama-3.2和3.1上实验。结果表明，评估相关激活可被强力抑制（z≈-7），SAE特征被精确关闭；然而，CAA方向虽可读却不可控：乱数方向同样被压低且行为改变类似，真实评估中抑制失败甚至轻微提升评估判断。此外，扫描Pile自然文本可媲美优化器，单MLP神经元相关但非因果。该工作验证激活可读性不等于行为可控性，对依赖激活解读的评测方法提出警示。",
+      "tags": "query:prompt-learn",
+      "abstract_en": "Activation steering controls model behavior by editing internal activations at inference time. We study its input-side dual: optimizing a fluent prompt so that a chosen internal latent is driven toward zero, with no inference-time model access. Our target is an \"evaluation-awareness\" latent-linearly readable and steerable in recent work-whose control would threaten the validity of safety evaluations if models behave differently when they detect being tested. Adapting Fluent Dreaming / EPO with a negated feature term (GCG-style token optimization plus a self-cross-entropy fluency regularizer, swept over a fluency weight), we suppress the latent under five target constructions-a CAA direction, a subspace norm, an SAE feature, a single MLP neuron, and a behavioral logit-on Llama-3.2-3B and Llama-3.1-8B. The latent is robustly suppressible ($z\\approx-7$), and a causally-validated Llama Scope SAE feature can be fully and selectively turned off. But our controls tell a cautionary story about the CAA direction: a placebo random direction is suppressed just as hard and shifts behavior just as far, and when we hold a real eval passage in context and optimize only a prefix, suppressing the eval-direction fails to reduce-and slightly increases-the model's behavioral eval judgment. Activation-readability, in short, is not behavioral controllability. We further find that a single MLP neuron is eval-correlated but not causal at both scales, and that scanning the real Pile yields a natural-text baseline competitive with the optimizer for the internal direction. A positive control validates our erasure detector, bounding an erasure-vs-rotation question earlier left open.",
+      "source": "arxiv",
+      "selection_source": "fresh_fetch"
+    }
+  ],
+  "errors": []
+}

@@ -1,6 +1,9 @@
 * <a class="dpr-sidebar-root-link" href="#/">首页</a>
 * <a class="dpr-sidebar-root-link dpr-sidebar-noactive-link" href="javascript:void(0)" data-dpr-hash="#/tutorial/README">使用教程</a>
 * Daily Papers
+  * 2026-07-30 <!--dpr-date:20260730-->
+    * 速读区
+      * <a class="dpr-sidebar-item-link dpr-sidebar-item-structured" href="#/202607/30/2607.26286v1-evaluating-prompt-scope-and-demonstration-similarity-in-local-llm-machine-translation" data-sidebar-item="{&quot;title&quot;: &quot;Evaluating Prompt Scope and Demonstration Similarity in Local LLM Machine Translation&quot;, &quot;link&quot;: &quot;https://arxiv.org/abs/2607.26286v1-evaluating-prompt-scope-and-demonstration-similarity-in-local-llm-machine-translation&quot;, &quot;score&quot;: &quot;6.0&quot;, &quot;tags&quot;: [{&quot;kind&quot;: &quot;query&quot;, &quot;label&quot;: &quot;prompt-learn&quot;}], &quot;evidence&quot;: &quot;研究提示范围和示例相似性作为少样本LLM翻译的因素&quot;}">Evaluating Prompt Scope and Demonstration Similarity in Local LLM Machine Translation</a>
   * 2026-07-29 <!--dpr-date:20260729-->
     * 精读区
       * <a class="dpr-sidebar-item-link dpr-sidebar-item-structured" href="#/202607/29/2607.25351v1-extracting-voice-styles-from-frozen-tts-models-via-gradient-based-inverse-optimization" data-sidebar-item="{&quot;title&quot;: &quot;Extracting Voice Styles from Frozen TTS Models via Gradient-Based Inverse Optimization&quot;, &quot;link&quot;: &quot;https://arxiv.org/abs/2607.25351v1-extracting-voice-styles-from-frozen-tts-models-via-gradient-based-inverse-optimization&quot;, &quot;score&quot;: &quot;9.0&quot;, &quot;tags&quot;: [{&quot;kind&quot;: &quot;query&quot;, &quot;label&quot;: &quot;prompt-learn&quot;}], &quot;evidence&quot;: &quot;通过梯度下降优化冻结TTS模型的连续风格向量，直接类似于连续提示嵌入的梯度调优&quot;}">Extracting Voice Styles from Frozen TTS Models via Gradient-Based Inverse Optimization</a>

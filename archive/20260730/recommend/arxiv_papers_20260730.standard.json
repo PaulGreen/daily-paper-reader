@@ -1,0 +1,52 @@
+{
+  "mode": "standard",
+  "generated_at": "2026-07-30T21:41:37.787964+00:00",
+  "stats": {
+    "mode": "standard",
+    "tag_count": 1,
+    "deep_divecandidates": 0,
+    "deep_cap": 6,
+    "deep_selected": 0,
+    "quick_candidates": 1,
+    "quick_skim_target": 11,
+    "quick_selected": 1
+  },
+  "deep_dive": [],
+  "quick_skim": [
+    {
+      "id": "2607.26286v1",
+      "source": "arxiv",
+      "title": "Evaluating Prompt Scope and Demonstration Similarity in Local LLM Machine Translation",
+      "abstract": "Large language models (LLMs) are increasingly used as general-purpose translation systems, but their behavior is usually evaluated under a single prompt shape: translate one source sentence into one target language. In practice, users may ask for one target language, for several related languages at once, or for translations conditioned on examples. This paper studies prompt scope and demonstration selection as experimental variables for local LLM machine translation. We evaluate English-to-Romance and English-to-Germanic translation on the full FLORES devtest split for nine official European Union languages. We compare three local instruction-tuned LLMs, llama3.2:3b, mistral:latest, and qwen2.5:14b, against dedicated MT baselines from OPUS-MT and NLLB-200. We test zero-shot prompting and k=5 few-shot prompting with random, lexical-similarity, and embedding-similarity demonstration selection. We also compare single-target prompts with JSON-formatted family-scope prompts that request all languages in a family at once. Results show that dedicated MT systems remain strongest overall, especially for Germanic languages. Few-shot prompting helps mistral:latest and qwen2.5:14b, but hurts llama3.2:3b; embedding retrieval is best on average for the stronger LLMs, but its advantage over random and lexical examples is modest. Family-scope prompting is feasible for stronger local LLMs but exposes structured-output failures in smaller models. These findings motivate evaluating LLM translation not only by language pair and metric, but also by prompt scope, retrieval strategy, and multi-target compliance.",
+      "authors": [
+        "Mihael Arcan"
+      ],
+      "primary_category": "cs.CL",
+      "categories": [
+        "cs.CL"
+      ],
+      "published": "2026-07-28T21:26:36+00:00",
+      "link": "https://arxiv.org/pdf/2607.26286v1",
+      "tags": [
+        "keyword:prompt-learn",
+        "query:prompt-learn"
+      ],
+      "llm_score": 6.0,
+      "llm_evidence_en": "Studies prompt scope and demonstration similarity as factors in few-shot LLM translation",
+      "llm_evidence_cn": "研究提示范围和示例相似性作为少样本LLM翻译的因素",
+      "llm_evidence": "研究提示范围和示例相似性作为少样本LLM翻译的因素",
+      "canonical_evidence": "研究提示范围和示例相似性作为少样本LLM翻译的因素",
+      "llm_tldr_en": "Evaluates how prompt scope and demonstration similarity affect LLM machine translation performance, providing insights for demonstration selection.",
+      "llm_tldr_cn": "评估了提示范围（单一语言 vs 多语言）和示例相似性对本地大语言模型机器翻译的影响，发现示例相似性能提升翻译质量，为少样本提示设计提供了实用指导。",
+      "llm_tldr": "评估了提示范围（单一语言 vs 多语言）和示例相似性对本地大语言模型机器翻译的影响，发现示例相似性能提升翻译质量，为少样本提示设计提供了实用指导。",
+      "llm_tags": [
+        "query:prompt-learn"
+      ],
+      "matched_query_tag": "query:prompt-learn",
+      "matched_query_text": "providing a few examples in the prompt to adapt model behavior",
+      "matched_requirement_id": "req-4",
+      "selection_source": "fresh_fetch",
+      "quick_tier": "6"
+    }
+  ]
+}

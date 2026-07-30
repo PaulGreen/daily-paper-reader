@@ -1,0 +1,263 @@
+Title: Evaluating Prompt Scope and Demonstration Similarity in Local LLM Machine Translation
+
+URL Source: https://arxiv.org/pdf/2607.26286v1
+
+Published Time: Thu, 30 Jul 2026 00:12:57 GMT
+
+Number of Pages: 18
+
+Markdown Content:
+# Evaluating Prompt Scope and Demonstration Similarity in Local LLM Machine Translation 
+
+## Mihael Arcan 11Home Lab, Galway, Ireland 
+
+Abstract 
+
+Large language models (LLMs) are increasingly used as general-purpose translation systems, but their behavior is usually evaluated under a single prompt shape: translate one source sentence into one target language. In practice, users may ask for one target language, for several related languages at once, or for translations conditioned on examples. This paper studies prompt scope and demonstration selection as experimental variables for local LLM machine translation. We evaluate English-to-Romance and English-to-Germanic translation on the full FLORES devtest split for nine official European Union languages. We compare three local instruction-tuned LLMs, llama3.2:3b , mistral:latest , and qwen2.5:14b , against dedicated MT baselines from OPUS-MT and NLLB-200. We test zero-shot prompting and k = 5 few-shot prompting with random, lexical-similarity, and embedding-similarity demonstration selection. We also compare single-target prompts with JSON-formatted family-scope prompts that request all languages in a family at once. Results show that dedicated MT systems remain strongest overall, especially for Germanic languages. Few-shot prompting helps mistral:latest and qwen2.5:14b , but hurts 
+
+llama3.2:3b ; embedding retrieval is best on average for the stronger LLMs, but its advantage over random and lexical examples is modest. Family-scope prompting is feasible for stronger local LLMs but exposes structured-output failures in smaller models. These findings motivate evaluating LLM translation not only by language pair and metric, but also by prompt scope, retrieval strategy, and multi-target compliance. 
+
+# 1 Introduction 
+
+Machine translation (MT) evaluation traditionally treats translation as a language-pair task: a system is asked to translate from one source language into one target language, and the output is compared against reference translations. This framing remains appropriate for dedicated MT systems, but it does not fully capture how large language models (LLMs) are used as translation tools. LLM users can request one translation, several translations, or a set of related target languages in a single instruction. They can also provide examples, style constraints, and structured-output requirements. These extra degrees of freedom make prompt design part of the translation system itself. This paper asks whether prompt scope should be treated as an explicit MT evaluation variable. We focus on local LLMs that can run on consumer hardware rather than on proprietary high-end systems. This setting matters because local deployment is attractive for privacy, cost control, and offline use, but smaller local models may be more sensitive to prompt length, example formatting, and structured-output requirements. We evaluate two prompt scopes. In the single-target scope, the model translates English into one target language at a time. In the family-scope setting, the model 1arXiv:2607.26286v1 [cs.CL] 28 Jul 2026 is asked to translate the same English sentence into all languages in a related family, returning a JSON object keyed by FLORES language codes. We also study few-shot example selection. Prior work has shown that LLMs can be sensitive to in-context examples, but it is not obvious whether semantically similar examples improve translation more than random examples, especially in a multi-target prompt. We therefore compare zero-shot prompting with k = 5 random examples, lexical-similarity examples, and embedding-similarity examples. Few-shot demonstrations are drawn from FLORES dev and evaluation is performed on FLORES devtest, avoiding leakage from the test split. Our empirical study covers English-to-Romance and English-to-Germanic translation for nine official EU languages: French, Spanish, Italian, Portuguese, Romanian, German, Dutch, Danish, and Swedish. We evaluate three local instruction-tuned LLMs and compare them against dedi-cated MT baselines from OPUS-MT/MarianMT and NLLB-200. We report sacreBLEU BLEU, chrF++, COMET, paired bootstrap confidence intervals for key comparisons, sentence-level retrieval diagnostics, and family-scope compliance metrics such as target coverage and complete-output rate. The results show that prompt scope and demonstration strategy materially affect local LLM translation. Dedicated MT systems remain strongest overall, but local LLMs are competitive for some Romance targets. Few-shot prompting helps mistral:latest and qwen2.5:14b , while degrading llama3.2:3b . Embedding-based retrieval is best on average for stronger models, but its margin over random and lexical retrieval is smaller than the differences between models. Family-scope prompting is reliable for stronger LLMs but can fail severely for smaller models, especially in the Germanic setting. The contribution of this paper is therefore not a new translation model, but an evaluation design and empirical analysis showing that prompt scope and structured-output compliance should be reported when LLMs are used for MT. 
+
+# 2 Related Work 
+
+Machine translation benchmarks and metrics. FLORES-200 was introduced with No Lan-guage Left Behind (NLLB) as a multilingual evaluation benchmark covering many translation directions and professionally translated evaluation data [ 10 ]. We use FLORES because it provides a consistent dev/devtest split across all target languages in our study. For automatic evaluation, BLEU remains widely reported, but score reproducibility depends on tokenization and implementation details; SacreBLEU was proposed to standardize BLEU reporting [ 13 ]. We additionally report chrF++ [ 11 , 12 ], which is often useful for morphologically varied languages, and COMET, a learned metric designed to better correlate with human judgments [15, 14]. 
+
+LLMs for machine translation. Recent work has evaluated GPT-style models as translation systems and shown that LLMs can be strong translators in high-resource settings while still exhibiting weaknesses relative to dedicated MT systems [ 6, 19 ]. These studies motivate treating prompting and evaluation conditions carefully. Our work differs by focusing on local, consumer-hardware LLMs and by making prompt scope part of the experimental design. 
+
+In-context learning and example selection. In-context learning performance can depend strongly on which examples are placed in the prompt [ 3 , 8 ]. Retrieval-based example selection has been studied for language tasks, including selecting examples similar to the test input. For MT, however, an example can help by providing semantic analogies, terminology, output style, or simply the expected task format. We therefore include random demonstrations as a control, lexical retrieval as a lightweight baseline, and multilingual embedding retrieval as a semantic retrieval condition. 2Terminology, lexical resources, and domain knowledge in MT. Terminology and lexical-resource translation are relevant to our setting because they isolate a problem that also appears in prompt-based LLM translation: translation quality often depends on whether the system receives enough semantic, lexical, or domain-specific evidence to choose the right target expression. Earlier work therefore provides a useful precedent for studying not only the translation model, but also the auxiliary knowledge made available to it. McCrae et al. combine semantic similarity with MT for cross-lingual knowledge graph translation, while Arcan et al. show that translating terminological expressions in knowledge bases is difficult without domain context and can benefit from adaptation or injected terminology [ 9 , 2]. Related work has also used multi-way or multilingual NMT to infer dictionary entries and translate lexical resources, including closely related language settings and under-resourced WordNet gloss translation [ 1, 4 ]. Other studies examine whether rule-based linguistic, terminology, and named-entity knowledge can improve under-resourced NMT systems [ 17 , 18 ]. We do not inject terminology dictionaries or domain resources directly; instead, we test an analogous prompt-time question: whether retrieved demonstrations and related target languages provide useful semantic or lexical cues for local LLMs. This connection is why these works belong in the related work, and it also motivates our empirical caution: additional knowledge may help, but its benefit must be measured against random examples and zero-shot prompts rather than assumed. 
+
+Semantic ambiguity and translation context. Recent multimodal MT work also argues that translation quality can depend on whether additional context helps disambiguate the source. Hatami et al. use semantic diversity estimates to decide when visual information is likely to improve translation [ 5 ]. Although our experiments are text-only, our sentence-level retrieval analysis is motivated by a similar question: when does additional contextual evidence help, and can a similarity score predict that benefit? 
+
+Structured and multi-target LLM outputs. LLMs are often used not only to generate text but to produce structured outputs such as JSON. In translation, requesting multiple target languages in one response can reduce orchestration cost but creates new failure modes: omitted targets, wrong-language outputs, prompt echoes, or malformed structures. Our family-scope setting evaluates this practical dimension directly by measuring both translation quality and target coverage. 
+
+# 3 Methodology 
+
+## 3.1 Task Definition 
+
+Given an English source sentence x and a set of target languages T , the model must produce translations yt for each t ∈ T . In the single-target setting, |T | = 1 and each prompt re-quests exactly one translation. In the family-scope setting, T is the set of languages in one family. For Romance, T = {French , Spanish , Italian , Portuguese , Romanian }; for Germanic, T =
+
+{German , Dutch , Danish , Swedish }. Family-scope outputs are requested as JSON objects keyed by FLORES language codes. 
+
+## 3.2 Prompt Conditions 
+
+We evaluate four prompting conditions for both scopes. The zero-shot condition gives only the translation instruction and source sentence. The random few-shot condition prepends k = 5 
+
+demonstration translations selected uniformly from the demonstration pool. The lexical retrieval condition selects the five FLORES dev examples with highest cosine similarity under bag-of-token 3source representations. The embedding retrieval condition selects the five examples with highest cosine similarity under multilingual sentence embeddings. All few-shot examples are selected from FLORES dev; no evaluation examples from FLORES devtest are used as demonstrations. 
+
+## 3.3 Single-Target and Family-Scope Prompts 
+
+Single-target prompts ask for one target language and instruct the model to return only the translation. Family-scope prompts ask for all languages in the family in a single JSON object. For few-shot family prompts, each demonstration contains the English source sentence and aligned translations for all targets in the same family. This design allows us to compare whether examples selected for the English source sentence transfer across all requested target languages. 
+
+## 3.4 Evaluation Metrics 
+
+For translation quality, we report corpus BLEU and chrF++ computed with SacreBLEU, and sentence-level COMET means computed with Unbabel/wmt22-comet-da . For paired comparisons between the best local LLM and the chrF++-best MT baseline, we use paired bootstrap resampling over matching FLORES source identifiers and report 95% confidence intervals and two-sided p values for chrF++ and COMET. For family-scope prompting, quality metrics are computed over produced target translations. We additionally report coverage, complete-output count, missing-target count, and prompt echo count. 
+
+# 4 Experimental Setup 
+
+## 4.1 Data 
+
+The main dataset is FLORES-200. Demonstrations are drawn from FLORES dev and evaluation is performed on the full FLORES devtest split. The devtest split contains 1012 English source sentences. We evaluate official EU languages from two families: Romance (French, Spanish, Italian, Portuguese, Romanian) and Germanic (German, Dutch, Danish, Swedish). 
+
+## 4.2 Models 
+
+The local LLMs are llama3.2:3b , mistral:latest , and qwen2.5:14b , run through Ollama with temperature 0. The dedicated MT baselines are facebook/nllb-200-distilled-600M ,
+
+facebook/nllb-200-distilled-1.3B , and OPUS-MT/MarianMT models [ 10 , 16 , 7 ]. The MT baselines are evaluated only in the single-target setting, because they are designed as dedicated translation systems rather than structured multi-target instruction followers. 
+
+## 4.3 Reproducibility 
+
+Task files are deterministic and contain source identifiers, target language codes, references, prompt condition, prompt scope, and few-shot metadata. Few-shot source audits verify that demonstrations come from FLORES dev rather than FLORES devtest. Generation outputs are stored as JSONL files and evaluation tables are generated as CSV and TeX/Markdown summaries. The code and generated artifacts are organized so that single-target translation quality, family-scope compliance, COMET scoring, bootstrap significance, and sentence-level retrieval analysis can be reproduced independently. 45 Results 
+
+We report the complete FLORES devtest outcomes for two official EU language families. Romance contains French, Spanish, Italian, Portuguese, and Romanian; Germanic contains German, Dutch, Danish, and Swedish. For each family we evaluate (i) single-target prompting, where each target language is translated separately, and (ii) family-scope prompting, where the model produces all translations for the family in one JSON-formatted response. Single-target prompting is the primary translation-quality setting; family-scope prompting is a combined translation and structured-output compliance setting. All few-shot runs use k = 5 demonstrations retrieved from FLORES dev, while evaluation is performed on FLORES devtest. We compare zero-shot prompting with random demonstrations, lexical-similarity retrieval, and embedding-similarity retrieval. Tables report corpus chrF++, corpus BLEU, and sentence-level COMET means. Compact baseline and diagnostic tables use slash-separated metric triples where noted in the caption. 
+
+## 5.1 Romance languages 
+
+Table 1 gives the full single-target Romance results for all local LLMs and prompting conditions. The strongest local model is usually qwen2.5:14b , especially for French, Spanish, Italian, and Portuguese. Romanian is the main exception, where mistral:latest with lexical examples gives the strongest local chrF++ score. Few-shot retrieval is not uniformly helpful: it consistently improves mistral:latest and qwen2.5:14b relative to their zero-shot variants, but it does not improve llama3.2:3b .                                                                                                                                          
+
+> Table 1: Romance single-target local LLM outcomes on FLORES devtest. Few-shot conditions use k= 5 examples from FLORES dev. Target Model Condition chrF++ BLEU COMET fra llama3.2:3b zero-shot 60.55 36.53 0.8446 fra llama3.2:3b random k= 5 60.21 36.21 0.8436 fra llama3.2:3b lexical k= 5 60.23 36.31 0.8448 fra llama3.2:3b embedding k= 5 60.15 36.12 0.8438 fra mistral:latest zero-shot 58.04 26.76 0.7992 fra mistral:latest random k= 5 61.68 37.19 0.8525 fra mistral:latest lexical k= 5 61.52 37.23 0.8517 fra mistral:latest embedding k= 5 61.39 37.38 0.8539 fra qwen2.5:14b zero-shot 63.77 38.46 0.8514 fra qwen2.5:14b random k= 5 64.31 41.60 0.8649 fra qwen2.5:14b lexical k= 5 64.27 41.26 0.8642 fra qwen2.5:14b embedding k= 5 64.27 41.09 0.8672 spa llama3.2:3b zero-shot 49.85 22.32 0.8368 spa llama3.2:3b random k= 5 49.36 21.92 0.8357 spa llama3.2:3b lexical k= 5 49.32 21.92 0.8349 spa llama3.2:3b embedding k= 5 49.79 22.33 0.8390 spa mistral:latest zero-shot 47.05 15.01 0.7624 spa mistral:latest random k= 5 50.51 23.66 0.8415 spa mistral:latest lexical k= 5 50.59 23.81 0.8427 spa mistral:latest embedding k= 5 50.73 24.02 0.8448
+
+5Table 1: Romance single-target local LLM outcomes on FLORES devtest (continued). Target Model Condition chrF++ BLEU COMET spa qwen2.5:14b zero-shot 51.43 24.02 0.8340 spa qwen2.5:14b random k = 5 52.27 26.12 0.8479 spa qwen2.5:14b lexical k = 5 51.99 25.72 0.8479 spa qwen2.5:14b embedding k = 5 52.59 26.53 0.8521 ita llama3.2:3b zero-shot 50.14 22.40 0.8440 ita llama3.2:3b random k = 5 49.96 21.93 0.8472 ita llama3.2:3b lexical k = 5 50.01 22.08 0.8467 ita llama3.2:3b embedding k = 5 49.98 22.47 0.8452 ita mistral:latest zero-shot 48.49 15.74 0.7906 ita mistral:latest random k = 5 51.11 22.92 0.8514 ita mistral:latest lexical k = 5 51.35 23.67 0.8559 ita mistral:latest embedding k = 5 51.70 24.13 0.8537 ita qwen2.5:14b zero-shot 51.74 21.37 0.8414 ita qwen2.5:14b random k = 5 52.55 24.32 0.8621 ita qwen2.5:14b lexical k = 5 52.52 24.31 0.8594 ita qwen2.5:14b embedding k = 5 52.78 25.03 0.8646 por llama3.2:3b zero-shot 62.69 38.91 0.8703 por llama3.2:3b random k = 5 61.44 37.23 0.8682 por llama3.2:3b lexical k = 5 61.45 37.12 0.8679 por llama3.2:3b embedding k = 5 61.45 37.01 0.8696 por mistral:latest zero-shot 55.68 21.73 0.7805 por mistral:latest random k = 5 61.62 37.09 0.8698 por mistral:latest lexical k = 5 61.70 37.41 0.8692 por mistral:latest embedding k = 5 62.13 37.91 0.8728 por qwen2.5:14b zero-shot 65.04 40.55 0.8722 por qwen2.5:14b random k = 5 65.44 42.65 0.8791 por qwen2.5:14b lexical k = 5 65.69 43.07 0.8807 por qwen2.5:14b embedding k = 5 65.08 41.53 0.8796 ron llama3.2:3b zero-shot 51.12 24.77 0.8182 ron llama3.2:3b random k = 5 50.00 24.09 0.8119 ron llama3.2:3b lexical k = 5 50.27 24.06 0.8127 ron llama3.2:3b embedding k = 5 50.20 23.99 0.8168 ron mistral:latest zero-shot 48.28 15.61 0.7408 ron mistral:latest random k = 5 52.24 25.21 0.8401 ron mistral:latest lexical k = 5 53.25 27.40 0.8423 ron mistral:latest embedding k = 5 53.13 26.68 0.8456 ron qwen2.5:14b zero-shot 49.08 18.46 0.7632 ron qwen2.5:14b random k = 5 50.00 20.84 0.7877 ron qwen2.5:14b lexical k = 5 50.88 22.41 0.7925 ron qwen2.5:14b embedding k = 5 50.99 22.50 0.7997 
+
+Table 2 reports the dedicated MT baselines for the same Romance targets. The MT systems remain strong, with the chrF++-best systems being OPUS-MT for French and Romanian and NLLB-1.3B for Spanish, Italian, and Portuguese. The local LLMs are closest to MT on Spanish and Portuguese, while Romanian remains substantially harder. 6Table 2: Romance dedicated MT baseline outcomes. Each metric cell reports chrF++/BLEU/COMET. Target OPUS-MT NLLB-600M NLLB-1.3B Best chrF++ fra 67.95/47.81/0.8616 65.24/45.08/0.8586 67.06/47.48/0.8710 OPUS-MT spa 52.83/26.68/0.8499 51.91/26.08/0.8492 52.97/27.30/0.8569 NLLB-1.3B ita 54.75/27.53/0.8521 53.55/26.87/0.8598 55.40/29.34/0.8740 NLLB-1.3B por 37.04/7.37/0.7468 65.92/44.92/0.8780 66.87/46.33/0.8873 NLLB-1.3B ron 58.18/32.90/0.8686 56.39/31.90/0.8733 58.06/33.80/0.8908 OPUS-MT 
+
+Family-scope Romance results are shown at the target level in Table 3 and as compliance-aware family averages in Table 4. In this setting the model must produce all five Romance translations in one structured response. qwen2.5:14b gives the best average quality, while mistral:latest 
+
+and qwen2.5:14b both maintain high coverage. llama3.2:3b is less reliable: even though its zero-shot family coverage is above 0.91, coverage drops under few-shot family prompting, showing that additional context can make structured multi-target output harder for the smaller model. 
+
+Table 3: Romance family-scope target-level quality for outputs produced when all Romance targets are requested together in one JSON response. Target Model Condition chrF++ BLEU COMET fra llama3.2:3b zero-shot 48.31 26.01 0.8075 fra llama3.2:3b random k = 5 52.67 30.41 0.8341 fra llama3.2:3b lexical k = 5 53.50 30.85 0.8331 fra llama3.2:3b embedding k = 5 53.44 30.77 0.8374 fra mistral:latest zero-shot 60.30 37.15 0.8486 fra mistral:latest random k = 5 61.93 38.79 0.8584 fra mistral:latest lexical k = 5 61.84 38.80 0.8574 fra mistral:latest embedding k = 5 61.90 38.83 0.8573 fra qwen2.5:14b zero-shot 64.12 42.47 0.8730 fra qwen2.5:14b random k = 5 64.54 42.94 0.8792 fra qwen2.5:14b lexical k = 5 64.66 43.00 0.8787 fra qwen2.5:14b embedding k = 5 64.71 43.04 0.8789 spa llama3.2:3b zero-shot 39.78 15.40 0.8175 spa llama3.2:3b random k = 5 43.25 18.09 0.8368 spa llama3.2:3b lexical k = 5 43.92 18.37 0.8369 spa llama3.2:3b embedding k = 5 44.02 18.68 0.8358 spa mistral:latest zero-shot 49.04 21.99 0.8395 spa mistral:latest random k = 5 50.48 23.47 0.8506 spa mistral:latest lexical k = 5 50.37 23.19 0.8493 spa mistral:latest embedding k = 5 50.59 23.80 0.8493 spa qwen2.5:14b zero-shot 51.87 25.12 0.8636 spa qwen2.5:14b random k = 5 52.19 25.51 0.8666 spa qwen2.5:14b lexical k = 5 52.14 25.50 0.8663 spa qwen2.5:14b embedding k = 5 52.04 25.44 0.8661 ita llama3.2:3b zero-shot 40.21 15.61 0.8259 
+
+7Table 3: Romance family-scope target-level quality (continued). Target Model Condition chrF++ BLEU COMET ita llama3.2:3b random k = 5 43.71 18.49 0.8464 ita llama3.2:3b lexical k = 5 44.43 18.83 0.8475 ita llama3.2:3b embedding k = 5 44.40 18.68 0.8481 ita mistral:latest zero-shot 49.63 21.83 0.8528 ita mistral:latest random k = 5 51.09 23.36 0.8637 ita mistral:latest lexical k = 5 51.06 23.17 0.8637 ita mistral:latest embedding k = 5 51.25 23.57 0.8632 ita qwen2.5:14b zero-shot 52.61 25.16 0.8763 ita qwen2.5:14b random k = 5 52.57 24.81 0.8796 ita qwen2.5:14b lexical k = 5 52.59 25.09 0.8781 ita qwen2.5:14b embedding k = 5 52.90 25.29 0.8802 por llama3.2:3b zero-shot 48.52 25.30 0.8459 por llama3.2:3b random k = 5 52.71 29.73 0.8686 por llama3.2:3b lexical k = 5 53.79 30.43 0.8682 por llama3.2:3b embedding k = 5 53.36 29.73 0.8667 por mistral:latest zero-shot 58.99 34.15 0.8632 por mistral:latest random k = 5 59.80 35.06 0.8717 por mistral:latest lexical k = 5 59.82 35.03 0.8714 por mistral:latest embedding k = 5 60.09 35.27 0.8721 por qwen2.5:14b zero-shot 64.22 41.35 0.8927 por qwen2.5:14b random k = 5 64.38 41.54 0.8945 por qwen2.5:14b lexical k = 5 64.31 41.42 0.8946 por qwen2.5:14b embedding k = 5 64.62 41.80 0.8952 ron llama3.2:3b zero-shot 38.74 15.32 0.7573 ron llama3.2:3b random k = 5 42.76 18.16 0.8018 ron llama3.2:3b lexical k = 5 44.19 19.15 0.8025 ron llama3.2:3b embedding k = 5 43.94 19.02 0.8051 ron mistral:latest zero-shot 50.51 24.29 0.8214 ron mistral:latest random k = 5 51.83 25.73 0.8350 ron mistral:latest lexical k = 5 52.07 25.89 0.8397 ron mistral:latest embedding k = 5 51.98 25.96 0.8415 ron qwen2.5:14b zero-shot 51.42 25.29 0.8207 ron qwen2.5:14b random k = 5 51.75 25.80 0.8328 ron qwen2.5:14b lexical k = 5 51.99 25.93 0.8340 ron qwen2.5:14b embedding k = 5 51.97 26.00 0.8375 Table 4: Romance family-scope JSON outcomes. Quality metrics are averaged across Romance target languages. Complete items are out of 1012 source sentences; missing targets are summed across French, Spanish, Italian, Portuguese, and Romanian. Model Condition chrF++ BLEU COMET 
+
+Quality on produced translations 
+
+llama3.2:3b zero-shot 43.11 19.53 0.8108 
+
+llama3.2:3b random k = 5 47.02 22.98 0.8375 
+
+8llama3.2:3b lexical k = 5 47.97 23.52 0.8376 
+
+llama3.2:3b embedding k = 5 47.83 23.37 0.8386 
+
+mistral:latest zero-shot 53.69 27.88 0.8451 
+
+mistral:latest random k = 5 55.02 29.28 0.8559 
+
+mistral:latest lexical k = 5 55.03 29.21 0.8563 
+
+mistral:latest embedding k = 5 55.16 29.49 0.8567 
+
+qwen2.5:14b zero-shot 56.85 31.88 0.8652 
+
+qwen2.5:14b random k = 5 57.09 32.12 0.8705 
+
+qwen2.5:14b lexical k = 5 57.14 32.19 0.8703 
+
+qwen2.5:14b embedding k = 5 57.25 32.31 0.8716 Model Condition Coverage Complete Missing 
+
+Structured-output compliance 
+
+llama3.2:3b zero-shot 0.914 925/1012 434 
+
+llama3.2:3b random k = 5 0.863 873/1012 695 
+
+llama3.2:3b lexical k = 5 0.876 887/1012 625 
+
+llama3.2:3b embedding k = 5 0.870 880/1012 660 
+
+mistral:latest zero-shot 0.994 1006/1012 30 
+
+mistral:latest random k = 5 0.993 1005/1012 35 
+
+mistral:latest lexical k = 5 0.991 1003/1012 44 
+
+mistral:latest embedding k = 5 0.994 1006/1012 30 
+
+qwen2.5:14b zero-shot 0.985 997/1012 75 
+
+qwen2.5:14b random k = 5 0.986 998/1012 70 
+
+qwen2.5:14b lexical k = 5 0.986 997/1012 71 
+
+qwen2.5:14b embedding k = 5 0.986 996/1012 72 
+
+## 5.2 Germanic languages 
+
+Table 5 gives the full single-target Germanic results. The same model-dependent few-shot pat-tern appears: mistral:latest and qwen2.5:14b improve with retrieved demonstrations, while 
+
+llama3.2:3b generally degrades. Germanic targets show larger gaps to dedicated MT systems than Romance targets, particularly for Danish and Swedish. 
+
+Table 5: Germanic single-target local LLM outcomes on FLORES devtest. Each row reports chrF++/BLEU/COMET for one target, model, and prompt condition. Few-shot conditions use k = 5 
+
+examples from FLORES dev. Target Model Condition chrF++ BLEU COMET deu llama3.2:3b zero-shot 54.32 26.58 0.8299 deu llama3.2:3b random k = 5 53.92 26.13 0.8292 deu llama3.2:3b lexical k = 5 53.47 25.86 0.8274 deu llama3.2:3b embedding k = 5 53.52 25.93 0.8267 deu mistral:latest zero-shot 50.28 15.71 0.7414 deu mistral:latest random k = 5 53.82 24.24 0.8299 deu mistral:latest lexical k = 5 53.77 24.39 0.8309 deu mistral:latest embedding k = 5 53.70 24.16 0.8336 
+
+9Table 5: Germanic single-target local LLM outcomes on FLORES devtest (continued). Target Model Condition chrF++ BLEU COMET deu qwen2.5:14b zero-shot 54.99 24.58 0.8195 deu qwen2.5:14b random k = 5 55.49 26.80 0.8403 deu qwen2.5:14b lexical k = 5 55.48 27.24 0.8410 deu qwen2.5:14b embedding k = 5 55.95 27.95 0.8422 nld llama3.2:3b zero-shot 48.46 19.23 0.8285 nld llama3.2:3b random k = 5 48.36 19.39 0.8256 nld llama3.2:3b lexical k = 5 48.17 18.93 0.8266 nld llama3.2:3b embedding k = 5 48.19 19.18 0.8278 nld mistral:latest zero-shot 45.31 11.13 0.7446 nld mistral:latest random k = 5 48.62 18.33 0.8350 nld mistral:latest lexical k = 5 48.88 18.58 0.8362 nld mistral:latest embedding k = 5 49.08 19.11 0.8406 nld qwen2.5:14b zero-shot 48.41 16.41 0.8145 nld qwen2.5:14b random k = 5 49.27 18.98 0.8377 nld qwen2.5:14b lexical k = 5 49.08 18.51 0.8343 nld qwen2.5:14b embedding k = 5 49.35 18.94 0.8416 dan llama3.2:3b zero-shot 52.16 25.62 0.7889 dan llama3.2:3b random k = 5 51.60 25.12 0.7890 dan llama3.2:3b lexical k = 5 51.77 25.45 0.7909 dan llama3.2:3b embedding k = 5 51.74 25.46 0.7969 dan mistral:latest zero-shot 49.30 15.05 0.7093 dan mistral:latest random k = 5 55.69 28.98 0.8478 dan mistral:latest lexical k = 5 55.87 29.21 0.8520 dan mistral:latest embedding k = 5 56.22 30.05 0.8572 dan qwen2.5:14b zero-shot 49.53 17.71 0.7323 dan qwen2.5:14b random k = 5 50.46 19.71 0.7656 dan qwen2.5:14b lexical k = 5 50.78 20.02 0.7668 dan qwen2.5:14b embedding k = 5 51.30 20.89 0.7739 swe llama3.2:3b zero-shot 56.06 30.25 0.8369 swe llama3.2:3b random k = 5 55.28 29.29 0.8351 swe llama3.2:3b lexical k = 5 55.26 29.65 0.8358 swe llama3.2:3b embedding k = 5 55.26 29.79 0.8399 swe mistral:latest zero-shot 50.80 16.51 0.7495 swe mistral:latest random k = 5 56.18 28.33 0.8555 swe mistral:latest lexical k = 5 56.23 28.58 0.8599 swe mistral:latest embedding k = 5 56.59 29.09 0.8625 swe qwen2.5:14b zero-shot 50.20 17.85 0.7625 swe qwen2.5:14b random k = 5 52.18 21.70 0.7947 swe qwen2.5:14b lexical k = 5 52.47 22.13 0.7977 swe qwen2.5:14b embedding k = 5 53.34 23.49 0.8077 
+
+Table 6 reports the Germanic MT baselines. OPUS-MT is the strongest baseline by chrF++ and BLEU for all four Germanic targets in this experiment, with especially large margins for Danish and Swedish. These results show that strong dedicated MT models remain difficult to match with small local instruction-tuned LLMs. 10 Table 6: Germanic dedicated MT baseline outcomes. Each metric cell reports chrF++/BLEU/COMET. Target OPUS-MT NLLB-600M NLLB-1.3B Best chrF++ deu 61.11/36.04/0.8467 57.38/32.27/0.8421 59.32/35.23/0.8615 OPUS-MT nld 53.80/25.01/0.8499 52.18/24.42/0.8509 53.39/25.54/0.8656 OPUS-MT dan 66.25/43.37/0.8822 61.43/38.16/0.8780 62.89/40.36/0.8935 OPUS-MT swe 65.99/43.70/0.8896 60.64/37.01/0.8753 62.53/39.81/0.8935 OPUS-MT 
+
+Tables 7 and 8 show the Germanic family-scope results. This is the clearest compliance stress test in the paper. mistral:latest and qwen2.5:14b produce mostly complete JSON outputs, with embedding coverage of 0.980 and 0.972 respectively. llama3.2:3b , however, fails the family-scope format frequently: its Germanic zero-shot coverage is only 0.343, and even embedding retrieval reaches only 0.493. For this model, the family-scope result is therefore primarily a structured-output failure, not only a translation-quality failure. 
+
+Table 7: Germanic family-scope target-level quality. Each row reports chrF++/BLEU/COMET for one target, model, and prompt condition when all Germanic targets are requested together in one JSON response. Compliance for these same runs is summarized in Table 8. Target Model Condition chrF++ BLEU COMET deu llama3.2:3b zero-shot 15.45 1.05 0.8058 deu llama3.2:3b random k = 5 26.84 7.26 0.8278 deu llama3.2:3b lexical k = 5 23.41 5.25 0.8224 deu llama3.2:3b embedding k = 5 26.96 7.39 0.8316 deu mistral:latest zero-shot 51.67 24.23 0.8277 deu mistral:latest random k = 5 53.29 26.08 0.8414 deu mistral:latest lexical k = 5 53.05 25.92 0.8420 deu mistral:latest embedding k = 5 53.67 26.32 0.8439 deu qwen2.5:14b zero-shot 55.27 29.04 0.8608 deu qwen2.5:14b random k = 5 55.73 29.35 0.8646 deu qwen2.5:14b lexical k = 5 55.70 29.08 0.8655 deu qwen2.5:14b embedding k = 5 56.15 29.82 0.8652 nld llama3.2:3b zero-shot 13.81 0.78 0.7943 nld llama3.2:3b random k = 5 23.72 5.20 0.8266 nld llama3.2:3b lexical k = 5 20.90 3.77 0.8214 nld llama3.2:3b embedding k = 5 23.99 5.35 0.8274 nld mistral:latest zero-shot 47.01 18.20 0.8309 nld mistral:latest random k = 5 48.04 18.97 0.8428 nld mistral:latest lexical k = 5 48.20 19.28 0.8438 nld mistral:latest embedding k = 5 48.36 19.26 0.8429 nld qwen2.5:14b zero-shot 48.87 20.61 0.8558 nld qwen2.5:14b random k = 5 48.97 20.36 0.8599 nld qwen2.5:14b lexical k = 5 49.16 20.41 0.8625 nld qwen2.5:14b embedding k = 5 49.29 20.38 0.8621 
+
+11 Table 7: Germanic family-scope target-level quality (continued). Target Model Condition chrF++ BLEU COMET dan llama3.2:3b zero-shot 13.52 0.76 0.7305 dan llama3.2:3b random k = 5 24.80 6.05 0.7737 dan llama3.2:3b lexical k = 5 21.55 4.44 0.7707 dan llama3.2:3b embedding k = 5 24.67 6.23 0.7740 dan mistral:latest zero-shot 52.01 25.30 0.8366 dan mistral:latest random k = 5 53.20 26.37 0.8528 dan mistral:latest lexical k = 5 53.27 26.95 0.8521 dan mistral:latest embedding k = 5 53.78 27.41 0.8537 dan qwen2.5:14b zero-shot 52.13 26.42 0.8250 dan qwen2.5:14b random k = 5 52.62 26.82 0.8359 dan qwen2.5:14b lexical k = 5 53.17 27.23 0.8374 dan qwen2.5:14b embedding k = 5 53.54 27.74 0.8359 swe llama3.2:3b zero-shot 15.58 1.12 0.8188 swe llama3.2:3b random k = 5 26.73 7.71 0.8425 swe llama3.2:3b lexical k = 5 23.30 5.53 0.8353 swe llama3.2:3b embedding k = 5 26.45 7.60 0.8396 swe mistral:latest zero-shot 53.43 26.94 0.8586 swe mistral:latest random k = 5 54.34 28.30 0.8691 swe mistral:latest lexical k = 5 54.06 27.98 0.8676 swe mistral:latest embedding k = 5 54.80 28.69 0.8688 swe qwen2.5:14b zero-shot 52.92 26.83 0.8429 swe qwen2.5:14b random k = 5 53.06 26.76 0.8500 swe qwen2.5:14b lexical k = 5 53.17 26.75 0.8475 swe qwen2.5:14b embedding k = 5 53.54 27.17 0.8462 Table 8: Germanic family-scope JSON outcomes. Quality metrics are averaged across Germanic target languages. Complete items are out of 1012 source sentences; missing targets are summed across German, Dutch, Danish, and Swedish. Model Condition chrF++ BLEU COMET 
+
+Quality on produced translations 
+
+llama3.2:3b zero-shot 14.59 0.93 0.7873 
+
+llama3.2:3b random k = 5 25.53 6.55 0.8177 
+
+llama3.2:3b lexical k = 5 22.29 4.75 0.8124 
+
+llama3.2:3b embedding k = 5 25.52 6.64 0.8181 
+
+mistral:latest zero-shot 51.03 23.67 0.8385 
+
+mistral:latest random k = 5 52.22 24.93 0.8515 
+
+mistral:latest lexical k = 5 52.14 25.03 0.8514 
+
+mistral:latest embedding k = 5 52.65 25.42 0.8523 
+
+qwen2.5:14b zero-shot 52.30 25.73 0.8461 
+
+qwen2.5:14b random k = 5 52.59 25.82 0.8526 
+
+qwen2.5:14b lexical k = 5 52.80 25.87 0.8532 
+
+12 qwen2.5:14b embedding k = 5 53.13 26.28 0.8524 Model Condition Coverage Complete Missing                                                                   
+
+> Structured-output compliance
+> llama3.2:3b zero-shot 0.343 347/1012 2660
+> llama3.2:3b random k= 5 0.487 493/1012 2076
+> llama3.2:3b lexical k= 5 0.437 442/1012 2278
+> llama3.2:3b embedding k= 5 0.493 499/1012 2052
+> mistral:latest zero-shot 0.987 999/1012 52
+> mistral:latest random k= 5 0.975 987/1012 100
+> mistral:latest lexical k= 5 0.975 987/1012 100
+> mistral:latest embedding k= 5 0.980 992/1012 80
+> qwen2.5:14b zero-shot 0.960 972/1012 160
+> qwen2.5:14b random k= 5 0.965 977/1012 140
+> qwen2.5:14b lexical k= 5 0.968 980/1012 128
+> qwen2.5:14b embedding k= 5 0.972 984/1012 112
+
+## 5.3 Few-shot retrieval effects 
+
+Table 9 aggregates few-shot deltas over all nine target languages. The main finding is that retrieval is model-dependent. llama3.2:3b loses chrF++ under all retrieval settings. mistral:latest gains strongly under all retrieval settings, with embedding retrieval giving the largest average gain (+4.60 chrF++, +11.03 BLEU, +0.0941 COMET). qwen2.5:14b also improves across all targets, with embedding retrieval again strongest on average (+1.27 chrF++, +3.17 BLEU, +0.0264 COMET).              
+
+> Table 9: Mean few-shot deltas over all nine target languages relative to zero-shot. Each cell reports ∆chrF++/ ∆BLEU/ ∆COMET. Model random lexical embedding
+> llama3.2:3b -0.58/-0.59/-0.0014 -0.60/-0.58/-0.0012 -0.56/-0.48/+0.0008
+> mistral:latest +4.25/+10.30/+0.0895 +4.44/+10.78/+0.0914 +4.60/+11.03/+0.0941
+> qwen2.5:14b +0.87/+2.59/+0.0210 +0.99/+2.81/+0.0215 +1.27/+3.17/+0.0264
+
+Embedding retrieval is therefore the best average retrieval method for the two models that benefit from demonstrations. However, the advantage over lexical and random retrieval is smaller than the difference between models. This indicates that the ability to use demonstrations is the dominant factor; semantic retrieval helps, but it does not rescue a model that is already brittle under longer prompts. 
+
+## 5.4 Comparison with dedicated MT systems 
+
+Table 10 gives paired significance tests for the best local LLM condition against the chrF++-best MT baseline per target. The best local LLM remains below this MT baseline on chrF++ for all targets. The average chrF++ gap is smaller for Romance languages (-2.55) than for Germanic languages (-7.26). Spanish is the closest target: the chrF++ difference between qwen2.5:14b 
+
+13 with embedding retrieval and NLLB-1.3B is not significant ( p = 0 .520 ). COMET narrows some differences: French slightly favors the local LLM over the chrF++-best MT baseline in mean COMET but not significantly, and German shows a non-significant COMET difference despite a significant chrF++ gap. 
+
+Table 10: Paired comparison of the best local LLM condition and the chrF++-best dedicated MT baseline per target. Deltas are local LLM minus MT baseline. Target Best local LLM chrF-best ∆chrF 95% CI pchrF ∆COMET pCOMET 
+
+fra qwen2.5:14b random OPUS-MT -3.63 [-4.53, -2.97] 0.000 +0.0033 0.200 spa qwen2.5:14b embedding NLLB-1.3B -0.38 [-0.69, 0.40] 0.520 -0.0049 0.072 ita qwen2.5:14b embedding NLLB-1.3B -2.62 [-3.03, -1.76] 0.000 -0.0094 0.000 por qwen2.5:14b lexical NLLB-1.3B -1.18 [-1.66, -0.07] 0.020 -0.0066 0.008 ron mistral:latest lexical OPUS-MT -4.93 [-5.46, -4.02] 0.000 -0.0263 0.000 deu qwen2.5:14b embedding OPUS-MT -5.16 [-5.72, -4.22] 0.000 -0.0046 0.236 nld qwen2.5:14b embedding OPUS-MT -4.45 [-4.71, -3.52] 0.000 -0.0083 0.004 dan mistral:latest embedding OPUS-MT -10.03 [-10.77, -9.18] 0.000 -0.0250 0.000 swe mistral:latest embedding OPUS-MT -9.40 [-9.75, -8.21] 0.000 -0.0271 0.000 
+
+## 5.5 Sentence-level retrieval analysis 
+
+Table 11 reports sentence-level retrieval diagnostics. The correlation between the demonstration similarity score and the sentence-level chrF gain is close to zero in almost all settings. This is important: even when embedding retrieval is the best average condition, higher embedding similarity does not strongly predict that a specific sentence will improve. Retrieval gain is therefore not simply a monotonic function of the similarity score used for selecting demonstrations. 
+
+Table 11: Sentence-level retrieval diagnostics. Each cell re-ports mean ∆chrF/mean ∆BLEU/positive-rate/correlation between demonstration similarity score and sentence-level chrF gain. Romance Model random lexical embedding 
+
+llama3.2:3b -0.69/-0.88/0.42/-0.000 -0.62/-0.78/0.43/-0.003 -0.64/-0.81/0.43/+0.015 
+
+mistral:latest +3.70/+7.45/0.67/+0.019 +3.80/+7.53/0.68/+0.005 +3.97/+7.73/0.68/+0.025 
+
+qwen2.5:14b +0.44/+0.65/0.42/-0.023 +0.60/+0.89/0.44/-0.006 +0.67/+0.93/0.46/+0.002 Germanic Model random lexical embedding 
+
+llama3.2:3b -0.50/-0.44/0.44/+0.004 -0.64/-0.43/0.45/-0.019 -0.62/-0.45/0.45/-0.009 
+
+mistral:latest +4.63/+8.29/0.70/+0.025 +4.76/+8.36/0.72/+0.004 +4.86/+8.74/0.72/+0.019 
+
+qwen2.5:14b +0.88/+1.16/0.47/+0.001 +0.99/+1.19/0.49/-0.022 +1.37/+1.65/0.52/+0.023 
+
+14 Length effects are more visible but still model-specific. For mistral:latest , retrieval gains are larger on longer sentences in both families. With embedding retrieval, Romance gains increase from +2.53 chrF on the shortest length quartile to +4.92 on the longest, and Germanic gains increase from +3.30 to +5.36. For qwen2.5:14b , the length pattern is weaker and sometimes reversed. The sentence-level analysis therefore supports a cautious interpretation: retrieved examples help when the model can use them, but neither lexical nor embedding similarity score is sufficient by itself to predict sentence-level gains. 
+
+## 5.6 Summary of findings 
+
+The complete outcomes support five findings. First, dedicated MT systems remain the strongest local translation systems on FLORES devtest, especially for Germanic languages. Second, local LLMs are competitive for some Romance targets, particularly Spanish and Portuguese, but they do not consistently match MT baselines. Third, few-shot prompting is beneficial for mistral:latest 
+
+and qwen2.5:14b , while it hurts llama3.2:3b ; this makes model capacity and instruction-following ability central to few-shot MT prompting. Fourth, embedding retrieval is the best average retrieval method for the models that benefit from examples, but its advantage over lexical and random examples is modest. Fifth, family-scope prompting should be reported as both translation and compliance: larger local LLMs can produce mostly complete structured multi-target outputs, whereas smaller models can omit required languages, especially in the Germanic family setting. These results motivate treating prompt scope as an experimental variable in LLM-based MT evaluation. Single-target prompting measures translation quality most cleanly; family-scope prompt-ing tests whether a local LLM can function as a structured multi-target translation engine; and retrieval experiments reveal whether demonstrations help because of semantic relevance or because a given model is generally capable of using in-context examples. 
+
+# 6 Discussion and Limitations 
+
+The results show that prompt scope is not a superficial formatting choice in LLM-based machine translation. A single-target prompt and a family-scope prompt ask for different behaviours: the former tests translation into one language, while the latter also tests whether the model can coordinate several target languages and obey a structured output schema. This distinction matters in practice. Family-scope prompting is attractive because it can produce several translations in one generation call, but it also introduces failure modes that standard single-target MT evaluation would miss, including omitted languages, incomplete JSON objects, and cross-target interference. The Germanic family results for llama3.2:3b make this particularly clear: the model can produce reasonable single-target translations, but frequently fails to return all required languages when asked for the whole family at once. The few-shot results also caution against a simple “more similar examples are better” interpre-tation. Embedding retrieval gives the best average gains for mistral:latest and qwen2.5:14b ,but the sentence-level correlations between retrieval similarity score and translation improvement are close to zero. This suggests that demonstrations help through several mechanisms at once: they can clarify the task format, anchor the output style, expose target-language conventions, and occasionally provide useful semantic parallels. For smaller models, however, the same additional context can become a burden rather than a benefit. Random demonstrations are therefore not merely a weak baseline; they are a necessary control for separating the effect of example relevance from the more general effect of showing the model the expected translation pattern. 15 The comparison with dedicated MT systems provides an important boundary for the claims. Local LLMs are useful and competitive in selected settings, especially for some Romance targets, but the strongest dedicated MT baselines remain better overall in chrF++ and BLEU, with the largest gaps on Germanic languages. COMET narrows some differences and occasionally gives a less severe view of the LLM outputs, but it does not overturn the main conclusion. The contribution of this study is therefore not that small local LLMs replace dedicated MT systems. Rather, it is that prompt scope, demonstration selection, and structured-output compliance substantially affect how local LLM translation should be evaluated and reported. Several limitations remain. The study uses English as the only source language and covers two European language families. The patterns may differ for non-English sources, lower-resource languages, non-Latin scripts, morphologically richer languages, or domain-specific corpora. We also evaluate a fixed set of local model checkpoints through one inference stack and with temperature set to 0; other decoding settings, context lengths, quantizations, or instruction templates may change both translation quality and output compliance. The evaluation is automatic: BLEU, chrF++, and COMET provide complementary signals, but they do not replace human adequacy and fluency assessment. In the family-scope setting, quality scores are computed over produced translations, so they must always be interpreted together with coverage and missing-output counts. A model that produces fluent translations for only part of the requested family is not equivalent to a model that reliably produces every target. The practical implication is that local LLM translation should be deployed with validation rather than assumed reliability. Local inference is attractive for privacy-sensitive settings because source text need not be sent to a remote API, but local execution does not by itself guarantee correctness. Missing outputs, wrong-language responses, prompt echoes, and fluent mistranslations can create real risks in legal, medical, administrative, or safety-critical contexts. For multi-target translation, structured-output checks should be treated as part of the system, not as optional post-processing. Users should preserve source text, model metadata, prompts, and validation logs, and should avoid relying on automatic translations as the sole basis for high-stakes decisions. 
+
+# 7 Conclusion 
+
+This paper evaluated local LLM machine translation under two prompt scopes and three few-shot demonstration strategies. On FLORES English-to-Romance and English-to-Germanic translation, dedicated MT systems remain the strongest overall baselines, while local LLMs are competitive for selected Romance targets. Few-shot prompting helps stronger local LLMs but hurts the smallest model, and embedding-based retrieval is best on average without being universally predictive at the sentence level. Family-scope prompting exposes a different capability: the ability to produce complete structured multi-target translations. Larger local LLMs mostly satisfy this requirement, while smaller models can fail by omitting languages. These findings support evaluating LLM translation as a combination of translation quality, prompt scope, demonstration selection, and output compliance. 
+
+# References 
+
+[1] Mihael Arcan, Daniel Torregrosa, Sina Ahmadi, and John P. McCrae. Inferring translation candidates for multilingual dictionary generation with multi-way neural machine translation. In Proceedings of the Translation Inference Across Dictionaries 2019 Shared Task , volume 2493 of CEUR Workshop Proceedings , pages 13–23, 2019. 16 [2] Mihael Arcan, Daniel Torregrosa, and Paul Buitelaar. Translating terminological expressions in knowledge bases with neural machine translation. arXiv preprint arXiv:1709.02184 , 2017. [3] Tom B. Brown, Benjamin Mann, Nick Ryder, Melanie Subbiah, Jared Kaplan, Prafulla Dhariwal, Arvind Neelakantan, Pranav Shyam, Girish Sastry, Amanda Askell, et al. Language models are few-shot learners. Advances in Neural Information Processing Systems , 33:1877–1901, 2020. [4] Bharathi Raja Chakravarthi, Mihael Arcan, and John P. McCrae. WordNet gloss translation for under-resourced languages using multilingual neural machine translation. In Proceedings of the Second Workshop on Multilingualism at the Intersection of Knowledge Bases and Machine Translation , pages 1–7, Dublin, Ireland, 2019. European Association for Machine Translation. [5] Ali Hatami, Mihael Arcan, and Paul Buitelaar. Enhancing translation quality by leveraging semantic diversity in multimodal machine translation. In Proceedings of the 16th Conference of the Association for Machine Translation in the Americas (Volume 1: Research Track) , pages 154–166, Chicago, USA, 2024. Association for Machine Translation in the Americas. [6] Amr Hendy, Mohamed Abdelrehim, Amr Sharaf, Vikas Raunak, Mohamed Gabr, Hitokazu Matsushita, Young Jin Kim, Mohamed Afify, and Hany Hassan Awadalla. How good are GPT models at machine translation? a comprehensive evaluation. In arXiv preprint arXiv:2302.09210 ,2023. [7] Marcin Junczys-Dowmunt, Roman Grundkiewicz, Tomasz Dwojak, Hieu Hoang, Kenneth Heafield, Tom Neckermann, Frank Seide, Ulrich Germann, Alham Fikri Aji, Nikolay Bogoychev, Andre F. T. Martins, and Alexandra Birch. Marian: Fast neural machine translation in C++. In Proceedings of ACL 2018, System Demonstrations , pages 116–121. Association for Computational Linguistics, 2018. [8] Jiachang Liu, Dinghan Shen, Yizhe Zhang, Bill Dolan, Lawrence Carin, and Weizhu Chen. What makes good in-context examples for GPT-3? In Proceedings of Deep Learning Inside Out , pages 100–114. Association for Computational Linguistics, 2022. [9] John P. McCrae, Mihael Arcan, and Paul Buitelaar. Linking knowledge graphs across languages with semantic similarity and machine translation. In Proceedings of the First Workshop on Multi-Language Processing in a Globalising World , 2017. [10] NLLB Team, Marta R. Costa-jussà, James Cross, Onur Çelebi, Maha Elbayad, Kenneth Heafield, Kevin Heffernan, Elahe Kalbassi, Janice Lam, Daniel Licht, Jean Maillard, Anna Sun, Skyler Wang, Guillaume Wenzek, Al Youngblood, et al. No language left behind: Scaling human-centered machine translation. arXiv preprint arXiv:2207.04672 , 2022. [11] Maja Popovic. chrF: Character n-gram F-score for automatic MT evaluation. In Proceedings of the Tenth Workshop on Statistical Machine Translation , pages 392–395, Lisbon, Portugal, 2015. Association for Computational Linguistics. [12] Maja Popovic. chrF++: Words helping character n-grams. In Proceedings of the Second Conference on Machine Translation , pages 612–618, Copenhagen, Denmark, 2017. Association for Computational Linguistics. [13] Matt Post. A call for clarity in reporting BLEU scores. In Proceedings of the Third Conference on Machine Translation: Research Papers , pages 186–191, Brussels, Belgium, 2018. Association for Computational Linguistics. 17 [14] Ricardo Rei, Jose G. C. de Souza, Duarte Alves, Chrysoula Zerva, Ana C. Farinha, Taisiya Glushkova, Alon Lavie, and Luisa Coheur. COMET-22: Unbabel-IST 2022 submission for the metrics shared task. In Proceedings of the Seventh Conference on Machine Translation , pages 578–585. Association for Computational Linguistics, 2022. [15] Ricardo Rei, Craig Stewart, Ana C. Farinha, and Alon Lavie. COMET: A neural framework for MT evaluation. In Proceedings of the 2020 Conference on Empirical Methods in Natural Language Processing , pages 2685–2702. Association for Computational Linguistics, 2020. [16] Jörg Tiedemann and Santhosh Thottingal. The OPUS-MT project: Building open translation services for the world. In Proceedings of the 22nd Annual Conference of the European Association for Machine Translation , pages 479–480, 2020. [17] Daniel Torregrosa, Nivranshu Pasricha, Maraim Masoud, Bharathi Raja Chakravarthi, Juan Alonso, Noe Casas, and Mihael Arcan. Leveraging rule-based machine translation knowledge for under-resourced neural machine translation models. In Proceedings of Machine Translation Summit XVII: Translator, Project and User Tracks , pages 125–133, Dublin, Ireland, 2019. European Association for Machine Translation. [18] Daniel Torregrosa, Nivranshu Pasricha, Maraim Masoud, Bharathi Raja Chakravarthi, Juan Alonso, Noe Casas, and Mihael Arcan. Aspects of terminological and named entity knowledge within rule-based machine translation models for under-resourced neural machine translation scenarios. arXiv preprint arXiv:2009.13398 , 2020. [19] Biao Zhang, Barry Haddow, and Alexandra Birch. Prompting large language model for machine translation: A case study. arXiv preprint arXiv:2301.07069 , 2023. 18

@@ -6,34 +6,24 @@
 </div>
 
 ## 每次日报
-- 最新运行日期：2026-07-29
-- 运行时间：2026-07-29 21:46:13 UTC
+- 最新运行日期：2026-07-30
+- 运行时间：2026-07-30 21:43:09 UTC
 - 运行状态：成功
-- 本次总论文数：4
-- 精读区：1
-- 速读区：3
+- 本次总论文数：1
+- 精读区：0
+- 速读区：1
 
 ### 今日简报（AI）
-今日精读通过梯度反演从冻结TTS模型提取语音风格，速读覆盖提示的数据库化管理、评估方法论对模型选择的主导性以及大模型评估意识潜伏的抑制。
-最值得关注：冻结语音合成模型的可控风格提取，以及评估方法如何比模型本身更决定产品属性抽取任务的表现。
-建议若对可控生成或评估偏见感兴趣，可深入看精读的逆向优化方案，并结合数据库内提示重写思路做实验。
-- 详情：[/202607/29/README](/202607/29/README)
+今日速读了一篇本地大模型翻译研究，探讨提示范围与示例相似度的影响。发现针对特定语言对调整提示工程，能提升翻译质量但泛化有限。建议关注本地模型微调与提示策略的平衡，可从小语种场景入手尝试。
+- 详情：[/202607/30/README](/202607/30/README)
 
 ### 精读区论文标签
-1. [Extracting Voice Styles from Frozen TTS Models via Gradient-Based Inverse Optimization](/202607/29/2607.25351v1-extracting-voice-styles-from-frozen-tts-models-via-gradient-based-inverse-optimization)  
-   标签：评分：9.0/10、query:prompt-learn
-   evidence：通过梯度下降优化冻结TTS模型的连续风格向量，直接类似于连续提示嵌入的梯度调优
+- 本次无精读推荐。
 
 ### 速读区论文标签
-1. [Prompt as a Data Type: In-Database LLM Prompt Management and Rewriting](/202607/29/2607.21756v1-prompt-as-a-data-type-in-database-llm-prompt-management-and-rewriting)  
-   标签：评分：7.0/10、query:prompt-learn
-   evidence：将提示视为数据库值实现提示管理与重写
-2. [Beyond Exact Match: How Evaluation Methodology Dominates Model Choice in LLM-Based Product Attribute Extraction](/202607/29/2607.22949v1-beyond-exact-match-how-evaluation-methodology-dominates-model-choice-in-llm-based-product-attribute-extraction)  
-   标签：评分：7.0/10、query:prompt-learn
-   evidence：比较零样本、少样本等提示策略在LLM属性抽取中的表现
-3. [Minimizing Targeted Activations: Input-Only Suppression of Evaluation-Awareness Latents in Large Language Models](/202607/29/2607.25907v1-minimizing-targeted-activations-input-only-suppression-of-evaluation-awareness-latents-in-large-language-models)  
-   标签：评分：7.0/10、query:prompt-learn
-   evidence：通过基于梯度的令牌优化优化流畅提示以抑制内部潜变量，展示自动离散提示生成
+1. [Evaluating Prompt Scope and Demonstration Similarity in Local LLM Machine Translation](/202607/30/2607.26286v1-evaluating-prompt-scope-and-demonstration-similarity-in-local-llm-machine-translation)  
+   标签：评分：6.0/10、query:prompt-learn
+   evidence：研究提示范围和示例相似性作为少样本LLM翻译的因素
 
 
 <div class="dpr-home-promo-card">

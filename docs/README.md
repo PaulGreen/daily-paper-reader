@@ -6,24 +6,22 @@
 </div>
 
 ## 每次日报
-- 最新运行日期：2026-07-30
-- 运行时间：2026-07-30 21:43:09 UTC
+- 最新运行日期：2026-07-31
+- 运行时间：2026-07-31 20:10:49 UTC
 - 运行状态：成功
-- 本次总论文数：1
+- 本次总论文数：0
 - 精读区：0
-- 速读区：1
+- 速读区：0
 
 ### 今日简报（AI）
-今日速读了一篇本地大模型翻译研究，探讨提示范围与示例相似度的影响。发现针对特定语言对调整提示工程，能提升翻译质量但泛化有限。建议关注本地模型微调与提示策略的平衡，可从小语种场景入手尝试。
-- 详情：[/202607/30/README](/202607/30/README)
+> 今日无新推荐，系统未产出可展示论文。
+- 详情：[/202607/31/README](/202607/31/README)
 
 ### 精读区论文标签
 - 本次无精读推荐。
 
 ### 速读区论文标签
-1. [Evaluating Prompt Scope and Demonstration Similarity in Local LLM Machine Translation](/202607/30/2607.26286v1-evaluating-prompt-scope-and-demonstration-similarity-in-local-llm-machine-translation)  
-   标签：评分：6.0/10、query:prompt-learn
-   evidence：研究提示范围和示例相似性作为少样本LLM翻译的因素
+- 本次无速读推荐。
 
 
 <div class="dpr-home-promo-card">
